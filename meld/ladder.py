@@ -67,6 +67,8 @@ class NearestNeighborLadder(object):
             if rand < metrop:
                 accepted = True
 
+        print energies
+
         if accepted:
             self._swap_permutation(i, j, permutation_matrix)
             self._swap_energies(i, j, energies)
@@ -82,5 +84,5 @@ class NearestNeighborLadder(object):
     @staticmethod
     def _swap_energies(i, j, energies):
         '''Swap two rows of the energy matrix'''
-        energies[i,:], energies[j,:] = energies[j,:], energies[i,:]
+        energies[ [i,j], :] = energies[ [j,i], :]
 

@@ -191,3 +191,17 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
         call_1 = mock.call(1, 2, True)
         call_2 = mock.call(0, 1, True)
         self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
+
+class TestFiveHundredTrialsWithThreeReplicas(unittest.TestCase):
+    "test compute exchanges with 500 trials on three replicas"
+    def test_low_energy_move_down(self):
+        # the prefered order will be 2, 0, 1
+        energy = numpy.array( [[0, 0, 0], [0, 0, 0], [-10000, 0, 0]] )
+        mock_adaptor = mock.MagicMock()
+        l = ladder.NearestNeighborLadder(n_trials=500)
+
+        result = l.compute_exchanges(energy, mock_adaptor)
+
+        print result
+        self.assertEqual(result[0], 2, 'replica 2 should be at the bottom')
+
