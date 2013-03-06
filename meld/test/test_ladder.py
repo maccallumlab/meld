@@ -9,7 +9,7 @@ class TestLadderInputs(unittest.TestCase):
     "Ladder.compute_exchanges should accept the right kinds of inputs"
     def setUp(self):
         self.mock_adaptor = mock.MagicMock()
-        self.ladder = ladder.NearestNeighborLadder(n_iterations=1)
+        self.ladder = ladder.NearestNeighborLadder(n_trials=1)
 
     def test_accepts(self):
         "should accept a square energy array"
@@ -40,7 +40,7 @@ class TestLadderInputs(unittest.TestCase):
 class TestSingleTrialWithTwoReplicas(unittest.TestCase):
     "test compute_exchanges with a single trial on a two replica system"
     def setUp(self):
-        self.ladder = ladder.NearestNeighborLadder(n_iterations=1)
+        self.ladder = ladder.NearestNeighborLadder(n_trials=1)
         self.mock_adaptor = mock.MagicMock()
 
     def test_favorable(self):
@@ -101,7 +101,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
     "test compute_exchanges with two trials on a two replica system"
     def setUp(self):
-        self.ladder = ladder.NearestNeighborLadder(n_iterations=2)
+        self.ladder = ladder.NearestNeighborLadder(n_trials=2)
         self.mock_adaptor = mock.MagicMock()
 
     def test_adatpor_called(self):
@@ -154,10 +154,11 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
         call_2 = mock.call(0, 1, True)
         self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
 
+
 class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
     "test compute_exchanges with two trials on three replicas"
     def setUp(self):
-        self.ladder = ladder.NearestNeighborLadder(n_iterations=2)
+        self.ladder = ladder.NearestNeighborLadder(n_trials=2)
         self.mock_adaptor = mock.MagicMock()
 
     @mock.patch('meld.ladder.random.choice')
@@ -174,7 +175,6 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
 
         # order should be 2, 0, 1
         self.assertEqual(result, [2, 0, 1])
-
 
     @mock.patch('meld.ladder.random.choice')
     def test_low_energy_move_down_calls_adaptor(self, mock_random_choice):
