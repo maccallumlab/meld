@@ -4,17 +4,20 @@ import mock
 import numpy
 from meld import ladder
 
-class TestLadder(unittest.TestCase):
+
+class TestLadderInputs(unittest.TestCase):
+    "Ladder.compute_exchanges should accept the right kinds of inputs"
     def setUp(self):
         self.mock_adaptor = mock.MagicMock()
-        self.ladder = ladder.Ladder(n_iterations=1)
+        self.ladder = ladder.NearestNeighborLadder(n_iterations=1)
 
     def test_accepts(self):
         "should accept a square energy array"
         N = 10
         energies = numpy.zeros( (N,N) )
 
-        self.ladder.compute_exchanges(energies, self.mock_adaptor)
+        result = self.ladder.compute_exchanges(energies, self.mock_adaptor)
+        self.assertTrue(result)
 
     def test_reject_3d(self):
         "should only accept 2d energy array"
@@ -33,9 +36,11 @@ class TestLadder(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.ladder.compute_exchanges(energies, self.mock_adaptor)
 
-class TestSingleSwapTwoReps(unittest.TestCase):
+
+class TestSingleTrialWithTwoReplicas(unittest.TestCase):
+    "test compute_exchanges with a single trial on a two replica system"
     def setUp(self):
-        self.ladder = ladder.Ladder(n_iterations=1)
+        self.ladder = ladder.NearestNeighborLadder(n_iterations=1)
         self.mock_adaptor = mock.MagicMock()
 
     def test_favorable(self):
@@ -44,8 +49,7 @@ class TestSingleSwapTwoReps(unittest.TestCase):
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.assertEqual(result[0], 1, 'entries should be permuted by swap')
-        self.assertEqual(result[1], 0, 'entries should be permuted by swap')
+        self.assertEqual(result, [1, 0], 'swap should have been accepted')
 
     def test_very_unfavorable(self):
         "should never accept very unfavorable swap"
@@ -53,8 +57,7 @@ class TestSingleSwapTwoReps(unittest.TestCase):
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.assertEqual(result[0], 0, 'entries should not be permuted by swap')
-        self.assertEqual(result[1], 1, 'entries should not be permuted by swap')
+        self.assertEqual(result, [0, 1], 'swap should have been rejected')
 
     @mock.patch('meld.ladder.random.random')
     def test_marginal_unfavorable_below(self, mock_random):
@@ -65,20 +68,18 @@ class TestSingleSwapTwoReps(unittest.TestCase):
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.assertEqual(result[0], 1, 'entries should be permuted by swap')
-        self.assertEqual(result[1], 0, 'entries should be permuted by swap')
+        self.assertEqual(result, [1, 0], 'swap should have been accepted')
 
     @mock.patch('meld.ladder.random.random')
     def test_marginal_unfavorable_above(self, mock_random):
         "we should reject when a random variable is above the metropolis weight"
         energy = numpy.array( [[0, 1.0], [0, 0]] )
-        # random number smaller than exp(-1)
+        # random number larger than exp(-1)
         mock_random.return_value = 0.5
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.assertEqual(result[0], 0, 'entries should not be permuted by swap')
-        self.assertEqual(result[1], 1, 'entries should not be permuted by swap')
+        self.assertEqual(result, [0, 1], 'swap should have been rejected')
 
     def test_adaptor_update_called_accept(self):
         "we should call the adaptor when the exchange is accepted"
@@ -96,9 +97,11 @@ class TestSingleSwapTwoReps(unittest.TestCase):
 
         self.mock_adaptor.update.assert_called_once_with(0, 1, False)
 
-class TestTwoSwapTwoRep(unittest.TestCase):
+
+class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
+    "test compute_exchanges with two trials on a two replica system"
     def setUp(self):
-        self.ladder = ladder.Ladder(n_iterations=2)
+        self.ladder = ladder.NearestNeighborLadder(n_iterations=2)
         self.mock_adaptor = mock.MagicMock()
 
     def test_adatpor_called(self):
@@ -108,6 +111,9 @@ class TestTwoSwapTwoRep(unittest.TestCase):
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
         self.assertEqual(self.mock_adaptor.update.call_count, 2, 'adaptor should be updated twice')
+        call_1 = mock.call(0, 1, True)
+        call_2 = mock.call(0, 1, True)
+        self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
 
     @mock.patch('meld.ladder.random.random')
     def test_swap_second_try(self, mock_random):
@@ -118,6 +124,70 @@ class TestTwoSwapTwoRep(unittest.TestCase):
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.assertEqual(result[0], 1, 'we should have swapped')
-        self.assertEqual(result[1], 0, 'we should have swapped')
+        self.assertEqual(result, [1, 0], 'we should have failed and then swapped')
+        call_1 = mock.call(0, 1, False)
+        call_2 = mock.call(0, 1, True)
+        self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
 
+    @mock.patch('meld.ladder.random.random')
+    def test_swap_back(self, mock_random):
+        "if the swap succeeds, then we should swap back without calling random"
+        energy = numpy.array( [[0, 1], [0, 0]] )
+        # random number below exp(-1)
+        mock_random.return_value = 0.3
+
+        result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
+
+        self.assertEqual(mock_random.call_count, 1, 'we only need one random number')
+        self.assertEqual(result, [0, 1], 'we should have swapped and then swapped back')
+
+    @mock.patch('meld.ladder.random.random')
+    def test_swap_back_calls_adaptor(self, mock_random):
+        "if the swap succeeds, then we should swap back and call the adaptor appropriately"
+        energy = numpy.array( [[0, 1], [0, 0]] )
+        # random number below exp(-1)
+        mock_random.return_value = 0.3
+
+        result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
+
+        call_1 = mock.call(0, 1, True)
+        call_2 = mock.call(0, 1, True)
+        self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
+
+class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
+    "test compute_exchanges with two trials on three replicas"
+    def setUp(self):
+        self.ladder = ladder.NearestNeighborLadder(n_iterations=2)
+        self.mock_adaptor = mock.MagicMock()
+
+    @mock.patch('meld.ladder.random.choice')
+    def test_low_energy_move_down(self, mock_random_choice):
+        "if the highest replica has a low energy, it should move to the bottom"
+        # the lowest energy is when replica 3 is at the bottom
+        # the other two replicas don't care what their indices are
+        energy = numpy.array( [ [0, 0, 0], [0, 0, 0], [-2, -1, 0] ] )
+        # first swap 1 with 2, then 0 with 1
+        # this should allow replica 3 to move down
+        mock_random_choice.side_effect = [1, 0]
+
+        result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
+
+        # order should be 2, 0, 1
+        self.assertEqual(result, [2, 0, 1])
+
+
+    @mock.patch('meld.ladder.random.choice')
+    def test_low_energy_move_down_calls_adaptor(self, mock_random_choice):
+        "adaptor should be called correctly when replica 2 moves down"
+        # the lowest energy is when replica 3 is at the bottom
+        # the other two replicas don't care what their indices are
+        energy = numpy.array( [ [0, 0, 0], [0, 0, 0], [-2, -1, 0] ] )
+        # first swap 1 with 2, then 0 with 1
+        # this should allow replica 3 to move down
+        mock_random_choice.side_effect = [1, 0]
+
+        result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
+
+        call_1 = mock.call(1, 2, True)
+        call_2 = mock.call(0, 1, True)
+        self.mock_adaptor.update.assert_has_calls( [call_1, call_2] )
