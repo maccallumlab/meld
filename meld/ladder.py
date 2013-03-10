@@ -67,14 +67,12 @@ class NearestNeighborLadder(object):
             if rand < metrop:
                 accepted = True
 
-        print energies
-
         if accepted:
             self._swap_permutation(i, j, permutation_matrix)
             self._swap_energies(i, j, energies)
-            adaptor.update(i, j, True)
+            adaptor.update(i, True)
         else:
-            adaptor.update(i, j, False)
+            adaptor.update(i, False)
 
     @staticmethod
     def _swap_permutation(i, j, permutation_matrix):

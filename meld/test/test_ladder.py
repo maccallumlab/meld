@@ -86,7 +86,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.mock_adaptor.update.assert_called_once_with(0, 1, True)
+        self.mock_adaptor.update.assert_called_once_with(0, True)
 
     def test_adaptor_update_called_rejected(self):
         "we should call the adaptor when the exchange is failed"
@@ -94,7 +94,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        self.mock_adaptor.update.assert_called_once_with(0, 1, False)
+        self.mock_adaptor.update.assert_called_once_with(0, False)
 
 
 class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
@@ -110,8 +110,8 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
         self.assertEqual(self.mock_adaptor.update.call_count, 2, 'adaptor should be updated twice')
-        call_1 = mock.call(0, 1, True)
-        call_2 = mock.call(0, 1, True)
+        call_1 = mock.call(0, True)
+        call_2 = mock.call(0, True)
         self.mock_adaptor.update.assert_has_calls([call_1, call_2])
 
     @mock.patch('meld.ladder.random.random')
@@ -124,8 +124,8 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
         self.assertEqual(result, [1, 0], 'we should have failed and then swapped')
-        call_1 = mock.call(0, 1, False)
-        call_2 = mock.call(0, 1, True)
+        call_1 = mock.call(0, False)
+        call_2 = mock.call(0, True)
         self.mock_adaptor.update.assert_has_calls([call_1, call_2])
 
     @mock.patch('meld.ladder.random.random')
@@ -149,8 +149,8 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        call_1 = mock.call(0, 1, True)
-        call_2 = mock.call(0, 1, True)
+        call_1 = mock.call(0, True)
+        call_2 = mock.call(0, True)
         self.mock_adaptor.update.assert_has_calls([call_1, call_2])
 
 
@@ -187,8 +187,8 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
-        call_1 = mock.call(1, 2, True)
-        call_2 = mock.call(0, 1, True)
+        call_1 = mock.call(1, True)
+        call_2 = mock.call(0, True)
         self.mock_adaptor.update.assert_has_calls([call_1, call_2])
 
 
@@ -202,5 +202,4 @@ class TestFiveHundredTrialsWithThreeReplicas(unittest.TestCase):
 
         result = l.compute_exchanges(energy, mock_adaptor)
 
-        print result
         self.assertEqual(result[0], 2, 'replica 2 should be at the bottom')
