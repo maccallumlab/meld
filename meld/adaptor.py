@@ -1,5 +1,6 @@
 import numpy
 import math
+from collections import namedtuple
 
 
 class EqualAcceptanceAdaptor(object):
@@ -96,3 +97,51 @@ class EqualAcceptanceAdaptor(object):
             total += dt
             t_lens.append(total)
         self.t_lens = t_lens
+
+
+class AdaptationScheduler(object):
+    '''
+    Repeat adaptation on a regular schedule with an optional burn-in and increasing adaptation times.
+    '''
+    # named tuple to hold the results
+    AdaptationRequired = namedtuple('AdaptationRequired', 'adapt_now reset_now')
+
+    def __init__(self, growth_factor, burn_in, adapt_every):
+        '''
+        Initialize a repeating adaptation scheduler
+
+        Parameters:
+            growth_factor -- increase adapt_every by a factor of growth_factor every adaptation
+            burn_in -- number of steps to ignore at the beginning
+            adapt_every -- how frequently to adapt (in picoseconds)
+
+        '''
+        self.growth_factor = growth_factor
+        self.burn_in = burn_in
+        self.adapt_every = adapt_every
+        self.next_adapt = adapt_every + burn_in
+
+    def adaptation_required(self, time_in_ps):
+        '''
+        Is adaptation required?
+
+        Parameters:
+            time_in_ps -- the current time from the simulation
+        Returns:
+            an AdaptationRequired object indicating if adaptation or resetting is necessary
+
+        '''
+        if self.burn_in:
+            if time_in_ps >= self.burn_in:
+                self.burn_in = None
+                result = self.AdaptationRequired(False, True)
+            else:
+                result = self.AdaptationRequired(False, False)
+        else:
+            if time_in_ps >= self.next_adapt:
+                result = self.AdaptationRequired(True, True)
+                self.adapt_every *= self.growth_factor
+                self.next_adapt += self.adapt_every
+            else:
+                result = self.AdaptationRequired(False, False)
+        return result

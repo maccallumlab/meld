@@ -1,4 +1,5 @@
 import unittest
+import mock
 
 from meld import adaptor
 
@@ -100,3 +101,104 @@ class TestMinimum(unittest.TestCase):
         # min_acc_prob should raise acc_0_1 to 0.5
         # which will give no adaptation
         self.assertEqual(results, [0., 0.5, 1.])
+
+
+class TestAdaptationSchedulerNoGrowth(unittest.TestCase):
+    def setUp(self):
+        self.BURN_IN = 50
+        self.ADAPT_EVERY = 100
+        self.scheduler = adaptor.AdaptationScheduler(1.0, self.BURN_IN, self.ADAPT_EVERY)
+        self.mock_adaptor = mock.MagicMock()
+
+    def test_nothing_happens_first_49(self):
+        for i in range(self.BURN_IN):
+            results = self.scheduler.adaptation_required(i)
+            self.assertEqual(results.adapt_now, False)
+            self.assertEqual(results.reset_now, False)
+
+    def test_should_reset_step_50(self):
+        "should want to reset at step 50"
+        results = self.scheduler.adaptation_required(self.BURN_IN)
+
+        self.assertEqual(results.adapt_now, False)
+        self.assertEqual(results.reset_now, True)
+
+    def test_nothing_between_51_and_149(self):
+        "should not want to do anything from 51 to 149"
+        # this will reset
+        self.scheduler.adaptation_required(self.BURN_IN)
+
+        # these should do nothing
+        for i in range(self.BURN_IN + 1, self.BURN_IN + self.ADAPT_EVERY):
+            results = self.scheduler.adaptation_required(i)
+            self.assertEqual(results.adapt_now, False)
+            self.assertEqual(results.reset_now, False)
+
+    def test_should_adapt_and_reset_at_150(self):
+        "should want to reset and adapt at step 150"
+        # this will reset
+        self.scheduler.adaptation_required(self.BURN_IN)
+
+        # this should adapt and reset
+        results = self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+
+        self.assertEqual(results.adapt_now, True)
+        self.assertEqual(results.reset_now, True)
+
+    def test_nothing_between_151_and_249(self):
+        "should not want to do anything from 151 to 249"
+        self.scheduler.adaptation_required(self.BURN_IN)
+        self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+
+        # these should do nothing
+        start = self.BURN_IN + self.ADAPT_EVERY + 1
+        end = start + self.ADAPT_EVERY - 1
+        for i in range(start, end):
+            results = self.scheduler.adaptation_required(i)
+            self.assertEqual(results.adapt_now, False)
+            self.assertEqual(results.reset_now, False)
+
+    def test_should_adapt_and_reset_at_250(self):
+        "should want to reset and adapt at step 250"
+        # this will reset
+        self.scheduler.adaptation_required(self.BURN_IN)
+        # this will adapt and reset
+        self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+
+        # this should adapt and reset
+        results = self.scheduler.adaptation_required(self.BURN_IN + 2 * self.ADAPT_EVERY)
+
+        self.assertEqual(results.adapt_now, True)
+        self.assertEqual(results.adapt_now, True)
+
+
+class TestAdaptationSchedulerWithDoubling(unittest.TestCase):
+    def setUp(self):
+        self.ADAPT_EVERY = 100
+        self.scheduler = adaptor.AdaptationScheduler(2.0, 0, self.ADAPT_EVERY)
+        self.mock_adaptor = mock.MagicMock()
+
+    def test_adapt_at_100(self):
+        "should adapt at step 100"
+        results = self.scheduler.adaptation_required(100)
+
+        self.assertEqual(results.adapt_now, True)
+        self.assertEqual(results.reset_now, True)
+
+    def test_should_not_adapt_at_200(self):
+        "shoud not adapt at step 200"
+        self.scheduler.adaptation_required(100)
+
+        results = self.scheduler.adaptation_required(200)
+
+        self.assertEqual(results.adapt_now, False)
+        self.assertEqual(results.reset_now, False)
+
+    def test_should_adapt_at_300(self):
+        "should adapt at step 300"
+        self.scheduler.adaptation_required(100)
+
+        results = self.scheduler.adaptation_required(300)
+
+        self.assertEqual(results.adapt_now, True)
+        self.assertEqual(results.reset_now, True)
