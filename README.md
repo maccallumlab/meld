@@ -2,6 +2,10 @@
 
 Modeling with limited data
 
+# Prerequisites #
+
+* [NetCDF4-python](https://code.google.com/p/netcdf4-python/) -- pip install netCDF4
+
 # Version Control #
 
 All development is with [git](http://git-scm.com) and [github](http://github.com).
