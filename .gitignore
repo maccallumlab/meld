@@ -40,3 +40,4 @@ nosetests.xml
 # python testing file
 reg_settings.py
 
+.ropeproject
