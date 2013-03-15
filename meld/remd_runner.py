@@ -8,12 +8,12 @@ class SlaveReplicaExchangeRunner(object):
         self._step = step
         self._max_steps = max_steps
 
-    @staticmethod
-    def from_master(master):
+    @classmethod
+    def from_master(cls, master):
         '''
         Initialize a new SlaveReplicaExchangeRunner from a MasterReplicaExchangeRunner.
         '''
-        new_slave = SlaveReplicaExchangeRunner(master.step, master.max_steps)
+        new_slave = cls(master.step, master.max_steps)
         return new_slave
 
     @property
