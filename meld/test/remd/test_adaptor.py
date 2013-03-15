@@ -1,7 +1,7 @@
 import unittest
 import mock
 
-from meld import adaptor
+from meld.remd import adaptor
 
 
 class TestAdaptationUsesPolicy(unittest.TestCase):

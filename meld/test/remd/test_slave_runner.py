@@ -1,6 +1,6 @@
 import unittest
 import mock
-from meld import remd_runner
+from meld.remd import slave_runner
 
 
 sentinel = mock.sentinel
@@ -16,13 +16,13 @@ class TestSlaveInitFromMaster(unittest.TestCase):
 
     def test_sets_step(self):
         "creating slave from_master should set the step"
-        slave = remd_runner.SlaveReplicaExchangeRunner.from_master(self.mock_master)
+        slave = slave_runner.SlaveReplicaExchangeRunner.from_master(self.mock_master)
 
         self.assertEqual(slave.step, 42)
 
     def test_sets_max_steps(self):
         "creating slave from_master should set max_steps"
-        slave = remd_runner.SlaveReplicaExchangeRunner.from_master(self.mock_master)
+        slave = slave_runner.SlaveReplicaExchangeRunner.from_master(self.mock_master)
 
         self.assertEqual(slave.max_steps, 43)
 
@@ -33,7 +33,7 @@ class TestSlaveSingle(unittest.TestCase):
     def setUp(self):
         self.mock_comm = mock.MagicMock()
         self.mock_replica_runner = mock.MagicMock()
-        self.runner = remd_runner.SlaveReplicaExchangeRunner(step=1, max_steps=1)
+        self.runner = slave_runner.SlaveReplicaExchangeRunner(step=1, max_steps=1)
 
     def test_calls_recieve_lambda(self):
         "should call recieve_lambda"
@@ -116,7 +116,7 @@ class TestSlaveMultiple(unittest.TestCase):
     def setUp(self):
         self.mock_comm = mock.MagicMock()
         self.mock_replica_runner = mock.MagicMock()
-        self.runner = remd_runner.SlaveReplicaExchangeRunner(step=1, max_steps=4)
+        self.runner = slave_runner.SlaveReplicaExchangeRunner(step=1, max_steps=4)
 
     def test_runs_correct_number_of_steps(self):
         "should run the correct number of steps"

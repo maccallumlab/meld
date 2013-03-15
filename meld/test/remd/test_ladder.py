@@ -1,7 +1,7 @@
 import unittest
 import mock
 import numpy
-from meld import ladder
+from meld.remd import ladder
 
 
 class TestLadderInputs(unittest.TestCase):
@@ -60,7 +60,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_marginal_unfavorable_below(self):
         "we should accept when a random variable is below the metropolis weight"
-        with mock.patch('meld.ladder.random.random') as mock_random:
+        with mock.patch('meld.remd.ladder.random.random') as mock_random:
             energy = numpy.array([[0, 1.0], [0, 0]])
             # random number smaller than exp(-1)
             mock_random.return_value = 0.3
@@ -71,7 +71,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_marginal_unfavorable_above(self):
         "we should reject when a random variable is above the metropolis weight"
-        with mock.patch('meld.ladder.random.random') as mock_random:
+        with mock.patch('meld.remd.ladder.random.random') as mock_random:
             energy = numpy.array([[0, 1.0], [0, 0]])
             # random number larger than exp(-1)
             mock_random.return_value = 0.5
@@ -116,7 +116,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
 
     def test_swap_second_try(self):
         "if the swap fails, then is accepted, we will have permuted the items"
-        with mock.patch('meld.ladder.random.random') as mock_random:
+        with mock.patch('meld.remd.ladder.random.random') as mock_random:
             energy = numpy.array([[0, 1], [0, 0]])
             # first fails, second accepts
             mock_random.side_effect = [0.5, 0.3]
@@ -130,7 +130,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
 
     def test_swap_back(self):
         "if the swap succeeds, then we should swap back without calling random"
-        with mock.patch('meld.ladder.random.random') as mock_random:
+        with mock.patch('meld.remd.ladder.random.random') as mock_random:
             energy = numpy.array([[0, 1], [0, 0]])
             # random number below exp(-1)
             mock_random.return_value = 0.3
@@ -142,7 +142,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
 
     def test_swap_back_calls_adaptor(self):
         "if the swap succeeds, then we should swap back and call the adaptor appropriately"
-        with mock.patch('meld.ladder.random.random') as mock_random:
+        with mock.patch('meld.remd.ladder.random.random') as mock_random:
             energy = numpy.array([[0, 1], [0, 0]])
             # random number below exp(-1)
             mock_random.return_value = 0.3
@@ -162,7 +162,7 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
 
     def test_low_energy_move_down(self):
         "if the highest replica has a low energy, it should move to the bottom"
-        with mock.patch('meld.ladder.random.choice') as mock_random_choice:
+        with mock.patch('meld.remd.ladder.random.choice') as mock_random_choice:
             # the lowest energy is when replica 3 is at the bottom
             # the other two replicas don't care what their indices are
             energy = numpy.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
@@ -177,7 +177,7 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
 
     def test_low_energy_move_down_calls_adaptor(self):
         "adaptor should be called correctly when replica 2 moves down"
-        with mock.patch('meld.ladder.random.choice') as mock_random_choice:
+        with mock.patch('meld.remd.ladder.random.choice') as mock_random_choice:
             # the lowest energy is when replica 3 is at the bottom
             # the other two replicas don't care what their indices are
             energy = numpy.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
