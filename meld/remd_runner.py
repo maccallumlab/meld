@@ -11,7 +11,13 @@ class SlaveReplicaExchangeRunner(object):
     @classmethod
     def from_master(cls, master):
         '''
-        Initialize a new SlaveReplicaExchangeRunner from a MasterReplicaExchangeRunner.
+        Initialize a new slave from a master.
+
+        Parameters
+            master -- a MasterReplicaExchangeRunner to serve as a template
+        Returns
+            a SlaveReplicaExchangeRunner
+
         '''
         new_slave = cls(master.step, master.max_steps)
         return new_slave
