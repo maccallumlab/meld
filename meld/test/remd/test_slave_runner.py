@@ -1,6 +1,7 @@
 import unittest
 import mock
 from meld.remd import slave_runner
+from meld import comm
 
 
 sentinel = mock.sentinel
@@ -31,7 +32,7 @@ class TestSlaveSingle(unittest.TestCase):
     "Make sure the SlaveReplicaExchangeRunner works for a single round"
 
     def setUp(self):
-        self.mock_comm = mock.MagicMock()
+        self.mock_comm = mock.MagicMock(spec_set=comm.MPICommunicator)
         self.mock_replica_runner = mock.MagicMock()
         self.runner = slave_runner.SlaveReplicaExchangeRunner(step=1, max_steps=1)
 
@@ -39,11 +40,11 @@ class TestSlaveSingle(unittest.TestCase):
         "should call recieve_lambda"
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.mock_comm.recieve_lambda.assert_called_once_with()
+        self.mock_comm.recieve_lambda_from_master.assert_called_once_with()
 
     def test_sets_lambda_on_replica_runner(self):
         "should set lambda on the replica runner"
-        self.mock_comm.recieve_lambda.return_value = sentinel.LAMBDA
+        self.mock_comm.recieve_lambda_from_master.return_value = sentinel.LAMBDA
 
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
@@ -53,11 +54,11 @@ class TestSlaveSingle(unittest.TestCase):
         "should recieve state from master"
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.mock_comm.recieve_state.assert_called_once_with()
+        self.mock_comm.recieve_state_from_master.assert_called_once_with()
 
     def test_runs_replica_with_state(self):
         "should call minimize_then_run on the replica_runner with the recieved state"
-        self.mock_comm.recieve_state.return_value = mock.sentinel.STATE
+        self.mock_comm.recieve_state_from_master.return_value = mock.sentinel.STATE
 
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
@@ -69,17 +70,17 @@ class TestSlaveSingle(unittest.TestCase):
 
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.mock_comm.send_state.assert_called_once_with(mock.sentinel.STATE)
+        self.mock_comm.send_state_to_master.assert_called_once_with(mock.sentinel.STATE)
 
     def test_calls_revieve_all_states(self):
         "should call recieve_states_for_energy_calc from the master"
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.mock_comm.recieve_states_for_energy_calc.assert_called_once_with()
+        self.mock_comm.recieve_states_for_energy_calc_from_master.assert_called_once_with()
 
     def test_calls_get_energy_for_each_state(self):
         "should call get_energy on each state recieved"
-        self.mock_comm.recieve_states_for_energy_calc.return_value = [
+        self.mock_comm.recieve_states_for_energy_calc_from_master.return_value = [
             sentinel.STATE_1,
             sentinel.STATE_2,
             sentinel.STATE_3,
@@ -93,7 +94,7 @@ class TestSlaveSingle(unittest.TestCase):
 
     def test_sends_energies_back_to_master(self):
         "should send energies back to the master"
-        self.mock_comm.recieve_states_for_energy_calc.return_value = [
+        self.mock_comm.recieve_states_for_energy_calc_from_master.return_value = [
             sentinel.STATE_1,
             sentinel.STATE_2,
             sentinel.STATE_3,
@@ -106,7 +107,7 @@ class TestSlaveSingle(unittest.TestCase):
 
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.mock_comm.send_energies.assert_called_once_with(
+        self.mock_comm.send_energies_to_master.assert_called_once_with(
             [sentinel.ENERGY_1, sentinel.ENERGY_2, sentinel.ENERGY_3, sentinel.ENERGY_4])
 
 
@@ -114,7 +115,7 @@ class TestSlaveMultiple(unittest.TestCase):
     "Make sure the SlaveReplicaExchangeRunner works for a multiple rounds"
 
     def setUp(self):
-        self.mock_comm = mock.MagicMock()
+        self.mock_comm = mock.MagicMock(spec_set=comm.MPICommunicator)
         self.mock_replica_runner = mock.MagicMock()
         self.runner = slave_runner.SlaveReplicaExchangeRunner(step=1, max_steps=4)
 
@@ -122,7 +123,7 @@ class TestSlaveMultiple(unittest.TestCase):
         "should run the correct number of steps"
         self.runner.run(self.mock_comm, self.mock_replica_runner)
 
-        self.assertEqual(self.mock_comm.recieve_state.call_count, 4)
+        self.assertEqual(self.mock_comm.recieve_state_from_master.call_count, 4)
 
     def test_minimize_then_run_called_once(self):
         self.runner.run(self.mock_comm, self.mock_replica_runner)

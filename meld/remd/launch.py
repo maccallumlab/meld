@@ -1,6 +1,7 @@
 import cPickle as pickle
 import collections
 
+
 RemdSavedState = collections.namedtuple('RemdSavedState', 'communicator replica_runner remd_runner store')
 
 

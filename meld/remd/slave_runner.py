@@ -43,24 +43,24 @@ class SlaveReplicaExchangeRunner(object):
 
         while self._step <= self._max_steps:
             # update simulation conditions
-            new_lambda = communicator.recieve_lambda()
+            new_lambda = communicator.recieve_lambda_from_master()
             if not new_lambda == my_lambda:
                 my_lambda = new_lambda
                 replica_runner.set_lambda(my_lambda)
 
             # do one round of simulation
-            state = communicator.recieve_state()
+            state = communicator.recieve_state_from_master()
             if self._step == 1:
                 state = replica_runner.minimize_then_run(state)
             else:
                 state = replica_runner.run(state)
-            communicator.send_state(state)
+            communicator.send_state_to_master(state)
 
             # compute energies
-            states = communicator.recieve_states_for_energy_calc()
+            states = communicator.recieve_states_for_energy_calc_from_master()
             energies = []
             for state in states:
                 energy = replica_runner.get_energy(state)
                 energies.append(energy)
-            communicator.send_energies(energies)
+            communicator.send_energies_to_master(energies)
             self._step += 1

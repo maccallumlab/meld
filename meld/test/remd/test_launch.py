@@ -2,6 +2,7 @@ import unittest
 import mock
 from meld.remd import launch
 from meld.remd import slave_runner
+from meld import comm
 
 
 class TestLaunchNotMaster(unittest.TestCase):
@@ -9,7 +10,7 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.patcher = mock.patch('meld.remd.launch.pickle.load')
         self.mock_load = self.patcher.start()
 
-        self.mock_comm = mock.Mock()
+        self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
         self.mock_rep_runner = mock.Mock()
         self.mock_remd_master = mock.Mock()
@@ -65,7 +66,7 @@ class TestLaunchMaster(unittest.TestCase):
         self.patcher = mock.patch('meld.remd.launch.pickle.load')
         self.mock_load = self.patcher.start()
 
-        self.mock_comm = mock.Mock()
+        self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = True
         self.mock_rep_runner = mock.Mock()
         self.mock_remd_master = mock.Mock()
