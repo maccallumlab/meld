@@ -7,7 +7,7 @@ class EqualAcceptanceAdaptor(object):
     '''
     Adaptor based on making acceptance rates uniform.
     '''
-    def __init__(self, n_replicas, min_acc_prob=0.1):
+    def __init__(self, n_replicas, adaptation_policy, min_acc_prob=0.1):
         '''
         Initialize adaptor
 
@@ -17,6 +17,7 @@ class EqualAcceptanceAdaptor(object):
 
         '''
         self.n_replicas = n_replicas
+        self.adaptation_policy = adaptation_policy
         self.min_acc_prob = min_acc_prob
         self.success = None
         self.attempts = None
@@ -38,31 +39,42 @@ class EqualAcceptanceAdaptor(object):
         if accepted:
             self.success[i] += 1
 
-    def adapt(self, previous_lambdas):
+    def adapt(self, previous_lambdas, step):
         '''
         Compute new optimal values of lambda.
 
         Parameters
             previous_lambdas -- a list of the previous lambda values
+            step -- the current simulation step
         Returns
             a list of the new, optimized lambda values
 
         '''
-        self._compute_accept_probs()
-        self._compute_t_len()
+        should_adapt = self.adaptation_policy.should_adapt(step)
 
-        # put the t_lens on a grid
-        alpha_grid = numpy.linspace(0., 1., 5000)
-        t_lens = numpy.interp(alpha_grid, previous_lambdas, self.t_lens)
+        if should_adapt.adapt_now:
+            self._compute_accept_probs()
+            self._compute_t_len()
 
-        # compute the desired t_lens based on equal spacing
-        even_spacing = numpy.linspace(0, t_lens[-1], self.n_replicas)
+            # put the t_lens on a grid
+            lambda_grid = numpy.linspace(0., 1., 5000)
+            t_lens = numpy.interp(lambda_grid, previous_lambdas, self.t_lens)
 
-        # compute the values of lambda that will give the desired evenly spaced
-        # t_lens
-        new_alphas = numpy.interp(even_spacing[1:-1], t_lens, alpha_grid)
-        new_alphas = [x for x in new_alphas]
-        return [0.] + new_alphas + [1.]
+            # compute the desired t_lens based on equal spacing
+            even_spacing = numpy.linspace(0, t_lens[-1], self.n_replicas)
+
+            # compute the values of lambda that will give the desired evenly spaced
+            # t_lens
+            new_lambdas = numpy.interp(even_spacing[1:-1], t_lens, lambda_grid)
+            new_lambdas = [x for x in new_lambdas]
+            new_lambdas = [0.] + new_lambdas + [1.]
+        else:
+            new_lambdas = previous_lambdas
+
+        if should_adapt.reset_now:
+            self.reset()
+
+        return new_lambdas
 
     def reset(self):
         '''
@@ -99,7 +111,7 @@ class EqualAcceptanceAdaptor(object):
         self.t_lens = t_lens
 
 
-class AdaptationScheduler(object):
+class AdaptationPolicy(object):
     '''
     Repeat adaptation on a regular schedule with an optional burn-in and increasing adaptation times.
     '''
@@ -121,24 +133,24 @@ class AdaptationScheduler(object):
         self.adapt_every = adapt_every
         self.next_adapt = adapt_every + burn_in
 
-    def adaptation_required(self, time_in_ps):
+    def should_adapt(self, step):
         '''
         Is adaptation required?
 
         Parameters:
-            time_in_ps -- the current time from the simulation
+            step -- the current simulation step
         Returns:
             an AdaptationRequired object indicating if adaptation or resetting is necessary
 
         '''
         if self.burn_in:
-            if time_in_ps >= self.burn_in:
+            if step >= self.burn_in:
                 self.burn_in = None
                 result = self.AdaptationRequired(False, True)
             else:
                 result = self.AdaptationRequired(False, False)
         else:
-            if time_in_ps >= self.next_adapt:
+            if step >= self.next_adapt:
                 result = self.AdaptationRequired(True, True)
                 self.adapt_every *= self.growth_factor
                 self.next_adapt += self.adapt_every

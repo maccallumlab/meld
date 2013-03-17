@@ -4,9 +4,57 @@ import mock
 from meld import adaptor
 
 
+class TestAdaptationUsesPolicy(unittest.TestCase):
+    def setUp(self):
+        self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=self.mock_adapt_policy)
+
+    def test_calls_should_adapt(self):
+        "the adaptor should ask the adaptation_policy if it should adapt this step"
+        STEP = 10
+
+        self.adaptor.adapt([0., 0.5, 1.], STEP)
+
+        self.mock_adapt_policy.should_adapt.assert_called_once_with(STEP)
+
+    def test_calls_reset(self):
+        "if the adaptation_policy says so, we should reset"
+        STEP = 10
+        # False, True => No adapt, but reset
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(False, True)
+        # set one success; this should be removed by the reset
+        self.adaptor.update(0, True)
+
+        self.adaptor.adapt([0., 0.5, 1.], STEP)
+
+        self.assertEqual(self.adaptor.success[0], 0)
+
+    def test_no_adapt_unless_policy_says(self):
+        "if the adaptation_policy says not to adapt, we should not adapt"
+        STEP = 10
+        # setup some fake updates
+        for i in range(10):
+            self.adaptor.update(0, True)
+            self.adaptor.update(1, False)
+        for i in range(5):
+            self.adaptor.update(0, False)
+            self.adaptor.update(1, True)
+        # adpatation_policy says not to adapt
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(False, False)
+
+        results = self.adaptor.adapt([0.0, 0.5, 1.0], step=STEP)
+
+        # we shouldn't adapt
+        self.assertEqual(results[0], 0.0)
+        self.assertEqual(results[1], 0.5)
+        self.assertEqual(results[2], 1.0)
+
+
 class TestTwoReplicas(unittest.TestCase):
     def setUp(self):
-        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=2)
+        self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=2, adaptation_policy=self.mock_adapt_policy)
 
     def test_update_should_fail_with_bad_i(self):
         "update should throw an assertion error if replica index i is out of range"
@@ -16,7 +64,7 @@ class TestTwoReplicas(unittest.TestCase):
 
     def test_endpoints_default(self):
         "the two values of lambda will always be 0 and 1 by default"
-        results = self.adaptor.adapt([0., 1.])
+        results = self.adaptor.adapt([0., 1.], step=0)
         self.assertEqual(results, [0., 1.])
 
     def test_endpoints_always(self):
@@ -27,18 +75,20 @@ class TestTwoReplicas(unittest.TestCase):
         for i in range(5):
             self.adaptor.update(0, False)
 
-        results = self.adaptor.adapt([0., 1.])
+        results = self.adaptor.adapt([0., 1.], step=0)
 
         self.assertEqual(results, [0., 1.])
 
 
 class TestThreeReplicas(unittest.TestCase):
     def setUp(self):
-        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3)
+        self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=self.mock_adapt_policy)
 
     def test_should_be_even_with_no_data(self):
         "should give even spacing by default"
-        results = self.adaptor.adapt([0.0, 0.5, 1.0])
+        results = self.adaptor.adapt([0.0, 0.5, 1.0], step=0)
 
         self.assertEqual(results, [0.0, 0.5, 1.0])
 
@@ -52,7 +102,7 @@ class TestThreeReplicas(unittest.TestCase):
             self.adaptor.update(0, False)
             self.adaptor.update(1, True)
 
-        results = self.adaptor.adapt([0.0, 0.5, 1.0])
+        results = self.adaptor.adapt([0.0, 0.5, 1.0], step=0)
 
         # ln Acc = -L^2 / 2
         # sqrt(-2 * ln Acc) = L
@@ -78,7 +128,7 @@ class TestThreeReplicas(unittest.TestCase):
         # now reset the adaptor
         self.adaptor.reset()
 
-        results = self.adaptor.adapt([0.0, 0.5, 1.0])
+        results = self.adaptor.adapt([0.0, 0.5, 1.0], step=0)
 
         # because we reset, we whould forget about the updates
         self.assertEqual(results, [0.0, 0.5, 1.0])
@@ -87,7 +137,9 @@ class TestThreeReplicas(unittest.TestCase):
 class TestMinimum(unittest.TestCase):
     def test_minimum(self):
         "the minimum value should work correctly"
-        a = adaptor.EqualAcceptanceAdaptor(n_replicas=3, min_acc_prob=0.5)
+        mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
+        mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
+        a = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=mock_adapt_policy, min_acc_prob=0.5)
         # acc_0_1 = 0.3
         # acc_1_2 = 0.5
         a.update(0, False)
@@ -96,29 +148,29 @@ class TestMinimum(unittest.TestCase):
         a.update(1, False)
         a.update(1, True)
 
-        results = a.adapt([0., 0.5, 1.])
+        results = a.adapt([0., 0.5, 1.], step=0)
 
         # min_acc_prob should raise acc_0_1 to 0.5
         # which will give no adaptation
         self.assertEqual(results, [0., 0.5, 1.])
 
 
-class TestAdaptationSchedulerNoGrowth(unittest.TestCase):
+class TestAdaptationPolicyNoGrowth(unittest.TestCase):
     def setUp(self):
         self.BURN_IN = 50
         self.ADAPT_EVERY = 100
-        self.scheduler = adaptor.AdaptationScheduler(1.0, self.BURN_IN, self.ADAPT_EVERY)
+        self.policy = adaptor.AdaptationPolicy(1.0, self.BURN_IN, self.ADAPT_EVERY)
         self.mock_adaptor = mock.MagicMock()
 
     def test_nothing_happens_first_49(self):
         for i in range(self.BURN_IN):
-            results = self.scheduler.adaptation_required(i)
+            results = self.policy.should_adapt(i)
             self.assertEqual(results.adapt_now, False)
             self.assertEqual(results.reset_now, False)
 
     def test_should_reset_step_50(self):
         "should want to reset at step 50"
-        results = self.scheduler.adaptation_required(self.BURN_IN)
+        results = self.policy.should_adapt(self.BURN_IN)
 
         self.assertEqual(results.adapt_now, False)
         self.assertEqual(results.reset_now, True)
@@ -126,79 +178,79 @@ class TestAdaptationSchedulerNoGrowth(unittest.TestCase):
     def test_nothing_between_51_and_149(self):
         "should not want to do anything from 51 to 149"
         # this will reset
-        self.scheduler.adaptation_required(self.BURN_IN)
+        self.policy.should_adapt(self.BURN_IN)
 
         # these should do nothing
         for i in range(self.BURN_IN + 1, self.BURN_IN + self.ADAPT_EVERY):
-            results = self.scheduler.adaptation_required(i)
+            results = self.policy.should_adapt(i)
             self.assertEqual(results.adapt_now, False)
             self.assertEqual(results.reset_now, False)
 
     def test_should_adapt_and_reset_at_150(self):
         "should want to reset and adapt at step 150"
         # this will reset
-        self.scheduler.adaptation_required(self.BURN_IN)
+        self.policy.should_adapt(self.BURN_IN)
 
         # this should adapt and reset
-        results = self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+        results = self.policy.should_adapt(self.BURN_IN + self.ADAPT_EVERY)
 
         self.assertEqual(results.adapt_now, True)
         self.assertEqual(results.reset_now, True)
 
     def test_nothing_between_151_and_249(self):
         "should not want to do anything from 151 to 249"
-        self.scheduler.adaptation_required(self.BURN_IN)
-        self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+        self.policy.should_adapt(self.BURN_IN)
+        self.policy.should_adapt(self.BURN_IN + self.ADAPT_EVERY)
 
         # these should do nothing
         start = self.BURN_IN + self.ADAPT_EVERY + 1
         end = start + self.ADAPT_EVERY - 1
         for i in range(start, end):
-            results = self.scheduler.adaptation_required(i)
+            results = self.policy.should_adapt(i)
             self.assertEqual(results.adapt_now, False)
             self.assertEqual(results.reset_now, False)
 
     def test_should_adapt_and_reset_at_250(self):
         "should want to reset and adapt at step 250"
         # this will reset
-        self.scheduler.adaptation_required(self.BURN_IN)
+        self.policy.should_adapt(self.BURN_IN)
         # this will adapt and reset
-        self.scheduler.adaptation_required(self.BURN_IN + self.ADAPT_EVERY)
+        self.policy.should_adapt(self.BURN_IN + self.ADAPT_EVERY)
 
         # this should adapt and reset
-        results = self.scheduler.adaptation_required(self.BURN_IN + 2 * self.ADAPT_EVERY)
+        results = self.policy.should_adapt(self.BURN_IN + 2 * self.ADAPT_EVERY)
 
         self.assertEqual(results.adapt_now, True)
         self.assertEqual(results.adapt_now, True)
 
 
-class TestAdaptationSchedulerWithDoubling(unittest.TestCase):
+class TestAdaptationPolicyWithDoubling(unittest.TestCase):
     def setUp(self):
         self.ADAPT_EVERY = 100
-        self.scheduler = adaptor.AdaptationScheduler(2.0, 0, self.ADAPT_EVERY)
+        self.policy = adaptor.AdaptationPolicy(2.0, 0, self.ADAPT_EVERY)
         self.mock_adaptor = mock.MagicMock()
 
     def test_adapt_at_100(self):
         "should adapt at step 100"
-        results = self.scheduler.adaptation_required(100)
+        results = self.policy.should_adapt(100)
 
         self.assertEqual(results.adapt_now, True)
         self.assertEqual(results.reset_now, True)
 
     def test_should_not_adapt_at_200(self):
         "shoud not adapt at step 200"
-        self.scheduler.adaptation_required(100)
+        self.policy.should_adapt(100)
 
-        results = self.scheduler.adaptation_required(200)
+        results = self.policy.should_adapt(200)
 
         self.assertEqual(results.adapt_now, False)
         self.assertEqual(results.reset_now, False)
 
     def test_should_adapt_at_300(self):
         "should adapt at step 300"
-        self.scheduler.adaptation_required(100)
+        self.policy.should_adapt(100)
 
-        results = self.scheduler.adaptation_required(300)
+        results = self.policy.should_adapt(300)
 
         self.assertEqual(results.adapt_now, True)
         self.assertEqual(results.reset_now, True)
