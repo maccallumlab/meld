@@ -1,7 +1,8 @@
 import unittest
 import mock
 from meld.remd import slave_runner, master_runner, launch
-from meld import comm, vault, runner
+from meld.system import runner
+from meld import comm, vault
 
 
 class TestLaunchNotMaster(unittest.TestCase):
@@ -11,13 +12,13 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
-        self.mock_rep_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
         self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
         self.mock_remd_slave = mock.Mock(spec_set=slave_runner.SlaveReplicaExchangeRunner)
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
 
-        self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_rep_runner,
+        self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_system_runner,
                                                             self.mock_remd_master, self.mock_store)
 
     def tearDown(self):
@@ -35,11 +36,11 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_init_replica_runner(self):
-        "should inititialize the replica runner"
+    def test_should_init_system_runner(self):
+        "should inititialize the system runner"
         launch.launch()
 
-        self.mock_rep_runner.initialize.assert_called_once_with()
+        self.mock_system_runner.initialize.assert_called_once_with()
 
     def test_should_call_to_slave(self):
         "should call to_slave on remd_runner"
@@ -51,7 +52,7 @@ class TestLaunchNotMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch()
 
-        self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_rep_runner)
+        self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_system_runner)
 
     def test_should_not_init_store(self):
         "should not init store"
@@ -67,11 +68,11 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = True
-        self.mock_rep_runner = mock.Mock(spec=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec=runner.ReplicaRunner)
         self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
 
-        self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_rep_runner,
+        self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_system_runner,
                                                             self.mock_remd_master, self.mock_store)
 
     def tearDown(self):
@@ -89,11 +90,11 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_init_replica_runner(self):
-        "should inititialize the replica runner"
+    def test_should_init_system_runner(self):
+        "should inititialize the system runner"
         launch.launch()
 
-        self.mock_rep_runner.initialize.assert_called_once_with()
+        self.mock_system_runner.initialize.assert_called_once_with()
 
     def test_should_init_store(self):
         "should initialize the store"
@@ -105,4 +106,4 @@ class TestLaunchMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch()
 
-        self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_rep_runner, self.mock_store)
+        self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_system_runner, self.mock_store)

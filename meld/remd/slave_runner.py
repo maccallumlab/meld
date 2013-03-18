@@ -30,13 +30,13 @@ class SlaveReplicaExchangeRunner(object):
     def max_steps(self):
         return self._max_steps
 
-    def run(self, communicator, replica_runner):
+    def run(self, communicator, system_runner):
         '''
         Continue running slave jobs until done.
 
         Parameters
             communicator -- a communicator object for talking to the master
-            replica_runner -- a replica_runner object for actually running the simulations
+            system_runner -- a system_runner object for actually running the simulations
 
         '''
         my_lambda = None
@@ -46,21 +46,21 @@ class SlaveReplicaExchangeRunner(object):
             new_lambda = communicator.recieve_lambda_from_master()
             if not new_lambda == my_lambda:
                 my_lambda = new_lambda
-                replica_runner.set_lambda(my_lambda)
+                system_runner.set_lambda(my_lambda)
 
             # do one round of simulation
             state = communicator.recieve_state_from_master()
             if self._step == 1:
-                state = replica_runner.minimize_then_run(state)
+                state = system_runner.minimize_then_run(state)
             else:
-                state = replica_runner.run(state)
+                state = system_runner.run(state)
             communicator.send_state_to_master(state)
 
             # compute energies
             states = communicator.recieve_states_for_energy_calc_from_master()
             energies = []
             for state in states:
-                energy = replica_runner.get_energy(state)
+                energy = system_runner.get_energy(state)
                 energies.append(energy)
             communicator.send_energies_to_master(energies)
             self._step += 1

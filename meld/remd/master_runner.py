@@ -1,3 +1,6 @@
+from meld.remd import slave_runner
+
+
 class MasterReplicaExchangeRunner(object):
     '''
     Class to coordinate running of replica exchange
@@ -57,13 +60,13 @@ class MasterReplicaExchangeRunner(object):
         '''
         return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
 
-    def run(self, communicator, replica_runner, store):
+    def run(self, communicator, system_runner, store):
         '''
         Run replica exchange until finished
 
         Parameters
             communicator -- A communicator object to talk with slaves
-            replica_runner -- a ReplicaRunner object to run the simulations
+            system_runner -- a ReplicaRunner object to run the simulations
             store -- a Store object to handle storing data to disk
 
         '''
@@ -75,7 +78,7 @@ class MasterReplicaExchangeRunner(object):
         states = store.load_states(step=self.step - 1)
 
         # the master is always at lambda = 0, so set that here
-        replica_runner.set_lambda(0.)
+        system_runner.set_lambda(0.)
 
         while self._step <= self._max_steps:
             # update lambdas
@@ -85,9 +88,9 @@ class MasterReplicaExchangeRunner(object):
             # do one step
             my_state = communicator.broadcast_states_to_slaves(states)
             if self._step == 1:
-                my_state = replica_runner.minimize_then_run(my_state)
+                my_state = system_runner.minimize_then_run(my_state)
             else:
-                my_state = replica_runner.run(my_state)
+                my_state = system_runner.run(my_state)
 
             # gather all of the states
             states = communicator.gather_states_from_slaves(my_state)
@@ -96,7 +99,7 @@ class MasterReplicaExchangeRunner(object):
             communicator.broadcast_states_for_energy_calc_to_slaves(states)
 
             # compute our energy for each state
-            my_energies = self._compute_energies(states, replica_runner)
+            my_energies = self._compute_energies(states, system_runner)
             energies = communicator.gather_energies_from_slaves(my_energies)
 
             # ask the ladder how to permute things
@@ -119,10 +122,10 @@ class MasterReplicaExchangeRunner(object):
     #
 
     @staticmethod
-    def _compute_energies(states, replica_runner):
+    def _compute_energies(states, system_runner):
         my_energies = []
         for state in states:
-            my_energies.append(replica_runner.get_energy(state))
+            my_energies.append(system_runner.get_energy(state))
         return my_energies
 
     @staticmethod
