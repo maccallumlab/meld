@@ -2,7 +2,7 @@ import unittest
 import mock
 from mock import sentinel
 from meld.remd import master_runner, ladder, adaptor
-from meld import comm
+from meld import comm, vault, runner
 from numpy.testing import assert_almost_equal
 
 
@@ -27,13 +27,13 @@ class TestSingleStep(unittest.TestCase):
         self.mock_comm.gather_states_from_slaves.return_value = self.FAKE_STATES_AFTER_RUN
         self.mock_comm.gather_energies_from_slaves.return_value = sentinel.ENERGY_MATRIX
 
-        self.mock_rep_runner = mock.Mock()
+        self.mock_rep_runner = mock.Mock(spec_set=runner.ReplicaRunner)
         self.mock_rep_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1, sentinel.E2, sentinel.E3, sentinel.E4, sentinel.E5, sentinel.E6]
         self.mock_rep_runner.get_energy.side_effect = self.FAKE_ENERGIES_AFTER_GET_ENERGY
 
-        self.mock_store = mock.Mock()
+        self.mock_store = mock.Mock(spec_set=vault.DataStore)
         self.mock_store.n_replicas = 6
         self.mock_store.load_states.return_value = sentinel.ALL_STATES
 
@@ -160,7 +160,6 @@ class TestSingleStep(unittest.TestCase):
         self.mock_store.backup.assert_called_once_with(1)
 
 
-
 class TestFiveSteps(unittest.TestCase):
     def setUp(self):
         self.N_REPS = 6
@@ -181,14 +180,14 @@ class TestFiveSteps(unittest.TestCase):
         self.mock_comm.gather_states_from_slaves.return_value = self.FAKE_STATES_AFTER_RUN
         self.mock_comm.gather_energies_from_slaves.return_value = sentinel.ENERGY_MATRIX
 
-        self.mock_rep_runner = mock.Mock()
+        self.mock_rep_runner = mock.Mock(spec_set=runner.ReplicaRunner)
         self.mock_rep_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.mock_rep_runner.run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1, sentinel.E2, sentinel.E3, sentinel.E4, sentinel.E5, sentinel.E6]
         self.mock_rep_runner.get_energy.side_effect = self.FAKE_ENERGIES_AFTER_GET_ENERGY * self.MAX_STEPS
 
-        self.mock_store = mock.Mock()
+        self.mock_store = mock.Mock(spec_set=vault.DataStore)
         self.mock_store.n_replicas = 6
         self.mock_store.load_states.return_value = sentinel.ALL_STATES
 

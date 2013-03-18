@@ -63,3 +63,33 @@ def _check_dataset():
     global _dataset
     if not _dataset is None:
         raise RuntimeError('Tried to open netCDF file after dataset already opened')
+
+
+class DataStore(object):
+    def initialize(self):
+        pass
+
+    @property
+    def n_replicas(self):
+        pass
+
+    def load_states(self, step):
+        pass
+
+    def save_states(self, states, step):
+        pass
+
+    def append_traj(self, state):
+        pass
+
+    def save_lambdas(self, lambdas, step):
+        pass
+
+    def save_permutation_vector(self, perm_vec, step):
+        pass
+
+    def save_remd_runner(self, runner):
+        pass
+
+    def backup(self, step):
+        pass

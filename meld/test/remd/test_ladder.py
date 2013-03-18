@@ -1,13 +1,13 @@
 import unittest
 import mock
 import numpy
-from meld.remd import ladder
+from meld.remd import ladder, adaptor
 
 
 class TestLadderInputs(unittest.TestCase):
     "Ladder.compute_exchanges should accept the right kinds of inputs"
     def setUp(self):
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
         self.ladder = ladder.NearestNeighborLadder(n_trials=1)
 
     def test_accepts(self):
@@ -40,7 +40,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
     "test compute_exchanges with a single trial on a two replica system"
     def setUp(self):
         self.ladder = ladder.NearestNeighborLadder(n_trials=1)
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
 
     def test_favorable(self):
         "should always accept a favorable swap"
@@ -101,7 +101,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
     "test compute_exchanges with two trials on a two replica system"
     def setUp(self):
         self.ladder = ladder.NearestNeighborLadder(n_trials=2)
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
 
     def test_adatpor_called(self):
         "adaptor should be called twice"
@@ -158,7 +158,7 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
     "test compute_exchanges with two trials on three replicas"
     def setUp(self):
         self.ladder = ladder.NearestNeighborLadder(n_trials=2)
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
 
     def test_low_energy_move_down(self):
         "if the highest replica has a low energy, it should move to the bottom"
@@ -197,7 +197,7 @@ class TestFiveHundredTrialsWithThreeReplicas(unittest.TestCase):
     def test_low_energy_move_down(self):
         # the prefered order will be 2, 0, 1
         energy = numpy.array([[0, 0, 0], [0, 0, 0], [-10000, 0, 0]])
-        mock_adaptor = mock.MagicMock()
+        mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
         l = ladder.NearestNeighborLadder(n_trials=500)
 
         result = l.compute_exchanges(energy, mock_adaptor)

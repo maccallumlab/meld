@@ -50,6 +50,13 @@ class MasterReplicaExchangeRunner(object):
         self._lambdas = None
         self._setup_lambdas()
 
+    def to_slave(self):
+        '''
+        Return a SlaveReplicaExchangeRunner based on self.
+
+        '''
+        return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
+
     def run(self, communicator, replica_runner, store):
         '''
         Run replica exchange until finished

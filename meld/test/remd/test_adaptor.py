@@ -160,7 +160,7 @@ class TestAdaptationPolicyNoGrowth(unittest.TestCase):
         self.BURN_IN = 50
         self.ADAPT_EVERY = 100
         self.policy = adaptor.AdaptationPolicy(1.0, self.BURN_IN, self.ADAPT_EVERY)
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
 
     def test_nothing_happens_first_49(self):
         for i in range(self.BURN_IN):
@@ -228,7 +228,7 @@ class TestAdaptationPolicyWithDoubling(unittest.TestCase):
     def setUp(self):
         self.ADAPT_EVERY = 100
         self.policy = adaptor.AdaptationPolicy(2.0, 0, self.ADAPT_EVERY)
-        self.mock_adaptor = mock.MagicMock()
+        self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
 
     def test_adapt_at_100(self):
         "should adapt at step 100"

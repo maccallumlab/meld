@@ -1,8 +1,7 @@
 import unittest
 import mock
-from meld.remd import launch
-from meld.remd import slave_runner
-from meld import comm
+from meld.remd import slave_runner, master_runner, launch
+from meld import comm, vault, runner
 
 
 class TestLaunchNotMaster(unittest.TestCase):
@@ -12,11 +11,11 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
-        self.mock_rep_runner = mock.Mock()
-        self.mock_remd_master = mock.Mock()
+        self.mock_rep_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
         self.mock_remd_slave = mock.Mock(spec_set=slave_runner.SlaveReplicaExchangeRunner)
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
-        self.mock_store = mock.Mock()
+        self.mock_store = mock.Mock(spec_set=vault.DataStore)
 
         self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_rep_runner,
                                                             self.mock_remd_master, self.mock_store)
@@ -68,9 +67,9 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = True
-        self.mock_rep_runner = mock.Mock()
-        self.mock_remd_master = mock.Mock()
-        self.mock_store = mock.Mock()
+        self.mock_rep_runner = mock.Mock(spec=runner.ReplicaRunner)
+        self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
+        self.mock_store = mock.Mock(spec_set=vault.DataStore)
 
         self.mock_load.return_value = launch.RemdSavedState(self.mock_comm, self.mock_rep_runner,
                                                             self.mock_remd_master, self.mock_store)
