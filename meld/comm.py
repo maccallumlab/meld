@@ -1,6 +1,38 @@
+import numpy
+
+
 class MPICommunicator(object):
+    '''
+    Class to handle communications between master and slaves using MPI
+
+    '''
+    def __init__(self, n_atoms, n_replicas, n_springs):
+        '''
+        Create an MPICommunicator
+
+        Parameters
+            n_atoms -- number of atoms
+            n_replicas -- number of replicas
+            n_springs -- number of springs
+
+        Note: creating an MPI communicator will not actually initialize MPI. To do that,
+        call initialize().
+
+        '''
+        # We're not using n_atoms, n_replicas, and n_springs, but if we switch
+        # to more efficient buffer-based MPI routines, we'll need them.
+        self._n_atoms = n_atoms
+        self._n_replicas = n_replicas
+        self._n_springs = n_springs
+        self._mpi_comm = None
+
     def initialize(self):
-        pass
+        '''
+        Initialize and start MPI
+
+        '''
+        self._mpi_comm = get_mpi_comm_world()
+        self._my_rank = self._mpi_comm.Get_rank()
 
     def is_master(self):
         '''
@@ -10,7 +42,10 @@ class MPICommunicator(object):
             True if we are the master, otherwise False
 
         '''
-        pass
+        if self._my_rank == 0:
+            return True
+        else:
+            return False
 
     def broadcast_lambdas_to_slaves(self, lambdas):
         '''
@@ -25,7 +60,7 @@ class MPICommunicator(object):
         The master node will always be at lambda=0.0
 
         '''
-        pass
+        self._mpi_comm.scatter(lambdas, root=0)
 
     def recieve_lambda_from_master(self):
         '''
@@ -35,7 +70,7 @@ class MPICommunicator(object):
             a floating point value for lambda in [0,1]
 
         '''
-        pass
+        return self._mpi_comm.scatter(None, root=0)
 
     def broadcast_states_to_slaves(self, states):
         '''
@@ -50,7 +85,7 @@ class MPICommunicator(object):
         states that will be simulated on each replica for each step.
 
         '''
-        pass
+        return self._mpi_comm.scatter(states, root=0)
 
     def recieve_state_from_master(self):
         '''
@@ -60,7 +95,7 @@ class MPICommunicator(object):
             the state to run for this step
 
         '''
-        pass
+        return self._mpi_comm.scatter(None, root=0)
 
     def gather_states_from_slaves(self, state_on_master):
         '''
@@ -74,7 +109,7 @@ class MPICommunicator(object):
         The returned states are the states after simulating.
 
         '''
-        pass
+        return self._mpi_comm.gather(state_on_master, root=0)
 
     def send_state_to_master(self, state):
         '''
@@ -88,7 +123,7 @@ class MPICommunicator(object):
         This is the state after simulating this step.
 
         '''
-        pass
+        self._mpi_comm.gather(state, root=0)
 
     def broadcast_states_for_energy_calc_to_slaves(self, states):
         '''
@@ -103,7 +138,7 @@ class MPICommunicator(object):
         the energies and do replica exchange.
 
         '''
-        pass
+        self._mpi_comm.bcast(states, root=0)
 
     def recieve_states_for_energy_calc_from_master(self):
         '''
@@ -113,7 +148,7 @@ class MPICommunicator(object):
             a list of states to calculate the energy of
 
         '''
-        pass
+        return self._mpi_comm.bcast(None, root=0)
 
     def gather_energies_from_slaves(self, energies_on_master):
         '''
@@ -125,7 +160,8 @@ class MPICommunicator(object):
             a square matrix of every state on every replica to be used for replica exchange
 
         '''
-        pass
+        energies = self._mpi_comm.gather(energies_on_master, root=0)
+        return numpy.array(energies)
 
     def send_energies_to_master(self, energies):
         '''
@@ -137,8 +173,29 @@ class MPICommunicator(object):
             None
 
         '''
-        pass
+        return self._mpi_comm.gather(energies, root=0)
 
     @property
     def n_replicas(self):
-        pass
+        return self._n_replicas
+
+    @property
+    def n_atoms(self):
+        return self._n_atoms
+
+    @property
+    def n_springs(self):
+        return self._n_springs
+
+    @property
+    def rank(self):
+        return self._my_rank
+
+
+def get_mpi_comm_world():
+    '''
+    Helper function to import mpi4py and return the comm_world.
+
+    '''
+    from mpi4py import MPI
+    return MPI.COMM_WORLD
