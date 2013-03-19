@@ -5,6 +5,7 @@ from meld.remd import adaptor
 
 
 class TestAdaptationUsesPolicy(unittest.TestCase):
+    "tests to see if adaptor delegates decisions to adapt or reset to the adapation_policy"
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
         self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=self.mock_adapt_policy)
@@ -47,6 +48,26 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
         # we shouldn't adapt
         self.assertEqual(results[0], 0.0)
         self.assertEqual(results[1], 0.5)
+        self.assertEqual(results[2], 1.0)
+
+    def test_adapt_if_policy_says(self):
+        "if the adaptation_policy says to adapt, we should adapt"
+        STEP = 10
+        # setup some fake updates
+        for i in range(10):
+            self.adaptor.update(0, True)
+            self.adaptor.update(1, False)
+        for i in range(5):
+            self.adaptor.update(0, False)
+            self.adaptor.update(1, True)
+        # adpatation_policy says to adapt
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
+
+        results = self.adaptor.adapt([0.0, 0.5, 1.0], step=STEP)
+
+        # we should adapt
+        self.assertEqual(results[0], 0.0)
+        self.assertAlmostEqual(results[1], 0.598, places=3)
         self.assertEqual(results[2], 1.0)
 
 
