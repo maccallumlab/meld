@@ -5,6 +5,7 @@ Modeling with limited data
 # Prerequisites #
 
 * [NetCDF4-python](https://code.google.com/p/netcdf4-python/) -- pip install netCDF4
+* [mpi4py](http://mpi4py.scipy.org) -- pip install mpi4py
 
 # Version Control #
 
