@@ -348,6 +348,12 @@ class DataStore(object):
         with open(self.remd_runner_path) as runner_file:
             return pickle.load(runner_file)
 
+    def load_system(self):
+        pass
+
+    def save_system(self, system):
+        pass
+
     def backup(self, stage):
         '''
         Backup all files to Data/Backup.

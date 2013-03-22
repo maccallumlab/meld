@@ -1,24 +1,22 @@
-import cPickle as pickle
 import collections
+from meld import vault
 
-
-RemdSavedState = collections.namedtuple('RemdSavedState', 'communicator system_runner remd_runner store')
 
 
 def launch():
-    result = pickle.load('restart.dat')
+    store = vault.DataStore.load_data_store()
 
-    communicator = result.communicator
+    communicator = store.load_communicator()
     communicator.initialize()
 
-    system_runner = result.system_runner
+    system = store.load_system()
+    system_runner = system.get_runner()
     system_runner.initialize()
 
     if communicator.is_master():
-        store = result.store
-        store.initialize()
-        remd_runner = result.remd_runner
+        store.initialize(mode='existing')
+        remd_runner = store.load_remd_runner()
         remd_runner.run(communicator, system_runner, store)
     else:
-        remd_runner = result.remd_runner.to_slave()
+        remd_runner = store.load_remd_runner().to_slave()
         remd_runner.run(communicator, system_runner)
