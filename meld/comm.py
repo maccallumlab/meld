@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 
 class MPICommunicator(object):
@@ -161,7 +161,7 @@ class MPICommunicator(object):
 
         '''
         energies = self._mpi_comm.gather(energies_on_master, root=0)
-        return numpy.array(energies)
+        return np.array(energies)
 
     def send_energies_to_master(self, energies):
         '''

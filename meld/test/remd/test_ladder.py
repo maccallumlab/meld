@@ -1,6 +1,6 @@
 import unittest
 import mock
-import numpy
+import numpy as np
 from meld.remd import ladder, adaptor
 
 
@@ -13,7 +13,7 @@ class TestLadderInputs(unittest.TestCase):
     def test_accepts(self):
         "should accept a square energy array"
         N = 10
-        energies = numpy.zeros((N, N))
+        energies = np.zeros((N, N))
 
         result = self.ladder.compute_exchanges(energies, self.mock_adaptor)
         self.assertTrue(result)
@@ -21,7 +21,7 @@ class TestLadderInputs(unittest.TestCase):
     def test_reject_3d(self):
         "should only accept 2d energy array"
         N = 10
-        energies = numpy.zeros((N, N, N))
+        energies = np.zeros((N, N, N))
 
         with self.assertRaises(AssertionError):
             self.ladder.compute_exchanges(energies, self.mock_adaptor)
@@ -30,7 +30,7 @@ class TestLadderInputs(unittest.TestCase):
         "should reject non-square energy arrays"
         N = 10
         M = 20
-        energies = numpy.zeros((N, M))
+        energies = np.zeros((N, M))
 
         with self.assertRaises(AssertionError):
             self.ladder.compute_exchanges(energies, self.mock_adaptor)
@@ -44,7 +44,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_favorable(self):
         "should always accept a favorable swap"
-        energy = numpy.array([[0, -1], [0, 0]])
+        energy = np.array([[0, -1], [0, 0]])
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
@@ -52,7 +52,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_very_unfavorable(self):
         "should never accept very unfavorable swap"
-        energy = numpy.array([[0, 100000], [0, 0]])
+        energy = np.array([[0, 100000], [0, 0]])
 
         result = self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
@@ -61,7 +61,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
     def test_marginal_unfavorable_below(self):
         "we should accept when a random variable is below the metropolis weight"
         with mock.patch('meld.remd.ladder.random.random') as mock_random:
-            energy = numpy.array([[0, 1.0], [0, 0]])
+            energy = np.array([[0, 1.0], [0, 0]])
             # random number smaller than exp(-1)
             mock_random.return_value = 0.3
 
@@ -72,7 +72,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
     def test_marginal_unfavorable_above(self):
         "we should reject when a random variable is above the metropolis weight"
         with mock.patch('meld.remd.ladder.random.random') as mock_random:
-            energy = numpy.array([[0, 1.0], [0, 0]])
+            energy = np.array([[0, 1.0], [0, 0]])
             # random number larger than exp(-1)
             mock_random.return_value = 0.5
 
@@ -82,7 +82,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_adaptor_update_called_accept(self):
         "we should call the adaptor when the exchange is accepted"
-        energy = numpy.array([[0, -1], [0, 0]])
+        energy = np.array([[0, -1], [0, 0]])
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
@@ -90,7 +90,7 @@ class TestSingleTrialWithTwoReplicas(unittest.TestCase):
 
     def test_adaptor_update_called_rejected(self):
         "we should call the adaptor when the exchange is failed"
-        energy = numpy.array([[0, 100000], [0, 0]])
+        energy = np.array([[0, 100000], [0, 0]])
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
@@ -105,7 +105,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
 
     def test_adatpor_called(self):
         "adaptor should be called twice"
-        energy = numpy.array([[0, 0], [0, 0]])
+        energy = np.array([[0, 0], [0, 0]])
 
         self.ladder.compute_exchanges(energy, self.mock_adaptor)
 
@@ -117,7 +117,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
     def test_swap_second_try(self):
         "if the swap fails, then is accepted, we will have permuted the items"
         with mock.patch('meld.remd.ladder.random.random') as mock_random:
-            energy = numpy.array([[0, 1], [0, 0]])
+            energy = np.array([[0, 1], [0, 0]])
             # first fails, second accepts
             mock_random.side_effect = [0.5, 0.3]
 
@@ -131,7 +131,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
     def test_swap_back(self):
         "if the swap succeeds, then we should swap back without calling random"
         with mock.patch('meld.remd.ladder.random.random') as mock_random:
-            energy = numpy.array([[0, 1], [0, 0]])
+            energy = np.array([[0, 1], [0, 0]])
             # random number below exp(-1)
             mock_random.return_value = 0.3
 
@@ -143,7 +143,7 @@ class TestTwoTrialsWithTwoReplicas(unittest.TestCase):
     def test_swap_back_calls_adaptor(self):
         "if the swap succeeds, then we should swap back and call the adaptor appropriately"
         with mock.patch('meld.remd.ladder.random.random') as mock_random:
-            energy = numpy.array([[0, 1], [0, 0]])
+            energy = np.array([[0, 1], [0, 0]])
             # random number below exp(-1)
             mock_random.return_value = 0.3
 
@@ -165,7 +165,7 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
         with mock.patch('meld.remd.ladder.random.choice') as mock_random_choice:
             # the lowest energy is when replica 3 is at the bottom
             # the other two replicas don't care what their indices are
-            energy = numpy.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
+            energy = np.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
             # first swap 1 with 2, then 0 with 1
             # this should allow replica 3 to move down
             mock_random_choice.side_effect = [1, 0]
@@ -180,7 +180,7 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
         with mock.patch('meld.remd.ladder.random.choice') as mock_random_choice:
             # the lowest energy is when replica 3 is at the bottom
             # the other two replicas don't care what their indices are
-            energy = numpy.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
+            energy = np.array([[0, 0, 0], [0, 0, 0], [-2, -1, 0]])
             # first swap 1 with 2, then 0 with 1
             # this should allow replica 3 to move down
             mock_random_choice.side_effect = [1, 0]
@@ -196,7 +196,7 @@ class TestFiveHundredTrialsWithThreeReplicas(unittest.TestCase):
     "test compute exchanges with 500 trials on three replicas"
     def test_low_energy_move_down(self):
         # the prefered order will be 2, 0, 1
-        energy = numpy.array([[0, 0, 0], [0, 0, 0], [-10000, 0, 0]])
+        energy = np.array([[0, 0, 0], [0, 0, 0], [-10000, 0, 0]])
         mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
         l = ladder.NearestNeighborLadder(n_trials=500)
 

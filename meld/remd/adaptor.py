@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import math
 from collections import namedtuple
 
@@ -57,15 +57,15 @@ class EqualAcceptanceAdaptor(object):
             self._compute_t_len()
 
             # put the t_lens on a grid
-            lambda_grid = numpy.linspace(0., 1., 5000)
-            t_lens = numpy.interp(lambda_grid, previous_lambdas, self.t_lens)
+            lambda_grid = np.linspace(0., 1., 5000)
+            t_lens = np.interp(lambda_grid, previous_lambdas, self.t_lens)
 
             # compute the desired t_lens based on equal spacing
-            even_spacing = numpy.linspace(0, t_lens[-1], self.n_replicas)
+            even_spacing = np.linspace(0, t_lens[-1], self.n_replicas)
 
             # compute the values of lambda that will give the desired evenly spaced
             # t_lens
-            new_lambdas = numpy.interp(even_spacing[1:-1], t_lens, lambda_grid)
+            new_lambdas = np.interp(even_spacing[1:-1], t_lens, lambda_grid)
             new_lambdas = [x for x in new_lambdas]
             new_lambdas = [0.] + new_lambdas + [1.]
         else:
@@ -83,8 +83,8 @@ class EqualAcceptanceAdaptor(object):
         Resets all internal counters and statistics to zero.
 
         '''
-        self.success = numpy.zeros(self.n_replicas - 1)
-        self.attempts = numpy.zeros(self.n_replicas - 1)
+        self.success = np.zeros(self.n_replicas - 1)
+        self.attempts = np.zeros(self.n_replicas - 1)
         self.accept_probs = None
         self.t_lens = None
 

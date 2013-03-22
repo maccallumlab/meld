@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from meld import comm
 
 
@@ -8,7 +8,7 @@ N_SPRINGS = 100
 
 
 def generate_energies(index):
-    return index * numpy.ones(N_REPLICAS)
+    return index * np.ones(N_REPLICAS)
 
 
 def main():

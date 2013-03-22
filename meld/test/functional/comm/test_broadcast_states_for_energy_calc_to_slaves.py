@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from meld import comm
 from meld.system.state import SystemState
 
@@ -8,12 +8,12 @@ N_SPRINGS = 100
 
 
 def generate_state(index):
-    coords = index * numpy.ones((N_ATOMS, 3))
-    vels = index * numpy.ones((N_ATOMS, 3))
-    spring_states = index * numpy.ones(N_SPRINGS)
+    coords = index * np.ones((N_ATOMS, 3))
+    vels = index * np.ones((N_ATOMS, 3))
+    spring_states = index * np.ones(N_SPRINGS)
     lam = float(index) / 10.
     energy = float(index)
-    spring_energies = index * numpy.ones(N_SPRINGS)
+    spring_energies = index * np.ones(N_SPRINGS)
 
     return SystemState(coords, vels, spring_states, lam, energy, spring_energies)
 
