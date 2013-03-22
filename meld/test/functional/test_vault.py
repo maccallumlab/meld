@@ -252,6 +252,20 @@ class DataStoreHD5TestCase(unittest.TestCase):
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
 
+    def test_can_save_and_load_permutation_vector(self):
+        "should be able to save and load permutation vector"
+        test_vec = np.array(range(self.N_REPLICAS))
+        STAGE = 0
+
+        self.store.save_permutation_vector(test_vec, STAGE)
+        self.store.save_data_store()
+        self.store.close()
+        store2 = vault.DataStore.load_data_store()
+        store2.initialize(mode='existing')
+        test_vec2 = store2.load_permutation_vector(STAGE)
+
+        np.testing.assert_equal(test_vec, test_vec2)
+
 
 class DataStoreBackupTestCase(unittest.TestCase):
     '''

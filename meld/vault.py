@@ -314,8 +314,29 @@ class DataStore(object):
         '''
         return self._h5_file['energies'][..., stage]
 
-    def save_permutation_vector(self, perm_vec, step):
-        pass
+    def save_permutation_vector(self, perm_vec, stage):
+        '''
+        Save permutation vector to disk.
+
+        Parameters
+            perm_vec -- n_replicas array of int
+            stage -- int stage to store
+
+        '''
+        self._h5_file['permutation_vector'][..., stage] = perm_vec
+
+    def load_permutation_vector(self, stage):
+        '''
+        Load permutation vector from disk.
+
+        Parameters
+            stage -- int stage to load
+
+        Returns
+            n_replicas array of int
+
+        '''
+        return self._h5_file['permutation_vector'][..., stage]
 
     def save_remd_runner(self, runner):
         '''Save replica runner to disk'''
@@ -358,6 +379,7 @@ class DataStore(object):
         self._setup_spring_energies()
         self._setup_lambdas()
         self._setup_energies()
+        self._setup_perm_vec()
 
     def _setup_positions(self):
         # n_replicas x n_atoms x 3 x n_steps
@@ -394,6 +416,12 @@ class DataStore(object):
     def _setup_energies(self):
         # n_replicas x n_steps
         self._h5_file.create_dataset('energies', shape=(self._n_replicas, 1), dtype=float,
+                                     maxshape=(self._n_replicas, None), compression='gzip', fletcher32=True,
+                                     shuffle=True)
+
+    def _setup_perm_vec(self):
+        # n_replicas x n_steps
+        self._h5_file.create_dataset('permutation_vector', shape=(self._n_replicas, 1), dtype=int,
                                      maxshape=(self._n_replicas, None), compression='gzip', fletcher32=True,
                                      shuffle=True)
 
