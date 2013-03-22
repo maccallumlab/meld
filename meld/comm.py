@@ -26,6 +26,15 @@ class MPICommunicator(object):
         self._n_springs = n_springs
         self._mpi_comm = None
 
+    def __getstate__(self):
+        # don't pickle _mpi_comm
+        return dict((k, v) for (k, v) in self.__dict__.iteritems() if not k == '_mpi_comm')
+
+    def __setstate__(self, state):
+        # set _mpi_comm to None
+        self.__dict__ = state
+        self._mpi_comm = None
+
     def initialize(self):
         '''
         Initialize and start MPI
