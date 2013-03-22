@@ -18,7 +18,6 @@ def main():
     energies = generate_energies(c.rank)
 
     if c.is_master():
-        print __file__
         all_energies = c.gather_energies_from_slaves(energies)
         assert all_energies[0, 0] == 0.
         assert all_energies[0, 1] == 0.
@@ -31,8 +30,6 @@ def main():
 
     else:
         c.send_energies_to_master(energies)
-
-    print '\tSuccess'
 
 
 if __name__ == '__main__':

@@ -10,7 +10,6 @@ def main():
     c.initialize()
 
     if c.is_master():
-        print __file__
         lambdas = [0., 0.1, 0.2, 0.3]
         c.broadcast_lambdas_to_slaves(lambdas)
 
@@ -22,8 +21,6 @@ def main():
             assert lam == 0.2
         elif c.rank == 3:
             assert lam == 0.3
-
-    print '\tSuccess'
 
 
 if __name__ == '__main__':

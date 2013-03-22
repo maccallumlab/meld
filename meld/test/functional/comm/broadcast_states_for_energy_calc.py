@@ -19,8 +19,8 @@ def generate_state(index):
 
 
 def check_state(state, index):
-    assert state.coords[0, 0] == index
-    assert state.vels[0, 0] == index
+    assert state.positions[0, 0] == index
+    assert state.velocities[0, 0] == index
     assert state.spring_states[0] == index
     assert state.lam == index / 10.
     assert state.energy == index
@@ -32,7 +32,6 @@ def main():
     c.initialize()
 
     if c.is_master():
-        print __file__
         states = [generate_state(index) for index in range(4)]
         c.broadcast_states_for_energy_calc_to_slaves(states)
 
@@ -42,8 +41,6 @@ def main():
         check_state(all_states[1], 1)
         check_state(all_states[2], 2)
         check_state(all_states[3], 3)
-
-    print '\tSuccess'
 
 
 if __name__ == '__main__':

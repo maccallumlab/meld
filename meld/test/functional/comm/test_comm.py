@@ -1,0 +1,19 @@
+import unittest
+import subprocess
+
+
+class CommTestCase(unittest.TestCase):
+    def test_broadcast_lambda(self):
+        subprocess.check_call('mpirun -np 4 python broadcast_lambda.py', shell=True)
+
+    def test_broadcast_states(self):
+        subprocess.check_call('mpirun -np 4 python broadcast_states.py', shell=True)
+
+    def test_broadcast_states_for_energy_calc(self):
+        subprocess.check_call('mpirun -np 4 python broadcast_states_for_energy_calc.py', shell=True)
+
+    def test_gather_energies(self):
+        subprocess.check_call('mpirun -np 4 python gather_energies.py', shell=True)
+
+    def test_gather_states(self):
+        subprocess.check_call('mpirun -np 4 python gather_states.py', shell=True)

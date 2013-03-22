@@ -19,8 +19,8 @@ def generate_state(index):
 
 
 def check_state(state, index):
-    assert state.coords[0, 0] == index
-    assert state.vels[0, 0] == index
+    assert state.positions[0, 0] == index
+    assert state.velocities[0, 0] == index
     assert state.spring_states[0] == index
     assert state.lam == index / 10.
     assert state.energy == index
@@ -34,7 +34,6 @@ def main():
     state = generate_state(c.rank)
 
     if c.is_master():
-        print __file__
         all_states = c.gather_states_from_slaves(state)
         check_state(all_states[0], 0)
         check_state(all_states[1], 1)
@@ -43,8 +42,6 @@ def main():
 
     else:
         c.send_state_to_master(state)
-
-    print '\tSuccess'
 
 
 if __name__ == '__main__':
