@@ -57,7 +57,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             self.assertEqual(store.n_atoms, store2.n_atoms)
             self.assertEqual(store.n_springs, store2.n_springs)
             self.assertEqual(store.n_replicas, store2.n_replicas)
-            self.assertIsNone(store2._cdf_file)
+            self.assertIsNone(store2._cdf_data_set)
             self.assertTrue(os.path.exists('Data/data_store.dat'))
 
     def test_save_and_load_communicator(self):
