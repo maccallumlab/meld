@@ -1,6 +1,6 @@
 import os
 import cPickle as pickle
-import h5py
+import netCDF4 as cdf
 import numpy as np
 import shutil
 from meld.system import state
@@ -25,7 +25,8 @@ class DataStore(object):
     data_store_path = os.path.join(data_dir, 'data_store.dat')
     communicator_path = os.path.join(data_dir, 'communicator.dat')
     remd_runner_path = os.path.join(data_dir, 'remd_runner.dat')
-    h5_path = os.path.join(data_dir, 'results.h5')
+    system_path = os.path.join(data_dir, 'system.dat')
+    net_cdf_path = os.path.join(data_dir, 'results.nc')
 
     def __init__(self, n_atoms, n_springs, n_replicas, backup_freq=100):
         '''
@@ -42,22 +43,22 @@ class DataStore(object):
         self._n_springs = n_springs
         self._n_replicas = n_replicas
         self._backup_freq = backup_freq
-        self._h5_file = None
+        self._cdf_file = None
 
     def __getstate__(self):
         # don't save some fields to disk
-        excluded = ['_h5_file']
+        excluded = ['_cdf_file']
         return dict((k, v) for (k, v) in self.__dict__.iteritems() if not k in excluded)
 
     def __setstate__(self, state):
-        # set _h5_file to None
+        # set _cdf_file to None
         self.__dict__ = state
-        self._h5_file = None
+        self._cdf_file = None
 
     def __del__(self):
-        # close the _h5_file when we go out of scope
-        if self._h5_file:
-            self._h5_file.close()
+        # close the _cdf_file when we go out of scope
+        if self._cdf_file:
+            self._cdf_file.close()
     #
     # properties
     #
@@ -96,18 +97,18 @@ class DataStore(object):
                 raise RuntimeError('Data directory already exists')
             os.mkdir(self.data_dir)
             os.mkdir(self.backup_dir)
-            self._h5_file = h5py.File(self.h5_path, 'w-')
-            self._setup_h5_datasets()
+            self._cdf_file = cdf.Dataset(self.net_cdf_path, 'w', format='NETCDF4')
+            self._setup_cdf()
         elif mode == 'existing':
-            self._h5_file = h5py.File(self.h5_path, 'a')
+            self._cdf_file = cdf.Dataset(self.net_cdf_path, 'a')
         else:
             raise RuntimeError('Unknown value for mode={}'.format(mode))
 
     def close(self):
         '''Close the DataStore'''
-        if self._h5_file:
-            self._h5_file.close()
-            self._h5_file = None
+        if self._cdf_file:
+            self._cdf_file.close()
+            self._cdf_file = None
 
     def save_data_store(self):
         '''Save this object to disk.'''
@@ -139,7 +140,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['positions'][..., stage] = positions
+        self._cdf_file.variables['positions'][..., stage] = positions
 
     def load_positions(self, stage):
         '''
@@ -149,7 +150,7 @@ class DataStore(object):
             stage -- int stage to load
 
         '''
-        return self._h5_file['positions'][..., stage]
+        return self._cdf_file.variables['positions'][..., stage]
 
     def save_velocities(self, velocities, stage):
         '''
@@ -160,7 +161,8 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['velocities'][..., stage] = velocities
+        # print self._cdf_file.variables['velocities'][:, :, :, stage]
+        self._cdf_file.variables['velocities'][..., stage] = velocities
 
     def load_velocities(self, stage):
         '''
@@ -170,7 +172,7 @@ class DataStore(object):
             stage -- int stage to load
 
         '''
-        return self._h5_file['velocities'][..., stage]
+        return self._cdf_file.variables['velocities'][..., stage]
 
     def save_spring_states(self, spring_states, stage):
         '''
@@ -181,7 +183,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['spring_states'][..., stage] = spring_states
+        self._cdf_file.variables['spring_states'][..., stage] = spring_states
 
     def load_spring_states(self, stage):
         '''
@@ -191,7 +193,7 @@ class DataStore(object):
             stage -- int stage to load
 
         '''
-        return self._h5_file['spring_states'][..., stage]
+        return self._cdf_file.variables['spring_states'][:, :, stage]
 
     def save_spring_energies(self, spring_energies, stage):
         '''
@@ -202,7 +204,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['spring_energies'][..., stage] = spring_energies
+        self._cdf_file.variables['spring_energies'][..., stage] = spring_energies
 
     def load_spring_energies(self, stage):
         '''
@@ -215,7 +217,7 @@ class DataStore(object):
             n_replicas x n_springs array
 
         '''
-        return self._h5_file['spring_energies'][..., stage]
+        return self._cdf_file.variables['spring_energies'][..., stage]
 
     def save_states(self, states, stage):
         '''
@@ -275,7 +277,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['lambdas'][..., stage] = lambdas
+        self._cdf_file.variables['lambdas'][..., stage] = lambdas
 
     def load_lambdas(self, stage):
         '''
@@ -288,7 +290,7 @@ class DataStore(object):
             n_replicas array
 
         '''
-        return self._h5_file['lambdas'][..., stage]
+        return self._cdf_file.variables['lambdas'][..., stage]
 
     def save_energies(self, energies, stage):
         '''
@@ -299,7 +301,7 @@ class DataStore(object):
             stage -- int stage to save
 
         '''
-        self._h5_file['energies'][..., stage] = energies
+        self._cdf_file.variables['energies'][..., stage] = energies
 
     def load_energies(self, stage):
         '''
@@ -312,7 +314,7 @@ class DataStore(object):
             n_replicas array
 
         '''
-        return self._h5_file['energies'][..., stage]
+        return self._cdf_file.variables['energies'][..., stage]
 
     def save_permutation_vector(self, perm_vec, stage):
         '''
@@ -323,7 +325,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        self._h5_file['permutation_vector'][..., stage] = perm_vec
+        self._cdf_file.variables['permutation_vectors'][..., stage] = perm_vec
 
     def load_permutation_vector(self, stage):
         '''
@@ -336,7 +338,7 @@ class DataStore(object):
             n_replicas array of int
 
         '''
-        return self._h5_file['permutation_vector'][..., stage]
+        return self._cdf_file.variables['permutation_vectors'][..., stage]
 
     def save_remd_runner(self, runner):
         '''Save replica runner to disk'''
@@ -348,11 +350,13 @@ class DataStore(object):
         with open(self.remd_runner_path) as runner_file:
             return pickle.load(runner_file)
 
-    def load_system(self):
-        pass
-
     def save_system(self, system):
-        pass
+        with open(self.system_path, 'w') as system_file:
+            pickle.dump(system, system_file)
+
+    def load_system(self):
+        with open(self.system_path) as system_file:
+            return pickle.load(system_file)
 
     def backup(self, stage):
         '''
@@ -369,16 +373,17 @@ class DataStore(object):
             self._backup(self.data_store_path)
             self._backup(self.remd_runner_path)
 
-            self._h5_file.close()
-            self._backup(self.h5_path)
-            self._h5_file = h5py.File(self.h5_path, 'a')
+            self._cdf_file.close()
+            self._backup(self.net_cdf_path)
+            self._cdf_file = cdf.Dataset(self.net_cdf_path, 'a')
 
     #
     # private methods
     #
 
-    def _setup_h5_datasets(self):
-        # setup all of the hd5 data sets
+    def _setup_cdf(self):
+        # setup all of the net cdf dimensions and variables
+        self._setup_dimensions()
         self._setup_positions()
         self._setup_velocities()
         self._setup_spring_states()
@@ -387,49 +392,33 @@ class DataStore(object):
         self._setup_energies()
         self._setup_perm_vec()
 
+    def _setup_dimensions(self):
+        self._cdf_file.createDimension('n_replicas', self._n_replicas)
+        self._cdf_file.createDimension('n_atoms', self._n_atoms)
+        self._cdf_file.createDimension('cartesian', 3)
+        self._cdf_file.createDimension('n_springs', self._n_springs)
+        self._cdf_file.createDimension('timesteps', None)
+
     def _setup_positions(self):
-        # n_replicas x n_atoms x 3 x n_steps
-        self._h5_file.create_dataset('positions', shape=(self._n_replicas, self._n_atoms, 3, 1), dtype=float,
-                                     maxshape=(self._n_replicas, self._n_atoms, 3, None),
-                                     compression='gzip',
-                                     fletcher32=True, shuffle=True)
+        self._cdf_file.createVariable('positions', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'])
 
     def _setup_velocities(self):
-        # n_replicas x n_atoms x 3 x n_steps
-        self._h5_file.create_dataset('velocities', shape=(self._n_replicas, self._n_atoms, 3, 1), dtype=float,
-                                     maxshape=(self._n_replicas, self._n_atoms, 3, None), compression='gzip',
-                                     fletcher32=True, shuffle=True)
+        self._cdf_file.createVariable('velocities', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'])
 
     def _setup_spring_states(self):
-        # n_replicas x n_springs x n_steps
-        self._h5_file.create_dataset('spring_states', shape=(self._n_replicas, self._n_springs, 1), dtype=float,
-                                     maxshape=(self._n_replicas, self._n_springs, None), compression='gzip',
-                                     fletcher32=True, shuffle=True)
+        self._cdf_file.createVariable('spring_states', float, ['n_replicas', 'n_springs', 'timesteps'])
 
     def _setup_spring_energies(self):
-        # n_replicas x n_springs x n_steps
-        self._h5_file.create_dataset('spring_energies', shape=(self._n_replicas, self._n_springs, 1), dtype=float,
-                                     maxshape=(self._n_replicas, self._n_springs, None), compression='gzip',
-                                     fletcher32=True, shuffle=True)
+        self._cdf_file.createVariable('spring_energies', float, ['n_replicas', 'n_springs', 'timesteps'])
 
     def _setup_lambdas(self):
-        # n_replicas x n_steps
-        self._h5_file.create_dataset('lambdas', shape=(self._n_replicas, 1), dtype=float,
-                                     maxshape=(self._n_replicas, None), compression='gzip', fletcher32=True,
-
-                                     shuffle=True)
+        self._cdf_file.createVariable('lambdas', float, ['n_replicas', 'timesteps'])
 
     def _setup_energies(self):
-        # n_replicas x n_steps
-        self._h5_file.create_dataset('energies', shape=(self._n_replicas, 1), dtype=float,
-                                     maxshape=(self._n_replicas, None), compression='gzip', fletcher32=True,
-                                     shuffle=True)
+        self._cdf_file.createVariable('energies', float, ['n_replicas', 'timesteps'])
 
     def _setup_perm_vec(self):
-        # n_replicas x n_steps
-        self._h5_file.create_dataset('permutation_vector', shape=(self._n_replicas, 1), dtype=int,
-                                     maxshape=(self._n_replicas, None), compression='gzip', fletcher32=True,
-                                     shuffle=True)
+        self._cdf_file.createVariable('permutation_vectors', int, ['n_replicas', 'timesteps'])
 
     def _backup(self, path):
         if os.path.exists(path):

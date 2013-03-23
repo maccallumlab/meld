@@ -48,7 +48,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
             store.initialize(mode='new')
 
-            self.assertTrue(os.path.exists('Data/results.h5'), 'results.h5 not created')
+            self.assertTrue(os.path.exists('Data/results.nc'), 'results.nc not created')
 
     def test_init_mode_w_raises_when_dirs_exist(self):
         "calling initialize should raise RuntimeError when Data and Data/Backup directories exist"
@@ -72,7 +72,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             self.assertEqual(store.n_atoms, store2.n_atoms)
             self.assertEqual(store.n_springs, store2.n_springs)
             self.assertEqual(store.n_replicas, store2.n_replicas)
-            self.assertIsNone(store2._h5_file)
+            self.assertIsNone(store2._cdf_file)
             self.assertTrue(os.path.exists('Data/data_store.dat'))
 
     def test_save_and_load_communicator(self):
@@ -109,6 +109,18 @@ class DataStorePickleTestCase(unittest.TestCase):
 
             self.assertEqual(runner.n_replicas, runner2.n_replicas)
             self.assertTrue(os.path.exists('Data/remd_runner.dat'))
+
+    def test_save_and_load_system(self):
+        "should be able to save and load a System"
+        with in_temp_dir():
+            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store.initialize(mode='new')
+            fake_system = object()
+
+            store.save_system(fake_system)
+            fake_system2 = store.load_system()
+
+            self.assertTrue(os.path.exists('Data/system.dat'))
 
 
 class DataStoreHD5TestCase(unittest.TestCase):
@@ -252,6 +264,30 @@ class DataStoreHD5TestCase(unittest.TestCase):
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
 
+    def test_can_save_and_load_two_states(self):
+        "should be able to save and load states"
+        def gen_state(index, n_atoms, n_springs):
+            pos = index * np.ones((n_atoms, 3))
+            vel = index * np.ones((n_atoms, 3))
+            ss = index * np.ones(n_springs)
+            se = index * np.ones(n_springs)
+            energy = index
+            lam = index / 100.
+            return state.SystemState(pos, vel, ss, lam, energy, se)
+
+        states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        STAGE = 0
+
+        self.store.save_states(states, STAGE)
+        self.store.save_states(states, STAGE+1)
+        self.store.save_data_store()
+        self.store.close()
+        store2 = vault.DataStore.load_data_store()
+        store2.initialize(mode='existing')
+        states2 = store2.load_states(STAGE)
+
+        np.testing.assert_equal(states[-1].positions, states2[-1].positions)
+
     def test_can_save_and_load_permutation_vector(self):
         "should be able to save and load permutation vector"
         test_vec = np.array(range(self.N_REPLICAS))
@@ -337,7 +373,7 @@ class DataStoreBackupTestCase(unittest.TestCase):
         "results.h5 should be backed up"
         self.store.backup(stage=0)
 
-        self.assertTrue(os.path.exists('Data/Backup/results.h5'))
+        self.assertTrue(os.path.exists('Data/Backup/results.nc'))
         # make sure we can still access the hd5 file after backup
         states = self.store.load_states(stage=0)
 
