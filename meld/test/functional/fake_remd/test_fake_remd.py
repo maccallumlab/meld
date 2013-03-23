@@ -1,11 +1,8 @@
 import unittest
-import mock
 import os
-import shutil
-import tempfile
 import subprocess
 import numpy as np
-from meld.remd import ladder, adaptor, launch, master_runner
+from meld.remd import ladder, adaptor, master_runner
 from meld.system import state
 from meld import comm, vault
 from meld.test import helper
@@ -56,12 +53,9 @@ def setup_system():
     store.save_data_store()
 
 
-class FakeRemdTestCase(unittest.TestCase):
+class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def setUp(self):
-        # create and change to temp dir
-        self.cwd = os.getcwd()
-        self.tmpdir = tempfile.mkdtemp()
-        os.chdir(self.tmpdir)
+        self.setUpTempDir()
 
         setup_system()
 
@@ -69,9 +63,7 @@ class FakeRemdTestCase(unittest.TestCase):
         subprocess.check_call('mpirun -np 4 launch_remd', shell=True)
 
     def tearDown(self):
-        # switch to original dir and clean up
-        os.chdir(self.cwd)
-        shutil.rmtree(self.tmpdir)
+        self.tearDownTempDir()
 
     def test_data_dir_should_be_present(self):
         self.assertTrue(os.path.exists('Data'))

@@ -3,25 +3,10 @@
 import numpy as np
 import unittest
 import os
-import shutil
-import tempfile
-import contextlib
 from meld import vault, comm
 from meld.remd import master_runner, ladder, adaptor
 from meld.system import state
-
-
-@contextlib.contextmanager
-def in_temp_dir():
-    try:
-        cwd = os.getcwd()
-        tmpdir = tempfile.mkdtemp()
-        os.chdir(tmpdir)
-        yield
-
-    finally:
-        os.chdir(cwd)
-        shutil.rmtree(tmpdir)
+from meld.test.helper import in_temp_dir, TempDirHelper
 
 
 class DataStorePickleTestCase(unittest.TestCase):
@@ -118,20 +103,17 @@ class DataStorePickleTestCase(unittest.TestCase):
             fake_system = object()
 
             store.save_system(fake_system)
-            fake_system2 = store.load_system()
+            store.load_system()
 
             self.assertTrue(os.path.exists('Data/system.dat'))
 
 
-class DataStoreHD5TestCase(unittest.TestCase):
+class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
     '''
     Test that we can read and write the data that goes in the hd5 file.
     '''
     def setUp(self):
-        # create and change to temp dir
-        self.cwd = os.getcwd()
-        self.tmpdir = tempfile.mkdtemp()
-        os.chdir(self.tmpdir)
+        self.setUpTempDir()
 
         # setup data store
         self.N_ATOMS = 500
@@ -141,9 +123,7 @@ class DataStoreHD5TestCase(unittest.TestCase):
         self.store.initialize(mode='new')
 
     def tearDown(self):
-        # switch to original dir and clean up
-        os.chdir(self.cwd)
-        shutil.rmtree(self.tmpdir)
+        self.tearDownTempDir()
 
     def test_can_save_and_load_positions(self):
         "should be able to save and load positions"
@@ -303,15 +283,12 @@ class DataStoreHD5TestCase(unittest.TestCase):
         np.testing.assert_equal(test_vec, test_vec2)
 
 
-class DataStoreBackupTestCase(unittest.TestCase):
+class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
     '''
     Test that backup files are created/copied correctly.
     '''
     def setUp(self):
-        # create and change to temp dir
-        self.cwd = os.getcwd()
-        self.tmpdir = tempfile.mkdtemp()
-        os.chdir(self.tmpdir)
+        self.setUpTempDir()
 
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
@@ -347,9 +324,7 @@ class DataStoreBackupTestCase(unittest.TestCase):
         self.store.save_states(states, stage=0)
 
     def tearDown(self):
-        # switch to original dir and clean up
-        os.chdir(self.cwd)
-        shutil.rmtree(self.tmpdir)
+        self.tearDownTempDir()
 
     def test_backup_copies_comm(self):
         "communicator.dat should be backed up"
@@ -375,7 +350,7 @@ class DataStoreBackupTestCase(unittest.TestCase):
 
         self.assertTrue(os.path.exists('Data/Backup/results.nc'))
         # make sure we can still access the hd5 file after backup
-        states = self.store.load_states(stage=0)
+        self.store.load_states(stage=0)
 
 
 def main():
