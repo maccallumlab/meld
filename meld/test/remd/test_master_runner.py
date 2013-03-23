@@ -64,7 +64,7 @@ class TestSingleStep(unittest.TestCase):
         "calling run should load the states from step 0"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_store.load_states.assert_called_once_with(step=0)
+        self.mock_store.load_states.assert_called_once_with(stage=0)
 
     def test_should_set_lambda_on_system_runner(self):
         "should set lambda on the system runner"

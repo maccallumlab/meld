@@ -75,7 +75,7 @@ class MasterReplicaExchangeRunner(object):
         assert self._n_replicas == store.n_replicas
 
         # load previous state from the store
-        states = store.load_states(step=self.step - 1)
+        states = store.load_states(stage=self.step - 1)
 
         # the master is always at lambda = 0, so set that here
         system_runner.set_lambda(0.)
