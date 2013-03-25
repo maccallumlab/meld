@@ -25,11 +25,26 @@ class DataStore(object):
     #
     data_dir = 'Data'
     backup_dir = os.path.join(data_dir, 'Backup')
-    data_store_path = os.path.join(data_dir, 'data_store.dat')
-    communicator_path = os.path.join(data_dir, 'communicator.dat')
-    remd_runner_path = os.path.join(data_dir, 'remd_runner.dat')
-    system_path = os.path.join(data_dir, 'system.dat')
-    net_cdf_path = os.path.join(data_dir, 'results.nc')
+
+    data_store_filename = 'data_store.dat'
+    data_store_path = os.path.join(data_dir, data_store_filename)
+    data_store_backup_path = os.path.join(backup_dir, data_store_filename)
+
+    communicator_filename = 'communicator.dat'
+    communicator_path = os.path.join(data_dir, communicator_filename)
+    communicator_backup_path = os.path.join(backup_dir, communicator_filename)
+
+    remd_runner_filename = 'remd_runner.dat'
+    remd_runner_path = os.path.join(data_dir, remd_runner_filename)
+    remd_runner_backup_path = os.path.join(backup_dir, remd_runner_filename)
+
+    system_filename = 'system.dat'
+    system_path = os.path.join(data_dir, system_filename)
+    system_backup_path = os.path.join(backup_dir, system_filename)
+
+    net_cdf_filename = 'results.nc'
+    net_cdf_path = os.path.join(data_dir, net_cdf_filename)
+    net_cdf_backup_path = os.path.join(backup_dir, net_cdf_filename)
 
     def __init__(self, n_atoms, n_springs, n_replicas, backup_freq=100):
         '''
@@ -47,6 +62,7 @@ class DataStore(object):
         self._n_replicas = n_replicas
         self._backup_freq = backup_freq
         self._cdf_data_set = None
+        self._safe_mode = False
 
     def __getstate__(self):
         # don't save some fields to disk
@@ -104,6 +120,9 @@ class DataStore(object):
             self._setup_cdf()
         elif mode == 'existing':
             self._cdf_data_set = cdf.Dataset(self.net_cdf_path, 'a')
+        elif mode == 'safe':
+            self._cdf_data_set = cdf.Dataset(self.net_cdf_backup_path, 'r')
+            self._safe_mode = True
         else:
             raise RuntimeError('Unknown value for mode={}'.format(mode))
 
@@ -126,12 +145,17 @@ class DataStore(object):
 
     def save_communicator(self, comm):
         '''Save the communicator to disk'''
+        self._check_save()
         with open(self.communicator_path, 'w') as comm_file:
             pickle.dump(comm, comm_file)
 
     def load_communicator(self):
         '''Load the communicator from disk'''
-        with open(self.communicator_path) as comm_file:
+        if self._safe_mode:
+            path = self.communicator_backup_path
+        else:
+            path = self.communicator_path
+        with open(path) as comm_file:
             return pickle.load(comm_file)
 
     def save_positions(self, positions, stage):
@@ -164,7 +188,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
-        # print self._cdf_data_set.variables['velocities'][:, :, :, stage]
+        self._check_save()
         self._cdf_data_set.variables['velocities'][..., stage] = velocities
 
     def load_velocities(self, stage):
@@ -186,6 +210,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
+        self._check_save()
         self._cdf_data_set.variables['spring_states'][..., stage] = spring_states
 
     def load_spring_states(self, stage):
@@ -207,6 +232,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
+        self._check_save()
         self._cdf_data_set.variables['spring_energies'][..., stage] = spring_energies
 
     def load_spring_energies(self, stage):
@@ -231,6 +257,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
+        self._check_save()
         positions = np.array([s.positions for s in states])
         velocities = np.array([s.velocities for s in states])
         spring_states = np.array([s.spring_states for s in states])
@@ -280,6 +307,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
+        self._check_save()
         self._cdf_data_set.variables['lambdas'][..., stage] = lambdas
 
     def load_lambdas(self, stage):
@@ -304,6 +332,7 @@ class DataStore(object):
             stage -- int stage to save
 
         '''
+        self._check_save()
         self._cdf_data_set.variables['energies'][..., stage] = energies
 
     def load_energies(self, stage):
@@ -328,6 +357,7 @@ class DataStore(object):
             stage -- int stage to store
 
         '''
+        self._check_save()
         self._cdf_data_set.variables['permutation_vectors'][..., stage] = perm_vec
 
     def load_permutation_vector(self, stage):
@@ -345,20 +375,24 @@ class DataStore(object):
 
     def save_remd_runner(self, runner):
         '''Save replica runner to disk'''
+        self._check_save()
         with open(self.remd_runner_path, 'w') as runner_file:
             pickle.dump(runner, runner_file)
 
     def load_remd_runner(self):
         '''Load replica runner from disk'''
-        with open(self.remd_runner_path) as runner_file:
+        path = self.remd_runner_backup_path if self._safe_mode else self.remd_runner_path
+        with open(path) as runner_file:
             return pickle.load(runner_file)
 
     def save_system(self, system):
+        self._check_save()
         with open(self.system_path, 'w') as system_file:
             pickle.dump(system, system_file)
 
     def load_system(self):
-        with open(self.system_path) as system_file:
+        path = self.system_backup_path if self._safe_mode else self.system_path
+        with open(path) as system_file:
             return pickle.load(system_file)
 
     def backup(self, stage):
@@ -371,13 +405,15 @@ class DataStore(object):
         Backup will occur if stage mod backup_freq == 0
 
         '''
+        self._check_save()
         if not stage % self._backup_freq:
-            self._backup(self.communicator_path)
-            self._backup(self.data_store_path)
-            self._backup(self.remd_runner_path)
+            self._backup(self.communicator_path, self.communicator_backup_path)
+            self._backup(self.data_store_path, self.data_store_backup_path)
+            self._backup(self.remd_runner_path, self.remd_runner_backup_path)
+            self._backup(self.system_path, self.system_backup_path)
 
             self._cdf_data_set.close()
-            self._backup(self.net_cdf_path)
+            self._backup(self.net_cdf_path, self.net_cdf_backup_path)
             self._cdf_data_set = cdf.Dataset(self.net_cdf_path, 'a')
 
     #
@@ -408,11 +444,10 @@ class DataStore(object):
         self._cdf_data_set.createVariable('permutation_vectors', int, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
 
-    def _backup(self, path):
-        if os.path.exists(path):
-            backup_path = self._make_backup_path(path)
-            shutil.copy(path, backup_path)
+    def _backup(self, src, dest):
+        if os.path.exists(src):
+            shutil.copy(src, dest)
 
-    def _make_backup_path(self, path):
-        base, name = os.path.split(path)
-        return os.path.join(self.backup_dir, name)
+    def _check_save(self):
+        if self._safe_mode:
+            raise RuntimeError('Cannot save in safe mode.')

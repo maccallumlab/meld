@@ -3,6 +3,7 @@
 import numpy as np
 import unittest
 import os
+import shutil
 from meld import vault, comm
 from meld.remd import master_runner, ladder, adaptor
 from meld.system import state
@@ -351,6 +352,107 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         self.assertTrue(os.path.exists('Data/Backup/results.nc'))
         # make sure we can still access the hd5 file after backup
         self.store.load_states(stage=0)
+
+
+class TestSafeMode(unittest.TestCase, TempDirHelper):
+    def setUp(self):
+        self.setUpTempDir()
+
+        self.N_ATOMS = 500
+        self.N_REPLICAS = 16
+        self.N_SPRINGS = 100
+
+        # setup objects to save to disk
+        c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS, self.N_SPRINGS)
+
+        l = ladder.NearestNeighborLadder(n_trials=100)
+        policy = adaptor.AdaptationPolicy(1.0, 50, 100)
+        a = adaptor.EqualAcceptanceAdaptor(n_replicas=self.N_REPLICAS, adaptation_policy=policy)
+
+        # make some states
+        def gen_state(index, n_atoms, n_springs):
+            pos = index * np.ones((n_atoms, 3))
+            vel = index * np.ones((n_atoms, 3))
+            ss = index * np.ones(n_springs)
+            se = index * np.ones(n_springs)
+            energy = index
+            lam = index / 100.
+            return state.SystemState(pos, vel, ss, lam, energy, se)
+
+        states_0 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        states_1 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        runner = master_runner.MasterReplicaExchangeRunner(self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
+
+        store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS, backup_freq=1)
+        store.initialize(mode='new')
+
+        # save some stuff
+        store.save_data_store()
+        store.save_communicator(c)
+        store.save_remd_runner(runner)
+        store.save_system(object())
+        store.save_states(states_0, stage=0)
+        store.backup(0)
+        store.save_states(states_1, stage=0)
+        store.close()
+
+        self.store = vault.DataStore.load_data_store()
+        self.store.initialize(mode='safe')
+
+    def tearDown(self):
+        self.tearDownTempDir()
+
+    def test_should_fail_to_load_comm_with_no_backup(self):
+        # remove the communicator
+        os.remove(self.store.communicator_backup_path)
+        with self.assertRaises(IOError):
+            self.store.load_communicator()
+
+    def test_saving_comm_should_raise(self):
+        with self.assertRaises(RuntimeError):
+            self.store.save_communicator(object())
+
+    def test_should_fail_to_load_remd_runner_with_no_backup(self):
+        # remove the remd_runner
+        os.remove(self.store.remd_runner_backup_path)
+        with self.assertRaises(IOError):
+            self.store.load_remd_runner()
+
+    def test_saving_remd_runner_should_raise(self):
+        with self.assertRaises(RuntimeError):
+            self.store.save_remd_runner(object())
+
+    def test_should_fail_to_load_system_with_no_backup(self):
+        # remove the system
+        os.remove(self.store.system_backup_path)
+        with self.assertRaises(IOError):
+            self.store.load_system()
+
+    def test_saving_system_should_raise(self):
+        with self.assertRaises(RuntimeError):
+            self.store.save_system(object())
+
+    def test_should_fail_to_initialize_when_no_backup(self):
+        self.store.close()
+        os.remove(self.store.net_cdf_backup_path)
+        s = vault.DataStore.load_data_store()
+        with self.assertRaises(RuntimeError):
+            s.initialize(mode='safe')
+
+    def test_saving_states_should_raise(self):
+        states = self.store.load_states(stage=0)
+        with self.assertRaises(RuntimeError):
+            self.store.save_states(states, stage=2)
+
+    def test_should_load_correct_states(self):
+        # the backup was done after states_0, but before states_1
+        # so, we should be able to load the states for stage=0
+        states = self.store.load_states(stage=0)
+        # and the positions should be all zeros
+        self.assertEqual(states[0].positions[0, 0], 0)
+        # but we shouldn't be able to load stage=1
+        with self.assertRaises(IndexError):
+            self.store.load_states(stage=1)
 
 
 def main():
