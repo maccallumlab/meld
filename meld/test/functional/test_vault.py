@@ -3,11 +3,11 @@
 import numpy as np
 import unittest
 import os
-import shutil
 from meld import vault, comm
 from meld.remd import master_runner, ladder, adaptor
 from meld.system import state
-from meld.test.helper import in_temp_dir, TempDirHelper
+from meld.test.helper import TempDirHelper
+from meld.util import in_temp_dir
 
 
 class DataStorePickleTestCase(unittest.TestCase):
