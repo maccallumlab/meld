@@ -18,8 +18,8 @@ class MasterReplicaExchangeRunner(object):
         return self._n_replicas
 
     @property
-    def lambdas(self):
-        return self._lambdas
+    def alphas(self):
+        return self._alphas
 
     @property
     def step(self):
@@ -41,7 +41,7 @@ class MasterReplicaExchangeRunner(object):
             n_replicas -- number of replicas
             max_steps -- maximum number of steps to run
             ladder -- Ladder object to handle exchanges
-            adaptor -- Adaptor object to handle lambda adaptation
+            adaptor -- Adaptor object to handle alphas adaptation
 
         '''
         self._n_replicas = n_replicas
@@ -50,8 +50,8 @@ class MasterReplicaExchangeRunner(object):
         self.ladder = ladder
         self.adaptor = adaptor
 
-        self._lambdas = None
-        self._setup_lambdas()
+        self._alphas = None
+        self._setup_alphas()
 
     def to_slave(self):
         '''
@@ -77,13 +77,13 @@ class MasterReplicaExchangeRunner(object):
         # load previous state from the store
         states = store.load_states(stage=self.step - 1)
 
-        # the master is always at lambda = 0, so set that here
-        system_runner.set_lambda(0.)
+        # the master is always at alphas = 0, so set that here
+        system_runner.set_alpha(0.)
 
         while self._step <= self._max_steps:
-            # update lambdas
-            self._lambdas = self.adaptor.adapt(self._lambdas, self._step)
-            communicator.broadcast_lambdas_to_slaves(self._lambdas)
+            # update alphas
+            self._alphas = self.adaptor.adapt(self._alphas, self._step)
+            communicator.broadcast_alphas_to_slaves(self._alphas)
 
             # do one step
             my_state = communicator.broadcast_states_to_slaves(states)
@@ -109,7 +109,7 @@ class MasterReplicaExchangeRunner(object):
             # store everything
             store.save_states(states, self.step)
             store.append_traj(states[0])
-            store.save_lambdas(self._lambdas, self.step)
+            store.save_alphas(self._alphas, self.step)
             store.save_permutation_vector(permutation_vector, self.step)
 
             # on to the next step!
@@ -135,6 +135,6 @@ class MasterReplicaExchangeRunner(object):
             new_states.append(states[index])
         return new_states
 
-    def _setup_lambdas(self):
+    def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)
-        self._lambdas = [i * delta for i in range(self._n_replicas)]
+        self._alphas = [i * delta for i in range(self._n_replicas)]

@@ -11,5 +11,5 @@ class ReplicaRunner(object):
     def get_energy(self, state):
         pass
 
-    def set_lambda(self, state):
+    def set_alpha(self, state):
         pass

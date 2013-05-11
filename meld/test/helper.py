@@ -50,5 +50,5 @@ class FakeSystemRunner(object):
     def get_energy(self, state):
         return 0.
 
-    def set_lambda(self, lambda_):
+    def set_alpha(self, alpha):
         pass

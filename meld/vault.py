@@ -201,53 +201,6 @@ class DataStore(object):
         '''
         return self._cdf_data_set.variables['velocities'][..., stage]
 
-    def save_spring_states(self, spring_states, stage):
-        '''
-        Save spring states to disk.
-
-        Parameters
-            spring_states -- n_replicas x n_springs array
-            stage -- int stage to store
-
-        '''
-        self._check_save()
-        self._cdf_data_set.variables['spring_states'][..., stage] = spring_states
-
-    def load_spring_states(self, stage):
-        '''
-        Load spring states from disk.
-
-        Parameters
-            stage -- int stage to load
-
-        '''
-        return self._cdf_data_set.variables['spring_states'][:, :, stage]
-
-    def save_spring_energies(self, spring_energies, stage):
-        '''
-        Save spring energies to disk.
-
-        Parameters
-            spring_energies --- n_replicas x n_springs array
-            stage -- int stage to store
-
-        '''
-        self._check_save()
-        self._cdf_data_set.variables['spring_energies'][..., stage] = spring_energies
-
-    def load_spring_energies(self, stage):
-        '''
-        Load spring energies from disk.
-
-        Parameters
-            stage -- int stage to load
-
-        Returns
-            n_replicas x n_springs array
-
-        '''
-        return self._cdf_data_set.variables['spring_energies'][..., stage]
-
     def save_states(self, states, stage):
         '''
         Save states to disk.
@@ -260,15 +213,11 @@ class DataStore(object):
         self._check_save()
         positions = np.array([s.positions for s in states])
         velocities = np.array([s.velocities for s in states])
-        spring_states = np.array([s.spring_states for s in states])
-        spring_energies = np.array([s.spring_energies for s in states])
-        lambdas = np.array([s.lam for s in states])
+        alphas = np.array([s.alpha for s in states])
         energies = np.array([s.energy for s in states])
         self.save_positions(positions, stage)
         self.save_velocities(velocities, stage)
-        self.save_spring_states(spring_states, stage)
-        self.save_spring_energies(spring_energies, stage)
-        self.save_lambdas(lambdas, stage)
+        self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
 
     def load_states(self, stage):
@@ -284,35 +233,32 @@ class DataStore(object):
         '''
         positions = self.load_positions(stage)
         velocities = self.load_velocities(stage)
-        spring_states = self.load_spring_states(stage)
-        spring_energies = self.load_spring_energies(stage)
-        lambdas = self.load_lambdas(stage)
+        alphas = self.load_alphas(stage)
         energies = self.load_energies(stage)
         states = []
         for i in range(self._n_replicas):
-            s = state.SystemState(positions[i], velocities[i], spring_states[i], lambdas[i], energies[i],
-                                  spring_energies[i])
+            s = state.SystemState(positions[i], velocities[i], alphas[i], energies[i])
             states.append(s)
         return states
 
     def append_traj(self, state):
         pass
 
-    def save_lambdas(self, lambdas, stage):
+    def save_alphas(self, alphas, stage):
         '''
-        Save lambdas to disk.
+        Save alphas to disk.
 
         Parameters
-            lambdas -- n_replicas array
+            alphas -- n_replicas array
             stage -- int stage to store
 
         '''
         self._check_save()
-        self._cdf_data_set.variables['lambdas'][..., stage] = lambdas
+        self._cdf_data_set.variables['alphas'][..., stage] = alphas
 
-    def load_lambdas(self, stage):
+    def load_alphas(self, stage):
         '''
-        Load lambdas from disk.
+        Load alphas from disk.
 
         Parameters
             stage -- int stage to load from disk
@@ -321,7 +267,7 @@ class DataStore(object):
             n_replicas array
 
         '''
-        return self._cdf_data_set.variables['lambdas'][..., stage]
+        return self._cdf_data_set.variables['alphas'][..., stage]
 
     def save_energies(self, energies, stage):
         '''
@@ -437,7 +383,7 @@ class DataStore(object):
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('spring_energies', float, ['n_replicas', 'n_springs', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
-        self._cdf_data_set.createVariable('lambdas', float, ['n_replicas', 'timesteps'],
+        self._cdf_data_set.createVariable('alphas', float, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('energies', float, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)

@@ -18,11 +18,9 @@ BACKUP_FREQ = 100
 def gen_state(index):
     pos = index * np.ones((N_ATOMS, 3))
     vel = index * np.ones((N_ATOMS, 3))
-    ss = np.ones(N_SPRINGS)
-    se = np.zeros(N_SPRINGS)
-    lam = 0
+    alpha = 0
     energy = 0
-    return state.SystemState(pos, vel, ss, lam, energy, se)
+    return state.SystemState(pos, vel, alpha, energy)
 
 
 def setup_system():

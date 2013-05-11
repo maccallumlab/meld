@@ -10,21 +10,17 @@ N_SPRINGS = 100
 def generate_state(index):
     coords = index * np.ones((N_ATOMS, 3))
     vels = index * np.ones((N_ATOMS, 3))
-    spring_states = index * np.ones(N_SPRINGS)
-    lam = float(index) / 10.
+    alpha = float(index) / 10.
     energy = float(index)
-    spring_energies = index * np.ones(N_SPRINGS)
 
-    return SystemState(coords, vels, spring_states, lam, energy, spring_energies)
+    return SystemState(coords, vels, alpha, energy)
 
 
 def check_state(state, index):
     assert state.positions[0, 0] == index
     assert state.velocities[0, 0] == index
-    assert state.spring_states[0] == index
-    assert state.lam == index / 10.
+    assert state.alpha == index / 10.
     assert state.energy == index
-    assert state.spring_energies[0] == index
 
 
 def main():

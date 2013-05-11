@@ -56,27 +56,27 @@ class MPICommunicator(object):
         else:
             return False
 
-    def broadcast_lambdas_to_slaves(self, lambdas):
+    def broadcast_alphas_to_slaves(self, alphas):
         '''
-        Send the lambda values to the slaves
+        Send the alpha values to the slaves
 
         Parameters
-            lambdas -- a list of lambda values, one for each replica
+            alphas -- a list of alpha values, one for each replica
         Returns
             None
 
-        The master node's lambda value should be included in this list.
-        The master node will always be at lambda=0.0
+        The master node's alpha value should be included in this list.
+        The master node will always be at alpha=0.0
 
         '''
-        self._mpi_comm.scatter(lambdas, root=0)
+        self._mpi_comm.scatter(alphas, root=0)
 
-    def recieve_lambda_from_master(self):
+    def recieve_alpha_from_master(self):
         '''
-        Recieve lambda value from master node
+        Recieve alpha value from master node
 
         Returns
-            a floating point value for lambda in [0,1]
+            a floating point value for alpha in [0,1]
 
         '''
         return self._mpi_comm.scatter(None, root=0)

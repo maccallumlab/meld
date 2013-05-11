@@ -10,17 +10,17 @@ def main():
     c.initialize()
 
     if c.is_master():
-        lambdas = [0., 0.1, 0.2, 0.3]
-        c.broadcast_lambdas_to_slaves(lambdas)
+        alphas = [0., 0.1, 0.2, 0.3]
+        c.broadcast_alphas_to_slaves(alphas)
 
     else:
-        lam = c.recieve_lambda_from_master()
+        alpha = c.recieve_alpha_from_master()
         if c.rank == 1:
-            assert lam == 0.1
+            assert alpha == 0.1
         elif c.rank == 2:
-            assert lam == 0.2
+            assert alpha == 0.2
         elif c.rank == 3:
-            assert lam == 0.3
+            assert alpha == 0.3
 
 
 if __name__ == '__main__':

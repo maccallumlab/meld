@@ -158,22 +158,6 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
 
         np.testing.assert_equal(test_vel, test_vel2)
 
-    def test_can_save_and_load_spring_states(self):
-        "should be able to save and load spring_states"
-        test_springs = np.zeros((self.N_REPLICAS, self.N_SPRINGS))
-        for i in range(self.N_REPLICAS):
-            test_springs[i, :] = i % 2
-
-        STAGE = 0
-        self.store.save_spring_states(test_springs, STAGE)
-        self.store.save_data_store()
-        self.store.close()
-        store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
-        test_springs2 = store2.load_spring_states(STAGE)
-
-        np.testing.assert_equal(test_springs, test_springs2)
-
     def test_can_save_and_load_alphas(self):
         "should be able to save and load lambdas"
         test_lambdas = np.zeros(self.N_REPLICAS)
@@ -206,32 +190,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
 
         np.testing.assert_equal(test_energies, test_energies2)
 
-    def test_can_save_and_load_spring_energies(self):
-        "should be able to save and load spring_energies"
-        test_spring_energies = np.zeros((self.N_REPLICAS, self.N_SPRINGS))
-        for i in range(self.N_REPLICAS):
-            test_spring_energies[i, :] = i
-
-        STAGE = 0
-        self.store.save_spring_energies(test_spring_energies, STAGE)
-        self.store.save_data_store()
-        self.store.close()
-        store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
-        test_spring_energies2 = store2.load_spring_energies(STAGE)
-
-        np.testing.assert_equal(test_spring_energies, test_spring_energies2)
-
     def test_can_save_and_load_states(self):
         "should be able to save and load states"
         def gen_state(index, n_atoms, n_springs):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
-            ss = index * np.ones(n_springs)
-            se = index * np.ones(n_springs)
             energy = index
             lam = index / 100.
-            return state.SystemState(pos, vel, ss, lam, energy, se)
+            return state.SystemState(pos, vel, lam, energy)
 
         states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -250,17 +216,15 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         def gen_state(index, n_atoms, n_springs):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
-            ss = index * np.ones(n_springs)
-            se = index * np.ones(n_springs)
             energy = index
             lam = index / 100.
-            return state.SystemState(pos, vel, ss, lam, energy, se)
+            return state.SystemState(pos, vel, lam, energy)
 
         states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
         STAGE = 0
 
         self.store.save_states(states, STAGE)
-        self.store.save_states(states, STAGE+1)
+        self.store.save_states(states, STAGE + 1)
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
@@ -306,11 +270,9 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         def gen_state(index, n_atoms, n_springs):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
-            ss = index * np.ones(n_springs)
-            se = index * np.ones(n_springs)
             energy = index
             lam = index / 100.
-            return state.SystemState(pos, vel, ss, lam, energy, se)
+            return state.SystemState(pos, vel, lam, energy)
 
         states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
         runner = master_runner.MasterReplicaExchangeRunner(self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
@@ -373,11 +335,9 @@ class TestSafeMode(unittest.TestCase, TempDirHelper):
         def gen_state(index, n_atoms, n_springs):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
-            ss = index * np.ones(n_springs)
-            se = index * np.ones(n_springs)
             energy = index
             lam = index / 100.
-            return state.SystemState(pos, vel, ss, lam, energy, se)
+            return state.SystemState(pos, vel, lam, energy)
 
         states_0 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
         states_1 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]

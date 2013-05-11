@@ -39,14 +39,14 @@ class SlaveReplicaExchangeRunner(object):
             system_runner -- a system_runner object for actually running the simulations
 
         '''
-        my_lambda = None
+        my_alpha = None
 
         while self._step <= self._max_steps:
             # update simulation conditions
-            new_lambda = communicator.recieve_lambda_from_master()
-            if not new_lambda == my_lambda:
-                my_lambda = new_lambda
-                system_runner.set_lambda(my_lambda)
+            new_alpha = communicator.recieve_alpha_from_master()
+            if not new_alpha == my_alpha:
+                my_alpha = new_alpha
+                system_runner.set_alpha(my_alpha)
 
             # do one round of simulation
             state = communicator.recieve_state_from_master()
