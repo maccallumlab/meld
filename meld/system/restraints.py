@@ -1,3 +1,6 @@
+import math
+
+
 class RestraintRegistry(type):
     '''
     Metaclass that maintains a registry of restraint types.
@@ -56,7 +59,7 @@ class DistanceRestraint(SelectableRestraint):
 
     _restraint_key_ = 'distance'
 
-    def __init__(self, system, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  r1, r2, r3, r4, k):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
@@ -65,6 +68,7 @@ class DistanceRestraint(SelectableRestraint):
         self.r3 = r3
         self.r4 = r4
         self.k = k
+        self.scaler = scaler
         self._check(system)
 
     def _check(self, system):
@@ -87,7 +91,7 @@ class TorsionRestraint(SelectableRestraint):
 
     _restraint_key_ = 'torsion'
 
-    def __init__(self, system, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
                  phi, delta_phi, k):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
@@ -97,6 +101,7 @@ class TorsionRestraint(SelectableRestraint):
         self.phi = phi
         self.delta_phi = delta_phi
         self.k = k
+        self.scaler = scaler
         self._check()
 
     def _check(self):
@@ -217,8 +222,128 @@ class RestraintManager(object):
     def add_selectively_active_collection(self, rest_list, num_active):
         self._selective_collections.append(SelectivelyActiveCollection(rest_list, num_active))
 
-    def create_restraint(self, rest_type, **kwargs):
-        return RestraintRegistry.get_constructor_for_key(rest_type)(self._system, **kwargs)
+    def create_restraint(self, rest_type, scaler=None, **kwargs):
+        if scaler is None:
+            scaler = ConstantScaler()
+        return RestraintRegistry.get_constructor_for_key(rest_type)(self._system, scaler, **kwargs)
 
     def create_restraint_group(self, rest_list, num_active):
         return RestraintGroup(rest_list, num_active)
+
+    def create_scaler(self, scaler_type, **kwargs):
+        return ScalerRegistry.get_constructor_for_key(scaler_type)(**kwargs)
+
+
+class ScalerRegistry(type):
+    '''
+    Metaclass that maintains a registry of scaler types.
+
+    All classes that decend from Scaler inherit ScalerRegistry as their
+    metaclass. ScalerRegistry will automatically maintain a map between
+    the class attribute '_scaler_key_' and all scaler types.
+
+    The function get_constructor_for_key is used to get the class for the
+    corresponding key.
+    '''
+    _scaler_registry = {}
+
+    def __init__(cls, name, bases, attrs):
+        if name in ['Scaler']:
+            pass    # we don't register the base classes
+        else:
+            try:
+                key = attrs['_scaler_key_']
+            except KeyError:
+                raise RuntimeError(
+                    'Scaler type {} subclasses Scaler, but does not set _scaler_key_'.format(name))
+            if key in ScalerRegistry._scaler_registry:
+                raise RuntimeError(
+                    'Trying to register two different classes with _scaler_key_ = {}.'.format(key))
+            ScalerRegistry._scaler_registry[key] = cls
+
+    @classmethod
+    def get_constructor_for_key(self, key):
+        '''Get the constructor for the scaler type matching key.'''
+        try:
+            return ScalerRegistry._scaler_registry[key]
+        except KeyError:
+            raise RuntimeError(
+                'Unknown scaler type "{}".'.format(key))
+
+
+class Scaler(object):
+    '''Base class for all scalers.'''
+    __metaclass__ = ScalerRegistry
+
+    def _check_alpha_range(self, alpha):
+        if alpha < 0 or alpha > 1:
+            raise RuntimeError('0 >= alpha >= 1. alpha is {}.'.format(alpha))
+
+    def _handle_boundaries(self, alpha):
+        if alpha <= self._alpha_min:
+            return 0.
+        elif alpha >= self._alpha_max:
+            return 1.
+        else:
+            return None
+
+    def _check_alpha_min_max(self):
+        if self._alpha_min < 0 or self._alpha_min > 1 or self._alpha_max < 0 or self._alpha_max > 1:
+            raise RuntimeError('alpha_min and alpha_max must be in range [0, 1]. alpha_min={} alpha_max={}.'.format(
+                self._alpha_min, self._alpha_max))
+        if self._alpha_min >= self._alpha_max:
+            raise RuntimeError('alpha_max must be less than alpha_min. alpha_min={} alpha_max={}.'.format(
+                self._alpha_min, self._alpha_max))
+
+
+class ConstantScaler(Scaler):
+    '''This scaler is "always on" and always returns a value of 1.0".'''
+
+    _scaler_key_ = 'constant'
+
+    def __call__(self, alpha):
+        self._check_alpha_range(alpha)
+        return 1.0
+
+
+class LinearScaler(Scaler):
+    '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_max.'''
+
+    _scaler_key_ = 'linear'
+
+    def __init__(self, alpha_min, alpha_max):
+        self._alpha_min = alpha_min
+        self._alpha_max = alpha_max
+        self._delta = alpha_max - alpha_min
+        self._check_alpha_min_max()
+
+    def __call__(self, alpha):
+        self._check_alpha_range(alpha)
+        scale = self._handle_boundaries(alpha)
+        if scale is None:
+            scale = (alpha - self._alpha_min) / self._delta
+        return scale
+
+
+class NonLinearScaler(Scaler):
+    '''
+    '''
+
+    _scaler_key_ = 'nonlinear'
+
+    def __init__(self, alpha_min, alpha_max, factor):
+        self._alpha_min = alpha_min
+        self._alpha_max = alpha_max
+        self._check_alpha_min_max()
+        if factor < 1:
+            raise RuntimeError('factor must be >= 1. factor={}.'.format(factor))
+        self._factor = factor
+
+    def __call__(self, alpha):
+        self._check_alpha_range(alpha)
+        scale = self._handle_boundaries(alpha)
+        if scale is None:
+            delta = (alpha - self._alpha_min) / (self._alpha_max - self._alpha_min)
+            norm = 1.0 / (math.exp(self._factor) - 1.0)
+            scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
+        return scale
