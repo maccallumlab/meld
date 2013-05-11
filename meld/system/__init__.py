@@ -37,7 +37,12 @@ class System(object):
         return self._residue_names
 
     def index_of_atom(self, residue_number, atom_name):
-        return self._atom_index[(residue_number, atom_name)]
+        try:
+            return self._atom_index[(residue_number, atom_name)]
+        except KeyError:
+            print 'Could not find atom index for residue_number={} and atom name={}.'.format(
+                residue_number, atom_name)
+            raise
 
     def _setup_indexing(self):
         reader = ParmTopReader(self._top_string)
@@ -88,13 +93,13 @@ class ParmTopReader(object):
     def get_residue_names(self):
         res_names = self._get_parameter_block(('%FLAG RESIDUE_LABEL'))
         res_numbers = self.get_residue_numbers()
-        return [res_names[i-1] for i in res_numbers]
+        return [res_names[i - 1] for i in res_numbers]
 
     def get_residue_numbers(self):
         n_atoms = int(self._get_parameter_block('%FLAG POINTERS')[0])
         res_pointers = self._get_parameter_block('%FLAG RESIDUE_POINTER')
         res_pointers = [int(p) for p in res_pointers]
-        res_pointers.append(n_atoms+1)
+        res_pointers.append(n_atoms + 1)
         residue_numbers = []
         for res_number, (start, end) in enumerate(zip(res_pointers[:-1], res_pointers[1:])):
             residue_numbers.extend([res_number + 1] * (end - start))
