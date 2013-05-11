@@ -52,9 +52,9 @@ class TestSingleStep(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-    def test_lambda_begins_uniform(self):
-        "lambdas should be initialized with uniform spacing"
-        assert_almost_equal(self.runner.lambdas, [0., 0.2, 0.4, 0.6, 0.8, 1.])
+    def test_alpha_begins_uniform(self):
+        "alphas should be initialized with uniform spacing"
+        assert_almost_equal(self.runner.alphas, [0., 0.2, 0.4, 0.6, 0.8, 1.])
 
     def test_step_begins_one(self):
         "step should begin at one"
@@ -66,18 +66,18 @@ class TestSingleStep(unittest.TestCase):
 
         self.mock_store.load_states.assert_called_once_with(stage=0)
 
-    def test_should_set_lambda_on_system_runner(self):
-        "should set lambda on the system runner"
+    def test_should_set_alphas_on_system_runner(self):
+        "should set alphas on the system runner"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        # the master is always lambda = 0.
-        self.mock_system_runner.set_lambda.assert_called_once_with(0.)
+        # the master is always alphas = 0.
+        self.mock_system_runner.set_alpha.assert_called_once_with(0.)
 
-    def test_should_broadcast_lambdas(self):
-        "calling run should broadcast all of the lambda values"
+    def test_should_broadcast_alphas(self):
+        "calling run should broadcast all of the alpha values"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.assertEqual(self.mock_comm.broadcast_lambdas_to_slaves.call_count, 1)
+        self.assertEqual(self.mock_comm.broadcast_alphas_to_slaves.call_count, 1)
 
     def test_should_broadcast_states(self):
         "calling run should broadcast states"
@@ -142,11 +142,11 @@ class TestSingleStep(unittest.TestCase):
 
         self.mock_store.append_traj.assert_called_once_with(sentinel.STATE6)
 
-    def test_should_save_lambdas(self):
-        "should write lambda to disk"
+    def test_should_save_alphas(self):
+        "should write alphas to disk"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_store.save_lambdas.assert_called_once_with(mock.ANY, 1)
+        self.mock_store.save_alphas.assert_called_once_with(mock.ANY, 1)
 
     def test_should_save_permutation_matrix(self):
         "should write permutation matrix to disk"
@@ -204,11 +204,11 @@ class TestFiveSteps(unittest.TestCase):
 
         self.assertEqual(self.mock_store.load_states.call_count, 1)
 
-    def test_set_lambda_is_called_once(self):
-        "set_lambda should only be called once"
+    def test_set_alphas_is_called_once(self):
+        "set_alphas should only be called once"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.assertEqual(self.mock_system_runner.set_lambda.call_count, 1)
+        self.assertEqual(self.mock_system_runner.set_alpha.call_count, 1)
 
     def test_minimize_then_run_is_called_once(self):
         "minimize_then_run should only be called once"

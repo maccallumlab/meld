@@ -174,19 +174,19 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
 
         np.testing.assert_equal(test_springs, test_springs2)
 
-    def test_can_save_and_load_lambdas(self):
+    def test_can_save_and_load_alphas(self):
         "should be able to save and load lambdas"
         test_lambdas = np.zeros(self.N_REPLICAS)
         for i in range(self.N_REPLICAS):
             test_lambdas[i] = i / (self.N_REPLICAS - 1)
 
         STAGE = 0
-        self.store.save_lambdas(test_lambdas, STAGE)
+        self.store.save_alphas(test_lambdas, STAGE)
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
         store2.initialize(mode='existing')
-        test_lambdas2 = store2.load_lambdas(STAGE)
+        test_lambdas2 = store2.load_alphas(STAGE)
 
         np.testing.assert_equal(test_lambdas, test_lambdas2)
 
