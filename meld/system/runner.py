@@ -166,3 +166,10 @@ class RunOptions(HasTraits):
     cutoff = Trait(None, None, PositiveFloat)  # allow None or PositiveFloat; default to None
     use_big_timestep = Bool(False)
     use_amap = Bool(False)
+
+
+def get_runner(system, options):
+    if options.runner == 'openmm':
+        return OpenMMRunner(system, options)
+    else:
+        raise RuntimeError('Unknown type of runner: {}'.format(options.runner))

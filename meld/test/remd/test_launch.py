@@ -10,6 +10,11 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.patcher = mock.patch('meld.remd.launch.vault')
         self.mock_vault = self.patcher.start()
 
+        self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
+        self.mock_get_runner = self.get_runner_patcher.start()
+        self.mock_runner = mock.Mock(spec=runner.OpenMMRunner)
+        self.mock_get_runner.return_value = self.mock_runner
+
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
         self.mock_vault.DataStore = self.MockDataStore
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
@@ -20,8 +25,6 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
-        self.mock_system.get_runner.return_value = self.mock_system_runner
         self.mock_store.load_system.return_value = self.mock_system
 
         self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
@@ -29,8 +32,11 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
         self.mock_store.load_remd_runner.return_value = self.mock_remd_master
 
+        self.mock_store.load_run_options.return_value.runner = 'openmm'
+
     def cleanUp(self):
         self.patcher.stop()
+        self.get_runner_patcher.stop()
 
     def test_load_datastore(self):
         "should call vault.DataStore.load_data_store to load the data_store"
@@ -44,12 +50,6 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_init_system_runner(self):
-        "should inititialize the system runner"
-        launch.launch()
-
-        self.mock_system_runner.initialize.assert_called_once_with()
-
     def test_should_call_to_slave(self):
         "should call to_slave on remd_runner"
         launch.launch()
@@ -60,7 +60,7 @@ class TestLaunchNotMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch()
 
-        self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_system_runner)
+        self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_runner)
 
     def test_should_not_init_store(self):
         "should not init store"
@@ -74,6 +74,11 @@ class TestLaunchMaster(unittest.TestCase):
         self.patcher = mock.patch('meld.remd.launch.vault')
         self.mock_vault = self.patcher.start()
 
+        self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
+        self.mock_get_runner = self.get_runner_patcher.start()
+        self.mock_runner = mock.Mock(spec=runner.OpenMMRunner)
+        self.mock_get_runner.return_value = self.mock_runner
+
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
         self.mock_vault.DataStore = self.MockDataStore
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
@@ -84,8 +89,6 @@ class TestLaunchMaster(unittest.TestCase):
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
-        self.mock_system.get_runner.return_value = self.mock_system_runner
         self.mock_store.load_system.return_value = self.mock_system
 
         self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
@@ -93,8 +96,11 @@ class TestLaunchMaster(unittest.TestCase):
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
         self.mock_store.load_remd_runner.return_value = self.mock_remd_master
 
+        self.mock_store.load_run_options.return_value.runner = 'openmm'
+
     def tearDown(self):
         self.patcher.stop()
+        self.get_runner_patcher.stop()
 
     def test_load_datastore(self):
         "should call load the datastore"
@@ -108,12 +114,6 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_init_system_runner(self):
-        "should inititialize the system runner"
-        launch.launch()
-
-        self.mock_system_runner.initialize.assert_called_once_with()
-
     def test_should_init_store(self):
         "should initialize the store"
         launch.launch()
@@ -124,4 +124,4 @@ class TestLaunchMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch()
 
-        self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_system_runner, self.mock_store)
+        self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_runner, self.mock_store)

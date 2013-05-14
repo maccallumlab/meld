@@ -42,6 +42,10 @@ class DataStore(object):
     system_path = os.path.join(data_dir, system_filename)
     system_backup_path = os.path.join(backup_dir, system_filename)
 
+    run_options_filename = 'run_options.dat'
+    run_options_path = os.path.join(data_dir, run_options_filename)
+    run_options_backup_path = os.path.join(backup_dir, system_filename)
+
     net_cdf_filename = 'results.nc'
     net_cdf_path = os.path.join(data_dir, net_cdf_filename)
     net_cdf_backup_path = os.path.join(backup_dir, net_cdf_filename)
@@ -341,6 +345,16 @@ class DataStore(object):
         with open(path) as system_file:
             return pickle.load(system_file)
 
+    def save_run_options(self, run_options):
+        self._check_save()
+        with open(self.run_options_path, 'w') as options_file:
+            pickle.dump(run_options, options_file)
+
+    def load_run_options(self):
+        path = self.run_options_backup_path if self._safe_mode else self.run_options_path
+        with open(path) as options_file:
+            return pickle.load(options_file)
+
     def backup(self, stage):
         '''
         Backup all files to Data/Backup.
@@ -357,6 +371,7 @@ class DataStore(object):
             self._backup(self.data_store_path, self.data_store_backup_path)
             self._backup(self.remd_runner_path, self.remd_runner_backup_path)
             self._backup(self.system_path, self.system_backup_path)
+            self._backup(self.run_options_path, self.run_options_backup_path)
 
             self._cdf_data_set.close()
             self._backup(self.net_cdf_path, self.net_cdf_backup_path)

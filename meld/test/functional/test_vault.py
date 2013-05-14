@@ -108,6 +108,18 @@ class DataStorePickleTestCase(unittest.TestCase):
 
             self.assertTrue(os.path.exists('Data/system.dat'))
 
+    def test_save_and_load_run_options(self):
+        "should be able to save and load run options"
+        with in_temp_dir():
+            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store.initialize(mode='new')
+            fake_run_options = object()
+
+            store.save_run_options(fake_run_options)
+            store.load_run_options()
+
+            self.assertTrue(os.path.exists('Data/run_options.dat'))
+
 
 class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
     '''

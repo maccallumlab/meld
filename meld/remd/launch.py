@@ -1,6 +1,5 @@
-import collections
 from meld import vault
-
+from meld.system import get_runner
 
 
 def launch():
@@ -10,8 +9,9 @@ def launch():
     communicator.initialize()
 
     system = store.load_system()
-    system_runner = system.get_runner()
-    system_runner.initialize()
+    options = store.load_run_options()
+
+    system_runner = get_runner(system, options)
 
     if communicator.is_master():
         store.initialize(mode='existing')
