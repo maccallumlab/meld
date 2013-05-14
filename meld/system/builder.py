@@ -1,5 +1,5 @@
 from meld import util
-from meld import system
+from .system import System
 import subprocess
 
 
@@ -29,7 +29,7 @@ class SystemBuilder(object):
                 top = top_file.read()
             with open('system.mdcrd') as crd_file:
                 crd = crd_file.read()
-            return system.System(top, crd)
+            return System(top, crd)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {'ff12sb': 'leaprc.ff12SB'}

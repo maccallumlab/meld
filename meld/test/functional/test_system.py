@@ -1,5 +1,5 @@
 import unittest
-from meld.system import protein, builder
+from meld.system import protein, builder, ConstantTemperatureScaler
 
 
 class TestCreateFromSequence(unittest.TestCase):
@@ -33,3 +33,27 @@ class TestCreateFromSequence(unittest.TestCase):
     def test_index_works(self):
         self.assertEqual(self.system.index_of_atom(1, 'N'), 1)
         self.assertEqual(self.system.index_of_atom(3, 'OXT'), 33)
+
+    def test_temperature_scaler_defaults_to_none(self):
+        self.assertEqual(self.system.temperature_scaler, None)
+
+
+class TestConstantTemperatureScaler(unittest.TestCase):
+    def setUp(self):
+        self.s = ConstantTemperatureScaler(300.)
+
+    def test_returns_constant_when_alpha_is_zero(self):
+        t = self.s(0.)
+        self.assertAlmostEqual(t, 300.)
+
+    def test_returns_constant_when_alpha_is_one(self):
+        t = self.s(1.)
+        self.assertAlmostEqual(t, 300.)
+
+    def test_raises_when_alpha_below_zero(self):
+        with self.assertRaises(RuntimeError):
+            self.s(-1)
+
+    def test_raises_when_alpha_above_one(self):
+        with self.assertRaises(RuntimeError):
+            self.s(2)
