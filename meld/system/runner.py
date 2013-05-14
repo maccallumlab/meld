@@ -2,7 +2,8 @@ from traits.api import HasTraits, Trait, BaseInt, BaseFloat, Enum, Bool
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator
-from simtk.unit import kelvin, picosecond, femtosecond, angstrom, Quantity, kilojoule, mole
+from simtk.unit import kelvin, picosecond, femtosecond, angstrom
+from simtk.unit import Quantity, kilojoule, mole
 
 
 gas_constant = 8.314e-3
@@ -26,14 +27,14 @@ class ReplicaRunner(object):
 
 
 class OpenMMRunner(object):
-    def __init__(self, system):
+    def __init__(self, system, options):
         if system.temperature_scaler is None:
             raise RuntimeError('system does not have temparture_scaler set')
         else:
             self.temperature_scaler = system.temperature_scaler
         self._parm_string = system.top_string
 
-        self.options = OpenMMOptions()
+        self._options = options
         self._simulation = None
         self._alpha = 0.
         self._temperature = None
@@ -45,9 +46,9 @@ class OpenMMRunner(object):
 
     def _initialize_simulation(self):
         prmtop = _parm_top_from_string(self._parm_string)
-        sys = _create_openmm_system(prmtop, self.options.cutoff, self.options.use_big_timestep,
-                                    self.options.implicit_solvent_model)
-        integrator = _create_integrator(self._temperature, self.options.use_big_timestep)
+        sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
+                                    self._options.implicit_solvent_model)
+        integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
         self._simulation = _create_openmm_simulation(prmtop.topology, sys, integrator)
 
     def minimize_then_run(self, state):
@@ -69,14 +70,14 @@ class OpenMMRunner(object):
 
         # run energy minimization
         if minimize:
-            self._simulation.minimizeEnergy(self.options.minimize_steps)
+            self._simulation.minimizeEnergy(self._options.minimize_steps)
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
 
         # run timesteps
 
-        self._simulation.step(self.options.timesteps)
+        self._simulation.step(self._options.timesteps)
 
         # extract coords, vels, energy and strip units
         snapshot = self._simulation.context.getState(getPositions=True, getVelocities=True, getEnergy=True)
@@ -157,7 +158,8 @@ class PositiveFloat(BaseFloat):
         self.error(object, name, value)
 
 
-class OpenMMOptions(HasTraits):
+class RunOptions(HasTraits):
+    runner = Enum('openmm')
     timesteps = PositiveInt(5000)
     minimize_steps = PositiveInt(1000)
     implicit_solvent_model = Enum('gbNeck2', 'gbNeck', 'obc')

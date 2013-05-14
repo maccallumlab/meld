@@ -1,6 +1,6 @@
 import unittest
 import mock
-from meld.system.runner import OpenMMRunner, OpenMMOptions, _parm_top_from_string, _create_openmm_system
+from meld.system.runner import OpenMMRunner, RunOptions, _parm_top_from_string, _create_openmm_system
 from meld.system.runner import _create_integrator
 from meld.system import protein, builder, ConstantTemperatureScaler
 from traits.api import TraitError
@@ -20,7 +20,7 @@ class TestOpenMMRunner(unittest.TestCase):
     def test_raises_when_system_has_no_temperature_scaler(self):
         self.system.temperature_scaler = None
         with self.assertRaises(RuntimeError):
-            OpenMMRunner(self.system)
+            OpenMMRunner(self.system, RunOptions())
 
 
 class TestPrmTopFromString(unittest.TestCase):
@@ -80,7 +80,7 @@ class TestCreateIntegrator(unittest.TestCase):
 
 class TestOptions(unittest.TestCase):
     def setUp(self):
-        self.options = OpenMMOptions()
+        self.options = RunOptions()
 
     def test_timesteps_initializes_to_5000(self):
         self.assertEqual(self.options.timesteps, 5000)

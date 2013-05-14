@@ -11,9 +11,11 @@ b = system.SystemBuilder()
 sys = b.build_system_from_molecules([p])
 sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
-runner = system.OpenMMRunner(sys)
+options = system.RunOptions()
+options.timesteps = 10000
+
+runner = system.OpenMMRunner(sys, options)
 runner.set_alpha(0.)
-runner.options.timesteps = 10000
 
 pos = sys._coordinates.copy()
 vel = numpy.zeros_like(pos)
