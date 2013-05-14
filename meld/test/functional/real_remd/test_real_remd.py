@@ -3,29 +3,39 @@ import os
 import subprocess
 import numpy as np
 from meld.remd import ladder, adaptor, master_runner
-from meld.system import state, RunOptions, ConstantTemperatureScaler
+from meld import system
 from meld import comm, vault
 from meld.test import helper
 
 
-N_ATOMS = 500
-N_REPLICAS = 4
-N_STEPS = 100
-BACKUP_FREQ = 100
+N_REPLICAS = 2
+N_STEPS = 5
+BACKUP_FREQ = 2
 
 
-def gen_state(index):
-    pos = index * np.ones((N_ATOMS, 3))
-    vel = index * np.ones((N_ATOMS, 3))
+def gen_state(s):
+    pos = s._coordinates
+    vel = np.zeros_like(pos)
     alpha = 0
     energy = 0
-    return state.SystemState(pos, vel, alpha, energy)
+    return system.SystemState(pos, vel, alpha, energy)
 
 
 def setup_system():
+    # create the system
+    p = system.ProteinMoleculeFromSequence('NALA ALA ALA ALA ALA ALA ALA CALA')
+    b = system.SystemBuilder()
+    s = b.build_system_from_molecules([p])
+    s.temperature_scaler = system.ConstantTemperatureScaler(300.)
+
+    # create the options
+    options = system.RunOptions()
+
     # create a store
-    store = vault.DataStore(N_ATOMS, N_REPLICAS, backup_freq=BACKUP_FREQ)
+    store = vault.DataStore(s.n_atoms, N_REPLICAS, backup_freq=BACKUP_FREQ)
     store.initialize(mode='new')
+    store.save_system(s)
+    store.save_run_options(options)
 
     # create and store the remd_runner
     l = ladder.NearestNeighborLadder(n_trials=100)
@@ -35,35 +45,28 @@ def setup_system():
     store.save_remd_runner(remd_runner)
 
     # create and store the communicator
-    c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
+    c = comm.MPICommunicator(s.n_atoms, N_REPLICAS)
     store.save_communicator(c)
 
-    # create and store the fake system
-    s = helper.FakeSystem()
-    s.temperature_scaler = ConstantTemperatureScaler(300.)
-    store.save_system(s)
-
-    # create and store the options
-    o = RunOptions()
-    o.runner = 'fake_runner'
-    store.save_run_options(o)
-
     # create and save the initial states
-    states = [gen_state(i) for i in range(N_REPLICAS)]
+    states = [gen_state(s) for i in range(N_REPLICAS)]
+    states[1].alpha = 1.0
     store.save_states(states, 0)
 
     # save data_store
     store.save_data_store()
+
+    return s.n_atoms
 
 
 class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def setUp(self):
         self.setUpTempDir()
 
-        setup_system()
+        self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('mpirun -np 4 launch_remd', shell=True)
+        subprocess.check_call('mpirun -np 2 launch_remd', shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
@@ -80,5 +83,5 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         pos = s.load_positions(N_STEPS)
 
         self.assertEqual(pos.shape[0], N_REPLICAS)
-        self.assertEqual(pos.shape[1], N_ATOMS)
+        self.assertEqual(pos.shape[1], self.n_atoms)
         self.assertEqual(pos.shape[2], 3)

@@ -4,7 +4,6 @@ from meld.system.state import SystemState
 
 N_ATOMS = 500
 N_REPLICAS = 4
-N_SPRINGS = 100
 
 
 def generate_state(index):
@@ -24,7 +23,7 @@ def check_state(state, index):
 
 
 def main():
-    c = comm.MPICommunicator(N_ATOMS, N_REPLICAS, N_SPRINGS)
+    c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
     c.initialize()
 
     state = generate_state(c.rank)

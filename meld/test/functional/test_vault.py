@@ -16,13 +16,12 @@ class DataStorePickleTestCase(unittest.TestCase):
     '''
     def setUp(self):
         self.N_ATOMS = 500
-        self.N_SPRINGS = 100
         self.N_REPLICAS = 4
 
     def test_init_mode_w_creates_directories(self):
         "calling initialize should create the Data and Data/Backup directories"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
 
             self.assertTrue(os.path.exists('Data'), 'Data directory does not created')
@@ -31,7 +30,7 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_init_mode_w_creates_results(self):
         "calling initialize should create the results.h5 file"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
 
             self.assertTrue(os.path.exists('Data/results.nc'), 'results.nc not created')
@@ -41,7 +40,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             os.mkdir('Data')
             os.mkdir('Data/Backup')
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
 
             with self.assertRaises(RuntimeError):
                 store.initialize(mode='new')
@@ -49,14 +48,13 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_save_and_load_data_store(self):
         "should be able to save and then reload the DataStore"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
 
             store.save_data_store()
             store2 = vault.DataStore.load_data_store()
 
             self.assertEqual(store.n_atoms, store2.n_atoms)
-            self.assertEqual(store.n_springs, store2.n_springs)
             self.assertEqual(store.n_replicas, store2.n_replicas)
             self.assertIsNone(store2._cdf_data_set)
             self.assertTrue(os.path.exists('Data/data_store.dat'))
@@ -64,9 +62,9 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_save_and_load_communicator(self):
         "should be able to save and reload the communicator"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
-            c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS, self.N_SPRINGS)
+            c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
             # set _mpi_comm to something
             # this should not be saved
             c._mpi_comm = 'foo'
@@ -75,7 +73,6 @@ class DataStorePickleTestCase(unittest.TestCase):
             c2 = store.load_communicator()
 
             self.assertEqual(c.n_atoms, c2.n_atoms)
-            self.assertEqual(c.n_springs, c2.n_springs)
             self.assertEqual(c.n_replicas, c2.n_replicas)
             self.assertIsNone(c2._mpi_comm, '_mpi_comm should not be saved')
             self.assertTrue(os.path.exists('Data/communicator.dat'))
@@ -83,7 +80,7 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_save_and_load_remd_runner(self):
         "should be able to save and reload an remd runner"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
             l = ladder.NearestNeighborLadder(n_trials=100)
             policy = adaptor.AdaptationPolicy(1.0, 50, 100)
@@ -99,7 +96,7 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_save_and_load_system(self):
         "should be able to save and load a System"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
             fake_system = object()
 
@@ -111,7 +108,7 @@ class DataStorePickleTestCase(unittest.TestCase):
     def test_save_and_load_run_options(self):
         "should be able to save and load run options"
         with in_temp_dir():
-            store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
             store.initialize(mode='new')
             fake_run_options = object()
 
@@ -131,8 +128,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         # setup data store
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
-        self.N_SPRINGS = 100
-        self.store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+        self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
         self.store.initialize(mode='new')
 
     def tearDown(self):
@@ -204,14 +200,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
 
     def test_can_save_and_load_states(self):
         "should be able to save and load states"
-        def gen_state(index, n_atoms, n_springs):
+        def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
             lam = index / 100.
             return state.SystemState(pos, vel, lam, energy)
 
-        states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
 
         self.store.save_states(states, STAGE)
@@ -225,14 +221,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
 
     def test_can_save_and_load_two_states(self):
         "should be able to save and load states"
-        def gen_state(index, n_atoms, n_springs):
+        def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
             lam = index / 100.
             return state.SystemState(pos, vel, lam, energy)
 
-        states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
 
         self.store.save_states(states, STAGE)
@@ -269,27 +265,26 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
-        self.N_SPRINGS = 100
 
         # setup objects to save to disk
-        c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS, self.N_SPRINGS)
+        c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
 
         l = ladder.NearestNeighborLadder(n_trials=100)
         policy = adaptor.AdaptationPolicy(1.0, 50, 100)
         a = adaptor.EqualAcceptanceAdaptor(n_replicas=self.N_REPLICAS, adaptation_policy=policy)
 
         # make some states
-        def gen_state(index, n_atoms, n_springs):
+        def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
             lam = index / 100.
             return state.SystemState(pos, vel, lam, energy)
 
-        states = [gen_state(i, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = master_runner.MasterReplicaExchangeRunner(self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
 
-        self.store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS)
+        self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS)
         self.store.initialize(mode='new')
 
         # save some stuff
@@ -334,28 +329,27 @@ class TestSafeMode(unittest.TestCase, TempDirHelper):
 
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
-        self.N_SPRINGS = 100
 
         # setup objects to save to disk
-        c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS, self.N_SPRINGS)
+        c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
 
         l = ladder.NearestNeighborLadder(n_trials=100)
         policy = adaptor.AdaptationPolicy(1.0, 50, 100)
         a = adaptor.EqualAcceptanceAdaptor(n_replicas=self.N_REPLICAS, adaptation_policy=policy)
 
         # make some states
-        def gen_state(index, n_atoms, n_springs):
+        def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
             lam = index / 100.
             return state.SystemState(pos, vel, lam, energy)
 
-        states_0 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
-        states_1 = [gen_state(0, self.N_ATOMS, self.N_SPRINGS) for i in range(self.N_REPLICAS)]
+        states_0 = [gen_state(0, self.N_ATOMS) for i in range(self.N_REPLICAS)]
+        states_1 = [gen_state(0, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = master_runner.MasterReplicaExchangeRunner(self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
 
-        store = vault.DataStore(self.N_ATOMS, self.N_SPRINGS, self.N_REPLICAS, backup_freq=1)
+        store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, backup_freq=1)
         store.initialize(mode='new')
 
         # save some stuff

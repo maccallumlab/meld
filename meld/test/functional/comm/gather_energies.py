@@ -4,7 +4,6 @@ from meld import comm
 
 N_ATOMS = 500
 N_REPLICAS = 4
-N_SPRINGS = 100
 
 
 def generate_energies(index):
@@ -12,7 +11,7 @@ def generate_energies(index):
 
 
 def main():
-    c = comm.MPICommunicator(N_ATOMS, N_REPLICAS, N_SPRINGS)
+    c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
     c.initialize()
 
     energies = generate_energies(c.rank)

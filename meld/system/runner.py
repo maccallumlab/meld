@@ -26,6 +26,23 @@ class ReplicaRunner(object):
         pass
 
 
+class FakeSystemRunner(object):
+    '''
+    Fake runner for test purposes.
+    '''
+    def set_alpha(self, alpha):
+        pass
+
+    def minimize_then_run(self, state):
+        return state
+
+    def run(self, state):
+        return state
+
+    def get_energy(self, state):
+        return 0.
+
+
 class OpenMMRunner(object):
     def __init__(self, system, options):
         if system.temperature_scaler is None:
@@ -44,18 +61,30 @@ class OpenMMRunner(object):
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation()
 
+    def minimize_then_run(self, state):
+        return self._run(state, minimize=True)
+
+    def run(self, state):
+        return self._run(state, minimize=False)
+
+    def get_energy(self, state):
+        # set the coordinates
+        coordinates = Quantity(state.positions, angstrom)
+        self._simulation.context.setPositions(coordinates)
+
+        # get the energy
+        snapshot = self._simulation.context.getState(getPositions=True, getVelocities=True, getEnergy=True)
+        e_potential = snapshot.getPotentialEnergy()
+        e_potential = e_potential.value_in_unit(kilojoule / mole) / gas_constant / self._temperature
+
+        return e_potential
+
     def _initialize_simulation(self):
         prmtop = _parm_top_from_string(self._parm_string)
         sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
                                     self._options.implicit_solvent_model)
         integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
         self._simulation = _create_openmm_simulation(prmtop.topology, sys, integrator)
-
-    def minimize_then_run(self, state):
-        return self._run(state, minimize=True)
-
-    def run(self, state):
-        return self._run(state, minimize=False)
 
     def _run(self, state, minimize):
         assert state.alpha == self._alpha
@@ -159,7 +188,7 @@ class PositiveFloat(BaseFloat):
 
 
 class RunOptions(HasTraits):
-    runner = Enum('openmm')
+    runner = Enum('openmm', 'fake_runner')
     timesteps = PositiveInt(5000)
     minimize_steps = PositiveInt(1000)
     implicit_solvent_model = Enum('gbNeck2', 'gbNeck', 'obc')
@@ -171,5 +200,7 @@ class RunOptions(HasTraits):
 def get_runner(system, options):
     if options.runner == 'openmm':
         return OpenMMRunner(system, options)
+    elif options.runner == 'fake_runner':
+        return FakeSystemRunner()
     else:
         raise RuntimeError('Unknown type of runner: {}'.format(options.runner))

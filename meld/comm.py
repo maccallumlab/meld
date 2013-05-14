@@ -6,24 +6,22 @@ class MPICommunicator(object):
     Class to handle communications between master and slaves using MPI
 
     '''
-    def __init__(self, n_atoms, n_replicas, n_springs):
+    def __init__(self, n_atoms, n_replicas):
         '''
         Create an MPICommunicator
 
         Parameters
             n_atoms -- number of atoms
             n_replicas -- number of replicas
-            n_springs -- number of springs
 
         Note: creating an MPI communicator will not actually initialize MPI. To do that,
         call initialize().
 
         '''
-        # We're not using n_atoms, n_replicas, and n_springs, but if we switch
+        # We're not using n_atoms and n_replicas, but if we switch
         # to more efficient buffer-based MPI routines, we'll need them.
         self._n_atoms = n_atoms
         self._n_replicas = n_replicas
-        self._n_springs = n_springs
         self._mpi_comm = None
 
     def __getstate__(self):
@@ -191,10 +189,6 @@ class MPICommunicator(object):
     @property
     def n_atoms(self):
         return self._n_atoms
-
-    @property
-    def n_springs(self):
-        return self._n_springs
 
     @property
     def rank(self):

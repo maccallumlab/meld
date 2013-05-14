@@ -50,19 +50,17 @@ class DataStore(object):
     net_cdf_path = os.path.join(data_dir, net_cdf_filename)
     net_cdf_backup_path = os.path.join(backup_dir, net_cdf_filename)
 
-    def __init__(self, n_atoms, n_springs, n_replicas, backup_freq=100):
+    def __init__(self, n_atoms, n_replicas, backup_freq=100):
         '''
         Create a DataStore object.
 
         Parameters
             n_atoms -- number of atoms
-            n_springs -- number of springs
             n_replicas -- number of replicas
             backup_freq -- frequency to perform backups
 
         '''
         self._n_atoms = n_atoms
-        self._n_springs = n_springs
         self._n_replicas = n_replicas
         self._backup_freq = backup_freq
         self._cdf_data_set = None
@@ -94,9 +92,6 @@ class DataStore(object):
     def n_atoms(self):
         return self._n_atoms
 
-    @property
-    def n_springs(self):
-        return self._n_springs
 
     #
     # public methods
@@ -386,17 +381,12 @@ class DataStore(object):
         self._cdf_data_set.createDimension('n_replicas', self._n_replicas)
         self._cdf_data_set.createDimension('n_atoms', self._n_atoms)
         self._cdf_data_set.createDimension('cartesian', 3)
-        self._cdf_data_set.createDimension('n_springs', self._n_springs)
         self._cdf_data_set.createDimension('timesteps', None)
 
         # setup variables
         self._cdf_data_set.createVariable('positions', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('velocities', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
-        self._cdf_data_set.createVariable('spring_states', float, ['n_replicas', 'n_springs', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
-        self._cdf_data_set.createVariable('spring_energies', float, ['n_replicas', 'n_springs', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('alphas', float, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)

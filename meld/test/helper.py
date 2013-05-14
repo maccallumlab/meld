@@ -30,17 +30,13 @@ class FakeSystem(object):
     '''
     Fake system class to test REMD.
     '''
-    def get_runner(self):
-        return FakeSystemRunner()
+    pass
 
 
 class FakeSystemRunner(object):
     '''
     Fake system runner class. Doens't actually run anything. For testing REMD.
     '''
-    def initialize(self):
-        pass
-
     def minimize_then_run(self, state):
         return state
 

@@ -4,7 +4,7 @@ import subprocess
 
 class CommTestCase(unittest.TestCase):
     def test_broadcast_lambda(self):
-        subprocess.check_call('mpirun -np 4 python broadcast_lambda.py', shell=True)
+        subprocess.check_call('mpirun -np 4 python broadcast_alpha.py', shell=True)
 
     def test_broadcast_states(self):
         subprocess.check_call('mpirun -np 4 python broadcast_states.py', shell=True)
