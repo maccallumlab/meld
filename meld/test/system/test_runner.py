@@ -1,7 +1,7 @@
 import unittest
 import mock
-from meld.system.runner import OpenMMRunner, RunOptions, _parm_top_from_string, _create_openmm_system
-from meld.system.runner import _create_integrator
+from meld.system import OpenMMRunner, RunOptions
+from meld.system.openmm_runner import _parm_top_from_string, _create_openmm_system, _create_integrator
 from meld.system import protein, builder, ConstantTemperatureScaler
 from traits.api import TraitError
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2
@@ -25,7 +25,7 @@ class TestOpenMMRunner(unittest.TestCase):
 
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
-        with mock.patch('meld.system.runner.AmberPrmtopFile') as mock_parm:
+        with mock.patch('meld.system.openmm_runner.AmberPrmtopFile') as mock_parm:
             _parm_top_from_string('ABCD')
 
             mock_parm.assert_called_once_with(parm_string='ABCD')
@@ -63,7 +63,7 @@ class TestCreateOpenMMSystem(unittest.TestCase):
 
 class TestCreateIntegrator(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch('meld.system.runner.LangevinIntegrator', spec=LangevinIntegrator)
+        self.patcher = mock.patch('meld.system.openmm_runner.LangevinIntegrator', spec=LangevinIntegrator)
         self.MockIntegrator = self.patcher.start()
 
     def tearDown(self):

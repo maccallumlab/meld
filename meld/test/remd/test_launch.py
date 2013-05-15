@@ -1,7 +1,7 @@
 import unittest
 import mock
 from meld.remd import slave_runner, master_runner, launch
-from meld.system import runner
+from meld.system import openmm_runner
 from meld import comm, vault
 
 
@@ -12,7 +12,7 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
         self.mock_get_runner = self.get_runner_patcher.start()
-        self.mock_runner = mock.Mock(spec=runner.OpenMMRunner)
+        self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
 
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
@@ -76,7 +76,7 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
         self.mock_get_runner = self.get_runner_patcher.start()
-        self.mock_runner = mock.Mock(spec=runner.OpenMMRunner)
+        self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
 
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
