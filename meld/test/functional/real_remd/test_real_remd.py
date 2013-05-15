@@ -26,7 +26,7 @@ def setup_system():
     p = system.ProteinMoleculeFromSequence('NALA ALA ALA ALA ALA ALA ALA CALA')
     b = system.SystemBuilder()
     s = b.build_system_from_molecules([p])
-    s.temperature_scaler = system.ConstantTemperatureScaler(300.)
+    s.temperature_scaler = system.LinearTemperatureScaler(0, 1, 300, 310)
 
     # create the options
     options = system.RunOptions()
