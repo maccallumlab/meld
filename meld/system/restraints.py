@@ -135,7 +135,7 @@ class SelectivelyActiveCollection(object):
     '''
     '''
     def __init__(self, restraint_list, num_active):
-        self._restraints = []
+        self._groups = []
         if not restraint_list:
             raise RuntimeError('SelectivelyActiveCollection cannot have empty restraint list.')
         for rest in restraint_list:
@@ -143,14 +143,14 @@ class SelectivelyActiveCollection(object):
 
         if num_active < 0:
             raise RuntimeError('num_active must be >= 0.')
-        n_rest = len(self._restraints)
+        n_rest = len(self._groups)
         if num_active > n_rest:
-            raise RuntimeError('num active must be <= num_restraints ({}).'.format(n_rest))
+            raise RuntimeError('num active must be <= num_groups ({}).'.format(n_rest))
         self._num_active = num_active
 
     @property
-    def restraints(self):
-        return self._restraints
+    def groups(self):
+        return self._groups
 
     @property
     def num_active(self):
@@ -158,13 +158,13 @@ class SelectivelyActiveCollection(object):
 
     def _add_restraint(self, restraint):
         if isinstance(restraint, RestraintGroup):
-            self._restraints.append(restraint)
+            self._groups.append(restraint)
         elif not isinstance(restraint, SelectableRestraint):
             raise RuntimeError('Cannot add restraint of type {} to SelectivelyActiveCollection'.format(
                 str(type(restraint))))
         else:
             group = RestraintGroup([restraint], 1)
-            self._restraints.append(group)
+            self._groups.append(group)
 
 
 class RestraintGroup(object):

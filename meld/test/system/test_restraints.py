@@ -24,12 +24,12 @@ class TestSelectivelyActiveCollection(unittest.TestCase):
     def test_restraint_should_be_present_after_adding(self):
         rest = [restraints.SelectableRestraint()]
         coll = restraints.SelectivelyActiveCollection(rest, 1)
-        self.assertEqual(len(coll.restraints), 1)
+        self.assertEqual(len(coll.groups), 1)
 
     def test_can_add_two_restraints(self):
         rest = [restraints.SelectableRestraint(), restraints.SelectableRestraint()]
         coll = restraints.SelectivelyActiveCollection(rest, 1)
-        self.assertEqual(len(coll.restraints), 2)
+        self.assertEqual(len(coll.groups), 2)
 
     def test_adding_non_selectable_restraint_should_raise(self):
         rest = [restraints.NonSelectableRestraint()]
