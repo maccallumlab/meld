@@ -38,7 +38,7 @@ def setup_system():
     store.save_run_options(options)
 
     # create and store the remd_runner
-    l = ladder.NearestNeighborLadder(n_trials=100)
+    l = ladder.NearestNeighborLadder(n_trials=1)
     policy = adaptor.AdaptationPolicy(1.0, 50, 100)
     a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
     remd_runner = master_runner.MasterReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)

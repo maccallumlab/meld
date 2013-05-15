@@ -130,10 +130,12 @@ class MasterReplicaExchangeRunner(object):
 
     @staticmethod
     def _permute_states(permutation_matrix, states):
-        new_states = []
-        for index in permutation_matrix:
-            new_states.append(states[index])
-        return new_states
+        old_coords = [s.positions for s in states]
+        old_energy = [s.energy for s in states]
+        for i, index in enumerate(permutation_matrix):
+            states[i].positions = old_coords[index]
+            states[i].energy = old_energy[index]
+        return states
 
     def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)

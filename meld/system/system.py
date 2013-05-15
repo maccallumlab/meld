@@ -11,6 +11,36 @@ class ConstantTemperatureScaler(object):
         return self._temperature
 
 
+class LinearTemperatureScaler(object):
+    def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
+        if alpha_min < 0 or alpha_min > 1:
+            raise RuntimeError('0 <= alpha_min <=1')
+        if alpha_max < 0 or alpha_max > 1:
+            raise RuntimeError('0 <= alpha_max <=1')
+        if alpha_min >= alpha_max:
+            raise RuntimeError('alpha_min must be < alpha_max')
+        if temperature_min <= 0 or temperature_max <= 0:
+            raise RuntimeError('temperatures must be positive')
+
+        self._alpha_min = float(alpha_min)
+        self._alpha_max = float(alpha_max)
+        self._temperature_min = float(temperature_min)
+        self._temperature_max = float(temperature_max)
+        self._delta_alpha = self._alpha_max - self._alpha_min
+        self._delta_temp = self._temperature_max - self._temperature_min
+
+    def __call__(self, alpha):
+        if alpha < 0 or alpha > 1:
+            raise RuntimeError('0 <= alpha <=1 1')
+        if alpha <= self._alpha_min:
+            return self._temperature_min
+        elif alpha <= self._alpha_max:
+            frac = (alpha - self._alpha_min) / self._delta_alpha
+            return self._temperature_min + frac * self._delta_temp
+        else:
+            return self._temperature_max
+
+
 class System(object):
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
