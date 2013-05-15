@@ -1,7 +1,6 @@
 import unittest
 from meld.system import protein, builder, ConstantTemperatureScaler, LinearTemperatureScaler
 from meld.system import GeometricTemperatureScaler, RunOptions
-from traits.api import TraitError
 
 
 class TestCreateFromSequence(unittest.TestCase):
@@ -175,14 +174,14 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(self.options.timesteps, 5000)
 
     def test_timesteps_below_1_raises(self):
-        with self.assertRaises(TraitError):
+        with self.assertRaises(RuntimeError):
             self.options.timesteps = 0
 
     def test_minimization_steps_initializes_to_1000(self):
         self.assertEqual(self.options.minimize_steps, 1000)
 
     def test_minimizesteps_below_1_raises(self):
-        with self.assertRaises(TraitError):
+        with self.assertRaises(RuntimeError):
             self.options.minimize_steps = 0
 
     def test_implicit_solvent_model_defaults_to_gbneck2(self):
@@ -197,7 +196,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(self.options.implicit_solvent_model, 'obc')
 
     def test_bad_implicit_model_raises(self):
-        with self.assertRaises(TraitError):
+        with self.assertRaises(RuntimeError):
             self.options.implicit_solvent_model = 'bad'
 
     def test_cutoff_defaults_to_none(self):
@@ -208,7 +207,7 @@ class TestOptions(unittest.TestCase):
         self.assertEqual(self.options.cutoff, 1.0)
 
     def test_cutoff_should_raise_with_non_positive_value(self):
-        with self.assertRaises(TraitError):
+        with self.assertRaises(RuntimeError):
             self.options.cutoff = 0.
 
     def test_use_big_timestep_defaults_to_false(self):

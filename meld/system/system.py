@@ -1,6 +1,5 @@
 import numpy as np
 import math
-from traits.api import HasTraits, Trait, BaseInt, BaseFloat, Enum, Bool
 
 
 class ConstantTemperatureScaler(object):
@@ -199,31 +198,84 @@ class ParmTopReader(object):
         return data
 
 
-class PositiveInt(BaseInt):
-    info_text = 'an integer > 0'
+class RunOptions(object):
+    def __init__(self):
+        self._runner = 'openmm'
+        self._timesteps = 5000
+        self._minimize_Steps = 1000
+        self._implicit_solvent_model = 'gbNeck2'
+        self._cutoff = None
+        self._use_big_timestep = False
+        self._use_amap = False
 
-    def validate(self, object, name, value):
-        value = super(PositiveInt, self).validate(object, name, value)
-        if value > 0:
-            return value
-        self.error(object, name, value)
+    @property
+    def runner(self):
+        return self._runner
 
+    @runner.setter
+    def runner(self, value):
+        if not value in ['openmm', 'fake_runner']:
+            raise RuntimeError('unknown value for runner {}'.format(value))
+        self._runner = value
 
-class PositiveFloat(BaseFloat):
-    info_text = 'a float > 0'
+    @property
+    def timesteps(self):
+        return self._timesteps
 
-    def validate(self, object, name, value):
-        value = super(PositiveFloat, self).validate(object, name, value)
-        if value > 0:
-            return value
-        self.error(object, name, value)
+    @timesteps.setter
+    def timesteps(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError('timesteps must be > 0')
+        self._timesteps = value
 
+    @property
+    def minimize_steps(self):
+        return self._minimize_Steps
 
-class RunOptions(HasTraits):
-    runner = Enum('openmm', 'fake_runner')
-    timesteps = PositiveInt(5000)
-    minimize_steps = PositiveInt(1000)
-    implicit_solvent_model = Enum('gbNeck2', 'gbNeck', 'obc')
-    cutoff = Trait(None, None, PositiveFloat)  # allow None or PositiveFloat; default to None
-    use_big_timestep = Bool(False)
-    use_amap = Bool(False)
+    @minimize_steps.setter
+    def minimize_steps(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError('minimize_steps must be > 0')
+        self._minimize_steps = value
+
+    @property
+    def implicit_solvent_model(self):
+        return self._implicit_solvent_model
+
+    @implicit_solvent_model.setter
+    def implicit_solvent_model(self, value):
+        if not value in ['obc', 'gbNeck', 'gbNeck2']:
+            raise RuntimeError('unknown value for implicit solvent model {}'.format(value))
+        self._implicit_solvent_model = value
+
+    @property
+    def cutoff(self):
+        return self._cutoff
+
+    @cutoff.setter
+    def cutoff(self, value):
+        if value is None:
+            self._cutoff = None
+        else:
+            value = float(value)
+            if value <= 0:
+                raise RuntimeError('cutoff must be > 0')
+            self._cutoff = value
+
+    @property
+    def use_big_timestep(self):
+        return self._use_big_timestep
+
+    @use_big_timestep.setter
+    def use_big_timestep(self, value):
+        self._use_big_timestep = bool(value)
+
+    @property
+    def use_amap(self):
+        return self._use_amap
+
+    @use_amap.setter
+    def use_amap(self, value):
+        self._use_amap = bool(value)
