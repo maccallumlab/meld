@@ -1,6 +1,7 @@
 import unittest
 from meld.system import protein, builder, ConstantTemperatureScaler, LinearTemperatureScaler
-from meld.system import GeometricTemperatureScaler
+from meld.system import GeometricTemperatureScaler, RunOptions
+from traits.api import TraitError
 
 
 class TestCreateFromSequence(unittest.TestCase):
@@ -164,3 +165,54 @@ class TestGeometricTemperatureScaler(unittest.TestCase):
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
             GeometricTemperatureScaler(0.0, 1.0, 300., -500.)
+
+
+class TestOptions(unittest.TestCase):
+    def setUp(self):
+        self.options = RunOptions()
+
+    def test_timesteps_initializes_to_5000(self):
+        self.assertEqual(self.options.timesteps, 5000)
+
+    def test_timesteps_below_1_raises(self):
+        with self.assertRaises(TraitError):
+            self.options.timesteps = 0
+
+    def test_minimization_steps_initializes_to_1000(self):
+        self.assertEqual(self.options.minimize_steps, 1000)
+
+    def test_minimizesteps_below_1_raises(self):
+        with self.assertRaises(TraitError):
+            self.options.minimize_steps = 0
+
+    def test_implicit_solvent_model_defaults_to_gbneck2(self):
+        self.assertEqual(self.options.implicit_solvent_model, 'gbNeck2')
+
+    def test_implicit_solvent_model_accepts_gbneck(self):
+        self.options.implicit_solvent_model = 'gbNeck'
+        self.assertEqual(self.options.implicit_solvent_model, 'gbNeck')
+
+    def test_implicit_solvent_model_accepts_obc(self):
+        self.options.implicit_solvent_model = 'obc'
+        self.assertEqual(self.options.implicit_solvent_model, 'obc')
+
+    def test_bad_implicit_model_raises(self):
+        with self.assertRaises(TraitError):
+            self.options.implicit_solvent_model = 'bad'
+
+    def test_cutoff_defaults_to_none(self):
+        self.assertIs(self.options.cutoff, None)
+
+    def test_cutoff_accepts_positive_float(self):
+        self.options.cutoff = 1.0
+        self.assertEqual(self.options.cutoff, 1.0)
+
+    def test_cutoff_should_raise_with_non_positive_value(self):
+        with self.assertRaises(TraitError):
+            self.options.cutoff = 0.
+
+    def test_use_big_timestep_defaults_to_false(self):
+        self.assertEqual(self.options.use_big_timestep, False)
+
+    def test_use_amap_defaults_to_false(self):
+        self.assertEqual(self.options.use_amap, False)

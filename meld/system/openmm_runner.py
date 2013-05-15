@@ -5,6 +5,9 @@ from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 
 
+gas_constant = 8.314e-3
+
+
 class OpenMMRunner(object):
     def __init__(self, system, options):
         if system.temperature_scaler is None:
@@ -121,5 +124,3 @@ def _create_integrator(temperature, use_big_timestep):
     else:
         timestep = 2.0 * femtosecond
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
-
-

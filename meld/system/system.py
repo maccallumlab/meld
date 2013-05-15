@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from traits.api import HasTraits, Trait, BaseInt, BaseFloat, Enum, Bool
 
 
 class ConstantTemperatureScaler(object):
@@ -196,3 +197,33 @@ class ParmTopReader(object):
         for line in lines[index_start:index_end]:
             data.extend(line.split())
         return data
+
+
+class PositiveInt(BaseInt):
+    info_text = 'an integer > 0'
+
+    def validate(self, object, name, value):
+        value = super(PositiveInt, self).validate(object, name, value)
+        if value > 0:
+            return value
+        self.error(object, name, value)
+
+
+class PositiveFloat(BaseFloat):
+    info_text = 'a float > 0'
+
+    def validate(self, object, name, value):
+        value = super(PositiveFloat, self).validate(object, name, value)
+        if value > 0:
+            return value
+        self.error(object, name, value)
+
+
+class RunOptions(HasTraits):
+    runner = Enum('openmm', 'fake_runner')
+    timesteps = PositiveInt(5000)
+    minimize_steps = PositiveInt(1000)
+    implicit_solvent_model = Enum('gbNeck2', 'gbNeck', 'obc')
+    cutoff = Trait(None, None, PositiveFloat)  # allow None or PositiveFloat; default to None
+    use_big_timestep = Bool(False)
+    use_amap = Bool(False)
