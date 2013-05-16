@@ -44,7 +44,7 @@ class DataStore(object):
 
     run_options_filename = 'run_options.dat'
     run_options_path = os.path.join(data_dir, run_options_filename)
-    run_options_backup_path = os.path.join(backup_dir, system_filename)
+    run_options_backup_path = os.path.join(backup_dir, run_options_filename)
 
     net_cdf_filename = 'results.nc'
     net_cdf_path = os.path.join(data_dir, net_cdf_filename)
@@ -180,6 +180,15 @@ class DataStore(object):
 
         '''
         return self._cdf_data_set.variables['positions'][..., stage]
+
+    def load_all_positions(self):
+        '''
+        Load all positions from disk.
+
+        Warning, this could use a lot of memory.
+
+        '''
+        return self._cdf_data_set.variables['positions']
 
     def save_velocities(self, velocities, stage):
         '''

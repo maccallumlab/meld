@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import argparse
+from meld import vault
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Extract a pdb trajectory from a run.')
+
+    parser.add_argument('output_filename', help='filename of the output pdb file')
+    parser.add_argument('--start', type=int, default=None,
+                        help='first frame to extract (default: first')
+    parser.add_argument('--end', type=int, default=None,
+                        help='last frame to extract (default: last)')
+    parser.add_argument('--replica', type=int, default=0,
+                        help='replica to extract (default: 0)')
+    parser.add_argument('--follow-replica', default=False, action='store_const', const=True,
+                        help='follow replica through ladder (default: False)')
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    if args.follow_replica:
+        raise NotImplementedError('Following a replica is not implemented yet.')
+
+    store = vault.DataStore.load_data_store()
+    store.initialize(mode='safe')
+
+    system = store.load_system()
+    pdb_writer = system.get_pdb_writer()
+
+    positions = store.load_all_positions()
+    max_step = positions.shape[3]
+    n_replicas = positions.shape[0]
+
+    start = args.start
+    if not start is None:
+        assert start > 0
+        assert start < max_step
+    else:
+        start = 1
+
+    end = args.end
+    if not end is None:
+        assert end > 0
+        assert end < max_step
+        assert end > start
+    else:
+        end = max_step - 1
+
+    replica_index = args.replica
+    assert replica_index >= 0
+    assert replica_index < n_replicas
+
+    with open(args.output_filename, 'w') as output_file:
+        if args.follow_replica:
+            pass
+        else:
+            extract_single_replica(pdb_writer, positions, output_file, start, end, replica_index)
+
+
+def extract_single_replica(pdb_writer, positions, output, start, end, replica_index):
+    for step in range(start, end + 1):
+        pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :, step], step)
+        output.write(pdb_string)
+
+
+if __name__ == '__main__':
+    main()
