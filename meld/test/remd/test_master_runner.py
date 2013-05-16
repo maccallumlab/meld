@@ -40,7 +40,8 @@ class TestSingleStep(unittest.TestCase):
             self.mock_state_4, self.mock_state_5, self.mock_state_6]
 
         self.mock_comm.gather_states_from_slaves.return_value = self.fake_states_after_run
-        self.mock_comm.gather_energies_from_slaves.return_value = sentinel.ENERGY_MATRIX
+        self.mock_energy_matrix = mock.MagicMock()
+        self.mock_comm.gather_energies_from_slaves.return_value = self.mock_energy_matrix
 
         self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
@@ -134,7 +135,7 @@ class TestSingleStep(unittest.TestCase):
         "should call ladder"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_ladder.compute_exchanges.assert_called_once_with(sentinel.ENERGY_MATRIX, self.mock_adaptor)
+        self.mock_ladder.compute_exchanges.assert_called_once_with(self.mock_energy_matrix, self.mock_adaptor)
 
     def test_states_are_saved_in_permuted_form(self):
         "states should be saved to store in properly permuted order"
@@ -210,7 +211,8 @@ class TestFiveSteps(unittest.TestCase):
             self.mock_state_1, self.mock_state_2, self.mock_state_3,
             self.mock_state_4, self.mock_state_5, self.mock_state_6]
         self.mock_comm.gather_states_from_slaves.return_value = self.fake_states_after_run
-        self.mock_comm.gather_energies_from_slaves.return_value = sentinel.ENERGY_MATRIX
+        self.mock_energy_matrix = mock.MagicMock()
+        self.mock_comm.gather_energies_from_slaves.return_value = self.mock_energy_matrix
 
         self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
