@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import argparse
+from meld import vault
+from matplotlib import pyplot
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Analyze the results of replica exchange.')
+
+    parser.add_argument('--start', type=int, default=None,
+                        help='first frame to extract (default: first')
+    parser.add_argument('--end', type=int, default=None,
+                        help='last frame to extract (default: last)')
+    subparsers = parser.add_subparsers(dest='command')
+
+    visualize_alpha = subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    store = vault.DataStore.load_data_store()
+    store.initialize(mode='safe')
+
+    if args.command == 'visualize_alpha':
+        visualize_alpha(store, args)
+
+
+def visualize_alpha(store, args):
+    alphas = get_alphas(store, args.start, args.end)
+    n_reps = alphas.shape[0]
+    for i in range(n_reps):
+        pyplot.plot(alphas[i, :], 'k-')
+    pyplot.show()
+
+
+def get_alphas(store, start, end):
+    alphas = store.load_all_alphas()
+    n_alphas = alphas.shape[1]
+    if start is None:
+        start = 1
+    if end is None:
+        end = n_alphas - 1
+
+    assert start > 0 and start < n_alphas
+    assert end > 0 and end < n_alphas
+    assert end > start
+
+    return alphas[:, start:(end + 1)]
+
+
+if __name__ == '__main__':
+    main()
