@@ -25,6 +25,8 @@ class OpenMMRunner(object):
         self._selectable_collections = system.restraints.selectively_active_collections
         self._options = options
         self._simulation = None
+        self._integrator = None
+        self._meld_force = None
         self._alpha = 0.
         self._temperature = None
 
@@ -52,20 +54,30 @@ class OpenMMRunner(object):
         return e_potential
 
     def _initialize_simulation(self):
-        prmtop = _parm_top_from_string(self._parm_string)
-        sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
-                                    self._options.implicit_solvent_model)
+        if self._integrator and self._simulation and self._meld_force:
+            self._integrator.setTemperature(self._temperature)
+            meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha)
+            _update_selectively_active_restraints(self._meld_force, self._selectable_collections,
+                                                  meld_rests, self._alpha)
+            self._meld_force.updateParametersInContext(self._simulation.context)
 
-        meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha)
-        _add_selectively_active_restraints(sys, self._selectable_collections, meld_rests, self._alpha)
+        else:
+            # we need to set the whole thing from scratch
+            prmtop = _parm_top_from_string(self._parm_string)
+            sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
+                                        self._options.implicit_solvent_model)
 
-        integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
+            meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha)
+            self._meld_force = _add_selectively_active_restraints(sys, self._selectable_collections,
+                                                                  meld_rests, self._alpha)
 
-        platform = Platform.getPlatformByName('CUDA')
-        properties = {'CudaDeviceIndex': str(self._device_id)}
+            self._integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
 
-        self._simulation = _create_openmm_simulation(prmtop.topology, sys, integrator,
-                                                     platform, properties)
+            platform = Platform.getPlatformByName('CUDA')
+            properties = {'CudaDeviceIndex': str(self._device_id)}
+
+            self._simulation = _create_openmm_simulation(prmtop.topology, sys, self._integrator,
+                                                        platform, properties)
 
     def _run(self, state, minimize):
         assert state.alpha == self._alpha
@@ -142,7 +154,7 @@ def _create_integrator(temperature, use_big_timestep):
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
 
 
-def _add_always_active_restraints(system, restraint_list, alpha):
+def _split_always_active_restraints(restraint_list):
     selectable_restraints = []
     nonselectable_restraints = []
     for rest in restraint_list:
@@ -152,6 +164,18 @@ def _add_always_active_restraints(system, restraint_list, alpha):
             nonselectable_restraints.append(rest)
         else:
             raise RuntimeError('Unknown type of restraint {}'.format(rest))
+    return selectable_restraints, nonselectable_restraints
+
+
+def _add_always_active_restraints(system, restraint_list, alpha):
+    selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
+    if nonselectable_restraints:
+        raise NotImplementedError('Non-meld restraints are not implemented yet')
+    return selectable_restraints
+
+
+def _update_always_active_restraints(restraint_list, alpha):
+    selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -182,6 +206,7 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha):
             group_indices.append(group_index)
         meld_force.addCollection(group_indices, coll.num_active)
     system.addForce(meld_force)
+    return meld_force
 
 
 def _add_meld_restraint(rest, meld_force, alpha):
@@ -197,3 +222,32 @@ def _add_meld_restraint(rest, meld_force, alpha):
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
     return rest_index
+
+
+def _update_selectively_active_restraints(meld_force, collections, always_on, alpha):
+    dist_index = 0
+    tors_index = 0
+    if always_on:
+        for rest in always_on:
+            dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
+                                                            dist_index, tors_index)
+    for coll in collections:
+        for group in coll.groups:
+            for rest in group.restraints:
+                dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
+                                                                dist_index, tors_index)
+
+
+def _update_meld_restraint(rest, meld_force, alpha, dist_index, tors_index):
+    scale = rest.scaler(alpha)
+    if isinstance(rest, DistanceRestraint):
+        meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1, rest.atom_index_2, rest.r1,
+                                           rest.r2, rest.r3, rest.r4, rest.k * scale)
+        dist_index += 1
+    elif isinstance(rest, TorsionRestraint):
+        meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1, rest.atom_index_2, rest.atom_index_3,
+                                          rest.atom_index_4, rest.phi, rest.delta_phi, rest.k * scale)
+        tors_index += 1
+    else:
+        raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
+    return dist_index, tors_index
