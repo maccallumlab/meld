@@ -1,4 +1,6 @@
 import numpy as np
+import platform
+from collections import defaultdict
 
 
 class MPICommunicator(object):
@@ -181,6 +183,20 @@ class MPICommunicator(object):
 
         '''
         return self._mpi_comm.gather(energies, root=0)
+
+    def negotiate_device_id(self):
+        hostname = platform.node()
+        hostnames = self._mpi_comm.gather(hostname, root=0)
+        if self._my_rank == 0:
+            host_counts = defaultdict(int)
+            device_ids = []
+            for hostname in hostnames:
+                device_ids.append(host_counts[hostname])
+                host_counts[hostname] += 1
+        else:
+            device_ids = None
+        device_id = self._mpi_comm.scatter(device_ids, root=0)
+        return device_id
 
     @property
     def n_replicas(self):

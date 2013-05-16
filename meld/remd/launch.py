@@ -22,7 +22,7 @@ def launch():
     system = store.load_system()
     options = store.load_run_options()
 
-    system_runner = get_runner(system, options)
+    system_runner = get_runner(system, options, communicator)
 
     if communicator.is_master():
         store.initialize(mode='existing')

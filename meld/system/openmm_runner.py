@@ -1,6 +1,6 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MeldForce
+from simtk.openmm import LangevinIntegrator, MeldForce, Platform
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from .restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
@@ -10,7 +10,12 @@ gas_constant = 8.314e-3
 
 
 class OpenMMRunner(object):
-    def __init__(self, system, options):
+    def __init__(self, system, options, communicator=None):
+        if communicator:
+            self._device_id = communicator.negotiate_device_id()
+        else:
+            self._device_id = 0
+
         if system.temperature_scaler is None:
             raise RuntimeError('system does not have temparture_scaler set')
         else:
@@ -49,13 +54,19 @@ class OpenMMRunner(object):
     def _initialize_simulation(self):
         prmtop = _parm_top_from_string(self._parm_string)
         sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
-                                    self._options.implicit_solvent_model)
+                                    self._options.implicit_solvent_model,
+                                    self._device_id)
 
         meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha)
         _add_selectively_active_restraints(sys, self._selectable_collections, meld_rests, self._alpha)
 
         integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
-        self._simulation = _create_openmm_simulation(prmtop.topology, sys, integrator)
+
+        platform = Platform.getPlatformByName('CUDA')
+        properties = {'CudaDeviceIndex': str(self._device_id)}
+
+        self._simulation = _create_openmm_simulation(prmtop.topology, sys, integrator,
+                                                     platform, properties)
 
     def _run(self, state, minimize):
         assert state.alpha == self._alpha
