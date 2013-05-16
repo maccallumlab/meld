@@ -103,8 +103,8 @@ class OpenMMRunner(object):
         return state
 
 
-def _create_openmm_simulation(topology, system, integrator):
-    return Simulation(topology, system, integrator)
+def _create_openmm_simulation(topology, system, integrator, platform, properties):
+    return Simulation(topology, system, integrator, platform, properties)
 
 
 def _parm_top_from_string(parm_string):
