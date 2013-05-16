@@ -60,7 +60,8 @@ class OpenMMRunner(object):
             meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha)
             _update_selectively_active_restraints(self._meld_force, self._selectable_collections,
                                                   meld_rests, self._alpha)
-            self._meld_force.updateParametersInContext(self._simulation.context)
+            if self._meld_force:
+                self._meld_force.updateParametersInContext(self._simulation.context)
 
         else:
             self._initialized = True
