@@ -27,6 +27,7 @@ class OpenMMRunner(object):
         self._simulation = None
         self._integrator = None
         self._meld_force = None
+        self._initialized = False
         self._alpha = 0.
         self._temperature = None
 
@@ -54,7 +55,7 @@ class OpenMMRunner(object):
         return e_potential
 
     def _initialize_simulation(self):
-        if self._integrator and self._simulation and self._meld_force:
+        if self._initialized:
             self._integrator.setTemperature(self._temperature)
             meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha)
             _update_selectively_active_restraints(self._meld_force, self._selectable_collections,
@@ -62,6 +63,8 @@ class OpenMMRunner(object):
             self._meld_force.updateParametersInContext(self._simulation.context)
 
         else:
+            self._initialized = True
+
             # we need to set the whole thing from scratch
             prmtop = _parm_top_from_string(self._parm_string)
             sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
