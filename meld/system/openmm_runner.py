@@ -54,8 +54,7 @@ class OpenMMRunner(object):
     def _initialize_simulation(self):
         prmtop = _parm_top_from_string(self._parm_string)
         sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
-                                    self._options.implicit_solvent_model,
-                                    self._device_id)
+                                    self._options.implicit_solvent_model)
 
         meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha)
         _add_selectively_active_restraints(sys, self._selectable_collections, meld_rests, self._alpha)
