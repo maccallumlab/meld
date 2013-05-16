@@ -4,6 +4,7 @@
 import argparse
 from meld import vault
 from matplotlib import pyplot
+import numpy as np
 
 
 def parse_args():
@@ -18,6 +19,16 @@ def parse_args():
 
     visualize_alpha = subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
 
+    extract_alpha = subparsers.add_parser('extract_alpha', help='extract alpha values')
+    extract_alpha.add_argument('outfile', help='output filename')
+
+    visualize_trace = subparsers.add_parser('visualize_trace', help='visualize trace of replica through ladder')
+    visualize_trace.add_argument('--replicas', nargs='+', type=int, default=None,
+                                 help='replicas to visualize')
+
+    extract_trace = subparsers.add_parser('extract_trace', help='extract trace')
+    extract_trace.add_argument('outfile', help='output filename')
+
     return parser.parse_args()
 
 
@@ -29,6 +40,12 @@ def main():
 
     if args.command == 'visualize_alpha':
         visualize_alpha(store, args)
+    elif args.command == 'extract_alpha':
+        extract_alpha(store, args)
+    elif args.command == 'visualize_trace':
+        visualize_trace(store, args)
+    elif args.command == 'extract_trace':
+        extract_trace(store, args)
 
 
 def visualize_alpha(store, args):
@@ -37,6 +54,34 @@ def visualize_alpha(store, args):
     for i in range(n_reps):
         pyplot.plot(alphas[i, :], 'k-')
     pyplot.show()
+
+
+def extract_alpha(store, args):
+    alphas = get_alphas(store, args.start, args.end)
+    np.savetxt(args.outfile, alphas)
+
+
+def visualize_trace(store, args):
+    perm_vecs = get_permutation_vectors(store, args.start, args.end)
+    traces = deshuffle_traces(perm_vecs)
+
+    n_replicas = traces.shape[1]
+
+    if args.replicas is None:
+        reps = range(n_replicas)
+    else:
+        reps = args.replicas
+
+    for index in reps:
+        pyplot.plot(traces[:, index])
+
+    pyplot.show()
+
+
+def extract_trace(store, args):
+    perm_vecs = get_permutation_vectors(store, args.start, args.end)
+    traces = deshuffle_traces(perm_vecs)
+    np.savetxt(args.outfile, traces)
 
 
 def get_alphas(store, start, end):
@@ -53,6 +98,33 @@ def get_alphas(store, start, end):
 
     return alphas[:, start:(end + 1)]
 
+
+def get_permutation_vectors(store, start, end):
+    alphas = store.load_all_permutation_vectors()
+    n_alphas = alphas.shape[1]
+    if start is None:
+        start = 1
+    if end is None:
+        end = n_alphas - 1
+
+    assert start > 0 and start < n_alphas
+    assert end > 0 and end < n_alphas
+    assert end > start
+
+    return alphas[:, start:(end + 1)]
+
+
+def deshuffle_traces(perm_vecs):
+    n_replicas = perm_vecs.shape[0]
+    n_steps = perm_vecs.shape[1]
+
+    results = []
+    current_indices = np.array(list(range(n_replicas)))
+
+    for i in range(n_steps):
+        current_indices = current_indices[perm_vecs[:, i]]
+        results.append(current_indices)
+    return np.array(results)
 
 if __name__ == '__main__':
     main()
