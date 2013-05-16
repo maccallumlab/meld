@@ -44,12 +44,13 @@ class SlaveReplicaExchangeRunner(object):
         while self._step <= self._max_steps:
             # update simulation conditions
             new_alpha = communicator.recieve_alpha_from_master()
+            state = communicator.recieve_state_from_master()
             if not new_alpha == my_alpha:
                 my_alpha = new_alpha
                 system_runner.set_alpha(my_alpha)
+                state.alpha = my_alpha
 
             # do one round of simulation
-            state = communicator.recieve_state_from_master()
             if self._step == 1:
                 state = system_runner.minimize_then_run(state)
             else:
