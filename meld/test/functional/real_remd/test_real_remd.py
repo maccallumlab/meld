@@ -32,7 +32,7 @@ def setup_system():
     options = system.RunOptions()
 
     # create a store
-    store = vault.DataStore(s.n_atoms, N_REPLICAS, backup_freq=BACKUP_FREQ)
+    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), backup_freq=BACKUP_FREQ)
     store.initialize(mode='new')
     store.save_system(s)
     store.save_run_options(options)

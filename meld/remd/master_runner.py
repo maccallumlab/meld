@@ -118,7 +118,7 @@ class MasterReplicaExchangeRunner(object):
 
             # store everything
             store.save_states(states, self.step)
-            store.append_traj(states[0])
+            store.append_traj(states[0], self.step)
             store.save_alphas(self._alphas, self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)

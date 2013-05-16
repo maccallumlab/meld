@@ -159,7 +159,7 @@ class TestSingleStep(unittest.TestCase):
         "should write trajectory to disk"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_store.append_traj.assert_called_once_with(self.mock_state_1)
+        self.mock_store.append_traj.assert_called_once_with(self.mock_state_1, 1)
 
     def test_should_save_alphas(self):
         "should write alphas to disk"

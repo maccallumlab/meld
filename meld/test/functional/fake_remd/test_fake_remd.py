@@ -4,7 +4,7 @@ import subprocess
 import numpy as np
 from meld.remd import ladder, adaptor, master_runner
 from meld.system import state, RunOptions, ConstantTemperatureScaler
-from meld import comm, vault
+from meld import comm, vault, pdb_writer
 from meld.test import helper
 
 
@@ -24,7 +24,11 @@ def gen_state(index):
 
 def setup_system():
     # create a store
-    store = vault.DataStore(N_ATOMS, N_REPLICAS, backup_freq=BACKUP_FREQ)
+    writer = pdb_writer.PDBWriter(range(N_ATOMS),
+                                  ['CA'] * N_ATOMS,
+                                  [1] * N_ATOMS,
+                                  ['ALA'] * N_ATOMS)
+    store = vault.DataStore(N_ATOMS, N_REPLICAS, writer, backup_freq=BACKUP_FREQ)
     store.initialize(mode='new')
 
     # create and store the remd_runner

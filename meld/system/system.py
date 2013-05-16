@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from .restraints import RestraintManager
+from meld.pdb_writer import PDBWriter
 
 
 class ConstantTemperatureScaler(object):
@@ -121,6 +122,10 @@ class System(object):
             print 'Could not find atom index for residue_number={} and atom name={}.'.format(
                 residue_number, atom_name)
             raise
+
+    def get_pdb_writer(self):
+        return PDBWriter(range(1, len(self._atom_names) + 1),
+                         self._atom_names, self._residue_numbers, self._residue_names)
 
     def _setup_indexing(self):
         reader = ParmTopReader(self._top_string)

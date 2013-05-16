@@ -50,7 +50,11 @@ class DataStore(object):
     net_cdf_path = os.path.join(data_dir, net_cdf_filename)
     net_cdf_backup_path = os.path.join(backup_dir, net_cdf_filename)
 
-    def __init__(self, n_atoms, n_replicas, backup_freq=100):
+    traj_filename = 'trajectory.pdb'
+    traj_path = os.path.join(data_dir, traj_filename)
+    traj_backup_path = os.path.join(backup_dir, traj_filename)
+
+    def __init__(self, n_atoms, n_replicas, pdb_writer, backup_freq=100):
         '''
         Create a DataStore object.
 
@@ -65,6 +69,7 @@ class DataStore(object):
         self._backup_freq = backup_freq
         self._cdf_data_set = None
         self._safe_mode = False
+        self._pdb_writer = pdb_writer
 
     def __getstate__(self):
         # don't save some fields to disk
@@ -92,11 +97,9 @@ class DataStore(object):
     def n_atoms(self):
         return self._n_atoms
 
-
     #
     # public methods
     #
-
     def initialize(self, mode):
         '''
         Prepare to use the DataStore object.
@@ -240,8 +243,10 @@ class DataStore(object):
             states.append(s)
         return states
 
-    def append_traj(self, state):
-        pass
+    def append_traj(self, state, stage):
+        pdb_string = self._pdb_writer.get_pdb_string(state.positions, stage)
+        with open(self.traj_path, 'a') as traj_file:
+            traj_file.write(pdb_string)
 
     def save_alphas(self, alphas, stage):
         '''
@@ -374,6 +379,7 @@ class DataStore(object):
             self._backup(self.remd_runner_path, self.remd_runner_backup_path)
             self._backup(self.system_path, self.system_backup_path)
             self._backup(self.run_options_path, self.run_options_backup_path)
+            self._backup(self.traj_path, self.traj_backup_path)
 
             self._cdf_data_set.close()
             self._backup(self.net_cdf_path, self.net_cdf_backup_path)
