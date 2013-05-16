@@ -35,9 +35,9 @@ class FakeSystemRunner(object):
         return 0.
 
 
-def get_runner(system, options):
+def get_runner(system, options, comm):
     if options.runner == 'openmm':
-        return OpenMMRunner(system, options)
+        return OpenMMRunner(system, options, comm)
     elif options.runner == 'fake_runner':
         return FakeSystemRunner()
     else:
