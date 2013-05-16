@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from .restraints import RestraintManager
 
 
 class ConstantTemperatureScaler(object):
@@ -76,6 +77,7 @@ class System(object):
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
+        self.restraints = RestraintManager(self)
 
         self.temperature_scaler = None
         self._coordinates = None

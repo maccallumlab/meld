@@ -1,4 +1,8 @@
 from meld.remd import slave_runner
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class MasterReplicaExchangeRunner(object):
@@ -70,6 +74,7 @@ class MasterReplicaExchangeRunner(object):
             store -- a Store object to handle storing data to disk
 
         '''
+        logger.info('Beginning replica exchange')
         # check to make sure n_replicas matches
         assert self._n_replicas == communicator.n_replicas
         assert self._n_replicas == store.n_replicas
@@ -81,6 +86,8 @@ class MasterReplicaExchangeRunner(object):
         system_runner.set_alpha(0.)
 
         while self._step <= self._max_steps:
+            logger.info('Running replica exchange step %d of %d.',
+                        self._step, self._max_steps)
             # update alphas
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_slaves(self._alphas)
@@ -88,8 +95,10 @@ class MasterReplicaExchangeRunner(object):
             # do one step
             my_state = communicator.broadcast_states_to_slaves(states)
             if self._step == 1:
+                logger.info('First step, minimizing and then running.')
                 my_state = system_runner.minimize_then_run(my_state)
             else:
+                logger.info('Running molecular dynamics.')
                 my_state = system_runner.run(my_state)
 
             # gather all of the states
@@ -116,6 +125,7 @@ class MasterReplicaExchangeRunner(object):
             self._step += 1
             store.save_remd_runner(self)
             store.backup(self.step - 1)
+        logger.info('Finished %d steps of replica exchange successfully.', self._max_steps)
 
     #
     # private helper methods

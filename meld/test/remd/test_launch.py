@@ -10,6 +10,9 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.patcher = mock.patch('meld.remd.launch.vault')
         self.mock_vault = self.patcher.start()
 
+        self.log_patcher = mock.patch('meld.remd.launch.logging')
+        self.log_patcher.start()
+
         self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
         self.mock_get_runner = self.get_runner_patcher.start()
         self.mock_runner = mock.Mock(spec=OpenMMRunner)
@@ -37,6 +40,7 @@ class TestLaunchNotMaster(unittest.TestCase):
     def cleanUp(self):
         self.patcher.stop()
         self.get_runner_patcher.stop()
+        self.log_patcher.stop()
 
     def test_load_datastore(self):
         "should call vault.DataStore.load_data_store to load the data_store"

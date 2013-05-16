@@ -17,7 +17,7 @@ class OpenMMRunner(object):
             self.temperature_scaler = system.temperature_scaler
         self._parm_string = system.top_string
         self._always_on_restraints = system.restraints.always_active
-        self._selectable_collections = system.restraints.selective_active_collections
+        self._selectable_collections = system.restraints.selectively_active_collections
         self._options = options
         self._simulation = None
         self._alpha = 0.
