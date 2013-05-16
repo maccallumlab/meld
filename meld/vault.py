@@ -212,6 +212,15 @@ class DataStore(object):
         '''
         return self._cdf_data_set.variables['velocities'][..., stage]
 
+    def load_all_velocities(self):
+        '''
+        Load all velocities from disk.
+
+        Warning, this could use a lot of memory.
+
+        '''
+        return self._cdf_data_set.variables['velocities']
+
     def save_states(self, states, stage):
         '''
         Save states to disk.
@@ -282,6 +291,15 @@ class DataStore(object):
         '''
         return self._cdf_data_set.variables['alphas'][..., stage]
 
+    def load_all_alphas(self):
+        '''
+        Load all alphas from disk.
+
+        Warning, this could use a lot of memory.
+
+        '''
+        return self._cdf_data_set.variables['alphas']
+
     def save_energies(self, energies, stage):
         '''
         Save energies to disk.
@@ -307,12 +325,24 @@ class DataStore(object):
         '''
         return self._cdf_data_set.variables['energies'][..., stage]
 
+    def load_all_energies(self):
+        '''
+        Load all energies from disk.
+
+        Warning, this could use a lot of memory
+
+        '''
+        return self._cdf_data_set.variables['energies']
+
     def save_energy_matrix(self, energy_matrix, stage):
         self._check_save()
         self._cdf_data_set.variables['energy_matrix'][..., stage] = energy_matrix
 
     def load_energy_matrix(self, stage):
         return self._cdf_data_set.variables['energy_matrix'][..., stage]
+
+    def load_all_energy_matrices(self):
+        return self._cdf_data_set.variables['energy_matrix']
 
     def save_permutation_vector(self, perm_vec, stage):
         '''
@@ -338,6 +368,15 @@ class DataStore(object):
 
         '''
         return self._cdf_data_set.variables['permutation_vectors'][..., stage]
+
+    def load_all_permutation_vectors(self):
+        '''
+        Load all permutation vector from disk.
+
+        Warning, this might take a lot of memory
+
+        '''
+        return self._cdf_data_set.variables['permutation_vectors']
 
     def save_remd_runner(self, runner):
         '''Save replica runner to disk'''
