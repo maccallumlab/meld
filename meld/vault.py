@@ -293,6 +293,13 @@ class DataStore(object):
         '''
         return self._cdf_data_set.variables['energies'][..., stage]
 
+    def save_energy_matrix(self, energy_matrix, stage):
+        self._check_save()
+        self._cdf_data_set.variables['energy_matrix'][..., stage] = energy_matrix
+
+    def load_energy_matrix(self, stage):
+        return self._cdf_data_set.variables['energy_matrix'][..., stage]
+
     def save_permutation_vector(self, perm_vec, stage):
         '''
         Save permutation vector to disk.
@@ -394,6 +401,9 @@ class DataStore(object):
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('permutation_vectors', int, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
+        self._cdf_data_set.createVariable('energy_matrix', float, ['n_replicas', 'n_replicas',
+                                          'timesteps'], zlib=True, fletcher32=True,
+                                          shuffle=True)
 
     def _backup(self, src, dest):
         if os.path.exists(src):
