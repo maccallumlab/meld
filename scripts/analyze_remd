@@ -17,7 +17,7 @@ def parse_args():
                         help='last frame to extract (default: last)')
     subparsers = parser.add_subparsers(dest='command')
 
-    visualize_alpha = subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
+    subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
 
     extract_alpha = subparsers.add_parser('extract_alpha', help='extract alpha values')
     extract_alpha.add_argument('outfile', help='output filename')
@@ -28,6 +28,8 @@ def parse_args():
 
     extract_trace = subparsers.add_parser('extract_trace', help='extract trace')
     extract_trace.add_argument('outfile', help='output filename')
+
+    subparsers.add_parser('visualize_fup', help='visualize the value of f_up')
 
     return parser.parse_args()
 
@@ -46,6 +48,8 @@ def main():
         visualize_trace(store, args)
     elif args.command == 'extract_trace':
         extract_trace(store, args)
+    elif args.command == 'visualize_fup':
+        visualize_fup(store, args)
 
 
 def visualize_alpha(store, args):
@@ -82,6 +86,14 @@ def extract_trace(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
     traces = deshuffle_traces(perm_vecs)
     np.savetxt(args.outfile, traces)
+
+
+def visualize_fup(store, args):
+    perm_vecs = get_permutation_vectors(store, args.start, args.end)
+    traces = deshuffle_traces(perm_vecs)
+    f_up = compute_fup(traces)
+    pyplot.plot(f_up)
+    pyplot.show()
 
 
 def get_alphas(store, start, end):
@@ -125,6 +137,33 @@ def deshuffle_traces(perm_vecs):
         current_indices = current_indices[perm_vecs[:, i]]
         results.append(current_indices)
     return np.array(results)
+
+
+def compute_fup(traces):
+    up_count = np.zeros_like(traces[0, :])
+    down_count = np.zeros_like(traces[0, :])
+    going_up = np.zeros_like(traces[0, :])
+    going_down = np.zeros_like(traces[0, :])
+
+    n_steps = traces.shape[0]
+    n_reps = traces.shape[1]
+
+    for step in range(n_steps):
+        this_trace = traces[step, :]
+
+        top = this_trace[n_reps - 1]
+        going_up[top] = 0
+        going_down[top] = 1
+
+        bottom = this_trace[0]
+        going_up[bottom] = 1
+        going_down[bottom] = 0
+
+        up_count += going_up
+        down_count += going_down
+
+    return up_count / (up_count + down_count + 0.1)
+
 
 if __name__ == '__main__':
     main()
