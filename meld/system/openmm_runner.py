@@ -4,6 +4,9 @@ from simtk.openmm import LangevinIntegrator, MeldForce, Platform
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from .restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 gas_constant = 8.314e-3
@@ -11,6 +14,7 @@ gas_constant = 8.314e-3
 
 class OpenMMRunner(object):
     def __init__(self, system, options, communicator=None):
+        logger.info('Creating OpenMMRunner')
         if communicator:
             self._device_id = communicator.negotiate_device_id()
         else:
@@ -32,8 +36,10 @@ class OpenMMRunner(object):
         self._temperature = None
 
     def set_alpha(self, alpha):
+        logger.info('Setting alpha to %f', alpha)
         self._alpha = alpha
         self._temperature = self.temperature_scaler(alpha)
+        logger.info('Temperature is now %f', self._temperature)
         self._initialize_simulation()
 
     def minimize_then_run(self, state):
@@ -55,7 +61,9 @@ class OpenMMRunner(object):
         return e_potential
 
     def _initialize_simulation(self):
+        logger.info('Initializing simulation')
         if self._initialized:
+            logger.info('We are already initialized, just update')
             self._integrator.setTemperature(self._temperature)
             meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha)
             _update_selectively_active_restraints(self._meld_force, self._selectable_collections,
@@ -64,6 +72,7 @@ class OpenMMRunner(object):
                 self._meld_force.updateParametersInContext(self._simulation.context)
 
         else:
+            logger.info('First time initializing')
             self._initialized = True
 
             # we need to set the whole thing from scratch
@@ -219,10 +228,12 @@ def _add_meld_restraint(rest, meld_force, alpha):
         rest_index = meld_force.addDistanceRestraint(rest.atom_index_1, rest.atom_index_2,
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
                                                     rest.k * scale)
+        logger.info('Added meld distance restraint')
     elif isinstance(rest, TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1, rest.atom_index_2,
                                                     rest.atom_index_3, rest.atom_index_4,
                                                     rest.phi, rest.delta_phi, rest.k * scale)
+        logger.info('Added meld torsion restraint')
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
     return rest_index
@@ -248,9 +259,11 @@ def _update_meld_restraint(rest, meld_force, alpha, dist_index, tors_index):
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1, rest.atom_index_2, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)
         dist_index += 1
+        logger.info('Updated meld distance restraint')
     elif isinstance(rest, TorsionRestraint):
         meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1, rest.atom_index_2, rest.atom_index_3,
                                           rest.atom_index_4, rest.phi, rest.delta_phi, rest.k * scale)
+        logger.info('Updated meld torsion restraint')
         tors_index += 1
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
