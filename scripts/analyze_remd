@@ -155,8 +155,8 @@ def compute_fup(traces):
         this_trace = traces[step, :]
 
         # these are the top and bottom REPLICAS
-        top = np.where(this_trace == (n_reps - 1))[0]
-        bottom = np.where(this_trace == 0)[0]
+        top = this_trace[n_reps - 1]
+        bottom = this_trace[0]
 
         # update if each replica is going up or down
         going_up[top] = 0
