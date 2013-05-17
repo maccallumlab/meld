@@ -140,8 +140,10 @@ def deshuffle_traces(perm_vecs):
 
 
 def compute_fup(traces):
+    # these are indexed by LADDER STEP
     up_count = np.zeros_like(traces[0, :])
     down_count = np.zeros_like(traces[0, :])
+    # these are indexed by REPLICA
     going_up = np.zeros_like(traces[0, :])
     going_down = np.zeros_like(traces[0, :])
 
@@ -149,18 +151,21 @@ def compute_fup(traces):
     n_reps = traces.shape[1]
 
     for step in range(n_steps):
+        # this gives the REPLICA for each LADDER STEP
         this_trace = traces[step, :]
 
+        # these are the top and bottom REPLICAS
         top = np.where(this_trace == (n_reps - 1))[0]
+        bottom = np.where(this_trace == 0)[0]
+
+        # update if each replica is going up or down
         going_up[top] = 0
         going_down[top] = 1
-
-        bottom = np.where(this_trace == 0)[0]
         going_up[bottom] = 1
         going_down[bottom] = 0
 
-        up_count[this_trace] += going_up
-        down_count[this_trace] += going_down
+        up_count += going_up[this_trace]
+        down_count += going_down[this_trace]
 
     return up_count / (up_count + down_count + 0.1)
 
