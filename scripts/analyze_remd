@@ -31,6 +31,9 @@ def parse_args():
 
     subparsers.add_parser('visualize_fup', help='visualize the value of f_up')
 
+    extract_fup = subparsers.add_parser('extract_fup', help='extract fup')
+    extract_fup.add_argument('outfile', help='output filename')
+
     return parser.parse_args()
 
 
@@ -50,6 +53,8 @@ def main():
         extract_trace(store, args)
     elif args.command == 'visualize_fup':
         visualize_fup(store, args)
+    elif args.command == 'extract_fup':
+        extract_fup(store, args)
 
 
 def visualize_alpha(store, args):
@@ -91,9 +96,21 @@ def extract_trace(store, args):
 def visualize_fup(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
     traces = deshuffle_traces(perm_vecs)
-    f_up = compute_fup(traces)
-    pyplot.plot(f_up)
+    n_reps = traces.shape[1]
+    f_up, f_down = compute_fup(traces)
+    pyplot.plot(f_up, 'k-')
+    pyplot.plot([0, n_reps - 1], [1, 0], 'k--')
+    pyplot.plot(f_down, 'r-')
+    pyplot.plot([0, n_reps - 1], [0, 1], 'r--')
+    pyplot.xlim(0, n_reps - 1)
     pyplot.show()
+
+
+def extract_fup(store, args):
+    perm_vecs = get_permutation_vectors(store, args.start, args.end)
+    traces = deshuffle_traces(perm_vecs)
+    f_up, f_down = compute_fup(traces)
+    np.savetxt(args.outfile, f_up)
 
 
 def get_alphas(store, start, end):
@@ -167,7 +184,9 @@ def compute_fup(traces):
         up_count += going_up[this_trace]
         down_count += going_down[this_trace]
 
-    return up_count / (up_count + down_count + 0.1)
+    f_up = up_count / (up_count + down_count + 0.1)
+    f_down = down_count / (up_count + down_count + 0.1)
+    return f_up, f_down
 
 
 if __name__ == '__main__':
