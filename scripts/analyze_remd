@@ -151,16 +151,16 @@ def compute_fup(traces):
     for step in range(n_steps):
         this_trace = traces[step, :]
 
-        top = this_trace[n_reps - 1]
+        top = np.where(this_trace == (n_reps - 1))[0]
         going_up[top] = 0
         going_down[top] = 1
 
-        bottom = this_trace[0]
+        bottom = np.where(this_trace == 0)[0]
         going_up[bottom] = 1
         going_down[bottom] = 0
 
-        up_count += going_up
-        down_count += going_down
+        up_count[this_trace] += going_up
+        down_count[this_trace] += going_down
 
     return up_count / (up_count + down_count + 0.1)
 
