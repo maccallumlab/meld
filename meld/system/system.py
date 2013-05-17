@@ -1,5 +1,7 @@
-import numpy as np
 import math
+
+import numpy as np
+
 from .restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
 
@@ -139,9 +141,7 @@ class System(object):
         self._residue_names = reader.get_residue_names()
         assert len(self._residue_names) == self._n_atoms
 
-        self._atom_index = {}
-        for res_index, atom_name, atom_index in zip(self._residue_numbers, self._atom_names, range(self.n_atoms)):
-            self._atom_index[(res_index, atom_name)] = atom_index + 1
+        self._atom_index = reader.get_atom_map()
 
     def _setup_coords(self):
         self._coordinates = CrdReader(self._mdcrd_string).get_coordinates()
@@ -171,16 +171,16 @@ class ParmTopReader(object):
         self._top_string = top_string
 
     def get_atom_names(self):
-        return self._get_parameter_block('%FLAG ATOM_NAME')
+        return self.get_parameter_block('%FLAG ATOM_NAME', chunksize=4)
 
     def get_residue_names(self):
-        res_names = self._get_parameter_block(('%FLAG RESIDUE_LABEL'))
+        res_names = self.get_parameter_block('%FLAG RESIDUE_LABEL', chunksize=4)
         res_numbers = self.get_residue_numbers()
         return [res_names[i - 1] for i in res_numbers]
 
     def get_residue_numbers(self):
-        n_atoms = int(self._get_parameter_block('%FLAG POINTERS')[0])
-        res_pointers = self._get_parameter_block('%FLAG RESIDUE_POINTER')
+        n_atoms = int(self.get_parameter_block('%FLAG POINTERS', chunksize=8)[0])
+        res_pointers = self.get_parameter_block('%FLAG RESIDUE_POINTER', chunksize=8)
         res_pointers = [int(p) for p in res_pointers]
         res_pointers.append(n_atoms + 1)
         residue_numbers = []
@@ -188,8 +188,7 @@ class ParmTopReader(object):
             residue_numbers.extend([res_number + 1] * (end - start))
         return residue_numbers
 
-    def _get_parameter_block(self, flag):
-        data = []
+    def get_parameter_block(self, flag, chunksize):
         lines = self._top_string.splitlines()
 
         # find the line with our flag
@@ -199,10 +198,39 @@ class ParmTopReader(object):
         index_end = [i for (i, line) in enumerate(lines[index_start:]) if line and line[0] == '%'][0] + index_start
 
         # do something useful with the data
+        def chunks(l, n):
+            """Yield successive n-sized chunks from l."""
+            for i in xrange(0, len(l), n):
+                yield l[i:i+n]
         data = []
         for line in lines[index_start:index_end]:
-            data.extend(line.split())
+            for chunk in chunks(line, chunksize):
+                data.append(chunk.strip())
         return data
+
+    def get_bonds(self):
+        # the amber bonds section contains a triple of integers for each bond:
+        # i, j, type_index. We need i, j, but will end up ignoring type_index
+        bond_items = self.get_parameter_block('%FLAG BONDS_WITHOUT_HYDROGEN', chunksize=8)
+        bond_items += self.get_parameter_block('%FLAG BONDS_INC_HYDROGEN', chunksize=8)
+        # the bonds section of the amber file is indexed by coordinate
+        # to get the atom index we divide by three and add one
+        bond_items = [int(item) / 3 + 1 for item in bond_items]
+
+        bonds = set()
+        # take the items 3 at a time, ignoring the type_index
+        for i, j, _ in zip(bond_items[::3], bond_items[1::3], bond_items[2::3]):
+            # add both orders to make life easy for callers
+            bonds.add((i, j))
+            bonds.add((j, i))
+        return bonds
+
+    def get_atom_map(self):
+        residue_numbers = self.get_residue_numbers()
+        atom_names = self.get_atom_names()
+        atom_numbers = range(1, len(atom_names) + 1)
+        return {(res_num, atom_name): atom_index for res_num, atom_name, atom_index in
+                zip(residue_numbers, atom_names, atom_numbers)}
 
 
 class RunOptions(object):
@@ -214,6 +242,8 @@ class RunOptions(object):
         self._cutoff = None
         self._use_big_timestep = False
         self._use_amap = False
+        self._amap_alpha_bias = 1.0
+        self._amap_beta_bias = 1.0
 
     @property
     def runner(self):
@@ -286,3 +316,23 @@ class RunOptions(object):
     @use_amap.setter
     def use_amap(self, value):
         self._use_amap = bool(value)
+
+    @property
+    def amap_alpha_bias(self):
+        return self._amap_alpha_bias
+
+    @amap_alpha_bias.setter
+    def amap_alpha_bias(self, value):
+        if value < 0:
+            raise RuntimeError('amap_alpha_bias < 0')
+        self._amap_alpha_bias = vaue
+
+    @property
+    def amap_beta_bias(self):
+        return self._amap_beta_bias
+
+    @amap_beta_bias.setter
+    def amap_beta_bias(self, value):
+        if value < 0:
+            raise RuntimeError('amap_beta_bias < 0')
+        self._amap_beta_bias = value
