@@ -1,8 +1,8 @@
 import unittest
 import mock
 from meld.system import OpenMMRunner, RunOptions
-from meld.system.openmm_runner import _parm_top_from_string, _create_openmm_system, _create_integrator
-from meld.system.openmm_runner import _add_always_active_restraints, _add_selectively_active_restraints
+from meld.system.openmm_runner.runner import _parm_top_from_string, _create_openmm_system, _create_integrator
+from meld.system.openmm_runner.runner import _add_always_active_restraints, _add_selectively_active_restraints
 from meld.system import protein, builder, ConstantTemperatureScaler
 from simtk.openmm import MeldForce
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2
@@ -28,7 +28,7 @@ class TestOpenMMRunner(unittest.TestCase):
 
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
-        with mock.patch('meld.system.openmm_runner.AmberPrmtopFile') as mock_parm:
+        with mock.patch('meld.system.openmm_runner.runner.AmberPrmtopFile') as mock_parm:
             _parm_top_from_string('ABCD')
 
             mock_parm.assert_called_once_with(parm_string='ABCD')
@@ -66,7 +66,7 @@ class TestCreateOpenMMSystem(unittest.TestCase):
 
 class TestCreateIntegrator(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch('meld.system.openmm_runner.LangevinIntegrator', spec=LangevinIntegrator)
+        self.patcher = mock.patch('meld.system.openmm_runner.runner.LangevinIntegrator', spec=LangevinIntegrator)
         self.MockIntegrator = self.patcher.start()
 
     def tearDown(self):
@@ -106,7 +106,7 @@ class TestAddAlwaysActiveRestraints(unittest.TestCase):
 
 class TestAddSelectivelyActiveRestraints(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch('meld.system.openmm_runner.MeldForce')
+        self.patcher = mock.patch('meld.system.openmm_runner.runner.MeldForce')
         self.MockMeldForce = self.patcher.start()
         self.mock_meld_force = mock.Mock(spec=MeldForce)
         self.MockMeldForce.return_value = self.mock_meld_force
