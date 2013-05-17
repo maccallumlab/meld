@@ -133,7 +133,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         self.mock_meld_force.addGroup.return_value = 0
         dist_rest = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
         _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=0.25)
-        self.mock_meld_force.addDistanceRestraint.assert_called_once_with(0, 1, 0, 0, 0.3, 999., 2.5)
+        self.mock_meld_force.addDistanceRestraint.assert_called_once_with(0, 1, 0, 0, 0.3, 999., 7.5)
         self.mock_meld_force.addGroup.assert_called_once_with([0], 1)
         self.mock_meld_force.addCollection.assert_called_once_with([0], 1)
 
@@ -145,7 +145,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
                                      3, 'CA', 4, 'CA',
                                      0, 10, 10.0)
         _add_selectively_active_restraints(self.mock_openmm_system, [], [tors_rest], alpha=0.25)
-        self.mock_meld_force.addTorsionRestraint.assert_called_once_with(0, 1, 2, 3, 0, 10, 2.5)
+        self.mock_meld_force.addTorsionRestraint.assert_called_once_with(0, 1, 2, 3, 0, 10, 7.5)
         self.mock_meld_force.addGroup.assert_called_once_with([0], 1)
         self.mock_meld_force.addCollection.assert_called_once_with([0], 1)
 

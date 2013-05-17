@@ -281,9 +281,9 @@ class Scaler(object):
 
     def _handle_boundaries(self, alpha):
         if alpha <= self._alpha_min:
-            return 0.
-        elif alpha >= self._alpha_max:
             return 1.
+        elif alpha >= self._alpha_max:
+            return 0.
         else:
             return None
 
@@ -321,7 +321,7 @@ class LinearScaler(Scaler):
         self._check_alpha_range(alpha)
         scale = self._handle_boundaries(alpha)
         if scale is None:
-            scale = (alpha - self._alpha_min) / self._delta
+            scale = 1.0 - (alpha - self._alpha_min) / self._delta
         return scale
 
 

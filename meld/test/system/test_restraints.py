@@ -325,17 +325,17 @@ class TestLinearScaler(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             scaler(2)
 
-    def test_should_return_0_below_alpha_min(self):
+    def test_should_return_1_below_alpha_min(self):
         scaler = restraints.LinearScaler(0.2, 0.8)
-        self.assertAlmostEqual(scaler(0.1), 0.0)
+        self.assertAlmostEqual(scaler(0.1), 1.0)
 
-    def test_should_return_1_above_alpha_max(self):
+    def test_should_return_0_above_alpha_max(self):
         scaler = restraints.LinearScaler(0.2, 0.8)
-        self.assertAlmostEqual(scaler(0.9), 1.0)
+        self.assertAlmostEqual(scaler(0.9), 0.0)
 
-    def test_should_return_half_at_midpoint(self):
-        scaler = restraints.LinearScaler(0.2, 0.8)
-        self.assertAlmostEqual(scaler(0.5), 0.5)
+    def test_should_return_correct_value_in_middle(self):
+        scaler = restraints.LinearScaler(0.0, 1.0)
+        self.assertAlmostEqual(scaler(0.3), 0.7)
 
 
 class TestNonLinearScaler(unittest.TestCase):
@@ -373,13 +373,13 @@ class TestNonLinearScaler(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             scaler(2)
 
-    def test_should_return_0_below_alpha_min(self):
+    def test_should_return_1_below_alpha_min(self):
         scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
-        self.assertAlmostEqual(scaler(0.1), 0.0)
+        self.assertAlmostEqual(scaler(0.1), 1.0)
 
-    def test_should_return_1_above_alpha_max(self):
+    def test_should_return_0_above_alpha_max(self):
         scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
-        self.assertAlmostEqual(scaler(0.9), 1.0)
+        self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_mindpoint_should_return_correct_value(self):
         scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
