@@ -1,16 +1,10 @@
-import logging
-
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, MeldForce, Platform
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
-
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
 import cmap
-
-
-logger = logging.getLogger(__name__)
 
 
 GAS_CONSTANT = 8.314e-3
