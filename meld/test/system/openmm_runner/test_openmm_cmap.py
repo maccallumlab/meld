@@ -33,13 +33,13 @@ class TestAddCMAPTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_adds_maps_to_force(self):
-        with mock.patch('meld.system.openmm_runner.cmap.np') as mock_np:
+        with mock.patch('meld.system.openmm_runner.cmap.np.loadtxt') as mock_loadtxt:
             # this is a bit hacky and depends on what order the maps are loaded in
             expected_gly = 3.0 * 0. + 7.0 * 1. + np.zeros((24, 24)).flatten()
             expected_pro = 3.0 * 2. + 7.0 * 3. + np.zeros((24, 24)).flatten()
             expected_ala = 3.0 * 4. + 7.0 * 5. + np.zeros((24, 24)).flatten()
             expected_gen = 3.0 * 6. + 7.0 * 7. + np.zeros((24, 24)).flatten()
-            mock_np.loadtxt.side_effect = self.maps
+            mock_loadtxt.side_effect = self.maps
             adder = CMAPAdder(self.system.top_string, alpha_bias=3.0, beta_bias=7.0)
 
             adder.add_to_openmm(self.mock_openmm_system)

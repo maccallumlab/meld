@@ -1,5 +1,6 @@
 from collections import OrderedDict, namedtuple
 import os
+import math
 
 from simtk import openmm
 import numpy as np
@@ -70,7 +71,6 @@ class CMAPAdder(object):
         :param openmm_system:  System object to receive the force
         """
         cmap_force = openmm.CMAPTorsionForce()
-        print self._gly_map.shape[0], len(self._gly_map.flatten())
         cmap_force.addMap(self._gly_map.shape[0], self._gly_map.flatten())
         cmap_force.addMap(self._pro_map.shape[0], self._pro_map.flatten())
         cmap_force.addMap(self._ala_map.shape[0], self._ala_map.flatten())
@@ -153,14 +153,21 @@ class CMAPAdder(object):
         res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca, index_C=c)
         return res
 
+    def _load_map(self, stem):
+        basedir = os.path.join(os.path.dirname(__file__), 'maps')
+        alpha = np.loadtxt(os.path.join(basedir, '{}_alpha.txt'.format(stem))) * self._alpha_bias
+        beta = np.loadtxt(os.path.join(basedir, '{}_beta.txt'.format(stem))) * self._beta_bias
+        total = alpha + beta
+        assert total.shape[0] == total.shape[1]
+        n = int(math.ceil(total.shape[0] / 2.0))
+        total = np.roll(total, -n, axis=0)
+        total = np.roll(total, -n, axis=1)
+        total = np.flipud(total)
+        return total
+
     def _load_maps(self):
         """Load the maps from disk and apply the alpha and beta biases."""
-        basedir = os.path.join(os.path.dirname(__file__), 'maps')
-        self._gly_map = (np.loadtxt(os.path.join(basedir, 'gly_alpha.txt')) * self._alpha_bias
-                         + np.loadtxt(os.path.join(basedir, 'gly_beta.txt')) * self._beta_bias)
-        self._pro_map = (np.loadtxt(os.path.join(basedir, 'pro_alpha.txt')) * self._alpha_bias
-                         + np.loadtxt(os.path.join(basedir, 'pro_beta.txt')) * self._beta_bias)
-        self._ala_map = (np.loadtxt(os.path.join(basedir, 'ala_alpha.txt')) * self._alpha_bias
-                         + np.loadtxt(os.path.join(basedir, 'ala_beta.txt')) * self._beta_bias)
-        self._gen_map = (np.loadtxt(os.path.join(basedir, 'gen_alpha.txt')) * self._alpha_bias
-                         + np.loadtxt(os.path.join(basedir, 'gen_beta.txt')) * self._beta_bias)
+        self._gly_map = self._load_map('gly')
+        self._pro_map = self._load_map('pro')
+        self._ala_map = self._load_map('ala')
+        self._gen_map = self._load_map('gen')
