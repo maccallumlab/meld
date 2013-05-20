@@ -230,10 +230,16 @@ def _add_meld_restraint(rest, meld_force, alpha):
         rest_index = meld_force.addDistanceRestraint(rest.atom_index_1, rest.atom_index_2,
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
                                                     rest.k * scale)
+        logging.debug('Added meld distance restraint %d %d %f %f %f %f %f',
+                      rest.atom_index_1, rest.atom_index_1, rest.r1, rest.r2,
+                      rest.r3, rest.r4, rest.k * scale)
     elif isinstance(rest, TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1, rest.atom_index_2,
                                                     rest.atom_index_3, rest.atom_index_4,
                                                     rest.phi, rest.delta_phi, rest.k * scale)
+        logging.debug('Added meld torsion restraint %d %d %d %d %f %f %f',
+                      rest.atom_index_1, rest.atom_index_2, rest.atom_index_3,
+                      rest.atom_index_4, rest.phi, rest.delta_phi, rest.k * scale)
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
     return rest_index
