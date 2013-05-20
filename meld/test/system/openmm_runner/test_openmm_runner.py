@@ -111,7 +111,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         self.mock_meld_force = mock.Mock(spec=MeldForce)
         self.MockMeldForce.return_value = self.mock_meld_force
         self.mock_system = mock.Mock()
-        self.mock_system.index_of_atom.side_effect = range(100)
+        self.mock_system.index_of_atom.side_effect = range(1, 100)
         self.scaler = LinearScaler(0, 1)
         self.mock_openmm_system = mock.Mock()
 
