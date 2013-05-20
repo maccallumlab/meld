@@ -3,8 +3,18 @@ import platform
 from collections import defaultdict
 import logging
 from meld.util import log_timing
+import sys
 
 logger = logging.getLogger(__name__)
+
+
+# setup exception handling to abort when there is unhandled exception
+sys_excepthook = sys.excepthook
+
+def mpi_excepthook(type, value, traceback):
+    sys_excepthook(type, value, traceback)
+    get_mpi_comm_world().Abort(1)
+sys.excepthook = mpi_excepthook
 
 
 class MPICommunicator(object):
