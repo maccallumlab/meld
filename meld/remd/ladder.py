@@ -1,7 +1,7 @@
 import random
 import math
 import logging
-from util import log_timing
+from meld.util import log_timing
 
 logger = logging.getLogger(__name__)
 

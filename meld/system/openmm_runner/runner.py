@@ -6,7 +6,7 @@ from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
 import cmap
 import logging
-from util import log_timing
+from meld.util import log_timing
 
 logger = logging.getLogger(__name__)
 

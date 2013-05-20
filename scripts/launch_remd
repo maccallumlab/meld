@@ -9,9 +9,10 @@ from meld.remd import launch
 def main():
     parser = argparse.ArgumentParser(
         description='Launch replica exchange run.')
-    parser.parse_args()
+    parser.add_argument('--debug', default=False, action='store_true')
+    args = parser.parse_args()
 
-    launch.launch()
+    launch.launch(args.debug)
 
 
 if __name__ == '__main__':

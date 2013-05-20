@@ -2,7 +2,7 @@ import numpy as np
 import platform
 from collections import defaultdict
 import logging
-from util import log_timing
+from meld.util import log_timing
 
 logger = logging.getLogger(__name__)
 
