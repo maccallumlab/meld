@@ -6,6 +6,7 @@ from meld.remd import ladder, adaptor, master_runner
 from meld import system
 from meld import comm, vault
 from meld.test import helper
+from meld import parse
 
 
 N_REPLICAS = 2
@@ -22,11 +23,20 @@ def gen_state(s):
 
 
 def setup_system():
+    # get the sequence
+    sequence = 'AAAAAAAAAAAAAAAA'
+    sequence = parse.get_sequence_from_AA1(contents=sequence)
     # create the system
-    p = system.ProteinMoleculeFromSequence('NALA ALA ALA ALA ALA ALA ALA CALA')
+    p = system.ProteinMoleculeFromSequence(sequence)
     b = system.SystemBuilder()
     s = b.build_system_from_molecules([p])
     s.temperature_scaler = system.LinearTemperatureScaler(0, 1, 300, 310)
+
+    rest_scaler = s.restraints.create_scaler('nonlinear', alpha_min=0, alpha_max=1, factor=4.0)
+    secondary = 'H'*16
+    secondary_restraints = parse.get_secondary_structure_restraint_groups(system=s, scaler=rest_scaler,
+                                                                          contents=secondary)
+    s.restraints.add_selectively_active_collection(secondary_restraints, len(secondary_restraints))
 
     # create the options
     options = system.RunOptions()

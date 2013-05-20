@@ -11,9 +11,12 @@ logger = logging.getLogger(__name__)
 # setup exception handling to abort when there is unhandled exception
 sys_excepthook = sys.excepthook
 
+
 def mpi_excepthook(type, value, traceback):
     sys_excepthook(type, value, traceback)
     get_mpi_comm_world().Abort(1)
+
+
 sys.excepthook = mpi_excepthook
 
 
@@ -22,6 +25,7 @@ class MPICommunicator(object):
     Class to handle communications between master and slaves using MPI
 
     """
+
     def __init__(self, n_atoms, n_replicas):
         """
         Create an MPICommunicator
@@ -242,4 +246,5 @@ def get_mpi_comm_world():
 
     """
     from mpi4py import MPI
+
     return MPI.COMM_WORLD
