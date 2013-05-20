@@ -100,7 +100,7 @@ class TestGetSecondaryString(unittest.TestCase):
         content = '.HEx'
 
         with self.assertRaises(RuntimeError):
-             parse._get_secondary_sequence(contents=content)
+            parse._get_secondary_sequence(contents=content)
 
 
 class TestExtractSecondaryRuns(unittest.TestCase):
@@ -159,14 +159,14 @@ class TestGetSecondaryStructures(unittest.TestCase):
         self.scaler = restraints.LinearScaler(0, 1)
 
     def test_adds_correct_number_of_groups(self):
-        results = parse.get_secondary_structure_restraint_groups(contents=self.ss, system=self.system,
-                                                                 scaler=self.scaler)
+        results = parse.get_secondary_structure_restraints(contents=self.ss, system=self.system,
+                                                           scaler=self.scaler)
 
         self.assertEqual(len(results), 4)
 
     def each_group_should_have_six_restraints(self):
-        results = parse.get_secondary_structure_restraint_groups(contents=self.ss, system=self.system,
-                                                                 scaler=self.scaler)
+        results = parse.get_secondary_structure_restraints(contents=self.ss, system=self.system,
+                                                           scaler=self.scaler)
 
         for group in results:
             self.assertEqual(len(group), 6)

@@ -33,6 +33,17 @@ allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN']
 
 
 def get_sequence_from_AA1(filename=None, contents=None, file=None):
+    """
+    Get the sequence from a list of 1-letter amino acid codes.
+
+    :param filename: string of filename to open
+    :param contents: string containing contents
+    :param file: a file-like object to read from
+    :return: a string that can be used to initialize a system
+    :raise: RuntimeError on bad input
+
+    Note: specify exactly one of filename, contents, file
+    """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith('#')]
@@ -53,6 +64,17 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None):
 
 
 def get_sequence_from_AA3(filename=None, contents=None, file=None):
+    """
+    Get the sequence from a list of 3-letter amino acid codes.
+
+    :param filename: string of filename to open
+    :param contents: string containing contents
+    :param file: a file-like object to read from
+    :return: a string that can be used to initialize a system
+    :raise: RuntimeError on bad input
+
+    Note: specify exactly one of filename, contents, file
+    """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith('#')]
@@ -70,8 +92,27 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None):
     return ' '.join(output)
 
 
-def get_secondary_structure_restraint_groups(system, scaler, force_constant=2.48, filename=None, contents=None, file=None):
+def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.48, distance_force_constant=2.48,
+                                       quadratic_cut=2.0, filename=None, contents=None, file=None):
+    """
+    Get a list of secondary structure restraints.
+
+    :param system: a System object
+    :param scaler: a force scaler
+    :param torsion_force_constant: force constant for torsions, in kJ/mol/(10 degree)^2
+    :param distance_force_constant: force constant for distances, in kJ/mol/Angstrom^2
+    :param quadratic_cut: switch from quadratic to linear beyond this distance, Angstrom
+    :param filename: string of filename to open
+    :param contents: string of contents to process
+    :param file: file-like object to read from
+    :return: a list of RestraintGroups
+
+    Note: specify exactly one of filename, contents, file.
+    """
     contents = _get_secondary_sequence(filename, contents, file)
+    torsion_force_constant /= 100.
+    distance_force_constant *= 100.
+    quadratic_cut /= 10.
 
     groups = []
 
@@ -80,17 +121,17 @@ def get_secondary_structure_restraint_groups(system, scaler, force_constant=2.48
         rests = []
         for index in range(helix.start + 1, helix.end - 1):
             phi = TorsionRestraint(system, scaler, index, 'C', index+1, 'N', index+1, 'CA',
-                                   index+1, 'C', -60, 10, force_constant)
+                                   index+1, 'C', -62.5, 17.5, torsion_force_constant)
             psi = TorsionRestraint(system, scaler, index+1, 'N', index+1, 'CA', index+1, 'C',
-                                   index+2, 'N', -60, 10, force_constant)
+                                   index+2, 'N', -42.5, 17.5, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
         d1 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+4, 'CA',
-                               0, 0.485, 0.561, 999., force_constant)
+                               0, 0.485, 0.561, 0.561 + quadratic_cut, distance_force_constant)
         d2 = DistanceRestraint(system, scaler, helix.start+2, 'CA', helix.start+5, 'CA',
-                               0, 0.485, 0.561, 999., force_constant)
+                               0, 0.485, 0.561, 0.561 + quadratic_cut, distance_force_constant)
         d3 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+5, 'CA',
-                               0, 0.581, 0.684, 999., force_constant)
+                               0, 0.581, 0.684, 0.684 + quadratic_cut, distance_force_constant)
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)
@@ -102,17 +143,17 @@ def get_secondary_structure_restraint_groups(system, scaler, force_constant=2.48
         rests = []
         for index in range(ext.start + 1, ext.end - 1):
             phi = TorsionRestraint(system, scaler, index, 'C', index+1, 'N', index+1, 'CA',
-                                   index+1, 'C', -60, 10, force_constant)
+                                   index+1, 'C', -117.5, 27.5, torsion_force_constant)
             psi = TorsionRestraint(system, scaler, index+1, 'N', index+1, 'CA', index+1, 'C',
-                                   index+2, 'N', -60, 10, force_constant)
+                                   index+2, 'N', 145, 25.0, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
         d1 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+4, 'CA',
-                               0, 0.785, 1.063, 999., force_constant)
+                               0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
         d2 = DistanceRestraint(system, scaler, helix.start+2, 'CA', helix.start+5, 'CA',
-                               0, 0.785, 1.063, 999., force_constant)
+                               0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
         d3 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+5, 'CA',
-                               0, 1.086, 1.394, 999., force_constant)
+                               0, 1.086, 1.394, 1.394 + quadratic_cut, distance_force_constant)
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)

@@ -2,7 +2,7 @@ import math
 
 
 class RestraintRegistry(type):
-    '''
+    """
     Metaclass that maintains a registry of restraint types.
 
     All classes that decend from Restraint inherit RestraintRegistry as their
@@ -11,7 +11,7 @@ class RestraintRegistry(type):
 
     The function get_constructor_for_key is used to get the class for the
     corresponding key.
-    '''
+    """
     _restraint_registry = {}
 
     def __init__(cls, name, bases, attrs):
@@ -30,7 +30,7 @@ class RestraintRegistry(type):
 
     @classmethod
     def get_constructor_for_key(self, key):
-        '''Get the constructor for the restraint type matching key.'''
+        """Get the constructor for the restraint type matching key."""
         try:
             return RestraintRegistry._restraint_registry[key]
         except KeyError:
@@ -39,28 +39,40 @@ class RestraintRegistry(type):
 
 
 class Restraint(object):
-    '''Abstract class for all restraints.'''
+    """Abstract class for all restraints."""
     __metaclass__ = RestraintRegistry
 
 
 class SelectableRestraint(Restraint):
-    '''Abstract class for selectable restraints.'''
+    """Abstract class for selectable restraints."""
     pass
 
 
 class NonSelectableRestraint(Restraint):
-    '''Abstract class for non-selectable restraints.'''
+    """Abstract class for non-selectable restraints."""
     pass
 
 
 class DistanceRestraint(SelectableRestraint):
-    '''
-    '''
-
     _restraint_key_ = 'distance'
 
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  r1, r2, r3, r4, k):
+        """
+        Distance restraint
+
+        :param system: a System object
+        :param scaler: a force scaler
+        :param atom_1_res_index: integer, starting from 1
+        :param atom_1_name: atom name
+        :param atom_2_res_index:  integer, starting from 1
+        :param atom_2_name: atom name
+        :param r1: in nanometers
+        :param r2: in nanometers
+        :param r3: in nanometers
+        :param r4: in nanometers
+        :param k: in kJ/mol/nm^2
+        """
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.r1 = r1
@@ -86,14 +98,28 @@ class DistanceRestraint(SelectableRestraint):
 
 
 class TorsionRestraint(SelectableRestraint):
-    '''
-    '''
-
     _restraint_key_ = 'torsion'
 
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
                  phi, delta_phi, k):
+        """
+        A torsion restraint
+
+        :param system: System
+        :param scaler:  force scaler
+        :param atom_1_res_index: integer, starting from 1
+        :param atom_1_name: atom name
+        :param atom_2_res_index: integer, starting from 1
+        :param atom_2_name: atom name
+        :param atom_3_res_index: integer, starting from 1
+        :param atom_3_name: atom name
+        :param atom_4_res_index: integer, starting from 1
+        :param atom_4_name: atom name
+        :param phi: equilibrium value, degrees
+        :param delta_phi: flat within delta_phi, degrees
+        :param k: kJ/mol/degree^2
+        """
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
