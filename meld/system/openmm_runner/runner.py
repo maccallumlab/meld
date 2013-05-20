@@ -5,6 +5,10 @@ from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
 import cmap
+import logging
+from util import log_timing
+
+logger = logging.getLogger(__name__)
 
 
 GAS_CONSTANT = 8.314e-3
@@ -37,9 +41,11 @@ class OpenMMRunner(object):
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation()
 
+    @log_timing(logger)
     def minimize_then_run(self, state):
         return self._run(state, minimize=True)
 
+    @log_timing(logger)
     def run(self, state):
         return self._run(state, minimize=False)
 

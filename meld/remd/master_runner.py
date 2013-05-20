@@ -6,12 +6,12 @@ logger = logging.getLogger(__name__)
 
 
 class MasterReplicaExchangeRunner(object):
-    '''
+    """
     Class to coordinate running of replica exchange
 
     This class doesn't really know much about the calculation that is happening,
     but it's the glue that holds everything together.
-    '''
+    """
 
     #
     # read only properties
@@ -38,7 +38,7 @@ class MasterReplicaExchangeRunner(object):
     #
 
     def __init__(self, n_replicas, max_steps, ladder, adaptor):
-        '''
+        """
         Initialize a MasterReplicaExchangeRunner
 
         Parameters
@@ -47,7 +47,7 @@ class MasterReplicaExchangeRunner(object):
             ladder -- Ladder object to handle exchanges
             adaptor -- Adaptor object to handle alphas adaptation
 
-        '''
+        """
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
@@ -58,14 +58,14 @@ class MasterReplicaExchangeRunner(object):
         self._setup_alphas()
 
     def to_slave(self):
-        '''
+        """
         Return a SlaveReplicaExchangeRunner based on self.
 
-        '''
+        """
         return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
 
     def run(self, communicator, system_runner, store):
-        '''
+        """
         Run replica exchange until finished
 
         Parameters
@@ -73,7 +73,7 @@ class MasterReplicaExchangeRunner(object):
             system_runner -- a ReplicaRunner object to run the simulations
             store -- a Store object to handle storing data to disk
 
-        '''
+        """
         logger.info('Beginning replica exchange')
         # check to make sure n_replicas matches
         assert self._n_replicas == communicator.n_replicas

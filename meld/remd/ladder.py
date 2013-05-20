@@ -1,23 +1,28 @@
 import random
 import math
+import logging
+from util import log_timing
+
+logger = logging.getLogger(__name__)
 
 
 class NearestNeighborLadder(object):
-    '''
+    """
     Class to compute replica exchange swaps between neighboring replicas.
-    '''
+    """
     def __init__(self, n_trials):
-        '''
+        """
         Initialize a Ladder object.
 
         Parameters:
             n_trials -- total number of replica exchange swaps to attempt
 
-        '''
+        """
         self.n_trials = n_trials
 
+    @log_timing(logger)
     def compute_exchanges(self, energies, adaptor):
-        '''
+        """
         Compute the exchanges given an energy matrix.
 
         Parameters:
@@ -26,10 +31,10 @@ class NearestNeighborLadder(object):
         Returns:
             a permutation vector (see below for details)
 
-        The energy matrix should be an n_rep x n_rep numpy array. All energies are in dimenstinless units (unit of kT).
+        The energy matrix should be an n_rep x n_rep numpy array. All energies are in dimensionless units (unit of kT).
         Each row represents a particular structure, while each replica represents a particular combination of
         temperature and Hamiltonian. So, energies[i,j] is the energy of structure i with temperature and hamiltonian j.
-        The diagnonal energies[i,i] is the energies that were actually simulated.
+        The diagonal energies[i,i] is the energies that were actually simulated.
 
         This method will attempt self.n_trials swaps between randomly chosen pairs of adjacent replicas. It will
         return a permutation vector that describes which index each structure should be at after swapping. So, if the
@@ -39,7 +44,7 @@ class NearestNeighborLadder(object):
         The adaptor object is called once for each attempted exchange with the indices of the attempted swap and the
         success or failure of the swap.
 
-        '''
+        """
         assert len(energies.shape) == 2
         assert energies.shape[0] == energies.shape[1]
 
@@ -55,7 +60,7 @@ class NearestNeighborLadder(object):
         return permutation_matrix
 
     def _do_trial(self, i, j, permutation_matrix, energies, adaptor):
-        '''Perform a replica exchange trial'''
+        """Perform a replica exchange trial"""
         delta = energies[i, i] - energies[i, j] + energies[j, j] - energies[j, i]
         accepted = False
 
@@ -76,10 +81,10 @@ class NearestNeighborLadder(object):
 
     @staticmethod
     def _swap_permutation(i, j, permutation_matrix):
-        '''Swap two elements of the permutation matrix'''
+        """Swap two elements of the permutation matrix"""
         permutation_matrix[i], permutation_matrix[j] = permutation_matrix[j], permutation_matrix[i]
 
     @staticmethod
     def _swap_energies(i, j, energies):
-        '''Swap two rows of the energy matrix'''
+        """Swap two rows of the energy matrix"""
         energies[[i, j], :] = energies[[j, i], :]
