@@ -32,7 +32,7 @@ def main():
         check_state(my_state, 0)
 
     else:
-        my_state = c.recieve_state_from_master()
+        my_state = c.receive_state_from_master()
         check_state(my_state, c.rank)
 
 

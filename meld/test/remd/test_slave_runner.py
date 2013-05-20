@@ -34,9 +34,9 @@ class TestSlaveSingle(unittest.TestCase):
 
     def setUp(self):
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
-        self.mock_comm.recieve_alpha_from_master.return_value = sentinel.ALPHA
-        self.mock_comm.recieve_state_from_master.return_value = mock.sentinel.STATE
-        self.mock_comm.recieve_states_for_energy_calc_from_master.return_value = [
+        self.mock_comm.receive_alpha_from_master.return_value = sentinel.ALPHA
+        self.mock_comm.receive_state_from_master.return_value = mock.sentinel.STATE
+        self.mock_comm.receive_states_for_energy_calc_from_master.return_value = [
             sentinel.STATE_1,
             sentinel.STATE_2,
             sentinel.STATE_3,
@@ -52,11 +52,11 @@ class TestSlaveSingle(unittest.TestCase):
 
         self.runner = slave_runner.SlaveReplicaExchangeRunner(step=1, max_steps=1)
 
-    def test_calls_recieve_alpha(self):
-        "should call recieve_alpha"
+    def test_calls_receive_alpha(self):
+        "should call receive_alpha"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
-        self.mock_comm.recieve_alpha_from_master.assert_called_once_with()
+        self.mock_comm.receive_alpha_from_master.assert_called_once_with()
 
     def test_sets_alpha_on_system_runner(self):
         "should set alpha on the replica runner"
@@ -64,14 +64,14 @@ class TestSlaveSingle(unittest.TestCase):
 
         self.mock_system_runner.set_alpha.assert_called_once_with(sentinel.ALPHA)
 
-    def test_calls_recieve_state(self):
-        "should recieve state from master"
+    def test_calls_receive_state(self):
+        "should receive state from master"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
-        self.mock_comm.recieve_state_from_master.assert_called_once_with()
+        self.mock_comm.receive_state_from_master.assert_called_once_with()
 
     def test_runs_replica_with_state(self):
-        "should call minimize_then_run on the system_runner with the recieved state"
+        "should call minimize_then_run on the system_runner with the received state"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         self.mock_system_runner.minimize_then_run.assert_called_once_with(mock.sentinel.STATE)
@@ -83,13 +83,13 @@ class TestSlaveSingle(unittest.TestCase):
         self.mock_comm.send_state_to_master.assert_called_once_with(mock.sentinel.STATE)
 
     def test_calls_revieve_all_states(self):
-        "should call recieve_states_for_energy_calc from the master"
+        "should call receive_states_for_energy_calc from the master"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
-        self.mock_comm.recieve_states_for_energy_calc_from_master.assert_called_once_with()
+        self.mock_comm.receive_states_for_energy_calc_from_master.assert_called_once_with()
 
     def test_calls_get_energy_for_each_state(self):
-        "should call get_energy on each state recieved"
+        "should call get_energy on each state received"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         calls = [mock.call(sentinel.STATE_1), mock.call(sentinel.STATE_2),
@@ -109,7 +109,7 @@ class TestSlaveMultiple(unittest.TestCase):
 
     def setUp(self):
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
-        self.mock_comm.recieve_states_for_energy_calc_from_master.return_value = [
+        self.mock_comm.receive_states_for_energy_calc_from_master.return_value = [
             sentinel.STATE_1,
             sentinel.STATE_2,
             sentinel.STATE_3,
@@ -121,7 +121,7 @@ class TestSlaveMultiple(unittest.TestCase):
         "should run the correct number of steps"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
-        self.assertEqual(self.mock_comm.recieve_state_from_master.call_count, 4)
+        self.assertEqual(self.mock_comm.receive_state_from_master.call_count, 4)
 
     def test_minimize_then_run_called_once(self):
         self.runner.run(self.mock_comm, self.mock_system_runner)

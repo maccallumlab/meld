@@ -43,8 +43,8 @@ class SlaveReplicaExchangeRunner(object):
 
         while self._step <= self._max_steps:
             # update simulation conditions
-            new_alpha = communicator.recieve_alpha_from_master()
-            state = communicator.recieve_state_from_master()
+            new_alpha = communicator.receive_alpha_from_master()
+            state = communicator.receive_state_from_master()
             if not new_alpha == my_alpha:
                 my_alpha = new_alpha
                 system_runner.set_alpha(my_alpha)
@@ -58,7 +58,7 @@ class SlaveReplicaExchangeRunner(object):
             communicator.send_state_to_master(state)
 
             # compute energies
-            states = communicator.recieve_states_for_energy_calc_from_master()
+            states = communicator.receive_states_for_energy_calc_from_master()
             energies = []
             for state in states:
                 energy = system_runner.get_energy(state)

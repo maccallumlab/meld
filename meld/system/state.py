@@ -1,9 +1,9 @@
 class SystemState(object):
-    '''
+    """
     Class to hold the state of a system
-    '''
+    """
     def __init__(self, positions, velocities, alpha, energy):
-        '''
+        """
         Initialize a SystemState object
 
         Parameters
@@ -12,7 +12,7 @@ class SystemState(object):
             alpha -- alpha value, within [0, 1]
             energy -- total potential energy, including restraints
 
-        '''
+        """
         self.positions = positions
         self.n_atoms = positions.shape[0]
         self.velocities = velocities

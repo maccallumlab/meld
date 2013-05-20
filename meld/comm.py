@@ -77,9 +77,9 @@ class MPICommunicator(object):
         self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
-    def recieve_alpha_from_master(self):
+    def receive_alpha_from_master(self):
         """
-        Recieve alpha value from master node
+        Receive alpha value from master node
 
         Returns
             a floating point value for alpha in [0,1]
@@ -104,7 +104,7 @@ class MPICommunicator(object):
         return self._mpi_comm.scatter(states, root=0)
 
     @log_timing(logger)
-    def recieve_state_from_master(self):
+    def receive_state_from_master(self):
         """
         Get state to run for this step
 
@@ -117,7 +117,7 @@ class MPICommunicator(object):
     @log_timing(logger)
     def gather_states_from_slaves(self, state_on_master):
         """
-        Recieve states from all slaves
+        Receive states from all slaves
 
         Parameters
             state_on_master -- the state on the master after simulating
@@ -161,9 +161,9 @@ class MPICommunicator(object):
         self._mpi_comm.bcast(states, root=0)
 
     @log_timing(logger)
-    def recieve_states_for_energy_calc_from_master(self):
+    def receive_states_for_energy_calc_from_master(self):
         """
-        Recieve all states from master
+        Receive all states from master
 
         Returns
             a list of states to calculate the energy of
@@ -174,7 +174,7 @@ class MPICommunicator(object):
     @log_timing(logger)
     def gather_energies_from_slaves(self, energies_on_master):
         """
-        Recieve a list of energies from each slave
+        Receive a list of energies from each slave
 
         Parameters
             energies_on_master -- a list of energies from the master

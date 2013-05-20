@@ -2,7 +2,7 @@ import numpy as np
 from meld import comm
 from meld.system.state import SystemState
 
-N_ATOMS = 500
+N_ATOMS = 5000
 N_REPLICAS = 4
 
 

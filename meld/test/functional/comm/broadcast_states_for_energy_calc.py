@@ -2,7 +2,7 @@ import numpy as np
 from meld import comm
 from meld.system.state import SystemState
 
-N_ATOMS = 500
+N_ATOMS = 5000
 N_REPLICAS = 4
 
 
@@ -31,7 +31,7 @@ def main():
         c.broadcast_states_for_energy_calc_to_slaves(states)
 
     else:
-        all_states = c.recieve_states_for_energy_calc_from_master()
+        all_states = c.receive_states_for_energy_calc_from_master()
         check_state(all_states[0], 0)
         check_state(all_states[1], 1)
         check_state(all_states[2], 2)

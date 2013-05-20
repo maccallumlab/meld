@@ -13,7 +13,7 @@ def main():
         c.broadcast_alphas_to_slaves(alphas)
 
     else:
-        alpha = c.recieve_alpha_from_master()
+        alpha = c.receive_alpha_from_master()
         if c.rank == 1:
             assert alpha == 0.1
         elif c.rank == 2:
