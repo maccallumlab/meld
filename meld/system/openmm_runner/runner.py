@@ -231,7 +231,7 @@ def _add_meld_restraint(rest, meld_force, alpha):
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
                                                     rest.k * scale)
         logging.debug('Added meld distance restraint %d %d %f %f %f %f %f',
-                      rest.atom_index_1 - 1, rest.atom_index_1 - 1, rest.r1, rest.r2,
+                      rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1, rest.r2,
                       rest.r3, rest.r4, rest.k * scale)
     elif isinstance(rest, TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
