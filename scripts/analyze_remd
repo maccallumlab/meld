@@ -78,10 +78,12 @@ def visualize_trace(store, args):
     n_steps = traces.shape[0]
 
     current_index = np.array(list(range(n_replicas)))
+    new_value = np.zeros_like(current_index)
 
     results = []
     for step in range(n_steps):
-        results.append(current_index[traces[step, :]])
+        new_value[traces[step, :]] = current_index
+        results.append(new_value)
     results = np.array(results)
 
     if args.replicas is None:
