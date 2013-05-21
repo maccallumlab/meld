@@ -7,7 +7,7 @@ from meld.system import state
 
 
 class DataStore(object):
-    '''
+    """
     Class to handle storing data from MeLD runs.
 
     Data will be stored in the 'Data' subdirectory. Backups will be stored in 'Data/Backup'.
@@ -19,7 +19,7 @@ class DataStore(object):
 
     Other data (positions, velocities, etc) is stored in the results.nc file.
 
-    '''
+    """
     #
     # data paths
     #
@@ -55,7 +55,7 @@ class DataStore(object):
     traj_backup_path = os.path.join(backup_dir, traj_filename)
 
     def __init__(self, n_atoms, n_replicas, pdb_writer, backup_freq=100):
-        '''
+        """
         Create a DataStore object.
 
         Parameters
@@ -63,7 +63,7 @@ class DataStore(object):
             n_replicas -- number of replicas
             backup_freq -- frequency to perform backups
 
-        '''
+        """
         self._n_atoms = n_atoms
         self._n_replicas = n_replicas
         self._backup_freq = backup_freq
@@ -101,7 +101,7 @@ class DataStore(object):
     # public methods
     #
     def initialize(self, mode):
-        '''
+        """
         Prepare to use the DataStore object.
 
         Parameters
@@ -112,7 +112,7 @@ class DataStore(object):
             existing -- open the existing files
             safe -- open the backup copies in read-only mode to prevent corruption
 
-        '''
+        """
         if mode == 'new':
             if os.path.exists(self.data_dir):
                 raise RuntimeError('Data directory already exists')
@@ -129,30 +129,30 @@ class DataStore(object):
             raise RuntimeError('Unknown value for mode={}'.format(mode))
 
     def close(self):
-        '''Close the DataStore'''
+        """Close the DataStore"""
         if self._cdf_data_set:
             self._cdf_data_set.close()
             self._cdf_data_set = None
 
     def save_data_store(self):
-        '''Save this object to disk.'''
+        """Save this object to disk."""
         with open(self.data_store_path, 'w') as store_file:
             pickle.dump(self, store_file)
 
     @classmethod
     def load_data_store(cls):
-        '''Load the DataStore object from disk.'''
+        """Load the DataStore object from disk."""
         with open(cls.data_store_path) as store_file:
             return pickle.load(store_file)
 
     def save_communicator(self, comm):
-        '''Save the communicator to disk'''
+        """Save the communicator to disk"""
         self._check_save()
         with open(self.communicator_path, 'w') as comm_file:
             pickle.dump(comm, comm_file)
 
     def load_communicator(self):
-        '''Load the communicator from disk'''
+        """Load the communicator from disk"""
         if self._safe_mode:
             path = self.communicator_backup_path
         else:
@@ -161,75 +161,75 @@ class DataStore(object):
             return pickle.load(comm_file)
 
     def save_positions(self, positions, stage):
-        '''
+        """
         Save the positions to disk.
 
         Parameters
             positions -- n_replicas x n_atoms x 3 array
             stage -- int stage to store
 
-        '''
+        """
         self._cdf_data_set.variables['positions'][..., stage] = positions
 
     def load_positions(self, stage):
-        '''
+        """
         Load positions from disk.
 
         Parameters
             stage -- int stage to load
 
-        '''
+        """
         return self._cdf_data_set.variables['positions'][..., stage]
 
     def load_all_positions(self):
-        '''
+        """
         Load all positions from disk.
 
         Warning, this could use a lot of memory.
 
-        '''
+        """
         return self._cdf_data_set.variables['positions']
 
     def save_velocities(self, velocities, stage):
-        '''
+        """
         Save velocities to disk.
 
         Parameters
             velocities -- n_replicas x n_atoms x 3 array
             stage -- int stage to store
 
-        '''
+        """
         self._check_save()
         self._cdf_data_set.variables['velocities'][..., stage] = velocities
 
     def load_velocities(self, stage):
-        '''
+        """
         Load velocities from disk.
 
         Parameters
             stage -- int stage to load
 
-        '''
+        """
         return self._cdf_data_set.variables['velocities'][..., stage]
 
     def load_all_velocities(self):
-        '''
+        """
         Load all velocities from disk.
 
         Warning, this could use a lot of memory.
 
-        '''
+        """
         return self._cdf_data_set.variables['velocities']
 
     def save_states(self, states, stage):
-        '''
+        """
         Save states to disk.
 
         Parameters
             states -- list of SystemStage objects to store
             stage -- int stage to store
 
-        '''
+        """
         self._check_save()
         positions = np.array([s.positions for s in states])
         velocities = np.array([s.velocities for s in states])
@@ -241,7 +241,7 @@ class DataStore(object):
         self.save_energies(energies, stage)
 
     def load_states(self, stage):
-        '''
+        """
         Load states from disk
 
         Parameters
@@ -250,7 +250,7 @@ class DataStore(object):
         Returns
             list of SystemState objects
 
-        '''
+        """
         positions = self.load_positions(stage)
         velocities = self.load_velocities(stage)
         alphas = self.load_alphas(stage)
@@ -267,19 +267,19 @@ class DataStore(object):
             traj_file.write(pdb_string)
 
     def save_alphas(self, alphas, stage):
-        '''
+        """
         Save alphas to disk.
 
         Parameters
             alphas -- n_replicas array
             stage -- int stage to store
 
-        '''
+        """
         self._check_save()
         self._cdf_data_set.variables['alphas'][..., stage] = alphas
 
     def load_alphas(self, stage):
-        '''
+        """
         Load alphas from disk.
 
         Parameters
@@ -288,32 +288,32 @@ class DataStore(object):
         Returns
             n_replicas array
 
-        '''
+        """
         return self._cdf_data_set.variables['alphas'][..., stage]
 
     def load_all_alphas(self):
-        '''
+        """
         Load all alphas from disk.
 
         Warning, this could use a lot of memory.
 
-        '''
+        """
         return self._cdf_data_set.variables['alphas']
 
     def save_energies(self, energies, stage):
-        '''
+        """
         Save energies to disk.
 
         Parameters
             energies -- n_replicas array
             stage -- int stage to save
 
-        '''
+        """
         self._check_save()
         self._cdf_data_set.variables['energies'][..., stage] = energies
 
     def load_energies(self, stage):
-        '''
+        """
         Load energies from disk.
 
         Parameters
@@ -322,16 +322,16 @@ class DataStore(object):
         Returns
             n_replicas array
 
-        '''
+        """
         return self._cdf_data_set.variables['energies'][..., stage]
 
     def load_all_energies(self):
-        '''
+        """
         Load all energies from disk.
 
         Warning, this could use a lot of memory
 
-        '''
+        """
         return self._cdf_data_set.variables['energies']
 
     def save_energy_matrix(self, energy_matrix, stage):
@@ -345,19 +345,19 @@ class DataStore(object):
         return self._cdf_data_set.variables['energy_matrix']
 
     def save_permutation_vector(self, perm_vec, stage):
-        '''
+        """
         Save permutation vector to disk.
 
         Parameters
             perm_vec -- n_replicas array of int
             stage -- int stage to store
 
-        '''
+        """
         self._check_save()
         self._cdf_data_set.variables['permutation_vectors'][..., stage] = perm_vec
 
     def load_permutation_vector(self, stage):
-        '''
+        """
         Load permutation vector from disk.
 
         Parameters
@@ -366,26 +366,26 @@ class DataStore(object):
         Returns
             n_replicas array of int
 
-        '''
+        """
         return self._cdf_data_set.variables['permutation_vectors'][..., stage]
 
     def load_all_permutation_vectors(self):
-        '''
+        """
         Load all permutation vector from disk.
 
         Warning, this might take a lot of memory
 
-        '''
+        """
         return self._cdf_data_set.variables['permutation_vectors']
 
     def save_remd_runner(self, runner):
-        '''Save replica runner to disk'''
+        """Save replica runner to disk"""
         self._check_save()
         with open(self.remd_runner_path, 'w') as runner_file:
             pickle.dump(runner, runner_file)
 
     def load_remd_runner(self):
-        '''Load replica runner from disk'''
+        """Load replica runner from disk"""
         path = self.remd_runner_backup_path if self._safe_mode else self.remd_runner_path
         with open(path) as runner_file:
             return pickle.load(runner_file)
@@ -411,7 +411,7 @@ class DataStore(object):
             return pickle.load(options_file)
 
     def backup(self, stage):
-        '''
+        """
         Backup all files to Data/Backup.
 
         Parameters
@@ -419,7 +419,7 @@ class DataStore(object):
 
         Backup will occur if stage mod backup_freq == 0
 
-        '''
+        """
         self._check_save()
         if not stage % self._backup_freq:
             self._backup(self.communicator_path, self.communicator_backup_path)
