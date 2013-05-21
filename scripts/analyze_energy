@@ -4,6 +4,7 @@
 import argparse
 from meld import vault
 from matplotlib import pyplot
+from matplotlib import animation
 import numpy as np
 
 
@@ -29,6 +30,8 @@ def parse_args():
     vis_energy_column.add_argument('--index', type=int, default=0,
                                    help='column index to analyze the energies for')
 
+    vis_matrix = subparsers.add_parser('visualize_matrix', help='visualize the energy matrix over time')
+
     return parser.parse_args()
 
 
@@ -44,6 +47,8 @@ def main():
         visualize_delta(store, args)
     if args.command == 'visualize_column':
         visualize_energy_column(store, args)
+    if args.command == 'visualize_matrix':
+        visualize_matrix(store, args)
 
 
 def visualize_energy(store, args):
@@ -78,6 +83,21 @@ def visualize_energy_column(store, args):
     n_replicas = energy_matrix.shape[0]
     for i in range(n_replicas):
         pyplot.plot(energy_matrix[i, args.index, :])
+    pyplot.show()
+
+
+def visualize_matrix(store, args):
+    energy_matrix = get_matrix(store, args.start, args.end)
+    the_min = np.min(energy_matrix)
+    the_max = np.max(energy_matrix)
+
+    n_timesteps = energy_matrix.shape[2]
+
+    figure = pyplot.figure()
+    plots = []
+    for i in range(n_timesteps):
+        plots.append([pyplot.imshow(energy_matrix[:, :, i], interpolation='nearest', vmin=the_min, vmax=the_max)])
+    ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
     pyplot.show()
 
 
