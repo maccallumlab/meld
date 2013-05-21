@@ -75,6 +75,13 @@ def visualize_trace(store, args):
     traces = deshuffle_traces(perm_vecs)
 
     n_replicas = traces.shape[1]
+    n_steps = traces.shape[0]
+    current_index = np.array(list(range(n_replicas)))
+    results = []
+    for step in range(n_steps):
+        current_index = current_index[traces[step, :]]
+        results.append(current_index)
+    results = np.array(results)
 
     if args.replicas is None:
         reps = range(n_replicas)
@@ -82,7 +89,7 @@ def visualize_trace(store, args):
         reps = args.replicas
 
     for index in reps:
-        pyplot.plot(traces[:, index])
+        pyplot.plot(results[index, :])
 
     pyplot.show()
 
@@ -121,8 +128,8 @@ def get_alphas(store, start, end):
     if end is None:
         end = n_alphas - 1
 
-    assert start > 0 and start < n_alphas
-    assert end > 0 and end < n_alphas
+    assert 0 < start < n_alphas
+    assert 0 < end < n_alphas
     assert end > start
 
     return alphas[:, start:(end + 1)]
@@ -136,8 +143,8 @@ def get_permutation_vectors(store, start, end):
     if end is None:
         end = n_alphas - 1
 
-    assert start > 0 and start < n_alphas
-    assert end > 0 and end < n_alphas
+    assert 0 < start < n_alphas
+    assert 0 < end < n_alphas
     assert end > start
 
     return alphas[:, start:(end + 1)]
