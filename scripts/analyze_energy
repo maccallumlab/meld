@@ -96,10 +96,7 @@ def visualize_matrix(store, args):
     figure = pyplot.figure()
     plots = []
     for i in range(n_timesteps):
-        artists = []
-        artists.append(pyplot.imshow(energy_matrix[:, :, i], interpolation='nearest', vmin=the_min, vmax=the_max))
-        artists.append(pyplot.colorbar())
-        plots.append(artists)
+        plots.append([pyplot.imshow(energy_matrix[:, :, i], interpolation='nearest', vmin=the_min, vmax=the_max)])
     ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
     pyplot.show()
 
