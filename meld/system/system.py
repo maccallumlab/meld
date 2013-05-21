@@ -325,7 +325,7 @@ class RunOptions(object):
     def amap_alpha_bias(self, value):
         if value < 0:
             raise RuntimeError('amap_alpha_bias < 0')
-        self._amap_alpha_bias = vaue
+        self._amap_alpha_bias = value
 
     @property
     def amap_beta_bias(self):

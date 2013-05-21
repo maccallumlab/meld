@@ -114,7 +114,6 @@ class MasterReplicaExchangeRunner(object):
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states)
-            energies = self._permute_energy_matrix(permutation_vector, energies)
 
             # store everything
             store.save_states(states, self.step)
@@ -148,10 +147,6 @@ class MasterReplicaExchangeRunner(object):
             states[i].positions = old_coords[index]
             states[i].energy = old_energy[index]
         return states
-
-    @staticmethod
-    def _permute_energy_matrix(permutation_matrix, energy_matrix):
-        return energy_matrix[permutation_matrix, :]
 
     def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)
