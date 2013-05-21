@@ -43,10 +43,10 @@ def main():
 def visualize_energy(store, args):
     energies = get_energy(store, args.start, args.end)
     n_reps = energies.shape[0]
-    if args.replica is None:
+    if args.index is None:
         replicas = range(n_reps)
     else:
-        replicas = args.replica
+        replicas = args.index
     for rep in replicas:
         pyplot.plot(energies[rep, :])
     pyplot.show()
