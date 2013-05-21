@@ -31,6 +31,10 @@ def parse_args():
                                    help='column index to analyze the energies for')
 
     vis_matrix = subparsers.add_parser('visualize_matrix', help='visualize the energy matrix over time')
+    vis_matrix.add_argument('--vmin', type=float, default=None,
+                            help='clamp minimum energy at this value')
+    vis_matrix.add_argument('--vmax', type=float, default=None,
+                            help='clamp maximum energy at this value')
 
     return parser.parse_args()
 
@@ -90,6 +94,13 @@ def visualize_matrix(store, args):
     energy_matrix = get_matrix(store, args.start, args.end)
     the_min = np.min(energy_matrix)
     the_max = np.max(energy_matrix)
+    print 'minimum energy: {}'.format(the_min)
+    print 'maximum energy: {}'.format(the_max)
+
+    if not args.vmin is None:
+        the_min = args.vmin
+    if not args.vmax is None:
+        the_max = args.vmax
 
     n_timesteps = energy_matrix.shape[2]
 
