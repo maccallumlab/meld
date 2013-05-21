@@ -1,8 +1,7 @@
 import unittest
-import os
 from meld.system import protein, builder, ConstantTemperatureScaler, LinearTemperatureScaler
 from meld.system import GeometricTemperatureScaler, RunOptions
-from system.system import ParmTopReader
+from meld.system.system import ParmTopReader
 
 
 class TestCreateFromSequence(unittest.TestCase):
