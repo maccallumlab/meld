@@ -86,5 +86,5 @@ class NearestNeighborLadder(object):
 
     @staticmethod
     def _swap_energies(i, j, energies):
-        """Swap two rows of the energy matrix"""
-        energies[[i, j], :] = energies[[j, i], :]
+        """Swap two columns of the energy matrix"""
+        energies[:, [i, j]] = energies[:, [j, i]]

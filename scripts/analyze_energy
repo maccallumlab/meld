@@ -21,9 +21,9 @@ def parse_args():
     vis_energy.add_argument('--index', type=int, default=None, nargs='+',
                             help='ladder index to analyze energy for')
 
-    vis_energy_row = subparsers.add_parser('visualize_row', help='visualize a row of the energy matrix')
-    vis_energy_row.add_argument('--index', type=int, default=0,
-                                help='row index to analyze the energies for')
+    vis_energy_column = subparsers.add_parser('visualize_column', help='visualize a column of the energy matrix')
+    vis_energy_column.add_argument('--index', type=int, default=0,
+                                   help='column index to analyze the energies for')
 
     return parser.parse_args()
 
@@ -36,8 +36,8 @@ def main():
 
     if args.command == 'visualize_energy':
         visualize_energy(store, args)
-    if args.command == 'visualize_row':
-        visualize_energy_row(store, args)
+    if args.command == 'visualize_column':
+        visualize_energy_column(store, args)
 
 
 def visualize_energy(store, args):
@@ -52,11 +52,11 @@ def visualize_energy(store, args):
     pyplot.show()
 
 
-def visualize_energy_row(store, args):
+def visualize_energy_column(store, args):
     energy_matrix = get_matrix(store, args.start, args.end)
     n_replicas = energy_matrix.shape[0]
     for i in range(n_replicas):
-        pyplot.plot(energy_matrix[args.index, i, :])
+        pyplot.plot(energy_matrix[i, args.index, :])
     pyplot.show()
 
 
