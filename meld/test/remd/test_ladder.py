@@ -195,8 +195,8 @@ class TestTwoTrialsWithThreeReplicas(unittest.TestCase):
 class TestFiveHundredTrialsWithThreeReplicas(unittest.TestCase):
     "test compute exchanges with 500 trials on three replicas"
     def test_low_energy_move_down(self):
-        # the prefered order will be 2, 0, 1
-        energy = np.array([[0, 0, 0], [0, 0, 0], [-10000, 0, 0]])
+        # the preferred order will be 2, 0, 1
+        energy = np.array([[0, 0, -10000], [0, 0, 0], [0, 0, 0]])
         mock_adaptor = mock.Mock(spec_set=adaptor.EqualAcceptanceAdaptor)
         l = ladder.NearestNeighborLadder(n_trials=500)
 

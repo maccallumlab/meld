@@ -1,6 +1,7 @@
+import os
 import numpy as np
 import platform
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import logging
 from meld.util import log_timing
 import sys
@@ -215,15 +216,59 @@ class MPICommunicator(object):
     @log_timing(logger)
     def negotiate_device_id(self):
         hostname = platform.node()
-        hostnames = self._mpi_comm.gather(hostname, root=0)
+        try:
+            visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
+            logger.debug('Found cuda devices: %s', visible_devices)
+            visible_devices = visible_devices.split(',')
+            if visible_devices:
+                visible_devices = [int(dev) for dev in visible_devices]
+            else:
+                raise RuntimeError('No cuda devices available')
+        except KeyError:
+            logger.debug('CUDA_VISIBLE_DEVICES is not set.')
+            visible_devices = None
+
+        hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
+
+        # the master computes the device ids
         if self._my_rank == 0:
-            host_counts = defaultdict(int)
-            device_ids = []
-            for hostname in hostnames:
-                device_ids.append(host_counts[hostname])
-                host_counts[hostname] += 1
+            if hosts[0].devices is None:
+                # if CUDA_VISIBLE_DEVICES isn't set on the master, we assume it
+                # isn't set for any node
+
+                # create an empty default dict to count hosts
+                host_counts = defaultdict(int)
+                # list of device ids
+                # this assumes that available devices for each node
+                # are numbered starting from 0
+                device_ids = []
+                for host in hosts:
+                    assert host.devices is None
+                    device_ids.append(host_counts[host.host_name])
+                    host_counts[hostname] += 1
+            else:
+                # CUDA_VISIBLE_DEVICES is set on the master, so we
+                # assume it is set for all nodes
+
+                # create a dict to hold the device ids available on each host
+                available_devices = {}
+                # store the available devices on each node
+                for host in hosts:
+                    if host.host_name in available_devices:
+                        assert host.devices == available_devices[host.host_name]
+                    else:
+                        available_devices[host.host_name] = host.devices
+
+                # device ids for each node
+                device_ids = []
+                for host in hosts:
+                    # pop off the first device_id for this host name
+                    device_ids.append(available_devices[host.host_name].pop(0))
+
+        # receive device id from master
         else:
             device_ids = None
+        # do the communication
         device_id = self._mpi_comm.scatter(device_ids, root=0)
         return device_id
 
@@ -248,3 +293,7 @@ def get_mpi_comm_world():
     from mpi4py import MPI
 
     return MPI.COMM_WORLD
+
+
+# namedtuple to hold results for negotiate id
+HostInfo = namedtuple('HostInfo', 'host_name devices')
