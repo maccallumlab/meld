@@ -18,8 +18,12 @@ def parse_args():
     subparsers = parser.add_subparsers(dest='command')
 
     vis_energy = subparsers.add_parser('visualize_energy', help='visualize the value of alpha')
-    vis_energy.add_argument('--replica', type=int, default=None, nargs='+',
-                            help='replica to analyze energy for')
+    vis_energy.add_argument('--index', type=int, default=None, nargs='+',
+                            help='ladder index to analyze energy for')
+
+    vis_energy_row = subparsers.add_parser('visualize_row', help='visualize a row of the energy matrix')
+    vis_energy_row.add_argument('--index', type=int, default=0,
+                                help='row index to analyze the energies for')
 
     return parser.parse_args()
 
@@ -32,23 +36,28 @@ def main():
 
     if args.command == 'visualize_energy':
         visualize_energy(store, args)
+    if args.command == 'visualize_row':
+        visualize_energy_row(store, args)
 
 
 def visualize_energy(store, args):
-    alphas = get_energy(store, args.start, args.end)
-    n_reps = alphas.shape[0]
+    energies = get_energy(store, args.start, args.end)
+    n_reps = energies.shape[0]
     if args.replica is None:
         replicas = range(n_reps)
     else:
         replicas = args.replica
     for rep in replicas:
-        pyplot.plot(alphas[rep, :])
+        pyplot.plot(energies[rep, :])
     pyplot.show()
 
 
-def extract_energy(store, args):
-    alphas = get_energy(store, args.start, args.end)
-    np.savetxt(args.outfile, alphas)
+def visualize_energy_row(store, args):
+    energy_matrix = get_matrix(store, args.start, args.end)
+    n_replicas = energy_matrix.shape[0]
+    for i in range(n_replicas):
+        pyplot.plot(energy_matrix[args.index, i, :])
+    pyplot.show()
 
 
 def get_energy(store, start, end):
@@ -64,6 +73,21 @@ def get_energy(store, start, end):
     assert end > start
 
     return energies[:, start:(end + 1)]
+
+
+def get_matrix(store, start, end):
+    matrix = store.load_all_energy_matrices()
+    n_steps = matrix.shape[2]
+    if start is None:
+        start = 1
+    if end is None:
+        end = n_steps - 1
+
+    assert 0 < start < n_steps
+    assert 0 < end < n_steps
+    assert end > start
+
+    return matrix[:, :, start:(end + 1)]
 
 
 if __name__ == '__main__':
