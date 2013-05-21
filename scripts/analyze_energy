@@ -17,9 +17,13 @@ def parse_args():
                         help='last frame to extract (default: last)')
     subparsers = parser.add_subparsers(dest='command')
 
-    vis_energy = subparsers.add_parser('visualize_energy', help='visualize the value of alpha')
+    vis_energy = subparsers.add_parser('visualize_energy', help='visualize the energy')
     vis_energy.add_argument('--index', type=int, default=None, nargs='+',
                             help='ladder index to analyze energy for')
+
+    vis_delta = subparsers.add_parser('visualize_delta', help='visualize the energy difference between replicas')
+    vis_delta.add_argument('--index', type=int, default=None, nargs='+',
+                            help='ladder index to analyze delta for')
 
     vis_energy_column = subparsers.add_parser('visualize_column', help='visualize a column of the energy matrix')
     vis_energy_column.add_argument('--index', type=int, default=0,
@@ -36,6 +40,8 @@ def main():
 
     if args.command == 'visualize_energy':
         visualize_energy(store, args)
+    if args.command == 'visualize_delta':
+        visualize_delta(store, args)
     if args.command == 'visualize_column':
         visualize_energy_column(store, args)
 
@@ -49,6 +55,21 @@ def visualize_energy(store, args):
         replicas = args.index
     for rep in replicas:
         pyplot.plot(energies[rep, :])
+    pyplot.show()
+
+
+def visualize_delta(store, args):
+    energy_matrix = get_matrix(store, args.start, args.end)
+    n_reps = energy_matrix.shape[0]
+    if args.index is None:
+        replicas = range(n_reps - 1)
+    else:
+        replicas = args.index
+
+    for i in replicas:
+        j = i + 1
+        delta = energy_matrix[i, i, :] + energy_matrix[j, j] - energy_matrix[i, j] - energy_matrix[j, i]
+        pyplot.plot(delta)
     pyplot.show()
 
 
