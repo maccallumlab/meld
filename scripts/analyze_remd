@@ -76,11 +76,12 @@ def visualize_trace(store, args):
 
     n_replicas = traces.shape[1]
     n_steps = traces.shape[0]
+
     current_index = np.array(list(range(n_replicas)))
+
     results = []
     for step in range(n_steps):
-        current_index = current_index[traces[step, :]]
-        results.append(current_index)
+        results.append(current_index[traces[step, :]])
     results = np.array(results)
 
     if args.replicas is None:
@@ -89,7 +90,7 @@ def visualize_trace(store, args):
         reps = args.replicas
 
     for index in reps:
-        pyplot.plot(results[index, :])
+        pyplot.plot(results[:, index])
 
     pyplot.show()
 
