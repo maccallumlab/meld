@@ -230,14 +230,12 @@ def _add_meld_restraint(rest, meld_force, alpha):
         rest_index = meld_force.addDistanceRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
                                                     rest.k * scale)
-        logging.debug('Added meld distance restraint %d %d %f %f %f %f %f',
                       rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1, rest.r2,
                       rest.r3, rest.r4, rest.k * scale)
     elif isinstance(rest, TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.atom_index_3 - 1, rest.atom_index_4 - 1,
                                                     rest.phi, rest.delta_phi, rest.k * scale)
-        logging.debug('Added meld torsion restraint %d %d %d %d %f %f %f',
                       rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.atom_index_3 - 1,
                       rest.atom_index_4 - 1, rest.phi, rest.delta_phi, rest.k * scale)
     else:
@@ -262,12 +260,12 @@ def _update_selectively_active_restraints(meld_force, collections, always_on, al
 def _update_meld_restraint(rest, meld_force, alpha, dist_index, tors_index):
     scale = rest.scaler(alpha)
     if isinstance(rest, DistanceRestraint):
-        meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1, rest.atom_index_2, rest.r1,
+        meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)
         dist_index += 1
     elif isinstance(rest, TorsionRestraint):
-        meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1, rest.atom_index_2, rest.atom_index_3,
-                                          rest.atom_index_4, rest.phi, rest.delta_phi, rest.k * scale)
+        meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.atom_index_3 - 1,
+                                          rest.atom_index_4 - 1, rest.phi, rest.delta_phi, rest.k * scale)
         tors_index += 1
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
