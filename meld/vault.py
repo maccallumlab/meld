@@ -492,7 +492,7 @@ class DataStore(object):
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('energy_matrix', float, ['n_replicas', 'n_replicas',
                                           'timesteps'], zlib=True, fletcher32=True, shuffle=True)
-        self._cdf_data_set.createVariable('acceptance_probabilities', float, ['n_replica_paris', 'timesteps'],
+        self._cdf_data_set.createVariable('acceptance_probabilities', float, ['n_replica_pairs', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
 
     def _backup(self, src, dest):
