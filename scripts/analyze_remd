@@ -160,13 +160,15 @@ def visualize_accept_anim(store, args):
     assert end > start
     probs = probs[:, start:(end + 1)]
 
+    alphas = get_alphas(store, start, end)
+
     figure = pyplot.figure()
     plots = []
     for i in range(probs.shape[1]):
-        plt = pyplot.plot(probs[:, i], 'ko')
-        plt.extend([pyplot.text(4, 0.1, 'step: {}'.format(i))])
+        plt = pyplot.plot(alphas[:-1, i], probs[:, i], 'ko')
+        plt.extend([pyplot.text(0.1, 0.1, 'step: {}'.format(i))])
         plots.append(plt)
-    ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
+    ani = animation.ArtistAnimation(figure, plots, interval=10, blit=True)
     pyplot.show()
 
 
