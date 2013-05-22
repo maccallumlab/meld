@@ -218,14 +218,14 @@ class MPICommunicator(object):
         hostname = platform.node()
         try:
             visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
-            logger.debug('Found cuda devices: %s', visible_devices)
+            logger.debug('%s found cuda devices: %s', hostname, visible_devices)
             visible_devices = visible_devices.split(',')
             if visible_devices:
                 visible_devices = [int(dev) for dev in visible_devices]
             else:
                 raise RuntimeError('No cuda devices available')
         except KeyError:
-            logger.debug('CUDA_VISIBLE_DEVICES is not set.')
+            logger.debug('%s CUDA_VISIBLE_DEVICES is not set.', hostname)
             visible_devices = None
 
         hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
