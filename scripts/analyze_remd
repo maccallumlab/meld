@@ -4,6 +4,7 @@
 import argparse
 from meld import vault
 from matplotlib import pyplot
+from matplotlib import animation
 import numpy as np
 
 
@@ -36,6 +37,8 @@ def parse_args():
 
     subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
 
+    subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
+
     return parser.parse_args()
 
 
@@ -59,6 +62,8 @@ def main():
         extract_fup(store, args)
     elif args.command == 'visualize_accept':
         visualize_accept(store, args)
+    elif args.command == 'visualize_accept_anim':
+        visualize_accept_anim(store, args)
 
 
 def visualize_alpha(store, args):
@@ -119,6 +124,7 @@ def visualize_fup(store, args):
     pyplot.xlim(0, n_reps - 1)
     pyplot.show()
 
+
 def visualize_accept(store, args):
     probs = store.load_all_acceptance_probabilities()
     n_steps = probs.shape[1]
@@ -133,8 +139,35 @@ def visualize_accept(store, args):
     probs = probs[:, start:(end + 1)]
 
     for i in range(n_pairs):
-        pyplot.plot(probs[i,:])
+        pyplot.plot(probs[i, :])
     pyplot.show()
+
+
+def visualize_accept_anim(store, args):
+    probs = store.load_all_acceptance_probabilities()
+    n_steps = probs.shape[1]
+    n_pairs = probs.shape[0]
+    if args.start is None:
+        start = 1
+    else:
+        start = args.start
+    if args.end is None:
+        end = n_steps - 1
+    else:
+        end = args.end
+    assert 0 < start < n_steps
+    assert 0 < end < n_steps
+    assert end > start
+    probs = probs[:, start:(end + 1)]
+
+    figure = pyplot.figure()
+    plots = []
+    for i in range(probs.shape[1]):
+        plt = pyplot.plot(probs[i, :])
+        plots.append([plt])
+    ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
+    pyplot.show()
+
 
 def extract_fup(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
