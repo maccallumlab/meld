@@ -76,6 +76,9 @@ class EqualAcceptanceAdaptor(object):
 
         return new_lambdas
 
+    def get_acceptance_probabilities(self):
+        return self.success / (self.attempts + 1e-6)
+
     def reset(self):
         '''
         Forget about any previous updates.

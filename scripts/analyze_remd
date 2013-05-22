@@ -34,6 +34,8 @@ def parse_args():
     extract_fup = subparsers.add_parser('extract_fup', help='extract fup')
     extract_fup.add_argument('outfile', help='output filename')
 
+    subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
+
     return parser.parse_args()
 
 
@@ -55,6 +57,8 @@ def main():
         visualize_fup(store, args)
     elif args.command == 'extract_fup':
         extract_fup(store, args)
+    elif args.command == 'visualize_accept':
+        visualize_accept(store, args)
 
 
 def visualize_alpha(store, args):
@@ -115,6 +119,22 @@ def visualize_fup(store, args):
     pyplot.xlim(0, n_reps - 1)
     pyplot.show()
 
+def visualize_accept(store, args):
+    probs = store.load_all_acceptance_probabilities()
+    n_steps = probs.shape[1]
+    n_pairs = probs.shape[0]
+    if args.start is None:
+        start = 1
+    if args.stop is None:
+        stop = n_steps - 1
+    assert 0 < start < n_steps
+    assert 0 < end < n_steps
+    assert end > start
+    probs = probs[:, start:(end + 1)]
+
+    for i in range(n_pairs):
+        pyplot.plot(probs[i,:])
+    pyplot.show()
 
 def extract_fup(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)

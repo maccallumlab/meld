@@ -378,6 +378,40 @@ class DataStore(object):
         """
         return self._cdf_data_set.variables['permutation_vectors']
 
+    def save_acceptance_probabilities(self, accept_probs, stage):
+        """
+        Save acceptance probabilities vector to disk.
+
+        Parameters
+            accept_probs -- n_replicas array of int
+            stage -- int stage to store
+
+        """
+        self._check_save()
+        self._cdf_data_set.variables['acceptance_probabilities'][..., stage] = accept_probs
+
+    def load_acceptance_probabilities(self, stage):
+        """
+        Load acceptance probability vector from disk.
+
+        Parameters
+            stage -- int stage to load
+
+        Returns
+            n_replica_pairs array of int
+
+        """
+        return self._cdf_data_set.variables['acceptance_probabilities'][..., stage]
+
+    def load_all_acceptance_probabilities(self):
+        """
+        Load all acceptance probabilities from disk
+
+        Warning, this might take a lot of memory
+
+        """
+        return self._cdf_data_set.variables['acceptance_probabilities']
+
     def save_remd_runner(self, runner):
         """Save replica runner to disk"""
         self._check_save()
@@ -440,6 +474,7 @@ class DataStore(object):
     def _setup_cdf(self):
         # setup dimensions
         self._cdf_data_set.createDimension('n_replicas', self._n_replicas)
+        self._cdf_data_set.createDimension('n_replica_pairs', self._n_replicas - 1)
         self._cdf_data_set.createDimension('n_atoms', self._n_atoms)
         self._cdf_data_set.createDimension('cartesian', 3)
         self._cdf_data_set.createDimension('timesteps', None)
@@ -456,8 +491,9 @@ class DataStore(object):
         self._cdf_data_set.createVariable('permutation_vectors', int, ['n_replicas', 'timesteps'],
                                           zlib=True, fletcher32=True, shuffle=True)
         self._cdf_data_set.createVariable('energy_matrix', float, ['n_replicas', 'n_replicas',
-                                          'timesteps'], zlib=True, fletcher32=True,
-                                          shuffle=True)
+                                          'timesteps'], zlib=True, fletcher32=True, shuffle=True)
+        self._cdf_data_set.createVariable('acceptance_probabilities', float, ['n_replica_paris', 'timesteps'],
+                                          zlib=True, fletcher32=True, shuffle=True)
 
     def _backup(self, src, dest):
         if os.path.exists(src):
