@@ -125,8 +125,8 @@ def visualize_accept(store, args):
     n_pairs = probs.shape[0]
     if args.start is None:
         start = 1
-    if args.stop is None:
-        stop = n_steps - 1
+    if args.end is None:
+        end = n_steps - 1
     assert 0 < start < n_steps
     assert 0 < end < n_steps
     assert end > start
