@@ -245,7 +245,7 @@ class MPICommunicator(object):
                 for host in hosts:
                     assert host.devices is None
                     device_ids.append(host_counts[host.host_name])
-                    host_counts[hostname] += 1
+                    host_counts[host.host_name] += 1
             else:
                 # CUDA_VISIBLE_DEVICES is set on the master, so we
                 # assume it is set for all nodes
