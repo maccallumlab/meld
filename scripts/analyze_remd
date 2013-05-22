@@ -164,7 +164,7 @@ def visualize_accept_anim(store, args):
     plots = []
     for i in range(probs.shape[1]):
         plt = pyplot.plot(probs[:, i], 'ko')
-        plots.append([plt])
+        plots.append(plt)
     ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
     pyplot.show()
 
