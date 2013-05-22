@@ -270,6 +270,7 @@ class MPICommunicator(object):
             device_ids = None
         # do the communication
         device_id = self._mpi_comm.scatter(device_ids, root=0)
+        logger.debug('hostname: %s, device_id: %d', hostname, device_id)
         return device_id
 
     @property
