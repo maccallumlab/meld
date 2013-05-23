@@ -38,7 +38,7 @@ def parse_args():
     subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
 
     viz_anim = subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
-    viz_anim.add_argument('--use_alpha', default=False, action='set_true')
+    viz_anim.add_argument('--use_alpha', default=False, action='store_true')
 
 
     return parser.parse_args()
