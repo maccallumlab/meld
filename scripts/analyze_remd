@@ -37,7 +37,9 @@ def parse_args():
 
     subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
 
-    subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
+    viz_anim = subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
+    viz_anim.add_argument('--use_alpha', default=False, action='set_true')
+
 
     return parser.parse_args()
 
@@ -165,8 +167,12 @@ def visualize_accept_anim(store, args):
     figure = pyplot.figure()
     plots = []
     for i in range(probs.shape[1]):
-        plt = pyplot.plot(alphas[:-1, i], probs[:, i], 'ko')
-        plt.extend([pyplot.text(0.1, 0.1, 'step: {}'.format(i))])
+        if args.use_alpha:
+            plt = pyplot.plot(alphas[:-1, i], probs[:, i], 'ko')
+            plt.extend([pyplot.text(0.1, 0.1, 'step: {}'.format(i))])
+        else:
+            plt = pyplot.plot(probs[:, i], 'ko')
+            plt.extend([pyplot.text(2, 0.1, 'step: {}'.format(i))])
         plots.append(plt)
     ani = animation.ArtistAnimation(figure, plots, interval=10, blit=True)
     pyplot.show()
