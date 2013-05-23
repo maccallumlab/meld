@@ -7,6 +7,7 @@ from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, 
 import cmap
 import logging
 from meld.util import log_timing
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,7 @@ class OpenMMRunner(object):
         snapshot = self._simulation.context.getState(getPositions=True, getVelocities=True, getEnergy=True)
         coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(angstrom)
         velocities = snapshot.getVelocities(asNumpy=True).value_in_unit(angstrom / picosecond)
+        _check_for_nan(coordinates, velocities)
         e_potential = snapshot.getPotentialEnergy().value_in_unit(kilojoule / mole) / GAS_CONSTANT / self._temperature
 
         # store in state
@@ -128,6 +130,13 @@ class OpenMMRunner(object):
         state.energy = e_potential
 
         return state
+
+
+def _check_for_nan(coordinates, velocities):
+    if np.isnan(coordinates).any():
+        raise RuntimeError('Coordinates contain NaN')
+    if np.isnan(velocities).any():
+        raise RuntimeError('Velocities contain NaN')
 
 
 def _create_openmm_simulation(topology, system, integrator, platform, properties):
