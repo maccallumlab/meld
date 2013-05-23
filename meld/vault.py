@@ -481,19 +481,19 @@ class DataStore(object):
 
         # setup variables
         self._cdf_data_set.createVariable('positions', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('velocities', float, ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('alphas', float, ['n_replicas', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('energies', float, ['n_replicas', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('permutation_vectors', int, ['n_replicas', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('energy_matrix', float, ['n_replicas', 'n_replicas',
-                                          'timesteps'], zlib=True, fletcher32=True, shuffle=True)
+                                          'timesteps'], zlib=True, fletcher32=True, shuffle=True, complevel=9)
         self._cdf_data_set.createVariable('acceptance_probabilities', float, ['n_replica_pairs', 'timesteps'],
-                                          zlib=True, fletcher32=True, shuffle=True)
+                                          zlib=True, fletcher32=True, shuffle=True, complevel=9)
 
     def _backup(self, src, dest):
         if os.path.exists(src):
