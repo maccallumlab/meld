@@ -19,8 +19,10 @@ class OpenMMRunner(object):
     def __init__(self, system, options, communicator=None):
         if communicator:
             self._device_id = communicator.negotiate_device_id()
+            self._rank = communicator.rank
         else:
             self._device_id = 0
+            self._rank = None
 
         if system.temperature_scaler is None:
             raise RuntimeError('system does not have temparture_scaler set')
@@ -121,7 +123,7 @@ class OpenMMRunner(object):
         snapshot = self._simulation.context.getState(getPositions=True, getVelocities=True, getEnergy=True)
         coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(angstrom)
         velocities = snapshot.getVelocities(asNumpy=True).value_in_unit(angstrom / picosecond)
-        _check_for_nan(coordinates, velocities)
+        _check_for_nan(coordinates, velocities, self._rank)
         e_potential = snapshot.getPotentialEnergy().value_in_unit(kilojoule / mole) / GAS_CONSTANT / self._temperature
 
         # store in state
@@ -132,11 +134,11 @@ class OpenMMRunner(object):
         return state
 
 
-def _check_for_nan(coordinates, velocities):
+def _check_for_nan(coordinates, velocities, rank):
     if np.isnan(coordinates).any():
-        raise RuntimeError('Coordinates contain NaN')
+        raise RuntimeError('Coordinates for rank {} contain NaN', rank)
     if np.isnan(velocities).any():
-        raise RuntimeError('Velocities contain NaN')
+        raise RuntimeError('Velocities for rank {} contain NaN', rank)
 
 
 def _create_openmm_simulation(topology, system, integrator, platform, properties):
