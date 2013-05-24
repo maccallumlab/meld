@@ -8,7 +8,10 @@ from matplotlib import animation
 import numpy as np
 
 
-def parse_args():
+def main():
+    store = vault.DataStore.load_data_store()
+    store.initialize(mode='safe')
+
     parser = argparse.ArgumentParser(
         description='Analyze the results of replica exchange.')
 
@@ -18,54 +21,37 @@ def parse_args():
                         help='last frame to extract (default: last)')
     subparsers = parser.add_subparsers(dest='command')
 
-    subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
+    viz_alpha = subparsers.add_parser('visualize_alpha', help='visualize the value of alpha')
+    viz_alpha.set_defaults(func=visualize_alpha)
 
-    extract_alpha = subparsers.add_parser('extract_alpha', help='extract alpha values')
-    extract_alpha.add_argument('outfile', help='output filename')
+    ext_alpha = subparsers.add_parser('extract_alpha', help='extract alpha values')
+    ext_alpha.add_argument('outfile', help='output filename')
+    ext_alpha.set_defaults(func=extract_alpha)
 
-    visualize_trace = subparsers.add_parser('visualize_trace', help='visualize trace of replica through ladder')
-    visualize_trace.add_argument('--replicas', nargs='+', type=int, default=None,
-                                 help='replicas to visualize')
+    viz_trace = subparsers.add_parser('visualize_trace', help='visualize trace of replica through ladder')
+    viz_trace.add_argument('--replicas', nargs='+', type=int, default=None, help='replicas to visualize')
+    viz_trace.set_defaults(func=visualize_trace)
 
-    extract_trace = subparsers.add_parser('extract_trace', help='extract trace')
-    extract_trace.add_argument('outfile', help='output filename')
+    ext_trace = subparsers.add_parser('extract_trace', help='extract trace')
+    ext_trace.add_argument('outfile', help='output filename')
+    ext_trace.set_defaults(func=ext_trace)
 
-    subparsers.add_parser('visualize_fup', help='visualize the value of f_up')
+    viz_fup = subparsers.add_parser('visualize_fup', help='visualize the value of f_up')
+    viz_fup.set_defaults(func=visualize_fup)
 
-    extract_fup = subparsers.add_parser('extract_fup', help='extract fup')
-    extract_fup.add_argument('outfile', help='output filename')
+    ext_fup = subparsers.add_parser('extract_fup', help='extract fup')
+    ext_fup.add_argument('outfile', help='output filename')
+    ext_fup.set_defaults(func=extract_fup)
 
-    subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
+    viz_accept = subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
+    viz_accept.set_defaults(func=visualize_accept)
 
     viz_anim = subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
     viz_anim.add_argument('--use_alpha', default=False, action='store_true')
+    viz_anim.set_defaults(func=visualize_accept_anim)
 
-
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
-
-    store = vault.DataStore.load_data_store()
-    store.initialize(mode='safe')
-
-    if args.command == 'visualize_alpha':
-        visualize_alpha(store, args)
-    elif args.command == 'extract_alpha':
-        extract_alpha(store, args)
-    elif args.command == 'visualize_trace':
-        visualize_trace(store, args)
-    elif args.command == 'extract_trace':
-        extract_trace(store, args)
-    elif args.command == 'visualize_fup':
-        visualize_fup(store, args)
-    elif args.command == 'extract_fup':
-        extract_fup(store, args)
-    elif args.command == 'visualize_accept':
-        visualize_accept(store, args)
-    elif args.command == 'visualize_accept_anim':
-        visualize_accept_anim(store, args)
+    args = parser.parse_args()
+    args.func(store, args)
 
 
 def visualize_alpha(store, args):
