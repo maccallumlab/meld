@@ -1,4 +1,4 @@
-from .protein import ProteinMoleculeFromSequence
+from .protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
 from .builder import SystemBuilder
 from .system import System, ConstantTemperatureScaler, LinearTemperatureScaler
 from .system import GeometricTemperatureScaler, RunOptions
