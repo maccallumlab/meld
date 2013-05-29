@@ -28,7 +28,7 @@ def main():
         raise NotImplementedError('Following a replica is not implemented yet.')
 
     store = vault.DataStore.load_data_store()
-    store.initialize(mode='safe')
+    store.initialize(mode='r')
 
     system = store.load_system()
     pdb_writer = system.get_pdb_writer()

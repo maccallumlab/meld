@@ -10,7 +10,7 @@ import numpy as np
 
 def main():
     store = vault.DataStore.load_data_store()
-    store.initialize(mode='safe')
+    store.initialize(mode='r')
 
     parser = argparse.ArgumentParser(
         description='Analyze the results of replica exchange.')
