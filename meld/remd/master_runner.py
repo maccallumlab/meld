@@ -122,6 +122,7 @@ class MasterReplicaExchangeRunner(object):
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
             store.save_acceptance_probabilities(self.adaptor.get_acceptance_probabilities(), self.step)
+            store.save_data_store()
 
             # on to the next step!
             self._step += 1
