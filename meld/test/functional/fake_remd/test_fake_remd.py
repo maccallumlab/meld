@@ -28,8 +28,8 @@ def setup_system():
                                   ['CA'] * N_ATOMS,
                                   [1] * N_ATOMS,
                                   ['ALA'] * N_ATOMS)
-    store = vault.DataStore(N_ATOMS, N_REPLICAS, writer, backup_freq=BACKUP_FREQ)
-    store.initialize(mode='new')
+    store = vault.DataStore(N_ATOMS, N_REPLICAS, writer, block_size=BACKUP_FREQ)
+    store.initialize(mode='w')
 
     # create and store the remd_runner
     l = ladder.NearestNeighborLadder(n_trials=100)
@@ -76,11 +76,11 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         self.assertTrue(os.path.exists('Data'))
 
     def test_files_should_have_been_backed_up(self):
-        self.assertTrue(os.path.exists('Data/Backup/results.nc'))
+        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
 
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
-        s.initialize(mode='existing')
+        s.initialize(mode='a')
         pos = s.load_positions(N_STEPS)
 
         self.assertEqual(pos.shape[0], N_REPLICAS)

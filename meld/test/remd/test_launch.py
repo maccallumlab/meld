@@ -122,7 +122,7 @@ class TestLaunchMaster(unittest.TestCase):
         "should initialize the store"
         launch.launch()
 
-        self.mock_store.initialize.assert_called_once_with(mode='existing')
+        self.mock_store.initialize.assert_called_once_with(mode='a')
 
     def test_should_run(self):
         "should run remd runner with correct parameters"

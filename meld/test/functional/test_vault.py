@@ -2,7 +2,6 @@
 
 import numpy as np
 import unittest
-import mock
 import os
 from meld import vault, comm
 from meld.remd import master_runner, ladder, adaptor
@@ -13,9 +12,9 @@ from meld.pdb_writer import PDBWriter
 
 
 class DataStorePickleTestCase(unittest.TestCase):
-    '''
+    """
     Test that we can read and write the items that are pickled into the Data directory.
-    '''
+    """
     def setUp(self):
         self.N_ATOMS = 500
         self.N_REPLICAS = 4
@@ -25,7 +24,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
 
             self.assertTrue(os.path.exists('Data'), 'Data directory does not created')
             self.assertTrue(os.path.exists('Data/Backup'), 'Backup directory not created')
@@ -35,9 +34,9 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
 
-            self.assertTrue(os.path.exists('Data/results.nc'), 'results.nc not created')
+            self.assertTrue(os.path.exists('Data/Blocks/block_000000.nc'), 'results_000000.nc not created')
 
     def test_init_mode_w_raises_when_dirs_exist(self):
         "calling initialize should raise RuntimeError when Data and Data/Backup directories exist"
@@ -48,14 +47,14 @@ class DataStorePickleTestCase(unittest.TestCase):
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
 
             with self.assertRaises(RuntimeError):
-                store.initialize(mode='new')
+                store.initialize(mode='w')
 
     def test_save_and_load_data_store(self):
         "should be able to save and then reload the DataStore"
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
 
             store.save_data_store()
             store2 = vault.DataStore.load_data_store()
@@ -70,7 +69,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
             c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
             # set _mpi_comm to something
             # this should not be saved
@@ -89,7 +88,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
             l = ladder.NearestNeighborLadder(n_trials=100)
             policy = adaptor.AdaptationPolicy(1.0, 50, 100)
             a = adaptor.EqualAcceptanceAdaptor(n_replicas=self.N_REPLICAS, adaptation_policy=policy)
@@ -106,7 +105,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
             fake_system = object()
 
             store.save_system(fake_system)
@@ -119,7 +118,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='new')
+            store.initialize(mode='w')
             fake_run_options = object()
 
             store.save_run_options(fake_run_options)
@@ -129,9 +128,9 @@ class DataStorePickleTestCase(unittest.TestCase):
 
 
 class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
-    '''
+    """
     Test that we can read and write the data that goes in the hd5 file.
-    '''
+    """
     def setUp(self):
         self.setUpTempDir()
 
@@ -139,11 +138,29 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
         pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
-        self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-        self.store.initialize(mode='new')
+        self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer, block_size=10)
+        self.store.initialize(mode='w')
 
     def tearDown(self):
         self.tearDownTempDir()
+
+    def test_should_raise_stage_is_reduces(self):
+        "should raise if we try to write to a previous stage"
+        test_pos = np.zeros((self.N_REPLICAS, self.N_ATOMS, 3))
+        self.store.save_positions(test_pos, 0)
+        self.store.save_positions(test_pos, 1)
+
+        with self.assertRaises(RuntimeError):
+            self.store.save_positions(test_pos, 0)
+
+    def test_should_create_second_block(self):
+        "should create a second block once the first one fills up"
+        test_pos = np.zeros((self.N_REPLICAS, self.N_ATOMS, 3))
+        for i in range(11):
+            self.store.save_positions(test_pos, i)
+
+        self.assertTrue(os.path.exists('Data/Blocks/block_000000.nc'))
+        self.assertTrue(os.path.exists('Data/Blocks/block_000001.nc'))
 
     def test_can_save_and_load_positions(self):
         "should be able to save and load positions"
@@ -156,7 +173,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         test_pos2 = store2.load_positions(STAGE)
 
         np.testing.assert_equal(test_pos, test_pos2)
@@ -172,7 +189,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         test_vel2 = store2.load_velocities(STAGE)
 
         np.testing.assert_equal(test_vel, test_vel2)
@@ -188,7 +205,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         test_lambdas2 = store2.load_alphas(STAGE)
 
         np.testing.assert_equal(test_lambdas, test_lambdas2)
@@ -204,7 +221,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         test_energies2 = store2.load_energies(STAGE)
 
         np.testing.assert_equal(test_energies, test_energies2)
@@ -225,7 +242,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         states2 = store2.load_states(STAGE)
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
@@ -247,7 +264,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         states2 = store2.load_states(STAGE)
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
@@ -261,16 +278,16 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='existing')
+        store2.initialize(mode='a')
         test_vec2 = store2.load_permutation_vector(STAGE)
 
         np.testing.assert_equal(test_vec, test_vec2)
 
 
 class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
-    '''
+    """
     Test that backup files are created/copied correctly.
-    '''
+    """
     def setUp(self):
         self.setUpTempDir()
 
@@ -297,7 +314,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         pdb_writer = object()  # dummy pdb writer; can't use a mock because they can't be pickled
         self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-        self.store.initialize(mode='new')
+        self.store.initialize(mode='w')
 
         # save some stuff
         self.store.save_data_store()
@@ -326,16 +343,8 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         self.assertTrue(os.path.exists('Data/Backup/remd_runner.dat'))
 
-    def test_backup_copies_h5(self):
-        "results.h5 should be backed up"
-        self.store.backup(stage=0)
 
-        self.assertTrue(os.path.exists('Data/Backup/results.nc'))
-        # make sure we can still access the hd5 file after backup
-        self.store.load_states(stage=0)
-
-
-class TestSafeMode(unittest.TestCase, TempDirHelper):
+class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
     def setUp(self):
         self.setUpTempDir()
 
@@ -357,81 +366,56 @@ class TestSafeMode(unittest.TestCase, TempDirHelper):
             lam = index / 100.
             return system.SystemState(pos, vel, lam, energy)
 
-        states_0 = [gen_state(0, self.N_ATOMS) for i in range(self.N_REPLICAS)]
-        states_1 = [gen_state(0, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = master_runner.MasterReplicaExchangeRunner(self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
 
         self.pdb_writer = object()
-        store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, self.pdb_writer, backup_freq=1)
-        store.initialize(mode='new')
+        store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, self.pdb_writer, block_size=10)
+        store.initialize(mode='w')
 
         # save some stuff
-        store.save_data_store()
         store.save_communicator(c)
         store.save_remd_runner(runner)
         store.save_system(object())
-        store.save_states(states_0, stage=0)
-        store.backup(0)
-        store.save_states(states_1, stage=0)
+
+        for index in range(100):
+            states = [gen_state(index, self.N_ATOMS) for i in range(self.N_REPLICAS)]
+            store.save_states(states, stage=index)
         store.close()
+        store.save_data_store()
 
         self.store = vault.DataStore.load_data_store()
-        self.store.initialize(mode='safe')
+        self.store.initialize(mode='r')
 
     def tearDown(self):
         self.tearDownTempDir()
-
-    def test_should_fail_to_load_comm_with_no_backup(self):
-        # remove the communicator
-        os.remove(self.store.communicator_backup_path)
-        with self.assertRaises(IOError):
-            self.store.load_communicator()
 
     def test_saving_comm_should_raise(self):
         with self.assertRaises(RuntimeError):
             self.store.save_communicator(object())
 
-    def test_should_fail_to_load_remd_runner_with_no_backup(self):
-        # remove the remd_runner
-        os.remove(self.store.remd_runner_backup_path)
-        with self.assertRaises(IOError):
-            self.store.load_remd_runner()
-
     def test_saving_remd_runner_should_raise(self):
         with self.assertRaises(RuntimeError):
             self.store.save_remd_runner(object())
-
-    def test_should_fail_to_load_system_with_no_backup(self):
-        # remove the system
-        os.remove(self.store.system_backup_path)
-        with self.assertRaises(IOError):
-            self.store.load_system()
 
     def test_saving_system_should_raise(self):
         with self.assertRaises(RuntimeError):
             self.store.save_system(object())
 
-    def test_should_fail_to_initialize_when_no_backup(self):
-        self.store.close()
-        os.remove(self.store.net_cdf_backup_path)
-        s = vault.DataStore.load_data_store()
-        with self.assertRaises(RuntimeError):
-            s.initialize(mode='safe')
-
-    def test_saving_states_should_raise(self):
-        states = self.store.load_states(stage=0)
-        with self.assertRaises(RuntimeError):
-            self.store.save_states(states, stage=2)
-
     def test_should_load_correct_states(self):
-        # the backup was done after states_0, but before states_1
-        # so, we should be able to load the states for stage=0
-        states = self.store.load_states(stage=0)
-        # and the positions should be all zeros
-        self.assertEqual(states[0].positions[0, 0], 0)
-        # but we shouldn't be able to load stage=1
-        with self.assertRaises(IndexError):
-            self.store.load_states(stage=1)
+        for i in range(90):
+            print i
+            states = self.store.load_states(stage=i)
+            self.assertAlmostEqual(states[0].positions[0, 0], i)
+
+    def test_load_all_positions_should_give_the_correct_positions(self):
+        positions = self.store.load_all_positions()
+        print positions.shape
+        self.assertEqual(positions.shape[0], self.N_REPLICAS)
+        self.assertEqual(positions.shape[1], self.N_ATOMS)
+        self.assertEqual(positions.shape[2], 3)
+        self.assertEqual(positions.shape[3], 90)
+        for i in range(90):
+            self.assertAlmostEqual(positions[0, 0, 0, i], i)
 
 
 class TestPDBWriter(unittest.TestCase):

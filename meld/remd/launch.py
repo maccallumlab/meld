@@ -33,7 +33,7 @@ def launch(debug=False):
     system_runner = get_runner(system, options, communicator)
 
     if communicator.is_master():
-        store.initialize(mode='existing')
+        store.initialize(mode='a')
         remd_runner = store.load_remd_runner()
         remd_runner.run(communicator, system_runner, store)
     else:

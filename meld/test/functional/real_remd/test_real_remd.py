@@ -34,7 +34,7 @@ def setup_system():
 
     rest_scaler = s.restraints.create_scaler('nonlinear', alpha_min=0, alpha_max=1, factor=4.0)
     secondary = 'H'*16
-    secondary_restraints = parse.get_secondary_structure_restraint_groups(system=s, scaler=rest_scaler,
+    secondary_restraints = parse.get_secondary_structure_restraints(system=s, scaler=rest_scaler,
                                                                           contents=secondary)
     s.restraints.add_selectively_active_collection(secondary_restraints, len(secondary_restraints))
 
@@ -42,8 +42,8 @@ def setup_system():
     options = system.RunOptions()
 
     # create a store
-    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), backup_freq=BACKUP_FREQ)
-    store.initialize(mode='new')
+    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BACKUP_FREQ)
+    store.initialize(mode='w')
     store.save_system(s)
     store.save_run_options(options)
 
@@ -89,7 +89,7 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
 
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
-        s.initialize(mode='existing')
+        s.initialize(mode='a')
         pos = s.load_positions(N_STEPS)
 
         self.assertEqual(pos.shape[0], N_REPLICAS)
