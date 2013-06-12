@@ -171,3 +171,22 @@ class TestGetSecondaryStructures(unittest.TestCase):
         for group in results:
             self.assertEqual(len(group), 6)
 
+
+class TestGetRdcRestraints(unittest.TestCase):
+    def setUp(self):
+        p = system.protein.ProteinMoleculeFromSequence('NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA')
+        b = system.builder.SystemBuilder()
+        self.system = b.build_system_from_molecules([p])
+        self.scaler = restraints.LinearScaler(0, 1)
+
+    def test_ignores_comment_lines(self):
+        contents = '#\n#\n'
+        results = parse.get_rdc_restraints(contents=contents, system=self.system, scaler=self.scaler)
+
+        self.assertEqual(len(results), 0)
+
+    def test_adds_correct_number_of_restraints(self):
+        contents = '#\n2 N 2 H 10 0 10 25000 1.0 1\n'
+        results = parse.get_rdc_restraints(contents=contents, system=self.system, scaler=self.scaler)
+
+        self.assertEqual(len(results), 1)

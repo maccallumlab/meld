@@ -1,5 +1,5 @@
 from collections import namedtuple
-from meld.system.restraints import RestraintGroup, TorsionRestraint, DistanceRestraint
+from meld.system.restraints import RestraintGroup, TorsionRestraint, DistanceRestraint, RdcRestraint
 
 
 aa_map = {
@@ -209,3 +209,26 @@ def _handle_arguments(filename, contents, file):
         return file.read()
 
 
+def get_rdc_restraints(system, scaler, filename=None, contents=None, file=None):
+    contents = _handle_arguments(filename, contents, file)
+    lines = contents.splitlines()
+    lines = [line.strip() for line in lines if not line.startswith('#')]
+
+    restraints = []
+    for line in lines:
+        cols = line.split()
+        res_i = int(cols[0])
+        atom_i = cols[1]
+        res_j = int(cols[2])
+        atom_j = cols[3]
+        obs = float(cols[4])
+        expt = int(cols[5])
+        tolerance = float(cols[6])
+        kappa = float(cols[7])
+        force_const = float(cols[8])
+        weight = float(cols[9])
+
+        rest = RdcRestraint(system, scaler, res_i, atom_i, res_j, atom_j, kappa, obs, expt,
+                            tolerance, force_const, weight)
+        restraints.append(rest)
+    return restraints

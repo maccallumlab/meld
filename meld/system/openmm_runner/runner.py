@@ -1,13 +1,15 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MeldForce, Platform
+from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
+from meld.system.restraints import RdcRestraint
 import cmap
 import logging
 from meld.util import log_timing
 import numpy as np
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +36,10 @@ class OpenMMRunner(object):
         self._options = options
         self._simulation = None
         self._integrator = None
-        self._meld_force = None
         self._initialized = False
         self._alpha = 0.
         self._temperature = None
+        self._force_dict = {}
 
     def set_alpha(self, alpha):
         self._alpha = alpha
@@ -67,11 +69,12 @@ class OpenMMRunner(object):
     def _initialize_simulation(self):
         if self._initialized:
             self._integrator.setTemperature(self._temperature)
-            meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha)
-            _update_selectively_active_restraints(self._meld_force, self._selectable_collections,
-                                                  meld_rests, self._alpha)
-            if self._meld_force:
-                self._meld_force.updateParametersInContext(self._simulation.context)
+            meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha, self._force_dict)
+            _update_selectively_active_restraints(self._selectable_collections,
+                                                  meld_rests, self._alpha, self._force_dict)
+            for force in self._force_dict.values():
+                if force:
+                    force.updateParametersInContext(self._simulation.context)
 
         else:
             self._initialized = True
@@ -85,9 +88,9 @@ class OpenMMRunner(object):
                 adder = cmap.CMAPAdder(self._parm_string, self._options.amap_alpha_bias, self._options.amap_beta_bias)
                 adder.add_to_openmm(sys)
 
-            meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha)
-            self._meld_force = _add_selectively_active_restraints(sys, self._selectable_collections,
-                                                                  meld_rests, self._alpha)
+            meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha, self._force_dict)
+            _add_selectively_active_restraints(sys, self._selectable_collections,
+                                               meld_rests, self._alpha, self._force_dict)
 
             self._integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
 
@@ -193,24 +196,28 @@ def _split_always_active_restraints(restraint_list):
     return selectable_restraints, nonselectable_restraints
 
 
-def _add_always_active_restraints(system, restraint_list, alpha):
+def _add_always_active_restraints(system, restraint_list, alpha, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
+    nonselectable_restraints = _add_rdc_restraints(system, nonselectable_restraints, alpha, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
 
 
-def _update_always_active_restraints(restraint_list, alpha):
+def _update_always_active_restraints(restraint_list, alpha, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
+    nonselectable_restraints = _update_rdc_restraints(nonselectable_restraints, alpha, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
 
 
-def _add_selectively_active_restraints(system, collections, always_on, alpha):
+def _add_selectively_active_restraints(system, collections, always_on, alpha, force_dict):
     if not (collections or always_on):
         # we don't need to do anything
+        force_dict['meld'] = None
         return
+
     # otherwise we need a MeldForce
     meld_force = MeldForce()
 
@@ -232,7 +239,72 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha):
             group_indices.append(group_index)
         meld_force.addCollection(group_indices, coll.num_active)
     system.addForce(meld_force)
-    return meld_force
+    force_dict['meld'] = meld_force
+
+
+def _add_rdc_restraints(system, restraint_list, alpha, force_dict):
+    # split restraints into rdc and non-rdc
+    rdc_restraint_list = [r for r in restraint_list if isinstance(r, RdcRestraint)]
+    nonrdc_restraint_list = [r for r in restraint_list if not isinstance(r, RdcRestraint)]
+
+    # if we have any rdc restraints
+    if rdc_restraint_list:
+        rdc_force = RdcForce()
+        # make a dictionary based on the experiment index
+        expt_dict = OrderedDict()
+        for r in rdc_restraint_list:
+            expt_dict.get(r.expt_index, []).append(r)
+
+        # loop over the experiments and add the restraints to openmm
+        for experiment in expt_dict:
+            rests = expt_dict[experiment]
+            rest_ids = []
+            for r in rests:
+                scale = r.scaler(alpha)
+                r_id = rdc_force.addRdcRestraint(
+                    r.atom_index_1 - 1,
+                    r.atom_index_2 - 1,
+                    r.kappa, r.d_obs, r.tolerance,
+                    r.force_const * scale, r.weight)
+                rest_ids.append(r_id)
+            rdc_force.addExperiment(rest_ids)
+
+        system.addForce(rdc_force)
+        force_dict['rdc'] = rdc_force
+    else:
+        force_dict['rdc'] = None
+
+    return nonrdc_restraint_list
+
+
+def _update_rdc_restraints(restraint_list, alpha, force_dict):
+    # split restraints into rdc and non-rdc
+    rdc_restraint_list = [r for r in restraint_list if isinstance(r, RdcRestraint)]
+    nonrdc_restraint_list = [r for r in restraint_list if not isinstance(r, RdcRestraint)]
+
+    # if we have any rdc restraints
+    if rdc_restraint_list:
+        rdc_force = force_dict['rdc']
+        # make a dictionary based on the experiment index
+        expt_dict = OrderedDict()
+        for r in rdc_restraint_list:
+            expt_dict.get(r.expt_index, []).append(r)
+
+        # loop over the experiments and update the restraints
+        index = 0
+        for experiment in expt_dict:
+            rests = expt_dict[experiment]
+            for r in rests:
+                scale = r.scaler(alpha)
+                rdc_force.updateRdcRestraint(
+                    index,
+                    r.atom_index_1 - 1,
+                    r.atom_index_2 - 1,
+                    r.kappa, r.d_obs, r.tolerance,
+                    r.force_const * scale, r.weight)
+                index = index + 1
+
+    return nonrdc_restraint_list
 
 
 def _add_meld_restraint(rest, meld_force, alpha):
@@ -250,7 +322,8 @@ def _add_meld_restraint(rest, meld_force, alpha):
     return rest_index
 
 
-def _update_selectively_active_restraints(meld_force, collections, always_on, alpha):
+def _update_selectively_active_restraints(collections, always_on, alpha, force_dict):
+    meld_force = force_dict['meld']
     dist_index = 0
     tors_index = 0
     if always_on:

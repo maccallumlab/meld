@@ -141,6 +141,54 @@ class TorsionRestraint(SelectableRestraint):
             raise RuntimeError('k >= 0. k was {}.'.format(self.k))
 
 
+class RdcRestraint(NonSelectableRestraint):
+    _restraint_key_ = 'rdc'
+
+    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+                 kappa, d_obs, tolerance, force_const, weight, expt_index):
+        """
+        Distance restraint
+
+        :param system: a System object
+        :param scaler: a force scaler
+        :param atom_1_res_index: integer, starting from 1
+        :param atom_1_name: atom name
+        :param atom_2_res_index:  integer, starting from 1
+        :param atom_2_name: atom name
+        :param kappa: prefactor for RDC calculation in Hz / Angstrom^3
+        :param d_obs: observed dipolar coupling in Hz
+        :param tolerance: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
+        :param force_const: force sonstant in kJ/mol/Hz^2
+        :param weight: dimensionless weight to place on this restraint
+        :param expt_index: integer experiment id
+
+        Typical values for kappa are:
+            1H - 1H: -360300 Hz / Angstrom^3
+            13C - 1H: -90600 Hz / Angstrom^3
+            15N - 1H: 36500 Hz / Angstrom^3
+        """
+        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
+        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        self.kappa = float(kappa)
+        self.d_obs = float(d_obs)
+        self.tolerance = float(tolerance)
+        self.force_const = float(force_const)
+        self.weight = float(weight)
+        self.expt_index = int(expt_index)
+        self.scaler = scaler
+        self._check(system)
+
+    def _check(self, system):
+        if self.atom_index_1 == self.atom_index_2:
+            raise ValueError('atom1 and atom2 must be different')
+        if self.tolerance < 0:
+            raise ValueError('tolerance must be > 0')
+        if self.force_const < 0:
+            raise ValueError('force_constant must be > 0')
+        if self.weight < 0:
+            raise ValueError('weight must be > 0')
+
+
 class AlwaysActiveCollection(object):
     '''
     '''

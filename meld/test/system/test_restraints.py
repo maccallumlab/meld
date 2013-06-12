@@ -274,6 +274,73 @@ class TestTorsionRestraint(unittest.TestCase):
                 0., 90., -1.0)
 
 
+class TestRdcRestraint(unittest.TestCase):
+    def setUp(self):
+        self.mock_system = mock.Mock()
+        self.mock_system.index_of_atom.side_effect = [0, 1]
+        self.scaler = mock.Mock()
+
+    def test_should_find_four_indices(self):
+        restraints.RdcRestraint(
+            self.mock_system,
+            self.scaler,
+            1, 'N',
+            1, 'H',
+            100., 10.,
+            10., 1.0,
+            1.0, 0)
+
+        calls = [
+            mock.call(1, 'N'),
+            mock.call(1, 'H')]
+        self.mock_system.index_of_atom.assert_has_calls(calls)
+
+    def test_should_raise_with_non_unique_indices(self):
+        self.mock_system.index_of_atom.side_effect = [0, 0]  # repeated index
+        with self.assertRaises(ValueError):
+            restraints.RdcRestraint(
+                self.mock_system,
+                self.scaler,
+                1, 'N',
+                1, 'N', # repeated index
+                100., 10.,
+                10., 1.0,
+                1.0, 0)
+
+    def test_should_raise_with_negative_tolerance(self):
+        with self.assertRaises(ValueError):
+            restraints.RdcRestraint(
+                self.mock_system,
+                self.scaler,
+                1, 'N',
+                1, 'H',
+                100., 10.,
+                -10., 1.0,
+                1.0, 0)
+
+    def test_should_raise_with_negative_force_const(self):
+        with self.assertRaises(ValueError):
+            restraints.RdcRestraint(
+                self.mock_system,
+                self.scaler,
+                1, 'N',
+                1, 'H',
+                100., 10.,
+                10., -1.0,
+                1.0, 0)
+
+    def test_should_raise_with_negative_weight(self):
+        with self.assertRaises(ValueError):
+            restraints.RdcRestraint(
+                self.mock_system,
+                self.scaler,
+                1, 'N',
+                1, 'H',
+                100., 10.,
+                10., 1.0,
+                -1.0, 0)
+
+
 class TestConstantScaler(unittest.TestCase):
     def test_should_return_1_when_alpha_is_0(self):
         scaler = restraints.ConstantScaler()

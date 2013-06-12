@@ -83,25 +83,28 @@ class TestCreateIntegrator(unittest.TestCase):
 
 class TestAddAlwaysActiveRestraints(unittest.TestCase):
     def test_returns_empty_list_when_called_with_empty_manager(self):
-        results = _add_always_active_restraints(mock.Mock(), [], alpha=1.0)
+        force_dict = {}
+        results = _add_always_active_restraints(mock.Mock(), [], alpha=1.0, force_dict=force_dict)
         self.assertEqual(results, [])
 
     def test_returns_list_of_selectable_restraints_when_called_with_list(self):
+        force_dict = {}
         r1 = SelectableRestraint()
         r2 = SelectableRestraint()
         r3 = SelectableRestraint()
 
-        results = _add_always_active_restraints(mock.Mock(), [r1, r2, r3], alpha=1.0)
+        results = _add_always_active_restraints(mock.Mock(), [r1, r2, r3], alpha=1.0, force_dict=force_dict)
 
         self.assertEqual(results, [r1, r2, r3])
 
     def test_raises_nonimplemented_if_nonselectable_restraints_are_included(self):
+        force_dict = {}
         r1 = SelectableRestraint()
         r2 = SelectableRestraint()
         r3 = NonSelectableRestraint()
 
         with self.assertRaises(NotImplementedError):
-            _add_always_active_restraints(mock.Mock(), [r1, r2, r3], alpha=1.0)
+            _add_always_active_restraints(mock.Mock(), [r1, r2, r3], alpha=1.0, force_dict=force_dict)
 
 
 class TestAddSelectivelyActiveRestraints(unittest.TestCase):
@@ -119,37 +122,43 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         self.patcher.stop()
 
     def test_nothing_should_happen_with_empty_input(self):
-        _add_selectively_active_restraints(self.mock_openmm_system, [], [], 0.5)
+        force_dict = {}
+        _add_selectively_active_restraints(self.mock_openmm_system, [], [], 0.5, force_dict)
         self.assertEqual(self.MockMeldForce.call_count, 0)
 
     def test_meld_force_should_be_created_with_non_empty_input(self):
+        force_dict = {}
         dist_rest = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
-        _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=1.0)
+        _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=1.0, force_dict=force_dict)
         self.assertEqual(self.MockMeldForce.call_count, 1)
         self.mock_openmm_system.addForce.assert_called_once_with(self.mock_meld_force)
+        self.assertIn('meld', force_dict)
 
     def test_adding_distance_restraint_should_call_openmm_correctly(self):
+        force_dict = {}
         self.mock_meld_force.addDistanceRestraint.return_value = 0
         self.mock_meld_force.addGroup.return_value = 0
         dist_rest = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
-        _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=0.25)
+        _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=0.25, force_dict=force_dict)
         self.mock_meld_force.addDistanceRestraint.assert_called_once_with(0, 1, 0, 0, 0.3, 999., 7.5)
         self.mock_meld_force.addGroup.assert_called_once_with([0], 1)
         self.mock_meld_force.addCollection.assert_called_once_with([0], 1)
 
     def test_adding_torsion_restraint_should_call_openmm_correctly(self):
+        force_dict = {}
         self.mock_meld_force.addTorsionRestraint.return_value = 0
         self.mock_meld_force.addGroup.return_value = 0
         tors_rest = TorsionRestraint(self.mock_system, self.scaler,
                                      1, 'CA', 2, 'CA',
                                      3, 'CA', 4, 'CA',
                                      0, 10, 10.0)
-        _add_selectively_active_restraints(self.mock_openmm_system, [], [tors_rest], alpha=0.25)
+        _add_selectively_active_restraints(self.mock_openmm_system, [], [tors_rest], alpha=0.25, force_dict=force_dict)
         self.mock_meld_force.addTorsionRestraint.assert_called_once_with(0, 1, 2, 3, 0, 10, 7.5)
         self.mock_meld_force.addGroup.assert_called_once_with([0], 1)
         self.mock_meld_force.addCollection.assert_called_once_with([0], 1)
 
     def test_adding_collections_should_call_openmm_correctly(self):
+        force_dict = {}
         self.mock_meld_force.addDistanceRestraint.side_effect = range(100)
         self.mock_meld_force.addGroup.side_effect = range(100)
 
@@ -165,7 +174,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         c1 = SelectivelyActiveCollection([g1], 1)
         c2 = SelectivelyActiveCollection([g2, g3], 1)
 
-        _add_selectively_active_restraints(self.mock_openmm_system, [c1, c2], [], alpha=0.5)
+        _add_selectively_active_restraints(self.mock_openmm_system, [c1, c2], [], alpha=0.5, force_dict=force_dict)
 
         self.assertEqual(self.mock_meld_force.addDistanceRestraint.call_count, 4)
 
