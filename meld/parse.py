@@ -228,7 +228,7 @@ def get_rdc_restraints(system, scaler, filename=None, contents=None, file=None):
         force_const = float(cols[8])
         weight = float(cols[9])
 
-        rest = RdcRestraint(system, scaler, res_i, atom_i, res_j, atom_j, kappa, obs, expt,
-                            tolerance, force_const, weight)
+        rest = RdcRestraint(system, scaler, res_i, atom_i, res_j, atom_j, kappa, obs,
+                            tolerance, force_const, weight, expt)
         restraints.append(rest)
     return restraints
