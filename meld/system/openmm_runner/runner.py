@@ -252,7 +252,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
     if confinement_restraints:
         # create the confinement force
         confinement_force = CustomExternalForce(
-            'step(r - radius) * force_const * (radius - r)^2; radius=sqrt(x*x + y*y + z*z)')
+            'step(r - radius) * force_const * (radius - r)^2; r=sqrt(x*x + y*y + z*z)')
         confinement_force.addPerParticleParameter('radius')
         confinement_force.addPerParticleParameter('force_const')
 
