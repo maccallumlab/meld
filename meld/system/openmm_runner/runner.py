@@ -1,15 +1,15 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce
+from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, CustomExternalForce
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
+from meld.system.restraints import ConfinementRestraint
 from meld.system.restraints import RdcRestraint
 import cmap
 import logging
 from meld.util import log_timing
 import numpy as np
-from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +199,7 @@ def _split_always_active_restraints(restraint_list):
 def _add_always_active_restraints(system, restraint_list, alpha, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
     nonselectable_restraints = _add_rdc_restraints(system, nonselectable_restraints, alpha, force_dict)
+    nonselectable_restraints = _add_confinement_restraints(system, nonselectable_restraints, alpha, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -207,6 +208,7 @@ def _add_always_active_restraints(system, restraint_list, alpha, force_dict):
 def _update_always_active_restraints(restraint_list, alpha, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
     nonselectable_restraints = _update_rdc_restraints(nonselectable_restraints, alpha, force_dict)
+    nonselectable_restraints = _update_confinement_restraints(nonselectable_restraints, alpha, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -240,6 +242,41 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha, fo
         meld_force.addCollection(group_indices, coll.num_active)
     system.addForce(meld_force)
     force_dict['meld'] = meld_force
+
+
+def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
+    # split restraints into confinement and others
+    confinement_restraints = [r for r in restraint_list if isinstance(r, ConfinementRestraint)]
+    nonconfinement_restraints = [r for r in restraint_list if not isinstance(r, ConfinementRestraint)]
+
+    if confinement_restraints:
+        # create the confinement force
+        confinement_force = CustomExternalForce(
+            'step(r - radius) * force_const * (radius - r)^2; radius=sqrt(x*x + y*y + z*z)')
+        confinement_force.addPerParticleParameter('radius')
+        confinement_force.addPerParticleParameter('force_const')
+
+        # add the atoms
+        for r in confinement_restraints:
+            confinement_force.addParticle(r.atom_index, r.radius, r.force_const * r.scaler(alpha))
+        system.addForce(confinement_force)
+        force_dict['confine'] = confinement_force
+    else:
+        force_dict['confine'] = None
+
+    return nonconfinement_restraints
+
+
+def _update_confinement_restraints(restraint_list, alpha, force_dict):
+    # split restraints into confinement and others
+    confinement_restraints = [r for r in restraint_list if isinstance(r, ConfinementRestraint)]
+    other_restraints = [r for r in restraint_list if not isinstance(r, ConfinementRestraint)]
+
+    if confinement_restraints:
+        confinement_force = force_dict['confine']
+        for index, r in enumerate(confinement_restraints):
+            confinement_force.setParticleParameters(index, r.atom_index, r.radius, r.force_const * r.scaler(alpha))
+    return other_restraints
 
 
 def _add_rdc_restraints(system, restraint_list, alpha, force_dict):
@@ -351,7 +388,6 @@ def _update_meld_restraint(rest, meld_force, alpha, dist_index, tors_index):
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
     return dist_index, tors_index
-
 
 
 #

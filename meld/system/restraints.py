@@ -147,7 +147,7 @@ class RdcRestraint(NonSelectableRestraint):
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  kappa, d_obs, tolerance, force_const, weight, expt_index):
         """
-        Distance restraint
+        Residual Dipolar Coupling Restraint
 
         :param system: a System object
         :param scaler: a force scaler
@@ -187,6 +187,38 @@ class RdcRestraint(NonSelectableRestraint):
             raise ValueError('force_constant must be > 0')
         if self.weight < 0:
             raise ValueError('weight must be > 0')
+
+
+class ConfinementRestraint(NonSelectableRestraint):
+    _restraint_key_ = 'confine'
+
+    def __init__(self, system, scaler, res_index, atom_name, radius, force_const):
+        """
+        Confinement restraint
+
+        :param system: a System object
+        :param scaler: a force scaler
+        :param res_index: integer, starting from 1
+        :param atom_name: atom name
+        :param raidus: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
+        :param force_const: force sonstant in kJ/mol/Hz^2
+
+        Confines an atom to be within radius of the origin. These restraints are typically set to somewhat
+        larger than the expected radius of gyration of the protein and help to keep the structures comapct
+        even when the protein is unfolded. Typically used with a ConstantScaler.
+
+        """
+        self.atom_index = system.index_of_atom(res_index, atom_name)
+        self.radius = float(radius)
+        self.force_const = float(force_const)
+        self.scaler = scaler
+        self._check(system)
+
+    def _check(self, system):
+        if self.radius < 0:
+            raise ValueError('radius must be > 0')
+        if self.force_const < 0:
+            raise ValueError('force_constant must be > 0')
 
 
 class AlwaysActiveCollection(object):
