@@ -258,7 +258,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
 
         # add the atoms
         for r in confinement_restraints:
-            confinement_force.addParticle(r.atom_index, r.radius, r.force_const * r.scaler(alpha))
+            confinement_force.addParticle(r.atom_index, [r.radius, r.force_const * r.scaler(alpha)])
         system.addForce(confinement_force)
         force_dict['confine'] = confinement_force
     else:
@@ -275,7 +275,7 @@ def _update_confinement_restraints(restraint_list, alpha, force_dict):
     if confinement_restraints:
         confinement_force = force_dict['confine']
         for index, r in enumerate(confinement_restraints):
-            confinement_force.setParticleParameters(index, r.atom_index, r.radius, r.force_const * r.scaler(alpha))
+            confinement_force.setParticleParameters(index, r.atom_index, [r.radius, r.force_const * r.scaler(alpha)])
     return other_restraints
 
 
