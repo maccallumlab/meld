@@ -33,11 +33,15 @@ class MasterReplicaExchangeRunner(object):
     def max_steps(self):
         return self._max_steps
 
+    @property
+    def ramp_steps(self):
+        return self._ramp_steps
+
     #
     # public methods
     #
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor):
+    def __init__(self, n_replicas, max_steps, ladder, adaptor, ramp_steps=None):
         """
         Initialize a MasterReplicaExchangeRunner
 
@@ -46,6 +50,7 @@ class MasterReplicaExchangeRunner(object):
             max_steps -- maximum number of steps to run
             ladder -- Ladder object to handle exchanges
             adaptor -- Adaptor object to handle alphas adaptation
+            ramp_steps -- integer number of steps to ramp up force constants at start of simulation
 
         """
         self._n_replicas = n_replicas
@@ -53,6 +58,7 @@ class MasterReplicaExchangeRunner(object):
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
+        self._ramp_steps = ramp_steps
 
         self._alphas = None
         self._setup_alphas()
@@ -82,13 +88,12 @@ class MasterReplicaExchangeRunner(object):
         # load previous state from the store
         states = store.load_states(stage=self.step - 1)
 
-        # the master is always at alphas = 0, so set that here
-        system_runner.set_alpha(0.)
-
         while self._step <= self._max_steps:
             logger.info('Running replica exchange step %d of %d.',
                         self._step, self._max_steps)
             # update alphas
+            ramp_weight = self._compute_ramp_weight()
+            system_runner.set_alpha(0., ramp_weight)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_slaves(self._alphas)
 
@@ -153,3 +158,12 @@ class MasterReplicaExchangeRunner(object):
     def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)
         self._alphas = [i * delta for i in range(self._n_replicas)]
+
+    def _compute_ramp_weight(self):
+        if self._ramp_steps is None:
+            return 1.0
+        else:
+            if self._step > self._ramp_steps:
+                return 1.0
+            else:
+                return float(self.step + 1) / float(self.ramp_steps)

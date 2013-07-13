@@ -41,8 +41,9 @@ class OpenMMRunner(object):
         self._temperature = None
         self._force_dict = {}
 
-    def set_alpha(self, alpha):
+    def set_alpha(self, alpha, ramp_weight=1.0):
         self._alpha = alpha
+        self._ramp_weight = ramp_weight
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation()
 
@@ -69,9 +70,11 @@ class OpenMMRunner(object):
     def _initialize_simulation(self):
         if self._initialized:
             self._integrator.setTemperature(self._temperature)
-            meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha, self._force_dict)
+            meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha,
+                                                          self._ramp_weight, self._force_dict)
             _update_selectively_active_restraints(self._selectable_collections,
-                                                  meld_rests, self._alpha, self._force_dict)
+                                                  meld_rests, self._alpha,
+                                                  self._ramp_weight, self._force_dict)
             for force in self._force_dict.values():
                 if force:
                     force.updateParametersInContext(self._simulation.context)
@@ -88,9 +91,11 @@ class OpenMMRunner(object):
                 adder = cmap.CMAPAdder(self._parm_string, self._options.amap_alpha_bias, self._options.amap_beta_bias)
                 adder.add_to_openmm(sys)
 
-            meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha, self._force_dict)
+            meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha,
+                                                       self._ramp_weight, self._force_dict)
             _add_selectively_active_restraints(sys, self._selectable_collections,
-                                               meld_rests, self._alpha, self._force_dict)
+                                               meld_rests, self._alpha,
+                                               self._ramp_weight, self._force_dict)
 
             self._integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
 
@@ -196,25 +201,29 @@ def _split_always_active_restraints(restraint_list):
     return selectable_restraints, nonselectable_restraints
 
 
-def _add_always_active_restraints(system, restraint_list, alpha, force_dict):
+def _add_always_active_restraints(system, restraint_list, alpha, ramp_weight, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
-    nonselectable_restraints = _add_rdc_restraints(system, nonselectable_restraints, alpha, force_dict)
-    nonselectable_restraints = _add_confinement_restraints(system, nonselectable_restraints, alpha, force_dict)
+    nonselectable_restraints = _add_rdc_restraints(system, nonselectable_restraints, alpha,
+                                                   ramp_weight, force_dict)
+    nonselectable_restraints = _add_confinement_restraints(system, nonselectable_restraints, alpha,
+                                                           ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
 
 
-def _update_always_active_restraints(restraint_list, alpha, force_dict):
+def _update_always_active_restraints(restraint_list, alpha, ramp_weight, force_dict):
     selectable_restraints, nonselectable_restraints = _split_always_active_restraints(restraint_list)
-    nonselectable_restraints = _update_rdc_restraints(nonselectable_restraints, alpha, force_dict)
-    nonselectable_restraints = _update_confinement_restraints(nonselectable_restraints, alpha, force_dict)
+    nonselectable_restraints = _update_rdc_restraints(nonselectable_restraints, alpha,
+                                                      ramp_weight, force_dict)
+    nonselectable_restraints = _update_confinement_restraints(nonselectable_restraints, alpha,
+                                                              ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
 
 
-def _add_selectively_active_restraints(system, collections, always_on, alpha, force_dict):
+def _add_selectively_active_restraints(system, collections, always_on, alpha, ramp_weight, force_dict):
     if not (collections or always_on):
         # we don't need to do anything
         force_dict['meld'] = None
@@ -226,7 +235,7 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha, fo
     if always_on:
         group_list = []
         for rest in always_on:
-            rest_index = _add_meld_restraint(rest, meld_force, alpha)
+            rest_index = _add_meld_restraint(rest, meld_force, alpha, ramp_weight)
             group_index = meld_force.addGroup([rest_index], 1)
             group_list.append(group_index)
         meld_force.addCollection(group_list, len(group_list))
@@ -235,7 +244,7 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha, fo
         for group in coll.groups:
             restraint_indices = []
             for rest in group.restraints:
-                rest_index = _add_meld_restraint(rest, meld_force, alpha)
+                rest_index = _add_meld_restraint(rest, meld_force, alpha, ramp_weight)
                 restraint_indices.append(rest_index)
             group_index = meld_force.addGroup(restraint_indices, group.num_active)
             group_indices.append(group_index)
@@ -244,7 +253,7 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha, fo
     force_dict['meld'] = meld_force
 
 
-def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
+def _add_confinement_restraints(system, restraint_list, alpha, ramp_weight, force_dict):
     # split restraints into confinement and others
     confinement_restraints = [r for r in restraint_list if isinstance(r, ConfinementRestraint)]
     nonconfinement_restraints = [r for r in restraint_list if not isinstance(r, ConfinementRestraint)]
@@ -258,7 +267,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
 
         # add the atoms
         for r in confinement_restraints:
-            confinement_force.addParticle(r.atom_index, [r.radius, r.force_const * r.scaler(alpha)])
+            confinement_force.addParticle(r.atom_index, [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
         system.addForce(confinement_force)
         force_dict['confine'] = confinement_force
     else:
@@ -267,7 +276,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, force_dict):
     return nonconfinement_restraints
 
 
-def _update_confinement_restraints(restraint_list, alpha, force_dict):
+def _update_confinement_restraints(restraint_list, alpha, ramp_weight, force_dict):
     # split restraints into confinement and others
     confinement_restraints = [r for r in restraint_list if isinstance(r, ConfinementRestraint)]
     other_restraints = [r for r in restraint_list if not isinstance(r, ConfinementRestraint)]
@@ -275,11 +284,12 @@ def _update_confinement_restraints(restraint_list, alpha, force_dict):
     if confinement_restraints:
         confinement_force = force_dict['confine']
         for index, r in enumerate(confinement_restraints):
-            confinement_force.setParticleParameters(index, r.atom_index, [r.radius, r.force_const * r.scaler(alpha)])
+            confinement_force.setParticleParameters(index, r.atom_index,
+                                                    [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
     return other_restraints
 
 
-def _add_rdc_restraints(system, restraint_list, alpha, force_dict):
+def _add_rdc_restraints(system, restraint_list, alpha, ramp_weight, force_dict):
     # split restraints into rdc and non-rdc
     rdc_restraint_list = [r for r in restraint_list if isinstance(r, RdcRestraint)]
     nonrdc_restraint_list = [r for r in restraint_list if not isinstance(r, RdcRestraint)]
@@ -298,7 +308,7 @@ def _add_rdc_restraints(system, restraint_list, alpha, force_dict):
             rests = expt_dict[experiment]
             rest_ids = []
             for r in rests:
-                scale = r.scaler(alpha)
+                scale = r.scaler(alpha) * ramp_weight
                 r_id = rdc_force.addRdcRestraint(
                     r.atom_index_1 - 1,
                     r.atom_index_2 - 1,
@@ -315,7 +325,7 @@ def _add_rdc_restraints(system, restraint_list, alpha, force_dict):
     return nonrdc_restraint_list
 
 
-def _update_rdc_restraints(restraint_list, alpha, force_dict):
+def _update_rdc_restraints(restraint_list, alpha, ramp_weight, force_dict):
     # split restraints into rdc and non-rdc
     rdc_restraint_list = [r for r in restraint_list if isinstance(r, RdcRestraint)]
     nonrdc_restraint_list = [r for r in restraint_list if not isinstance(r, RdcRestraint)]
@@ -333,7 +343,7 @@ def _update_rdc_restraints(restraint_list, alpha, force_dict):
         for experiment in expt_dict:
             rests = expt_dict[experiment]
             for r in rests:
-                scale = r.scaler(alpha)
+                scale = r.scaler(alpha) * ramp_weight
                 rdc_force.updateRdcRestraint(
                     index,
                     r.atom_index_1 - 1,
@@ -345,8 +355,8 @@ def _update_rdc_restraints(restraint_list, alpha, force_dict):
     return nonrdc_restraint_list
 
 
-def _add_meld_restraint(rest, meld_force, alpha):
-    scale = rest.scaler(alpha)
+def _add_meld_restraint(rest, meld_force, alpha, ramp_weight):
+    scale = rest.scaler(alpha) * ramp_weight
     if isinstance(rest, DistanceRestraint):
         rest_index = meld_force.addDistanceRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
@@ -360,23 +370,23 @@ def _add_meld_restraint(rest, meld_force, alpha):
     return rest_index
 
 
-def _update_selectively_active_restraints(collections, always_on, alpha, force_dict):
+def _update_selectively_active_restraints(collections, always_on, alpha, ramp_weight, force_dict):
     meld_force = force_dict['meld']
     dist_index = 0
     tors_index = 0
     if always_on:
         for rest in always_on:
             dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
-                                                            dist_index, tors_index)
+                                                            ramp_weight, dist_index, tors_index)
     for coll in collections:
         for group in coll.groups:
             for rest in group.restraints:
                 dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
-                                                                dist_index, tors_index)
+                                                                ramp_weight, dist_index, tors_index)
 
 
-def _update_meld_restraint(rest, meld_force, alpha, dist_index, tors_index):
-    scale = rest.scaler(alpha)
+def _update_meld_restraint(rest, meld_force, alpha, ramp_weight, dist_index, tors_index):
+    scale = rest.scaler(alpha) * ramp_weight
     if isinstance(rest, DistanceRestraint):
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)

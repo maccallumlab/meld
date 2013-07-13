@@ -4,9 +4,10 @@ class SlaveReplicaExchangeRunner(object):
 
     '''
 
-    def __init__(self, step, max_steps):
+    def __init__(self, step, max_steps, ramp_steps=None):
         self._step = step
         self._max_steps = max_steps
+        self._ramp_steps = ramp_steps
 
     @classmethod
     def from_master(cls, master):
@@ -19,7 +20,7 @@ class SlaveReplicaExchangeRunner(object):
             a SlaveReplicaExchangeRunner
 
         '''
-        new_slave = cls(master.step, master.max_steps)
+        new_slave = cls(master.step, master.max_steps, master.ramp_steps)
         return new_slave
 
     @property
@@ -45,10 +46,10 @@ class SlaveReplicaExchangeRunner(object):
             # update simulation conditions
             new_alpha = communicator.receive_alpha_from_master()
             state = communicator.receive_state_from_master()
-            if not new_alpha == my_alpha:
-                my_alpha = new_alpha
-                system_runner.set_alpha(my_alpha)
-                state.alpha = my_alpha
+            ramp_weight = self._compute_ramp_weight()
+            my_alpha = new_alpha
+            system_runner.set_alpha(my_alpha, ramp_weight)
+            state.alpha = my_alpha
 
             # do one round of simulation
             if self._step == 1:
@@ -65,3 +66,12 @@ class SlaveReplicaExchangeRunner(object):
                 energies.append(energy)
             communicator.send_energies_to_master(energies)
             self._step += 1
+
+    def _compute_ramp_weight(self):
+        if self._ramp_steps is None:
+            return 1.0
+        else:
+            if self._step > self._ramp_steps:
+                return 1.0
+            else:
+                return float(self.step + 1) / float(self.ramp_steps)
