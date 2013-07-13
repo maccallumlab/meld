@@ -381,17 +381,6 @@ class Scaler(object):
     '''Base class for all scalers.'''
     __metaclass__ = ScalerRegistry
 
-    def __init__(self, ramp_steps=-1):
-        self.ramp_steps = ramp_steps
-        self.calls = 0
-
-    def _compute_ramp_weight(self):
-        self.calls = self.calls + 1
-        if self.calls > self.ramp_steps:
-            return 1.0
-        else:
-            return float(self.calls) / float(self.ramp_steps)
-
     def _check_alpha_range(self, alpha):
         if alpha < 0 or alpha > 1:
             raise RuntimeError('0 >= alpha >= 1. alpha is {}.'.format(alpha))
@@ -418,12 +407,9 @@ class ConstantScaler(Scaler):
 
     _scaler_key_ = 'constant'
 
-    def __init__(self, ramp_steps=0):
-        super(ConstantScaler, self).__init__(ramp_steps)
-
     def __call__(self, alpha):
         self._check_alpha_range(alpha)
-        return self._compute_ramp_weight()
+        return 1.0
 
 
 class LinearScaler(Scaler):
@@ -431,8 +417,7 @@ class LinearScaler(Scaler):
 
     _scaler_key_ = 'linear'
 
-    def __init__(self, alpha_min, alpha_max, ramp_steps=0):
-        super(LinearScaler, self).__init__(ramp_steps)
+    def __init__(self, alpha_min, alpha_max):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
         self._delta = alpha_max - alpha_min
@@ -443,7 +428,7 @@ class LinearScaler(Scaler):
         scale = self._handle_boundaries(alpha)
         if scale is None:
             scale = 1.0 - (alpha - self._alpha_min) / self._delta
-        return scale * self._compute_ramp_weight()
+        return scale
 
 
 class NonLinearScaler(Scaler):
@@ -452,8 +437,7 @@ class NonLinearScaler(Scaler):
 
     _scaler_key_ = 'nonlinear'
 
-    def __init__(self, alpha_min, alpha_max, factor, ramp_steps=0):
-        super(NonLinearScaler, self).__init__(ramp_steps)
+    def __init__(self, alpha_min, alpha_max, factor):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
         self._check_alpha_min_max()
@@ -468,4 +452,4 @@ class NonLinearScaler(Scaler):
             delta = (alpha - self._alpha_min) / (self._alpha_max - self._alpha_min)
             norm = 1.0 / (math.exp(self._factor) - 1.0)
             scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
-        return scale * self._compute_ramp_weight()
+        return scale
