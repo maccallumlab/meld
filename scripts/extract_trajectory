@@ -7,33 +7,42 @@ from meld import vault
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Extract a pdb trajectory from a run.')
+        description='Extract frames from a trajectory.')
+    subparsers = parser.add_subparsers(dest='command')
 
-    parser.add_argument('output_filename', help='filename of the output pdb file')
-    parser.add_argument('--start', type=int, default=None,
-                        help='first frame to extract (default: first')
-    parser.add_argument('--end', type=int, default=None,
-                        help='last frame to extract (default: last)')
-    parser.add_argument('--replica', type=int, default=0,
-                        help='replica to extract (default: 0)')
-    parser.add_argument('--follow-replica', default=False, action='store_const', const=True,
-                        help='follow replica through ladder (default: False)')
+    # extract trajectory
+    extract = subparsers.add_parser('extract_traj', help='extract a trajectory for one replica')
+    extract.add_argument('output_filename', help='filename of the output pdb file')
+    extract.add_argument('--start', type=int, default=None,
+                         help='first frame to extract (default: first')
+    extract.add_argument('--end', type=int, default=None,
+                         help='last frame to extract (default: last)')
+    extract.add_argument('--replica', type=int, default=0,
+                         help='replica to extract (default: 0)')
+    extract.set_defaults(func=extract_traj)
+
+    # extract last
+    last = subparsers.add_parser('extract_last', help='extract the last frame for each replica from a trajectory')
+    last.add_argument('name', help='template filename of the output pdb file')
+    last.add_argument('--end', type=int, default=None,
+                      help='frame to extract (default: last)')
+    last.set_defaults(func=extract_last)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    if args.follow_replica:
-        raise NotImplementedError('Following a replica is not implemented yet.')
-
     store = vault.DataStore.load_data_store()
     store.initialize(mode='r')
 
-    system = store.load_system()
-    pdb_writer = system.get_pdb_writer()
+    args.func(store, args)
 
-    positions = store.load_all_positions()
+
+def extract_traj(store, args):
+    pdb_writer = get_pdb_writer(store)
+
+    positions = load_all_frames()
     max_step = positions.shape[3]
     n_replicas = positions.shape[0]
 
@@ -57,17 +66,41 @@ def main():
     assert replica_index < n_replicas
 
     with open(args.output_filename, 'w') as output_file:
-        if args.follow_replica:
-            pass
-        else:
-            extract_single_replica(pdb_writer, positions, output_file, start, end, replica_index)
+        for step in range(start, end + 1):
+            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :, step], step)
+            output_file.write(pdb_string)
 
 
-def extract_single_replica(pdb_writer, positions, output, start, end, replica_index):
-    for step in range(start, end + 1):
-        pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :, step], step)
-        output.write(pdb_string)
+def extract_last(store, args):
+    pdb_writer = get_pdb_writer(store)
 
+    if args.end is None:
+        positions = load_all_frames(store)
+        max_step = positions.shape[3]
+        positions = positions[:, :, :, max_step - 1]
+    else:
+        positions = load_single_frame(store, args.end)
+    print positions.shape
+    n_replicas = positions.shape[0]
+
+    for rep_index in range(n_replicas):
+        with open('{0}_{1:03d}.pdb'.format(args.name, rep_index), 'w') as outfile:
+            pdb_string = pdb_writer.get_pdb_string(positions[rep_index, :, :], args.end)
+            outfile.write(pdb_string)
+
+
+def get_pdb_writer(store):
+    system = store.load_system()
+    pdb_writer = system.get_pdb_writer()
+    return pdb_writer
+
+
+def load_all_frames(store):
+    return store.load_all_positions()
+
+
+def load_single_frame(store, frame):
+    return store.load_positions(frame)
 
 if __name__ == '__main__':
     main()
