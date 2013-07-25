@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import argparse
 from meld import vault
+import argparse
+import numpy
 
 
 def parse_args():
@@ -27,6 +28,20 @@ def parse_args():
     last.add_argument('--end', type=int, default=None,
                       help='frame to extract (default: last)')
     last.set_defaults(func=extract_last)
+
+    # exctract random
+    random = subparsers.add_parser('extract_random', help='extract random frames from a trajectory for reseeding')
+    random.add_argument('name', help='template filename of the output pdb file')
+    random.add_argument('--start', type=int, default=None,
+                        help='first frame to extract (default: first')
+    random.add_argument('--end', type=int, default=None,
+                        help='last frame to extract (default: last)')
+    random.add_argument('--replica', type=int, default=0,
+                        help='replica to extract (default: 0)')
+    random.add_argument('--n_frames', type=int, default=None,
+                        help='number of frames to extract (default: number of replicas)')
+    random.set_defaults(func=extract_random)
+
     return parser.parse_args()
 
 
@@ -86,6 +101,34 @@ def extract_last(store, args):
     for rep_index in range(n_replicas):
         with open('{0}_{1:03d}.pdb'.format(args.name, rep_index), 'w') as outfile:
             pdb_string = pdb_writer.get_pdb_string(positions[rep_index, :, :], args.end)
+            outfile.write(pdb_string)
+
+
+def extract_random(store, args):
+    pdb_writer = get_pdb_writer(store)
+
+    if args.end is None and args.start is None:
+        positions = load_all_frames(store)
+        n_replicas = positions.shape[0]
+        positions = positions[args.replica, ...]
+    elif not (args.end is None) and not (args.start is None):
+        positions = numpy.concatenate([numpy.array(store.load_positions(i))[..., numpy.newaxis]
+                                       for i in range(args.start, args.end)], axis=-1)
+        n_replicas = positions.shape[0]
+        positions = positions[args.replica, ...]
+    else:
+        raise ValueError('Must specify both --start and --end or neither')
+
+    if args.n_frames is None:
+        n_frames = n_replicas
+    else:
+        n_frames = args.n_frames
+
+    random_frames = numpy.random.randint(0, positions.shape[2], n_frames)
+
+    for index, frame in enumerate(random_frames):
+        with open('{}_{}.pdb'.format(args.name, index), 'w') as outfile:
+            pdb_string = pdb_writer.get_pdb_string(positions[:, :, frame], frame)
             outfile.write(pdb_string)
 
 
