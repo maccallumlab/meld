@@ -238,6 +238,7 @@ class MPICommunicator(object):
 
                 # create an empty default dict to count hosts
                 host_counts = defaultdict(int)
+
                 # list of device ids
                 # this assumes that available devices for each node
                 # are numbered starting from 0
@@ -258,6 +259,14 @@ class MPICommunicator(object):
                         assert host.devices == available_devices[host.host_name]
                     else:
                         available_devices[host.host_name] = host.devices
+
+                # CUDA numbers the devices from 0 always,
+                # e.g. if CUDA_VISIBLE_DEVICES=2,3 we still need to ask for
+                # devices 0 and 1 to get physical devices 2 and 3.
+                # So, we subtract the minimum value from each each to make it zero
+                for host in hosts:
+                    min_device_id = min(available_devices[host.host_name])
+                    available_devices[host.host_name] = [device_id - min_device_id for device_id in available_devices[host.host_name]]
 
                 # device ids for each node
                 device_ids = []
