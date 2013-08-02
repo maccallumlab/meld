@@ -1,4 +1,5 @@
 import os
+import time
 import cPickle as pickle
 import netCDF4 as cdf
 import numpy as np
@@ -528,7 +529,12 @@ class DataStore(object):
 
     def _backup(self, src, dest):
         if os.path.exists(src):
-            shutil.copy(src, dest)
+            try:
+                shutil.copy(src, dest)
+            except IOError:
+                # if we encounter an error, wait five seconds and try again
+                time.sleep(5)
+                shutil.copy(src, dest)
 
     def _can_save(self):
         if self._readonly_mode:
