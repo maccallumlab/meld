@@ -41,3 +41,7 @@ nosetests.xml
 reg_settings.py
 
 .ropeproject
+
+# ignore version string
+meld/version.py
+
