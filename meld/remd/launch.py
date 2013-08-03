@@ -1,9 +1,16 @@
 import logging
 from meld import vault
 from meld.system import get_runner
+from meld import version as meld_version
+from simtk.openmm import version as mm_version
 
 
 logger = logging.getLogger(__name__)
+
+
+def log_versions():
+    logger.info('Meld version is %s', meld_version.full_version)
+    logger.info('OpenMM_Meld version is %s', mm_version.full_version)
 
 
 def launch(debug=False):
@@ -19,6 +26,7 @@ def launch(debug=False):
         logging.basicConfig(filename='remd.log', level=level, format=format,
                             datefmt=datefmt)
         logger.info('Launching replica exchange')
+        log_versions()
     else:
         if debug:
             format = '%(asctime)s  %(name)s: %(message)s'
@@ -26,6 +34,7 @@ def launch(debug=False):
             logging.basicConfig(level=logging.DEBUG, format=format,
                                 datefmt=datefmt)
             logger.info('Launching replica exchange')
+            log_versions()
 
     system = store.load_system()
     options = store.load_run_options()
