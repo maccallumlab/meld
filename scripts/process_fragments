@@ -156,8 +156,8 @@ def write_distance_distributions(distance_distributions, dist_norm, max_depth, o
         filename = 'dist_distr_{0:03d}-{1:03d}.dat'.format(res, res + 4)
         filename = os.path.join(out_dir, filename)
         with open(filename, 'w') as outfile:
-            print >>outfile, DIST_START
-            print >>outfile, DIST_END
+            print >>outfile, DIST_START / 10.
+            print >>outfile, DIST_END / 10.
             print >>outfile, N_DIST - 1
             numpy.savetxt(outfile, spline_coeff)
 
