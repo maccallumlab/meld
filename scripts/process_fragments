@@ -235,12 +235,10 @@ def convert_to_spline2d(energy):
     my11 = numpy.roll(numpy.roll(my00, -1, axis=0), -1, axis=1)
 
     # compute the cross derivative
-    mxy00 = (numpy.roll(numpy.roll(energy,  1, axis=0),  1, axis=1) -
-             numpy.roll(numpy.roll(energy, -1, axis=0),  1, axis=1) -
-             numpy.roll(numpy.roll(energy,  1, axis=0), -1, axis=1) +
-             numpy.roll(numpy.roll(energy, -1, axis=0), -1, axis=1)) / 4.0
-    # this seems to work better with the cross terms set to zero
-    mxy00 = numpy.zeros_like(mxy00)
+    mxy00 = (numpy.roll(numpy.roll(energy, -1, axis=0), -1, axis=1) -
+             numpy.roll(numpy.roll(energy,  1, axis=0), -1, axis=1) -
+             numpy.roll(numpy.roll(energy, -1, axis=0),  1, axis=1) +
+             numpy.roll(numpy.roll(energy,  1, axis=0),  1, axis=1)) / 4.0
     mxy10 = numpy.roll(mxy00, -1, axis=0)
     mxy01 = numpy.roll(mxy00, -1, axis=1)
     mxy11 = numpy.roll(numpy.roll(mxy00, -1, axis=0), -1, axis=1)
