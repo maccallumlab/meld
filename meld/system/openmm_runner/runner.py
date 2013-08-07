@@ -4,7 +4,7 @@ from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, Cust
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
-from meld.system.restraints import ConfinementRestraint
+from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint
 from meld.system.restraints import RdcRestraint
 import cmap
 import logging
@@ -365,6 +365,27 @@ def _add_meld_restraint(rest, meld_force, alpha, ramp_weight):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.atom_index_3 - 1, rest.atom_index_4 - 1,
                                                     rest.phi, rest.delta_phi, rest.k * scale)
+    elif isinstance(rest, DistProfileRestraint):
+        rest_index = meld_force.addDistProfileRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                                        rest.r_min, rest.r_max, rest.n_bins,
+                                                        rest.spline_params[:, 0], rest.spline_params[:, 1],
+                                                        rest.spline_params[:, 2], rest.spline_params[:, 3],
+                                                        rest.scale_factor * scale)
+    elif isinstance(rest, TorsProfileRestraint):
+        rest_index = meld_force.addTorsProfileRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                                        rest.atom_index_3 - 1, rest.atom_index_4 - 1,
+                                                        rest.atom_index_5 - 1, rest.atom_index_6 - 1,
+                                                        rest.atom_index_7 - 1, rest.atom_index_8 - 1,
+                                                        rest.n_bins,
+                                                        rest.spline_params[:, 0], rest.spline_params[:, 1],
+                                                        rest.spline_params[:, 2], rest.spline_params[:, 3],
+                                                        rest.spline_params[:, 4], rest.spline_params[:, 5],
+                                                        rest.spline_params[:, 6], rest.spline_params[:, 7],
+                                                        rest.spline_params[:, 8], rest.spline_params[:, 9],
+                                                        rest.spline_params[:, 10], rest.spline_params[:, 11],
+                                                        rest.spline_params[:, 12], rest.spline_params[:, 13],
+                                                        rest.spline_params[:, 14], rest.spline_params[:, 15],
+                                                        rest.scale_factor * scale)
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
     return rest_index
@@ -374,18 +395,22 @@ def _update_selectively_active_restraints(collections, always_on, alpha, ramp_we
     meld_force = force_dict['meld']
     dist_index = 0
     tors_index = 0
+    dist_prof_index = 0
+    tors_prof_index = 0
     if always_on:
         for rest in always_on:
-            dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
-                                                            ramp_weight, dist_index, tors_index)
+            dist_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha,
+                                                                            ramp_weight, dist_index, tors_index,
+                                                                            dist_prof_index, tors_prof_index)
     for coll in collections:
         for group in coll.groups:
             for rest in group.restraints:
-                dist_index, tors_index = _update_meld_restraint(rest, meld_force, alpha,
-                                                                ramp_weight, dist_index, tors_index)
+                dist_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha,
+                                                                                ramp_weight, dist_index, tors_index,
+                                                                                dist_prof_index, tors_prof_index)
 
 
-def _update_meld_restraint(rest, meld_force, alpha, ramp_weight, dist_index, tors_index):
+def _update_meld_restraint(rest, meld_force, alpha, ramp_weight, dist_index, tors_index, dist_prof_index, tors_prof_index):
     scale = rest.scaler(alpha) * ramp_weight
     if isinstance(rest, DistanceRestraint):
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
@@ -395,9 +420,32 @@ def _update_meld_restraint(rest, meld_force, alpha, ramp_weight, dist_index, tor
         meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.atom_index_3 - 1,
                                           rest.atom_index_4 - 1, rest.phi, rest.delta_phi, rest.k * scale)
         tors_index += 1
+    elif isinstance(rest, DistProfileRestraint):
+        meld_force.modifyDistProfileRestraint(dist_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                              rest.r_min, rest.r_max, rest.n_bins,
+                                              rest.spline_params[:, 0], rest.spline_params[:, 1],
+                                              rest.spline_params[:, 2], rest.spline_params[:, 3],
+                                              rest.scale_factor * scale)
+        dist_prof_index += 1
+    elif isinstance(rest, TorsProfileRestraint):
+        meld_force.modifyTorsProfileRestraint(tors_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                              rest.atom_index_3 - 1, rest.atom_index_4 - 1,
+                                              rest.atom_index_5 - 1, rest.atom_index_6 - 1,
+                                              rest.atom_index_7 - 1, rest.atom_index_8 - 1,
+                                              rest.n_bins,
+                                              rest.spline_params[:, 0], rest.spline_params[:, 1],
+                                              rest.spline_params[:, 2], rest.spline_params[:, 3],
+                                              rest.spline_params[:, 4], rest.spline_params[:, 5],
+                                              rest.spline_params[:, 6], rest.spline_params[:, 7],
+                                              rest.spline_params[:, 8], rest.spline_params[:, 9],
+                                              rest.spline_params[:, 10], rest.spline_params[:, 11],
+                                              rest.spline_params[:, 12], rest.spline_params[:, 13],
+                                              rest.spline_params[:, 14], rest.spline_params[:, 15],
+                                              rest.scale_factor * scale)
+        tors_prof_index += 1
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
-    return dist_index, tors_index
+    return dist_index, tors_index, dist_prof_index, tors_prof_index
 
 
 #
@@ -405,10 +453,10 @@ def _update_meld_restraint(rest, meld_force, alpha, ramp_weight, dist_index, tor
 
 from collections import OrderedDict, Callable
 
+
 class DefaultOrderedDict(OrderedDict):
     def __init__(self, default_factory=None, *a, **kw):
-        if (default_factory is not None and
-            not isinstance(default_factory, Callable)):
+        if (default_factory is not None and not isinstance(default_factory, Callable)):
             raise TypeError('first argument must be callable')
         OrderedDict.__init__(self, *a, **kw)
         self.default_factory = default_factory
@@ -442,6 +490,7 @@ class DefaultOrderedDict(OrderedDict):
         import copy
         return type(self)(self.default_factory,
                           copy.deepcopy(self.items()))
+
     def __repr__(self):
         return 'OrderedDefaultDict(%s, %s)' % (self.default_factory,
                                         OrderedDict.__repr__(self))

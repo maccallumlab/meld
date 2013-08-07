@@ -141,6 +141,59 @@ class TorsionRestraint(SelectableRestraint):
             raise RuntimeError('k >= 0. k was {}.'.format(self.k))
 
 
+class DistProfileRestraint(SelectableRestraint):
+    _restraint_key_ = 'dist_prof'
+
+    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+                 r_min, r_max, n_bins, spline_params, scale_factor):
+        self.scaler = scaler
+        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
+        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        self.r_min = r_min
+        self.r_max = r_max
+        self.n_bins = n_bins
+        self.spline_params = spline_params
+        self.scale_factor = scale_factor
+        self._check()
+
+    def _check(self):
+        assert self.r_min >= 0.
+        assert self.r_max > self.r_min
+        assert self.n_bins > 0
+        assert self.spline_params.shape[0] == self.n_bins
+        assert self.spline_params.shape[1] == 4
+
+
+class TorsProfileRestraint(SelectableRestraint):
+    _restraint_key_ = 'tors_prof'
+
+    def __init__(self, system, scaler,
+                 atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+                 atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
+                 atom_5_res_index, atom_5_name, atom_6_res_index, atom_6_name,
+                 atom_7_res_index, atom_7_name, atom_8_res_index, atom_8_name,
+                 n_bins, spline_params, scale_factor):
+        self.scaler = scaler
+        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
+        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
+        self.atom_index_4 = system.index_of_atom(atom_4_res_index, atom_4_name)
+        self.atom_index_5 = system.index_of_atom(atom_5_res_index, atom_5_name)
+        self.atom_index_6 = system.index_of_atom(atom_6_res_index, atom_6_name)
+        self.atom_index_7 = system.index_of_atom(atom_7_res_index, atom_7_name)
+        self.atom_index_8 = system.index_of_atom(atom_8_res_index, atom_8_name)
+        self.n_bins = n_bins
+        self.spline_params = spline_params
+        self.scale_factor = scale_factor
+        self._check()
+
+    def _check(self):
+        assert self.n_bins > 0
+        n_params = self.n_bins * self.n_bins
+        assert self.spline_params.shape[0] == n_params
+        assert self.spline_params.shape[1] == 16
+
+
 class RdcRestraint(NonSelectableRestraint):
     _restraint_key_ = 'rdc'
 
