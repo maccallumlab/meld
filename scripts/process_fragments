@@ -97,7 +97,7 @@ def visualize_rama(args):
             u = (phi - ci * delta + 180.) / delta
             v = (psi - cj * delta + 180.) / delta
 
-            c = coeffs[ci + bins * cj, :]
+            c = coeffs[ci * bins + cj, :]
 
             z = (c[0]         + c[1] * v         + c[2] * v**2         + c[3] * v**3 +
                  c[4] * u     + c[5] * u * v     + c[6] * u * v**2     + c[7] * u * v**3 +
@@ -105,7 +105,7 @@ def visualize_rama(args):
                  c[12] * u**3 + c[13] * u**3 * v + c[14] * u**3 * v**2 + c[15] * u**3 * v**3)
 
             energies[i, j] = z
-    pyplot.imshow(energies, origin='bottom', interpolation='nearest', extent=(-180, 180, -180, 180))
+    pyplot.imshow(energies.T, origin='bottom', interpolation='nearest', extent=(-180, 180, -180, 180))
     pyplot.colorbar()
     pyplot.show()
 
@@ -218,29 +218,30 @@ def convert_to_spline2d(energy):
 
     # get the energy at the corners
     e00 = energy
-    e10 = numpy.roll(energy, -1, axis=0)
-    e01 = numpy.roll(energy, -1, axis=1)
+    e10 = numpy.roll(energy, -1, axis=1)
+    e01 = numpy.roll(energy, -1, axis=0)
     e11 = numpy.roll(numpy.roll(energy, -1, axis=0), -1, axis=1)
 
     # compute the derivatives in x
-    mx00 = (numpy.roll(energy, -1, axis=0) - numpy.roll(energy, 1, axis=0)) / 2.0
-    mx10 = numpy.roll(mx00, -1, axis=0)
-    mx01 = numpy.roll(mx00, -1, axis=1)
+    mx00 = (numpy.roll(energy, -1, axis=1) - numpy.roll(energy, 1, axis=1)) / 2.0
+    mx10 = numpy.roll(mx00, -1, axis=1)
+    mx01 = numpy.roll(mx00, -1, axis=0)
     mx11 = numpy.roll(numpy.roll(mx00, -1, axis=0), -1, axis=1)
 
     # compute the derivatives in y
-    my00 = (numpy.roll(energy, -1, axis=1) - numpy.roll(energy, 1, axis=1)) / 2.0
-    my10 = numpy.roll(my00, -1, axis=0)
-    my01 = numpy.roll(my00, -1, axis=1)
+    my00 = (numpy.roll(energy, -1, axis=0) - numpy.roll(energy, 1, axis=0)) / 2.0
+    my10 = numpy.roll(my00, -1, axis=1)
+    my01 = numpy.roll(my00, -1, axis=0)
     my11 = numpy.roll(numpy.roll(my00, -1, axis=0), -1, axis=1)
 
     # compute the cross derivative
-    mxy00 = (numpy.roll(numpy.roll(energy, -1, axis=0), -1, axis=1) -
-             numpy.roll(numpy.roll(energy,  1, axis=0), -1, axis=1) -
-             numpy.roll(numpy.roll(energy, -1, axis=0),  1, axis=1) +
-             numpy.roll(numpy.roll(energy,  1, axis=0),  1, axis=1)) / 4.0
-    mxy10 = numpy.roll(mxy00, -1, axis=0)
-    mxy01 = numpy.roll(mxy00, -1, axis=1)
+    mxy00 = (numpy.roll(numpy.roll(energy, -1, axis=1), -1, axis=0) -
+             numpy.roll(numpy.roll(energy,  1, axis=1), -1, axis=0) -
+             numpy.roll(numpy.roll(energy, -1, axis=1),  1, axis=0) +
+             numpy.roll(numpy.roll(energy,  1, axis=1),  1, axis=0)) / 4.0
+    #mxy00 = numpy.zeros_like(mxy00)
+    mxy10 = numpy.roll(mxy00, -1, axis=1)
+    mxy01 = numpy.roll(mxy00, -1, axis=0)
     mxy11 = numpy.roll(numpy.roll(mxy00, -1, axis=0), -1, axis=1)
 
     a_inv = numpy.array([
