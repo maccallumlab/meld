@@ -105,7 +105,7 @@ def visualize_rama(args):
                  c[12] * u**3 + c[13] * u**3 * v + c[14] * u**3 * v**2 + c[15] * u**3 * v**3)
 
             energies[i, j] = z
-    pyplot.imshow(energies, origin='bottom', interpolation='nearest')
+    pyplot.imshow(energies, origin='bottom', interpolation='nearest', extent=(-180, 180, -180, 180))
     pyplot.colorbar()
     pyplot.show()
 
