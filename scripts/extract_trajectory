@@ -57,7 +57,7 @@ def main():
 def extract_traj(store, args):
     pdb_writer = get_pdb_writer(store)
 
-    positions = load_all_frames()
+    positions = load_all_frames(store)
     max_step = positions.shape[3]
     n_replicas = positions.shape[0]
 
