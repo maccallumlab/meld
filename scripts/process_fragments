@@ -69,8 +69,6 @@ def visualize_distance(args):
         y = coeff[3] * t ** 3 + coeff[2] * t ** 2 + coeff[1] * t + coeff[0]
         y_vals[index] = y
     pyplot.plot(x_vals, y_vals)
-    for i in range(bins):
-        pyplot.axvline(i)
     pyplot.show()
 
 
