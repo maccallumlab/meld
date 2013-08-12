@@ -186,7 +186,7 @@ def process_fragments(args):
     if args.frag_9mer:
         process_9mer(args.frag_9mer, distance_distributions, rama_distributions, dist_args, tors_args)
 
-    write_distance_distributions(distance_distributions, args.dist_flatten_factor, args.output_dir, dist_args)
+    write_distance_distributions(distance_distributions, args.output_dir, dist_args)
     write_rama_distributions(rama_distributions, args.rama_flatten_factor, args.output_dir, tors_args)
 
 
@@ -196,12 +196,13 @@ def create_output_dir(output_dir):
     os.mkdir(output_dir)
 
 
-def write_distance_distributions(distance_distributions, max_depth, out_dir, dist_args):
+def write_distance_distributions(distance_distributions, out_dir, dist_args):
     for res in distance_distributions:
         energy = distance_distributions[res]
         energy = energy / numpy.sum(energy)
+        energy = energy + dist_args.flatten_factor / len(energy)
+        energy = energy / numpy.sum(energy)
         energy = -kBT * numpy.log(energy)
-        #energy = energy / dist_norm * max_depth
         energy -= numpy.min(energy)
 
         # convert into Catmull-Rom spline parameters
