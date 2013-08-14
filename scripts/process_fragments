@@ -10,12 +10,7 @@ import numpy
 from scipy import signal
 
 
-#DIST_START = 0.
-#DIST_END = 20.
-#N_DIST = 21
-#N_PHIPSI = 25
-#x_vals = numpy.linspace(DIST_START, DIST_END, N_DIST)
-kBT = 2.48
+kBT = 8.314e-3 * 298.0
 
 DistArgs = namedtuple('DistArgs', 'r_min r_max n_bins smooth_width flatten_factor')
 TorsArgs = namedtuple('TorsArgs', 'n_bins smooth_width flatten_factor')
@@ -42,25 +37,28 @@ def main():
     process.add_argument('--dist-smooth-width', help='smoothing width for distance distribution (Angstrom)',
                          type=float, default=1.0)
     process.add_argument('--dist-flatten-factor', help='amount to flatten distance distribution.',
-                        default=1.0e-9, type=float)
+                         default=1.0e-9, type=float)
     process.add_argument('--rama-n-bins', help='number of bins for ramachandaran distribution',
                          type=int, default=25)
     process.add_argument('--rama-smooth-width', help='smoothing width for rama distribution (degrees)',
                          type=float, default=15.)
     process.add_argument('--rama-flatten-factor', help='amount to flatten rama distribution.',
-                        default=1.0e-15, type=float)
+                         default=1.0e-15, type=float)
 
     vis_dist_energy = subparsers.add_parser('vis_dist_energy', help='visualize distance energy from file')
     vis_dist_energy.add_argument('dist_file', help='file to visualize')
 
-    vis_dist_distribution = subparsers.add_parser('vis_dist_distribution', help='visualize distance distribution from file')
+    vis_dist_distribution = subparsers.add_parser('vis_dist_distribution',
+                                                  help='visualize distance distribution from file')
     vis_dist_distribution.add_argument('dist_file', help='file to visualize')
 
-    vis_rama_energy = subparsers.add_parser('vis_rama_energy', help='visualize ramachandran energy distribution from file')
+    vis_rama_energy = subparsers.add_parser('vis_rama_energy',
+                                            help='visualize ramachandran energy distribution from file')
     vis_rama_energy.add_argument('--max-energy', help='maximum energy to display', type=float, default=None)
     vis_rama_energy.add_argument('rama_file', help='file to visualize')
 
-    vis_rama_distribution = subparsers.add_parser('vis_rama_distribution', help='visualize ramachandran distribution from file')
+    vis_rama_distribution = subparsers.add_parser('vis_rama_distribution',
+                                                  help='visualize ramachandran distribution from file')
     vis_rama_distribution.add_argument('rama_file', help='file to visualize')
 
     args = parser.parse_args()
@@ -137,9 +135,9 @@ def get_rama_energy(filename):
 
             c = coeffs[ci * bins + cj, :]
 
-            z = (c[0]         + c[1] * v         + c[2] * v**2         + c[3] * v**3 +
-                 c[4] * u     + c[5] * u * v     + c[6] * u * v**2     + c[7] * u * v**3 +
-                 c[8] * u**2  + c[9] * u**2 * v  + c[10] * u**2 * v**2 + c[11] * u**2 * v**3 +
+            z = (c[0]         + c[1]  * v        + c[2]  * v**2        + c[3] * v**3 +
+                 c[4]  * u    + c[5]  * u * v    + c[6]  * u * v**2    + c[7] * u * v**3 +
+                 c[8]  * u**2 + c[9]  * u**2 * v + c[10] * u**2 * v**2 + c[11] * u**2 * v**3 +
                  c[12] * u**3 + c[13] * u**3 * v + c[14] * u**3 * v**2 + c[15] * u**3 * v**3)
 
             energies[i, j] = z
@@ -531,9 +529,7 @@ def get_distance_distribution(fragment, dist_args, offset=0):
 
     for d in dists:
         y_vals += 1.0 * norm * numpy.exp(-(1.0 / dist_args.smooth_width) ** 2 * (x_vals - d) ** 2)
-
     return y_vals
-
 
 if __name__ == '__main__':
     main()
