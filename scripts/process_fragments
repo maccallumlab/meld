@@ -12,8 +12,8 @@ from scipy import signal
 
 kBT = 8.314e-3 * 298.0
 
-DistArgs = namedtuple('DistArgs', 'r_min r_max n_bins smooth_width flatten_factor')
-TorsArgs = namedtuple('TorsArgs', 'n_bins smooth_width flatten_factor')
+DistArgs = namedtuple('DistArgs', 'r_min r_max n_bins smooth_width max_energy')
+TorsArgs = namedtuple('TorsArgs', 'n_bins smooth_width max_energy')
 
 
 def main():
@@ -36,14 +36,14 @@ def main():
                          type=float, default=20.)
     process.add_argument('--dist-smooth-width', help='smoothing width for distance distribution (Angstrom)',
                          type=float, default=1.0)
-    process.add_argument('--dist-flatten-factor', help='amount to flatten distance distribution.',
-                         default=1.0e-9, type=float)
+    process.add_argument('--dist-max-energy', help='maximum energy (in kT) in distance profiles',
+                         default=4.0, type=float)
     process.add_argument('--rama-n-bins', help='number of bins for ramachandaran distribution',
                          type=int, default=25)
     process.add_argument('--rama-smooth-width', help='smoothing width for rama distribution (degrees)',
                          type=float, default=15.)
-    process.add_argument('--rama-flatten-factor', help='amount to flatten rama distribution.',
-                         default=1.0e-15, type=float)
+    process.add_argument('--rama-max-energy', help='maximum energy (in kT) in rama profiles',
+                         default=4.0, type=float)
 
     vis_dist_energy = subparsers.add_parser('vis_dist_energy', help='visualize distance energy from file')
     vis_dist_energy.add_argument('dist_file', help='file to visualize')
@@ -73,6 +73,20 @@ def main():
         visualize_rama_energy(args)
     elif args.command == 'vis_rama_distribution':
         visualize_rama_distribution(args)
+
+
+def compute_flatten_factor_1d(sigma, max_energy):
+    max_energy = max_energy * kBT
+    num = 1.0 / sigma / math.sqrt(2.0 * math.pi)
+    denom = math.exp(1.0 / kBT * max_energy) - 1
+    return num / denom
+
+
+def compute_flatten_factor_2d(sigma, max_energy):
+    max_energy = max_energy * kBT
+    num = 1.0 / sigma ** 2 / 2.0 / math.pi
+    denom = math.exp(1.0 / kBT * max_energy) - 1
+    return num / denom
 
 
 def get_dist_energy(filename):
@@ -170,8 +184,8 @@ def process_fragments(args):
 
     distance_distributions = {}
     dist_args = DistArgs(args.dist_r_min, args.dist_r_max, args.dist_n_bins,
-                         args.dist_smooth_width, args.dist_flatten_factor)
-    tors_args = TorsArgs(args.rama_n_bins, args.rama_smooth_width, args.rama_flatten_factor)
+                         args.dist_smooth_width, args.dist_max_energy)
+    tors_args = TorsArgs(args.rama_n_bins, args.rama_smooth_width, args.rama_max_energy)
 
     rama_distributions = {}
 
@@ -185,7 +199,7 @@ def process_fragments(args):
         process_9mer(args.frag_9mer, distance_distributions, rama_distributions, dist_args, tors_args)
 
     write_distance_distributions(distance_distributions, args.output_dir, dist_args)
-    write_rama_distributions(rama_distributions, args.rama_flatten_factor, args.output_dir, tors_args)
+    write_rama_distributions(rama_distributions, args.output_dir, tors_args)
 
 
 def create_output_dir(output_dir):
@@ -195,10 +209,11 @@ def create_output_dir(output_dir):
 
 
 def write_distance_distributions(distance_distributions, out_dir, dist_args):
+    flatten_factor = compute_flatten_factor_1d(dist_args.smooth_width / math.sqrt(2), dist_args.max_energy)
     for res in distance_distributions:
         energy = distance_distributions[res]
         energy = energy / numpy.sum(energy)
-        energy = energy + dist_args.flatten_factor / len(energy)
+        energy = energy + flatten_factor
         energy = energy / numpy.sum(energy)
         energy = -kBT * numpy.log(energy)
         energy -= numpy.min(energy)
@@ -216,7 +231,7 @@ def write_distance_distributions(distance_distributions, out_dir, dist_args):
             numpy.savetxt(outfile, spline_coeff)
 
 
-def write_rama_distributions(rama_distributions, flatten_factor, out_dir, tors_args):
+def write_rama_distributions(rama_distributions, out_dir, tors_args):
     for res in rama_distributions:
         energy = rama_distributions[res]
 
@@ -263,23 +278,23 @@ def smooth_rama(energies, tors_args):
     assert size == energies.shape[1]
     vals = numpy.linspace(-180., 180., size)
     x, y = numpy.meshgrid(vals, vals)
-    g = numpy.exp(-(1.0 / tors_args.smooth_width) ** 2 * (x ** 2 + y ** 2))
-    g = g / numpy.sum(g)
+    g = 1.0 / tors_args.smooth_width ** 2 / 2.0 / math.pi * numpy.exp(-0.5 * (1.0 / tors_args.smooth_width) ** 2 * (x ** 2 + y ** 2))
 
     energies = signal.convolve2d(energies, g, mode='same', boundary='wrap')
     return energies
 
 
 def convert_to_spline2d(energy, tors_args):
+    flatten_factor = compute_flatten_factor_2d(tors_args.smooth_width, tors_args.max_energy)
     n = tors_args.n_bins - 1
 
     # chop off the duplicate energy values
     energy = energy[:-1, :-1]
     energy = energy / numpy.sum(energy)
-    energy = energy + tors_args.flatten_factor / n / n
+    energy = smooth_rama(energy, tors_args)
+    energy = energy + flatten_factor
     energy = energy / numpy.sum(energy)
 
-    energy = smooth_rama(energy, tors_args)
     energy = -kBT * numpy.log(energy)
     energy = energy - numpy.min(energy)
 
