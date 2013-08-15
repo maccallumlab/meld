@@ -1,4 +1,5 @@
 from meld.remd import slave_runner
+from meld.remd.reseed import NullReseeder
 import logging
 
 
@@ -63,6 +64,8 @@ class MasterReplicaExchangeRunner(object):
         self._alphas = None
         self._setup_alphas()
 
+        self.reseeder = NullReseeder()
+
     def to_slave(self):
         """
         Return a SlaveReplicaExchangeRunner based on self.
@@ -119,6 +122,9 @@ class MasterReplicaExchangeRunner(object):
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states)
+
+            # perform reseeding if it is time
+            self.reseeder.reseed(self.step, states, store)
 
             # store everything
             store.save_states(states, self.step)

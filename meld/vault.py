@@ -192,6 +192,30 @@ class DataStore(object):
         self._handle_load_stage(stage)
         return self._cdf_data_set.variables['positions'][..., stage]
 
+    def load_positions_random_access(self, stage):
+        """
+        Load positions from disk.
+
+        Parameters
+            stage -- int stage to load
+
+        This differs from load_positions in that you can positions from any stage,
+        while load_positions can only move forward in time. However, this comes at
+        a performance penalty.
+        """
+        # get the block for this stage
+        block = self._block_for_stage(stage)
+
+        # if it's the current block, then just return the positions
+        if block == self._current_block:
+            return self._cdf_data_set.variables['positions'][..., stage]
+
+        # otherwise open the file, grab the positions, and then close it
+        else:
+            path = self.net_cdf_path_template.format(block)
+            with contextlib.closing(cdf.Dataset(path, 'r')) as dataset:
+                return dataset.variables['positions'][..., stage]
+
     def load_all_positions(self):
         """
         Load all positions from disk.
