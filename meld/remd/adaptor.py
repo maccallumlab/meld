@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import interpolate
 import math
 from collections import namedtuple
 
@@ -128,6 +129,95 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
             total += dt
             t_lens.append(total)
         self.t_lens = t_lens
+
+
+class FluxAdaptor(AcceptanceCounter):
+    def __init__(self, n_replicas, adaptation_policy, smooth_factor=0.5):
+        AcceptanceCounter.__init__(self, n_replicas)
+        self.adaptation_policy = adaptation_policy
+        assert smooth_factor > 0, 'A small, positive smoothing factor is required.'
+        self.smooth_factor = smooth_factor
+
+        self.up_state = None
+        self.down_state = None
+        self.n_up = None
+        self.n_down = None
+
+        self.reset()
+
+    def update(self, i, accepted):
+        # update the acceptance probabilities
+        AcceptanceCounter.update(self, i, accepted)
+
+        # swap the states
+        self.up_state[[i, i + 1]] = self.up_state[[i + 1, i]]
+        self.down_state[[i, i + 1]] = self.down_state[[i + 1, i]]
+
+        # set the values at the end
+        self.up_state[0] = 1
+        self.down_state[0] = 0
+        self.up_state[-1] = 0
+        self.down_state[-1] = 1
+
+        # increment the counts
+        self.n_up[i:i + 2] += self.up_state[i:i + 2]
+        self.n_down[i:i + 2] += self.down_state[i:i + 2]
+
+    def adapt(self, previous_lambdas, step):
+        should_adapt = self.adaptation_policy.should_adapt(step)
+
+        if should_adapt.adapt_now:
+            f = self._compute_f()
+            f = self._make_f_monotonic(f)
+            f = self._apply_smoothing(f)
+            gx, gy = self._compute_g(f, previous_lambdas)
+            new_lambdas = self._compute_new_lambdas(gx, gy).tolist()
+        else:
+            new_lambdas = previous_lambdas
+
+        if should_adapt.reset_now:
+            self.reset()
+
+        return new_lambdas
+
+    def reset(self):
+        AcceptanceCounter.reset(self)
+        self.up_state = np.zeros(self.n_replicas)
+        self.up_state[0] = 1
+        self.down_state = np.zeros(self.n_replicas)
+        self.down_state[-1] = 1
+        self.n_up = np.zeros(self.n_replicas)
+        self.n_down = np.zeros(self.n_replicas)
+
+    def _compute_f(self):
+        total = self.n_up + self.n_down
+        total[total == 0] = 1  # prevent division by zero if we have no samples
+        return self.n_down / total
+
+    def _make_f_monotonic(self, f):
+        # compute the derivative and force it to be positive
+        diff = np.zeros_like(f)
+        diff[1:] = f[1:] - f[:-1]
+        diff[diff < 0] = 0
+
+        # integrate and rescale into the correct range
+        f = np.cumsum(diff)
+        f = f / f[-1]
+        return f
+
+    def _apply_smoothing(self, f):
+        smooth = np.linspace(0, 1, self.n_replicas)
+        return (1.0 - self.smooth_factor) * f + self.smooth_factor * smooth
+
+    def _compute_g(self, f, previous_lambdas):
+        gy = np.array(previous_lambdas)
+        gx = f
+        return gx, gy
+
+    def _compute_new_lambdas(self, gx, gy):
+        f = interpolate.interp1d(gx, gy)
+        samples = np.linspace(0, 1, self.n_replicas)
+        return f(samples)
 
 
 class SwitchingCompositeAdaptor(object):
