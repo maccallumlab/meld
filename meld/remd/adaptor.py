@@ -3,7 +3,31 @@ import math
 from collections import namedtuple
 
 
-class EqualAcceptanceAdaptor(object):
+class AcceptanceCounter(object):
+    '''
+    Class to keep track of acceptance rates.
+    '''
+    def __init__(self, n_replicas):
+        self.n_replicas = n_replicas
+        self.successes = None
+        self.attempts = None
+        self.reset()
+
+    def reset(self):
+        self.successes = np.zeros(self.n_replicas - 1)
+        self.attempts = np.zeros(self.n_replicas - 1)
+
+    def update(self, i, accepted):
+        assert i in range(self.n_replicas - 1)
+        self.attempts[i] += 1
+        if accepted:
+            self.successes[i] += 1
+
+    def get_acceptance_probabilities(self):
+        return self.successes / (self.attempts + 1e-9)
+
+
+class EqualAcceptanceAdaptor(AcceptanceCounter):
     '''
     Adaptor based on making acceptance rates uniform.
     '''
@@ -16,11 +40,10 @@ class EqualAcceptanceAdaptor(object):
             min_acc_prob -- all acceptence probabilities below this value will be raised to this value
 
         '''
-        self.n_replicas = n_replicas
+        AcceptanceCounter.__init__(self, n_replicas)
+
         self.adaptation_policy = adaptation_policy
         self.min_acc_prob = min_acc_prob
-        self.success = None
-        self.attempts = None
         self.accept_probs = None
         self.t_lens = None
         self.reset()
@@ -34,10 +57,7 @@ class EqualAcceptanceAdaptor(object):
             accepted -- True if the exchange was accepted
 
         '''
-        assert i in range(self.n_replicas - 1)
-        self.attempts[i] += 1
-        if accepted:
-            self.success[i] += 1
+        AcceptanceCounter.update(self, i, accepted)
 
     def adapt(self, previous_lambdas, step):
         '''
@@ -76,9 +96,6 @@ class EqualAcceptanceAdaptor(object):
 
         return new_lambdas
 
-    def get_acceptance_probabilities(self):
-        return self.success / (self.attempts + 1e-6)
-
     def reset(self):
         '''
         Forget about any previous updates.
@@ -86,17 +103,16 @@ class EqualAcceptanceAdaptor(object):
         Resets all internal counters and statistics to zero.
 
         '''
-        self.success = np.zeros(self.n_replicas - 1)
-        self.attempts = np.zeros(self.n_replicas - 1)
+        AcceptanceCounter.reset(self)
         self.accept_probs = None
         self.t_lens = None
 
     def _compute_accept_probs(self):
         # default to 50 percent if there hasn't been a trial
-        self.success[self.attempts == 0] = 1.
+        self.successes[self.attempts == 0] = 1.
         self.attempts[self.attempts == 0] = 2.
 
-        self.accept_probs = self.success / self.attempts
+        self.accept_probs = self.successes / self.attempts
 
         # set minimum percentage
         self.accept_probs[self.accept_probs < self.min_acc_prob] = self.min_acc_prob

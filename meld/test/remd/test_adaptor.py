@@ -28,7 +28,7 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
 
         self.adaptor.adapt([0., 0.5, 1.], STEP)
 
-        self.assertEqual(self.adaptor.success[0], 0)
+        self.assertEqual(self.adaptor.successes[0], 0)
 
     def test_no_adapt_unless_policy_says(self):
         "if the adaptation_policy says not to adapt, we should not adapt"
