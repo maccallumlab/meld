@@ -27,9 +27,6 @@ class Reseeder(object):
         self._next_reseed = interval
         self.candidate_frames = candidate_frames
 
-        assert self.interval > self.n_replicas
-        assert self.candidate_frams < (self.interval - self.n_replicas)
-
     def reseed(self, step, current_states, store):
         '''
         Perform the reseeding.
