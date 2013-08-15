@@ -130,6 +130,32 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         self.t_lens = t_lens
 
 
+class SwitchingCompositeAdaptor(object):
+    def __init__(self, switching_time, first_adaptor, second_adaptor):
+        self.switching_time = switching_time
+        self.first_adaptor = first_adaptor
+        self.second_adaptor = second_adaptor
+
+    def update(self, i, accepted):
+        self.first_adaptor.update(i, accepted)
+        self.second_adaptor.update(i, accepted)
+
+    def adapt(self, previous_lambdas, step):
+        lambdas_from_first = self.first_adaptor.adapt(previous_lambdas, step)
+        lambdas_from_second = self.second_adaptor.adapt(previous_lambdas, step)
+        if step <= self.switching_time:
+            return lambdas_from_first
+        else:
+            return lambdas_from_second
+
+    def reset(self):
+        self.first_adaptor.reset()
+        self.second_adaptor.reset()
+
+    def get_acceptance_probabilities(self):
+        return self.first_adaptor.get_acceptance_probabilities()
+
+
 class AdaptationPolicy(object):
     '''
     Repeat adaptation on a regular schedule with an optional burn-in and increasing adaptation times.
