@@ -1,4 +1,8 @@
+import logging
 import random
+
+
+logger = logging.getLogger(__name__)
 
 
 class NullReseeder(object):
@@ -27,6 +31,9 @@ class Reseeder(object):
         self._next_reseed = interval
         self.candidate_frames = candidate_frames
 
+        assert self.interval > 0
+        assert self.candidate_frames < self.interval
+
     def reseed(self, step, current_states, store):
         '''
         Perform the reseeding.
@@ -36,7 +43,10 @@ class Reseeder(object):
         :param store: a DataStore object to get historical structures from
         '''
         if step == self._next_reseed:
+            logger.info('Performing reseeding. Will seed from stages %d to %d.',
+                    step - self.candidate_frames, step - 1)
             self._next_reseed += self.interval
+            logger.info('Next reseeding will be at step %d.', self._next_reseed)
             for state in current_states:
                 from_frame = random.randrange(step - self.candidate_frames, step)
                 all_coords = store.load_positions_random_access(from_frame)
