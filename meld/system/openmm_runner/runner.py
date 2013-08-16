@@ -176,6 +176,8 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
         implicit_type = GBn
     elif implicit_solvent == 'gbNeck2':
         implicit_type = GBn2
+    elif implicit_solvent is None:
+        implicit_type = None
     return parm_object.createSystem(nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
                                     constraints=constraint_type, implicitSolvent=implicit_type)
 

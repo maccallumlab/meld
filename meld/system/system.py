@@ -283,7 +283,7 @@ class RunOptions(object):
 
     @implicit_solvent_model.setter
     def implicit_solvent_model(self, value):
-        if not value in ['obc', 'gbNeck', 'gbNeck2']:
+        if not value in [None, 'obc', 'gbNeck', 'gbNeck2']:
             raise RuntimeError('unknown value for implicit solvent model {}'.format(value))
         self._implicit_solvent_model = value
 
