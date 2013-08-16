@@ -517,7 +517,6 @@ class DataStore(object):
             self._backup(self.remd_runner_path, self.remd_runner_backup_path)
             self._backup(self.system_path, self.system_backup_path)
             self._backup(self.run_options_path, self.run_options_backup_path)
-            self._backup(self.traj_path, self.traj_backup_path)
 
     #
     # private methods
