@@ -32,9 +32,9 @@ class NearestNeighborLadder(object):
             a permutation vector (see below for details)
 
         The energy matrix should be an n_rep x n_rep numpy array. All energies are in dimensionless units (unit of kT).
-        Each row represents a particular structure, while each replica represents a particular combination of
-        temperature and Hamiltonian. So, energies[i,j] is the energy of structure i with temperature and hamiltonian j.
-        The diagonal energies[i,i] is the energies that were actually simulated.
+        Each column represents a particular structure, while each row represents a particular combination of
+        temperature and Hamiltonian. So, energies[i,j] is the energy of structure j with temperature and hamiltonian i.
+        The diagonal energies[i,i] are the energies that were actually simulated.
 
         This method will attempt self.n_trials swaps between randomly chosen pairs of adjacent replicas. It will
         return a permutation vector that describes which index each structure should be at after swapping. So, if the
@@ -49,19 +49,19 @@ class NearestNeighborLadder(object):
         assert energies.shape[0] == energies.shape[1]
 
         n_replicas = energies.shape[0]
-        permutation_matrix = range(n_replicas)
+        permutation_vector = range(n_replicas)
 
         choices = range(n_replicas - 1)
         for iteration in range(self.n_trials):
             i = random.choice(choices)
             j = i + 1
-            self._do_trial(i, j, permutation_matrix, energies, adaptor)
+            self._do_trial(i, j, permutation_vector, energies, adaptor)
 
-        return permutation_matrix
+        return permutation_vector
 
-    def _do_trial(self, i, j, permutation_matrix, energies, adaptor):
+    def _do_trial(self, i, j, permutation_vector, energies, adaptor):
         """Perform a replica exchange trial"""
-        delta = energies[i, i] - energies[i, j] + energies[j, j] - energies[j, i]
+        delta = energies[i, i] - energies[j, i] + energies[j, j] - energies[i, j]
         accepted = False
 
         if delta >= 0:
@@ -73,16 +73,16 @@ class NearestNeighborLadder(object):
                 accepted = True
 
         if accepted:
-            self._swap_permutation(i, j, permutation_matrix)
+            self._swap_permutation(i, j, permutation_vector)
             self._swap_energies(i, j, energies)
             adaptor.update(i, True)
         else:
             adaptor.update(i, False)
 
     @staticmethod
-    def _swap_permutation(i, j, permutation_matrix):
+    def _swap_permutation(i, j, permutation_vector):
         """Swap two elements of the permutation matrix"""
-        permutation_matrix[i], permutation_matrix[j] = permutation_matrix[j], permutation_matrix[i]
+        permutation_vector[i], permutation_vector[j] = permutation_vector[j], permutation_vector[i]
 
     @staticmethod
     def _swap_energies(i, j, energies):
