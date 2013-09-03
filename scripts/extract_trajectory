@@ -57,9 +57,16 @@ def main():
 def extract_traj(store, args):
     pdb_writer = get_pdb_writer(store)
 
-    positions = load_all_frames(store)
-    max_step = positions.shape[3]
+    #extract gets killed by loading all
+    positions = numpy.concatenate([numpy.array(store.load_positions(i))[..., numpy.newaxis]
+                                       for i in range(9000,10000)], axis=-1)
     n_replicas = positions.shape[0]
+    positions = positions[args.replica, ...]
+
+    #positions = load_all_frames(store)
+    #max_step = positions.shape[3]
+    #n_replicas = positions.shape[0]
+    max_step = 1000
 
     start = args.start
     if not start is None:
@@ -82,7 +89,7 @@ def extract_traj(store, args):
 
     with open(args.output_filename, 'w') as output_file:
         for step in range(start, end + 1):
-            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :, step], step)
+            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, step], step)
             output_file.write(pdb_string)
 
 
