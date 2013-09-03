@@ -149,9 +149,10 @@ class DataStore(object):
             pickle.dump(self, store_file)
 
     @classmethod
-    def load_data_store(cls):
+    def load_data_store(cls, load_backup=False):
         """Load the DataStore object from disk."""
-        with open(cls.data_store_path) as store_file:
+        path = cls.data_store_backup_path if load_backup else cls.data_store_path
+        with open(path) as store_file:
             return pickle.load(store_file)
 
     def save_communicator(self, comm):
