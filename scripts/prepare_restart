@@ -64,7 +64,7 @@ def process_restart(do_it):
     if not do_it:
         print '    Skipped.'
     else:
-        store._current_block = last_safe_block
+        store._current_block = last_safe_block + 1
         store.save_data_store()
         print '    Done.'
 
