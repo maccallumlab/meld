@@ -153,11 +153,15 @@ class CrdReader(object):
         self.crd_string = crd_string
 
     def get_coordinates(self):
+
+        def split_len(seq, length):
+            return [seq[i:i+length] for i in range(0, len(seq), length)]
+
         lines = self.crd_string.splitlines()
         n_atoms = int(lines[1].split()[0])
         coords = []
         for line in lines[2:]:
-            cols = line.split()
+            cols = split_len(line, 12)
             cols = [float(c) for c in cols]
             coords.extend(cols)
         assert len(coords) == 3 * n_atoms

@@ -148,11 +148,11 @@ def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.
                                    index+2, 'N', 145, 25.0, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+4, 'CA',
+        d1 = DistanceRestraint(system, scaler, ext.start+1, 'CA', ext.start+4, 'CA',
                                0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, helix.start+2, 'CA', helix.start+5, 'CA',
+        d2 = DistanceRestraint(system, scaler, ext.start+2, 'CA', ext.start+5, 'CA',
                                0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+5, 'CA',
+        d3 = DistanceRestraint(system, scaler, ext.start+1, 'CA', ext.start+5, 'CA',
                                0, 1.086, 1.394, 1.394 + quadratic_cut, distance_force_constant)
         rests.append(d1)
         rests.append(d2)
