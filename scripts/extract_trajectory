@@ -5,6 +5,7 @@ from meld import vault
 from itertools import izip
 import argparse
 import numpy
+import progressbar
 
 
 def parse_args():
@@ -91,10 +92,13 @@ def extract_traj(store, args):
     assert replica_index >= 0, 'replica must be >= 0'
     assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
 
+    bar = get_progress_bar(end - start).start()
     with open(args.output_filename, 'w') as output_file:
         for step, positions in enumerate(store.iterate_positions(start, end)):
+            bar.update(step)
             pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :], step + start)
             output_file.write(pdb_string)
+    bar.finish()
 
 
 def extract_last(store, args):
@@ -163,19 +167,29 @@ def follow_structure(store, args):
     assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
     replica_indices = numpy.array(list(range(n_replicas)), dtype=int)
 
+    bar = get_progress_bar(end - start).start()
     with open(args.output_filename, 'w') as output_file:
         for step, (positions, perm_vector) in enumerate(izip(store.iterate_positions(start, end),
                                                              store.iterate_permutation_vectors(start, end))):
+            bar.update(step)
             replica_indices = replica_indices[perm_vector]
             structure_index = numpy.where(replica_indices == replica_index)[0][0]
             pdb_string = pdb_writer.get_pdb_string(positions[structure_index, :, :], step + start)
             output_file.write(pdb_string)
+    bar.finish()
 
 
 def get_pdb_writer(store):
     system = store.load_system()
     pdb_writer = system.get_pdb_writer()
     return pdb_writer
+
+
+def get_progress_bar(n_steps):
+    widgets = ['Progress: ', progressbar.Percentage(), ' ', progressbar.Bar(),
+               ' ', progressbar.ETA()]
+    bar = progressbar.ProgressBar(maxval=n_steps, widgets=widgets)
+    return bar
 
 
 if __name__ == '__main__':
