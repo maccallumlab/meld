@@ -470,9 +470,11 @@ class LinearScaler(Scaler):
 
     _scaler_key_ = 'linear'
 
-    def __init__(self, alpha_min, alpha_max):
+    def __init__(self, alpha_min, alpha_max, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
+        self._strength_at_alpha_min = strength_at_alpha_min
+        self._strength_at_alpha_max = strength_at_alpha_max
         self._delta = alpha_max - alpha_min
         self._check_alpha_min_max()
 
@@ -481,6 +483,7 @@ class LinearScaler(Scaler):
         scale = self._handle_boundaries(alpha)
         if scale is None:
             scale = 1.0 - (alpha - self._alpha_min) / self._delta
+        scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
 
 
@@ -490,9 +493,11 @@ class NonLinearScaler(Scaler):
 
     _scaler_key_ = 'nonlinear'
 
-    def __init__(self, alpha_min, alpha_max, factor):
+    def __init__(self, alpha_min, alpha_max, factor, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
+        self._strength_at_alpha_min = strength_at_alpha_min
+        self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
         if factor < 1:
             raise RuntimeError('factor must be >= 1. factor={}.'.format(factor))
@@ -505,4 +510,5 @@ class NonLinearScaler(Scaler):
             delta = (alpha - self._alpha_min) / (self._alpha_max - self._alpha_min)
             norm = 1.0 / (math.exp(self._factor) - 1.0)
             scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
+        scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
