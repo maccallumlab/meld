@@ -56,15 +56,27 @@ def process_restart(do_it):
     remove_blocks(do_it, last_safe_block)
     print
 
+    print 'Loading data store'
+    store = vault.DataStore.load_data_store()
+    store.initialize(mode='r')
+
     print 'Setting current block on datastore to {}.'.format(last_safe_block)
     if not do_it:
         print '    Skipped.'
     else:
-        store = vault.DataStore.load_data_store()
         store._current_block = last_safe_block
         store.save_data_store()
-        store.close()
         print '    Done.'
+
+    print 'Setting current stage to {}.'.format(current_stage - 1)
+    if not do_it:
+        print '    Skipped.'
+    else:
+        runner = store.load_remd_runner()
+        runner._step = current_stage - 1
+
+    print 'Closing data store.'
+    store.close()
     print
 
 
