@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 from meld import vault
+from itertools import izip
 import argparse
 import numpy
 
@@ -42,6 +43,17 @@ def parse_args():
                         help='number of frames to extract (default: number of replicas)')
     random.set_defaults(func=extract_random)
 
+    # follow
+    follow = subparsers.add_parser('follow_structure', help='follow a structure replica through the ladder')
+    follow.add_argument('output_filename', help='filename of the output pdb file')
+    follow.add_argument('--start', type=int, default=None,
+                        help='first frame to extract (default: first')
+    follow.add_argument('--end', type=int, default=None,
+                        help='last frame to extract (default: last)')
+    follow.add_argument('--replica', type=int, default=0,
+                        help='replica to extract (default: 0)')
+    follow.set_defaults(func=follow_structure)
+
     return parser.parse_args()
 
 
@@ -57,32 +69,31 @@ def main():
 def extract_traj(store, args):
     pdb_writer = get_pdb_writer(store)
 
-    positions = load_all_frames(store)
-    max_step = positions.shape[3]
-    n_replicas = positions.shape[0]
+    n_replicas = store.n_replicas
+    max_step = store.max_safe_frame()
 
     start = args.start
     if not start is None:
-        assert start > 0
-        assert start < max_step
+        assert start > 0, 'start must be > 0'
+        assert start < max_step, 'start must be < {}'.format(max_step)
     else:
         start = 1
 
     end = args.end
     if not end is None:
-        assert end > 0
-        assert end < max_step
-        assert end > start
+        assert end > 0, 'end must be > 0'
+        assert end < max_step, 'end must be < {}'.format(max_step)
+        assert end > start, 'end must be > start'
     else:
         end = max_step - 1
 
     replica_index = args.replica
-    assert replica_index >= 0
-    assert replica_index < n_replicas
+    assert replica_index >= 0, 'replica must be >= 0'
+    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
 
     with open(args.output_filename, 'w') as output_file:
-        for step in range(start, end + 1):
-            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :, step], step)
+        for step, positions in enumerate(store.iterate_positions(start, end)):
+            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :], step + start)
             output_file.write(pdb_string)
 
 
@@ -90,17 +101,14 @@ def extract_last(store, args):
     pdb_writer = get_pdb_writer(store)
 
     if args.end is None:
-        positions = load_all_frames(store)
-        max_step = positions.shape[3]
-        positions = positions[:, :, :, max_step - 1]
+        end = store.max_safe_frame() - 1
     else:
-        positions = load_single_frame(store, args.end)
-    print positions.shape
-    n_replicas = positions.shape[0]
+        end = args.end
+    positions = store.load_positions(end)
 
-    for rep_index in range(n_replicas):
+    for rep_index in range(store.n_replicas):
         with open('{0}_{1:03d}.pdb'.format(args.name, rep_index), 'w') as outfile:
-            pdb_string = pdb_writer.get_pdb_string(positions[rep_index, :, :], args.end)
+            pdb_string = pdb_writer.get_pdb_string(positions[rep_index, :, :], end)
             outfile.write(pdb_string)
 
 
@@ -108,28 +116,60 @@ def extract_random(store, args):
     pdb_writer = get_pdb_writer(store)
 
     if args.end is None and args.start is None:
-        positions = load_all_frames(store)
-        n_replicas = positions.shape[0]
-        positions = positions[args.replica, ...]
+        start = 0
+        end = store.max_safe_frame()
     elif not (args.end is None) and not (args.start is None):
-        positions = numpy.concatenate([numpy.array(store.load_positions(i))[..., numpy.newaxis]
-                                       for i in range(args.start, args.end)], axis=-1)
-        n_replicas = positions.shape[0]
-        positions = positions[args.replica, ...]
+        start = args.start
+        end = args.end
     else:
         raise ValueError('Must specify both --start and --end or neither')
 
     if args.n_frames is None:
-        n_frames = n_replicas
+        n_frames = store.n_replicas
     else:
         n_frames = args.n_frames
 
-    random_frames = numpy.random.randint(0, positions.shape[2], n_frames)
+    random_frames = numpy.random.randint(start, end, n_frames)
 
     for index, frame in enumerate(random_frames):
         with open('{}_{}.pdb'.format(args.name, index), 'w') as outfile:
-            pdb_string = pdb_writer.get_pdb_string(positions[:, :, frame], frame)
+            pdb_string = pdb_writer.get_pdb_string(store.load_positions(frame)[0, :, :], frame)
             outfile.write(pdb_string)
+
+
+def follow_structure(store, args):
+    pdb_writer = get_pdb_writer(store)
+
+    n_replicas = store.n_replicas
+    max_step = store.max_safe_frame()
+
+    start = args.start
+    if not start is None:
+        assert start > 0, 'start must be > 0'
+        assert start < max_step, 'start must be < {}'.format(max_step)
+    else:
+        start = 1
+
+    end = args.end
+    if not end is None:
+        assert end > 0, 'end must be > 0'
+        assert end < max_step, 'end must be < {}'.format(max_step)
+        assert end > start, 'end must be > start'
+    else:
+        end = max_step - 1
+
+    replica_index = args.replica
+    assert replica_index >= 0, 'replica must be >= 0'
+    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
+    replica_indices = numpy.array(list(range(n_replicas)), dtype=int)
+
+    with open(args.output_filename, 'w') as output_file:
+        for step, (positions, perm_vector) in enumerate(izip(store.iterate_positions(start, end),
+                                                             store.iterate_permutation_vectors(start, end))):
+            replica_indices = replica_indices[perm_vector]
+            structure_index = numpy.where(replica_indices == replica_index)[0][0]
+            pdb_string = pdb_writer.get_pdb_string(positions[structure_index, :, :], step + start)
+            output_file.write(pdb_string)
 
 
 def get_pdb_writer(store):
@@ -137,13 +177,6 @@ def get_pdb_writer(store):
     pdb_writer = system.get_pdb_writer()
     return pdb_writer
 
-
-def load_all_frames(store):
-    return store.load_all_positions()
-
-
-def load_single_frame(store, frame):
-    return store.load_positions(frame)
 
 if __name__ == '__main__':
     main()

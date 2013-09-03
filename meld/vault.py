@@ -227,6 +227,19 @@ class DataStore(object):
         return np.concatenate([np.array(self.load_positions(i))[..., np.newaxis]
                                for i in range(self.max_safe_frame())], axis=-1)
 
+    def iterate_positions(self, start=None, end=None):
+        """
+        Iterate over the positions from disk.
+
+        """
+        if start is None:
+            start = 0
+        if end is None:
+            end = self.max_safe_frame()
+
+        for i in range(start, end):
+            yield self.load_positions(i)
+
     def save_velocities(self, velocities, stage):
         """
         Save velocities to disk.
@@ -431,6 +444,19 @@ class DataStore(object):
         """
         return np.concatenate([np.array(self.load_permutation_vector(i))[..., np.newaxis]
                                for i in range(self.max_safe_frame())], axis=-1)
+
+    def iterate_permutation_vectors(self, start=None, end=None):
+        """
+        Iterate over the permutation vectors from disk.
+
+        """
+        if start is None:
+            start = 0
+        if end is None:
+            end = self.max_safe_frame()
+
+        for i in range(start, end):
+            yield self.load_permutation_vector(i)
 
     def save_acceptance_probabilities(self, accept_probs, stage):
         """
