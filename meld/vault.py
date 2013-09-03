@@ -129,7 +129,11 @@ class DataStore(object):
             self._current_stage = 0
             self._create_cdf_file()
         elif mode == 'a':
-            self._cdf_data_set = cdf.Dataset(self.net_cdf_path_template.format(self._current_block), 'a')
+            block_path = self.net_cdf_path_template.format(self._current_block)
+            if os.path.exists(block_path):
+                self._cdf_data_set = cdf.Dataset(block_path, 'a')
+            else:
+                self._create_cdf_file()
         elif mode == 'r':
             self._current_block = 0
             self._readonly_mode = True
