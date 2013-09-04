@@ -149,12 +149,13 @@ def get_alphas(store, start, end):
     if end is None:
         end = store.max_safe_frame()
 
-    bar = get_progress_bar(end - start).start()
+    bar = get_progress_bar('Loading data', end - start).start()
 
     alphas = np.zeros((store.n_replicas, end - start))
     for index, frame in enumerate(range(start, end)):
         bar.update(index)
         alphas[:, index] = store.load_alphas(frame)
+    bar.finish()
 
     return alphas
 
@@ -163,14 +164,15 @@ def get_permutation_vectors(store, start, end):
     if start is None:
         start = 1
     if end is None:
-        end = store.max_saf_frame()
+        end = store.max_safe_frame()
 
     perm_vecs = np.zeros((store.n_replicas, end - start), dtype=int)
-    bar = get_progress_bar(end - start).start()
+    bar = get_progress_bar('Loading data', end - start).start()
 
     for index, frame in enumerate(range(start, end)):
         bar.update(index)
         perm_vecs[:, index] = store.load_permutation_vector(frame)
+    bar.finish()
 
     return perm_vecs
 
@@ -182,9 +184,12 @@ def deshuffle_traces(perm_vecs):
     results = []
     current_indices = np.array(list(range(n_replicas)))
 
+    bar = get_progress_bar('Deshuffling', n_steps).start()
     for i in range(n_steps):
+        bar.update(i)
         current_indices = current_indices[perm_vecs[:, i]]
         results.append(current_indices)
+    bar.finish()
     return np.array(results)
 
 
@@ -199,7 +204,9 @@ def compute_fup(traces):
     n_steps = traces.shape[0]
     n_reps = traces.shape[1]
 
+    bar = get_progress_bar('Computing f_up', n_steps).start()
     for step in range(n_steps):
+        bar.update(step)
         # this gives the REPLICA for each LADDER STEP
         this_trace = traces[step, :]
 
@@ -215,14 +222,15 @@ def compute_fup(traces):
 
         up_count += going_up[this_trace]
         down_count += going_down[this_trace]
+    bar.finish()
 
     f_up = up_count / (up_count + down_count + 0.1)
     f_down = down_count / (up_count + down_count + 0.1)
     return f_up, f_down
 
 
-def get_progress_bar(n_steps):
-    widgets = ['Progress: ', progressbar.Percentage(), ' ', progressbar.Bar(),
+def get_progress_bar(label, n_steps):
+    widgets = ['{}: '.format(label), progressbar.Percentage(), ' ', progressbar.Bar(),
                ' ', progressbar.ETA()]
     bar = progressbar.ProgressBar(maxval=n_steps, widgets=widgets)
     return bar
