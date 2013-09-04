@@ -124,7 +124,7 @@ def visualize_accept(store, args):
     n_steps = end - start
     n_pairs = store.n_replicas - 1
 
-    bar = get_progress_bar(n_steps).start()
+    bar = get_progress_bar('Loading data', n_steps).start()
     probs = np.zeros((n_pairs, n_steps))
     for index, frame in enumerate(range(start, end)):
         bar.update(index)
