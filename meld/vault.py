@@ -129,7 +129,11 @@ class DataStore(object):
             self._current_stage = 0
             self._create_cdf_file()
         elif mode == 'a':
-            self._cdf_data_set = cdf.Dataset(self.net_cdf_path_template.format(self._current_block), 'a')
+            block_path = self.net_cdf_path_template.format(self._current_block)
+            if os.path.exists(block_path):
+                self._cdf_data_set = cdf.Dataset(block_path, 'a')
+            else:
+                self._create_cdf_file()
         elif mode == 'r':
             self._current_block = 0
             self._readonly_mode = True
@@ -149,9 +153,10 @@ class DataStore(object):
             pickle.dump(self, store_file)
 
     @classmethod
-    def load_data_store(cls):
+    def load_data_store(cls, load_backup=False):
         """Load the DataStore object from disk."""
-        with open(cls.data_store_path) as store_file:
+        path = cls.data_store_backup_path if load_backup else cls.data_store_path
+        with open(path) as store_file:
             return pickle.load(store_file)
 
     def save_communicator(self, comm):

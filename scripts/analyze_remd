@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import argparse
+import progressbar
 from meld import vault
 from matplotlib import pyplot
 from matplotlib import animation
@@ -45,10 +46,6 @@ def main():
 
     viz_accept = subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
     viz_accept.set_defaults(func=visualize_accept)
-
-    viz_anim = subparsers.add_parser('visualize_accept_anim', help='visualize acceptance probabilities')
-    viz_anim.add_argument('--use_alpha', default=False, action='store_true')
-    viz_anim.set_defaults(func=visualize_accept_anim)
 
     args = parser.parse_args()
     args.func(store, args)
@@ -114,57 +111,28 @@ def visualize_fup(store, args):
 
 
 def visualize_accept(store, args):
-    probs = store.load_all_acceptance_probabilities()
-    n_steps = probs.shape[1]
-    n_pairs = probs.shape[0]
-    if args.start is None:
-        start = 1
-    else:
+    if args.start:
         start = args.start
-    if args.end is None:
-        end = n_steps - 1
     else:
+        start = 1
+
+    if args.end:
         end = args.end
-    assert 0 < start < n_steps
-    assert 0 < end < n_steps
-    assert end > start
-    probs = probs[:, start:(end + 1)]
+    else:
+        end = store.max_safe_frame()
+
+    n_steps = end - start
+    n_pairs = store.n_replicas - 1
+
+    bar = get_progress_bar('Loading data', n_steps).start()
+    probs = np.zeros((n_pairs, n_steps))
+    for index, frame in enumerate(range(start, end)):
+        bar.update(index)
+        probs[:, index] = store.load_acceptance_probabilities(frame)
+    bar.finish()
 
     for i in range(n_pairs):
         pyplot.plot(probs[i, :])
-    pyplot.show()
-
-
-def visualize_accept_anim(store, args):
-    probs = store.load_all_acceptance_probabilities()
-    n_steps = probs.shape[1]
-    n_pairs = probs.shape[0]
-    if args.start is None:
-        start = 1
-    else:
-        start = args.start
-    if args.end is None:
-        end = n_steps - 1
-    else:
-        end = args.end
-    assert 0 < start < n_steps
-    assert 0 < end < n_steps
-    assert end > start
-    probs = probs[:, start:(end + 1)]
-
-    alphas = get_alphas(store, start, end)
-
-    figure = pyplot.figure()
-    plots = []
-    for i in range(probs.shape[1]):
-        if args.use_alpha:
-            plt = pyplot.plot(alphas[:-1, i], probs[:, i], 'ko')
-            plt.extend([pyplot.text(0.1, 0.1, 'step: {}'.format(i))])
-        else:
-            plt = pyplot.plot(probs[:, i], 'ko')
-            plt.extend([pyplot.text(2, 0.1, 'step: {}'.format(i))])
-        plots.append(plt)
-    ani = animation.ArtistAnimation(figure, plots, interval=10, blit=True)
     pyplot.show()
 
 
@@ -176,33 +144,37 @@ def extract_fup(store, args):
 
 
 def get_alphas(store, start, end):
-    alphas = store.load_all_alphas()
-    n_alphas = alphas.shape[1]
     if start is None:
         start = 1
     if end is None:
-        end = n_alphas - 1
+        end = store.max_safe_frame()
 
-    assert 0 < start < n_alphas
-    assert 0 < end < n_alphas
-    assert end > start
+    bar = get_progress_bar('Loading data', end - start).start()
 
-    return alphas[:, start:(end + 1)]
+    alphas = np.zeros((store.n_replicas, end - start))
+    for index, frame in enumerate(range(start, end)):
+        bar.update(index)
+        alphas[:, index] = store.load_alphas(frame)
+    bar.finish()
+
+    return alphas
 
 
 def get_permutation_vectors(store, start, end):
-    alphas = store.load_all_permutation_vectors()
-    n_alphas = alphas.shape[1]
     if start is None:
         start = 1
     if end is None:
-        end = n_alphas - 1
+        end = store.max_safe_frame()
 
-    assert 0 < start < n_alphas
-    assert 0 < end < n_alphas
-    assert end > start
+    perm_vecs = np.zeros((store.n_replicas, end - start), dtype=int)
+    bar = get_progress_bar('Loading data', end - start).start()
 
-    return alphas[:, start:(end + 1)]
+    for index, frame in enumerate(range(start, end)):
+        bar.update(index)
+        perm_vecs[:, index] = store.load_permutation_vector(frame)
+    bar.finish()
+
+    return perm_vecs
 
 
 def deshuffle_traces(perm_vecs):
@@ -212,9 +184,12 @@ def deshuffle_traces(perm_vecs):
     results = []
     current_indices = np.array(list(range(n_replicas)))
 
+    bar = get_progress_bar('Deshuffling', n_steps).start()
     for i in range(n_steps):
+        bar.update(i)
         current_indices = current_indices[perm_vecs[:, i]]
         results.append(current_indices)
+    bar.finish()
     return np.array(results)
 
 
@@ -229,7 +204,9 @@ def compute_fup(traces):
     n_steps = traces.shape[0]
     n_reps = traces.shape[1]
 
+    bar = get_progress_bar('Computing f_up', n_steps).start()
     for step in range(n_steps):
+        bar.update(step)
         # this gives the REPLICA for each LADDER STEP
         this_trace = traces[step, :]
 
@@ -245,10 +222,18 @@ def compute_fup(traces):
 
         up_count += going_up[this_trace]
         down_count += going_down[this_trace]
+    bar.finish()
 
     f_up = up_count / (up_count + down_count + 0.1)
     f_down = down_count / (up_count + down_count + 0.1)
     return f_up, f_down
+
+
+def get_progress_bar(label, n_steps):
+    widgets = ['{}: '.format(label), progressbar.Percentage(), ' ', progressbar.Bar(),
+               ' ', progressbar.ETA()]
+    bar = progressbar.ProgressBar(maxval=n_steps, widgets=widgets)
+    return bar
 
 
 if __name__ == '__main__':
