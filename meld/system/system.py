@@ -248,6 +248,46 @@ class RunOptions(object):
         self._use_amap = False
         self._amap_alpha_bias = 1.0
         self._amap_beta_bias = 1.0
+        self._softcore = False
+        self._sc_alpha_min = 0.0
+        self._sc_alpha_max_coulomb = 0.3
+        self._sc_alpha_max_lennard_jones = 1.0
+
+    @property
+    def softcore(self):
+        return self._softcore
+
+    @softcore.setter
+    def softcore(self, new_value):
+        self._softcore = bool(new_value)
+        self._check_sc()
+
+    @property
+    def sc_alpha_min(self):
+        return self._sc_alpha_min
+
+    @sc_alpha_min.setter
+    def sc_alpha_min(self, new_value):
+        self._sc_alpha_min = float(new_value)
+        self._check_sc()
+
+    @property
+    def sc_alpha_max_coulomb(self):
+        return self._sc_alpha_max_coulomb
+
+    @sc_alpha_max_coulomb.setter
+    def sc_alpha_max_coulomb(self, new_value):
+        self._sc_alpha_max_coulomb = float(new_value)
+        self._check_sc()
+
+    @property
+    def sc_alpha_max_lennard_jones(self):
+        return self._sc_alpha_max_lennard_jones
+
+    @sc_alpha_max_lennard_jones.setter
+    def sc_alpha_max_lennard_jones(self, new_value):
+        self._sc_alpha_max_lennard_jones = float(new_value)
+        self._check_sc()
 
     @property
     def runner(self):
@@ -340,3 +380,10 @@ class RunOptions(object):
         if value < 0:
             raise RuntimeError('amap_beta_bias < 0')
         self._amap_beta_bias = value
+
+    def _check_sc(self):
+        if self._softcore:
+            assert self._sc_alpha_min >= 0.0
+            assert self._sc_alpha_max_coulomb > self._sc_alpha_min
+            assert self._sc_alpha_max_lennard_jones > self._sc_alpha_max_coulomb
+            assert self._sc_alpha_max_lennard_jones <= 1.0
