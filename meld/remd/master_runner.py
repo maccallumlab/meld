@@ -172,4 +172,4 @@ class MasterReplicaExchangeRunner(object):
             if self._step > self._ramp_steps:
                 return 1.0
             else:
-                return float(self.step + 1) / float(self._ramp_steps)
+                return (float(self.step + 1) / float(self._ramp_steps)) ** 4
