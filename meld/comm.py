@@ -76,6 +76,10 @@ class MPICommunicator(object):
             return False
 
     @log_timing(logger)
+    def barrier(self):
+        self._mpi_comm.barrier()
+
+    @log_timing(logger)
     def broadcast_alphas_to_slaves(self, alphas):
         """
         Send the alpha values to the slaves

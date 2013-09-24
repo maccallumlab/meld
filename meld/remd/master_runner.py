@@ -99,9 +99,11 @@ class MasterReplicaExchangeRunner(object):
             system_runner.set_alpha(0., ramp_weight)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_slaves(self._alphas)
+            communicator.barrier()
 
             # do one step
             my_state = communicator.broadcast_states_to_slaves(states)
+            communicator.barrier()
             if self._step == 1:
                 logger.info('First step, minimizing and then running.')
                 my_state = system_runner.minimize_then_run(my_state)
@@ -111,13 +113,16 @@ class MasterReplicaExchangeRunner(object):
 
             # gather all of the states
             states = communicator.gather_states_from_slaves(my_state)
+            communicator.barrier()
 
             # send them to the slaves
             communicator.broadcast_states_for_energy_calc_to_slaves(states)
+            communicator.barrier()
 
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
             energies = communicator.gather_energies_from_slaves(my_energies)
+            communicator.barrier()
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
