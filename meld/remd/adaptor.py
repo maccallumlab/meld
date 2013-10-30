@@ -149,19 +149,20 @@ class FluxAdaptor(AcceptanceCounter):
         # update the acceptance probabilities
         AcceptanceCounter.update(self, i, accepted)
 
-        # swap the states
-        self.up_state[[i, i + 1]] = self.up_state[[i + 1, i]]
-        self.down_state[[i, i + 1]] = self.down_state[[i + 1, i]]
+        if accepted:
+            # swap the states
+            self.up_state[[i, i + 1]] = self.up_state[[i + 1, i]]
+            self.down_state[[i, i + 1]] = self.down_state[[i + 1, i]]
 
-        # set the values at the end
-        self.up_state[0] = 1
-        self.down_state[0] = 0
-        self.up_state[-1] = 0
-        self.down_state[-1] = 1
+            # set the values at the end
+            self.up_state[0] = 1
+            self.down_state[0] = 0
+            self.up_state[-1] = 0
+            self.down_state[-1] = 1
 
-        # increment the counts
-        self.n_up[i:i + 2] += self.up_state[i:i + 2]
-        self.n_down[i:i + 2] += self.down_state[i:i + 2]
+            # increment the counts
+            self.n_up += self.up_state
+            self.n_down += self.down_state
 
     def adapt(self, previous_lambdas, step):
         should_adapt = self.adaptation_policy.should_adapt(step)
