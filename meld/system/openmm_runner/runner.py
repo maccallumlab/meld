@@ -114,7 +114,7 @@ class OpenMMRunner(object):
             # we need to set the whole thing from scratch
             prmtop = _parm_top_from_string(self._parm_string)
             sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
-                                        self._options.implicit_solvent_model)
+                                        self._options.implicit_solvent_model, self._options.remove_com)
 
             if self._options.softcore:
                 sys = softcore.add_soft_core(sys)
@@ -192,7 +192,7 @@ def _parm_top_from_string(parm_string):
     return AmberPrmtopFile(parm_string=parm_string)
 
 
-def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent):
+def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent, remove_com):
     if cutoff is None:
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
@@ -214,7 +214,8 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
     elif implicit_solvent is None:
         implicit_type = None
     return parm_object.createSystem(nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
-                                    constraints=constraint_type, implicitSolvent=implicit_type)
+                                    constraints=constraint_type, implicitSolvent=implicit_type,
+                                    removeCMMotion=remove_com)
 
 
 def _create_integrator(temperature, use_big_timestep):
