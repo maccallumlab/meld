@@ -274,6 +274,26 @@ class ConfinementRestraint(NonSelectableRestraint):
             raise ValueError('force_constant must be > 0')
 
 
+class CartesianRestraint(NonSelectableRestraint):
+    _restraint_key_ = 'cartesian'
+
+    def __init__(self, system, scaler, res_index, atom_name, x, y, z, delta, force_const):
+        self.atom_index = system.index_of_atom(res_index, atom_name)
+        self.x = x
+        self.y = y
+        self.z = z
+        self.delta = delta
+        self.force_const = force_const
+        self.scaler = scaler
+        self._check()
+
+    def _check(self):
+        if self.delta < 0:
+            raise ValueError('delta must be non-negative')
+        if self.force_const < 0:
+            raise ValueError('force_const must be non-negative')
+
+
 class AlwaysActiveCollection(object):
     '''
     '''

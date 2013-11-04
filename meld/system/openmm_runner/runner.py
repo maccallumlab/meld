@@ -4,7 +4,7 @@ from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, Cust
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
-from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint
+from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint, CartesianRestraint
 from meld.system.restraints import RdcRestraint
 from . import softcore
 import cmap
@@ -323,6 +323,45 @@ def _update_confinement_restraints(restraint_list, alpha, ramp_weight, force_dic
         for index, r in enumerate(confinement_restraints):
             confinement_force.setParticleParameters(index, r.atom_index,
                                                     [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
+    return other_restraints
+
+
+def _add_cartesian_restraints(system, restraint_list, alpha, ramp_weight, force_dict):
+    # split restraints into confinement and others
+    cartesian_restraints = [r for r in restraint_list if isinstance(r, CartesianRestraint)]
+    noncartesian_restraints = [r for r in restraint_list if not isinstance(r, CartesianRestraint)]
+
+    if cartesian_restraints:
+        # create the confinement force
+        cartesian_force = CustomExternalForce(
+            '0.5 * cart_force_const * r_eff^2; r_eff = max(0.0, r - cart_delta; r = sqrt(x*x + y*y + z*z)')
+        cartesian_force.addPerParticleParameter('cart_x')
+        cartesian_force.addPerParticleParameter('cart_y')
+        cartesian_force.addPerParticleParameter('cart_z')
+        cartesian_force.addPerParticleParameter('cart_delta')
+        cartesian_force.addPerParticleParameter('cart_force_const')
+
+        # add the atoms
+        for r in cartesian_restraints:
+            cartesian_force.addParticle(r.atom_index, [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
+        system.addForce(cartesian_force)
+        force_dict['cartesian'] = cartesian_force
+    else:
+        force_dict['cartesian'] = None
+
+    return noncartesian_restraints
+
+
+def _update_cartesian_restraints(restraint_list, alpha, ramp_weight, force_dict):
+    # split restraints into confinement and others
+    cartesian_restraints = [r for r in restraint_list if isinstance(r, CartesianRestraint)]
+    other_restraints = [r for r in restraint_list if not isinstance(r, CartesianRestraint)]
+
+    if cartesian_restraints:
+        cartesian_force = force_dict['cartesian']
+        for index, r in enumerate(cartesian_restraints):
+            cartesian_force.setParticleParameters(index, r.atom_index,
+                                                  [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
     return other_restraints
 
 
