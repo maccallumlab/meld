@@ -245,6 +245,8 @@ def _add_always_active_restraints(system, restraint_list, alpha, ramp_weight, fo
                                                    ramp_weight, force_dict)
     nonselectable_restraints = _add_confinement_restraints(system, nonselectable_restraints, alpha,
                                                            ramp_weight, force_dict)
+    nonselectable_restraints = _add_cartesian_restraints(system, nonselectable_restraints, alpha,
+                                                         ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -256,6 +258,8 @@ def _update_always_active_restraints(restraint_list, alpha, ramp_weight, force_d
                                                       ramp_weight, force_dict)
     nonselectable_restraints = _update_confinement_restraints(nonselectable_restraints, alpha,
                                                               ramp_weight, force_dict)
+    nonselectable_restraints = _update_cartesian_restraints(nonselectable_restraints, alpha,
+                                                            ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
