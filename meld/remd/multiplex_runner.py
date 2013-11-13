@@ -89,6 +89,7 @@ class MultiplexReplicaExchangeRunner(object):
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
 
             for state_index in range(self._n_replicas):
+                states[state_index].alpha = self._alphas[state_index]
                 system_runner.set_alpha(self._alphas[state_index], ramp_weight)
 
                 if self._step == 1:
