@@ -55,7 +55,7 @@ class OpenMMRunner(object):
         alpha = self._alpha
         a1 = self._options.sc_alpha_min
         a2 = self._options.sc_alpha_max_coulomb
-        a3 = self._options.sc_alpha_max_lj
+        a3 = self._options.sc_alpha_max_lennard_jones
 
         if self._options.softcore:
             if alpha <= a1:
