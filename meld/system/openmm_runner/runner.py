@@ -11,6 +11,7 @@ import cmap
 import logging
 from meld.util import log_timing
 import numpy as np
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +190,11 @@ def _create_openmm_simulation(topology, system, integrator, platform, properties
 
 
 def _parm_top_from_string(parm_string):
-    return AmberPrmtopFile(parm_string=parm_string)
+    with tempfile.NamedTemporaryFile() as parm_file:
+        parm_file.write(parm_string)
+        parm_file.flush()
+        prm_top = AmberPrmtopFile(parm_file.name)
+        return prm_top
 
 
 def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent, remove_com):
