@@ -142,7 +142,7 @@ class OpenMMRunner(object):
                                                         platform, properties)
 
     def _run(self, state, minimize):
-        assert state.alpha == self._alpha
+        assert abs(state.alpha - self._alpha) < 1e-6
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
