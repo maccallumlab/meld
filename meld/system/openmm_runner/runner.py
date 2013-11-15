@@ -139,7 +139,7 @@ class OpenMMRunner(object):
             properties = {'CudaDeviceIndex': str(self._device_id)}
 
             self._simulation = _create_openmm_simulation(prmtop.topology, sys, self._integrator,
-                                                        platform, properties)
+                                                         platform, properties)
 
     def _run(self, state, minimize):
         assert abs(state.alpha - self._alpha) < 1e-6
@@ -314,7 +314,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, ramp_weight, forc
 
         # add the atoms
         for r in confinement_restraints:
-            confinement_force.addParticle(r.atom_index, [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
+            confinement_force.addParticle(r.atom_index - 1, [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
         system.addForce(confinement_force)
         force_dict['confine'] = confinement_force
     else:
@@ -331,7 +331,7 @@ def _update_confinement_restraints(restraint_list, alpha, ramp_weight, force_dic
     if confinement_restraints:
         confinement_force = force_dict['confine']
         for index, r in enumerate(confinement_restraints):
-            confinement_force.setParticleParameters(index, r.atom_index,
+            confinement_force.setParticleParameters(index, r.atom_index - 1,
                                                     [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
     return other_restraints
 
@@ -353,7 +353,7 @@ def _add_cartesian_restraints(system, restraint_list, alpha, ramp_weight, force_
 
         # add the atoms
         for r in cartesian_restraints:
-            cartesian_force.addParticle(r.atom_index, [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
+            cartesian_force.addParticle(r.atom_index - 1, [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
         system.addForce(cartesian_force)
         force_dict['cartesian'] = cartesian_force
     else:
@@ -370,7 +370,7 @@ def _update_cartesian_restraints(restraint_list, alpha, ramp_weight, force_dict)
     if cartesian_restraints:
         cartesian_force = force_dict['cartesian']
         for index, r in enumerate(cartesian_restraints):
-            cartesian_force.setParticleParameters(index, r.atom_index,
+            cartesian_force.setParticleParameters(index, r.atom_index - 1,
                                                   [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
     return other_restraints
 
