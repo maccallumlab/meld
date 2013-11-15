@@ -344,7 +344,11 @@ def _add_cartesian_restraints(system, restraint_list, alpha, ramp_weight, force_
     if cartesian_restraints:
         # create the confinement force
         cartesian_force = CustomExternalForce(
-            '0.5 * cart_force_const * r_eff^2; r_eff = max(0.0, r - cart_delta; r = sqrt(x*x + y*y + z*z)')
+            '0.5 * cart_force_const * r_eff^2; r_eff = max(0.0, r - cart_delta);'
+            'r = sqrt(dx*dx + dy*dy + dz*dz);'
+            'dx = x - cart_x;'
+            'dy = y - cart_y;'
+            'dz = z - cart_z;')
         cartesian_force.addPerParticleParameter('cart_x')
         cartesian_force.addPerParticleParameter('cart_y')
         cartesian_force.addPerParticleParameter('cart_z')
