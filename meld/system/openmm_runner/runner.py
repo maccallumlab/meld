@@ -4,13 +4,14 @@ from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, Cust
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
-from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint
+from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint, CartesianRestraint
 from meld.system.restraints import RdcRestraint
 from . import softcore
 import cmap
 import logging
 from meld.util import log_timing
 import numpy as np
+import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class OpenMMRunner(object):
         alpha = self._alpha
         a1 = self._options.sc_alpha_min
         a2 = self._options.sc_alpha_max_coulomb
-        a3 = self._options.sc_alpha_max_lj
+        a3 = self._options.sc_alpha_max_lennard_jones
 
         if self._options.softcore:
             if alpha <= a1:
@@ -114,7 +115,7 @@ class OpenMMRunner(object):
             # we need to set the whole thing from scratch
             prmtop = _parm_top_from_string(self._parm_string)
             sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
-                                        self._options.implicit_solvent_model)
+                                        self._options.implicit_solvent_model, self._options.remove_com)
 
             if self._options.softcore:
                 sys = softcore.add_soft_core(sys)
@@ -138,10 +139,10 @@ class OpenMMRunner(object):
             properties = {'CudaDeviceIndex': str(self._device_id)}
 
             self._simulation = _create_openmm_simulation(prmtop.topology, sys, self._integrator,
-                                                        platform, properties)
+                                                         platform, properties)
 
     def _run(self, state, minimize):
-        assert state.alpha == self._alpha
+        assert abs(state.alpha - self._alpha) < 1e-6
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
@@ -189,10 +190,14 @@ def _create_openmm_simulation(topology, system, integrator, platform, properties
 
 
 def _parm_top_from_string(parm_string):
-    return AmberPrmtopFile(parm_string=parm_string)
+    with tempfile.NamedTemporaryFile() as parm_file:
+        parm_file.write(parm_string)
+        parm_file.flush()
+        prm_top = AmberPrmtopFile(parm_file.name)
+        return prm_top
 
 
-def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent):
+def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent, remove_com):
     if cutoff is None:
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
@@ -214,7 +219,8 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
     elif implicit_solvent is None:
         implicit_type = None
     return parm_object.createSystem(nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
-                                    constraints=constraint_type, implicitSolvent=implicit_type)
+                                    constraints=constraint_type, implicitSolvent=implicit_type,
+                                    removeCMMotion=remove_com)
 
 
 def _create_integrator(temperature, use_big_timestep):
@@ -244,6 +250,8 @@ def _add_always_active_restraints(system, restraint_list, alpha, ramp_weight, fo
                                                    ramp_weight, force_dict)
     nonselectable_restraints = _add_confinement_restraints(system, nonselectable_restraints, alpha,
                                                            ramp_weight, force_dict)
+    nonselectable_restraints = _add_cartesian_restraints(system, nonselectable_restraints, alpha,
+                                                         ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -255,6 +263,8 @@ def _update_always_active_restraints(restraint_list, alpha, ramp_weight, force_d
                                                       ramp_weight, force_dict)
     nonselectable_restraints = _update_confinement_restraints(nonselectable_restraints, alpha,
                                                               ramp_weight, force_dict)
+    nonselectable_restraints = _update_cartesian_restraints(nonselectable_restraints, alpha,
+                                                            ramp_weight, force_dict)
     if nonselectable_restraints:
         raise NotImplementedError('Non-meld restraints are not implemented yet')
     return selectable_restraints
@@ -304,7 +314,7 @@ def _add_confinement_restraints(system, restraint_list, alpha, ramp_weight, forc
 
         # add the atoms
         for r in confinement_restraints:
-            confinement_force.addParticle(r.atom_index, [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
+            confinement_force.addParticle(r.atom_index - 1, [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
         system.addForce(confinement_force)
         force_dict['confine'] = confinement_force
     else:
@@ -321,8 +331,51 @@ def _update_confinement_restraints(restraint_list, alpha, ramp_weight, force_dic
     if confinement_restraints:
         confinement_force = force_dict['confine']
         for index, r in enumerate(confinement_restraints):
-            confinement_force.setParticleParameters(index, r.atom_index,
+            confinement_force.setParticleParameters(index, r.atom_index - 1,
                                                     [r.radius, r.force_const * r.scaler(alpha) * ramp_weight])
+    return other_restraints
+
+
+def _add_cartesian_restraints(system, restraint_list, alpha, ramp_weight, force_dict):
+    # split restraints into confinement and others
+    cartesian_restraints = [r for r in restraint_list if isinstance(r, CartesianRestraint)]
+    noncartesian_restraints = [r for r in restraint_list if not isinstance(r, CartesianRestraint)]
+
+    if cartesian_restraints:
+        # create the confinement force
+        cartesian_force = CustomExternalForce(
+            '0.5 * cart_force_const * r_eff^2; r_eff = max(0.0, r - cart_delta);'
+            'r = sqrt(dx*dx + dy*dy + dz*dz);'
+            'dx = x - cart_x;'
+            'dy = y - cart_y;'
+            'dz = z - cart_z;')
+        cartesian_force.addPerParticleParameter('cart_x')
+        cartesian_force.addPerParticleParameter('cart_y')
+        cartesian_force.addPerParticleParameter('cart_z')
+        cartesian_force.addPerParticleParameter('cart_delta')
+        cartesian_force.addPerParticleParameter('cart_force_const')
+
+        # add the atoms
+        for r in cartesian_restraints:
+            cartesian_force.addParticle(r.atom_index - 1, [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
+        system.addForce(cartesian_force)
+        force_dict['cartesian'] = cartesian_force
+    else:
+        force_dict['cartesian'] = None
+
+    return noncartesian_restraints
+
+
+def _update_cartesian_restraints(restraint_list, alpha, ramp_weight, force_dict):
+    # split restraints into confinement and others
+    cartesian_restraints = [r for r in restraint_list if isinstance(r, CartesianRestraint)]
+    other_restraints = [r for r in restraint_list if not isinstance(r, CartesianRestraint)]
+
+    if cartesian_restraints:
+        cartesian_force = force_dict['cartesian']
+        for index, r in enumerate(cartesian_restraints):
+            cartesian_force.setParticleParameters(index, r.atom_index - 1,
+                                                  [r.x, r.y, r.z, r.delta, r.force_const * r.scaler(alpha) * ramp_weight])
     return other_restraints
 
 

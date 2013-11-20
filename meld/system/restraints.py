@@ -274,6 +274,26 @@ class ConfinementRestraint(NonSelectableRestraint):
             raise ValueError('force_constant must be > 0')
 
 
+class CartesianRestraint(NonSelectableRestraint):
+    _restraint_key_ = 'cartesian'
+
+    def __init__(self, system, scaler, res_index, atom_name, x, y, z, delta, force_const):
+        self.atom_index = system.index_of_atom(res_index, atom_name)
+        self.x = x
+        self.y = y
+        self.z = z
+        self.delta = delta
+        self.force_const = force_const
+        self.scaler = scaler
+        self._check()
+
+    def _check(self):
+        if self.delta < 0:
+            raise ValueError('delta must be non-negative')
+        if self.force_const < 0:
+            raise ValueError('force_const must be non-negative')
+
+
 class AlwaysActiveCollection(object):
     '''
     '''
@@ -512,3 +532,32 @@ class NonLinearScaler(Scaler):
             scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
         scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
+
+
+class GeometricScaler(Scaler):
+    _scaler_key_ = 'geometric'
+
+    def __init__(self, alpha_min, alpha_max, strength_at_alpha_min, strength_at_alpha_max):
+        self._alpha_min = float(alpha_min)
+        self._alpha_max = float(alpha_max)
+        self._strength_at_alpha_min = float(strength_at_alpha_min)
+        self._strength_at_alpha_max = float(strength_at_alpha_max)
+        self._delta_alpha = self._alpha_max - self._alpha_min
+        self._check_alpha_min_max()
+
+    def __call__(self, alpha):
+        self._check_alpha_range(alpha)
+
+        if alpha < 0 or alpha > 1:
+            raise RuntimeError('0 <= alpha <=1 1')
+
+        elif alpha <= self._alpha_min:
+            return self._strength_at_alpha_min
+
+        elif alpha <= self._alpha_max:
+            frac = (alpha - self._alpha_min) / self._delta_alpha
+            delta = math.log(self._strength_at_alpha_max) - math.log(self._strength_at_alpha_min)
+            return math.exp(delta * frac + math.log(self._strength_at_alpha_min))
+
+        else:
+            return self._strength_at_alpha_max

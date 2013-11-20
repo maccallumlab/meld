@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+
+import argparse
+from meld.remd import launch
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Launch replica exchange run.')
+    parser.add_argument('--debug', default=False, action='store_true')
+    args = parser.parse_args()
+
+    launch.launch_multiplex(args.debug)
+
+
+if __name__ == '__main__':
+    main()

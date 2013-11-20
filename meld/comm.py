@@ -76,6 +76,10 @@ class MPICommunicator(object):
             return False
 
     @log_timing(logger)
+    def barrier(self):
+        self._mpi_comm.barrier()
+
+    @log_timing(logger)
     def broadcast_alphas_to_slaves(self, alphas):
         """
         Send the alpha values to the slaves
@@ -174,6 +178,19 @@ class MPICommunicator(object):
 
         """
         self._mpi_comm.bcast(states, root=0)
+
+    @log_timing(logger)
+    def exchange_states_for_energy_calc(self, state):
+        """
+        Exchange states between all processes
+
+        Parameters
+            state -- the state for this node
+        Returns
+            states -- a list of states from all nodes
+
+        """
+        return self._mpi_comm.allgather(state)
 
     @log_timing(logger)
     def receive_states_for_energy_calc_from_master(self):

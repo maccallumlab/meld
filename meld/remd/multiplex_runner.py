@@ -1,3 +1,4 @@
+import numpy as np
 from meld.remd import slave_runner
 from meld.remd.reseed import NullReseeder
 import logging
@@ -6,12 +7,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MasterReplicaExchangeRunner(object):
+class MultiplexReplicaExchangeRunner(object):
     """
     Class to coordinate running of replica exchange
 
-    This class doesn't really know much about the calculation that is happening,
-    but it's the glue that holds everything together.
     """
 
     #
@@ -66,26 +65,17 @@ class MasterReplicaExchangeRunner(object):
 
         self.reseeder = NullReseeder()
 
-    def to_slave(self):
-        """
-        Return a SlaveReplicaExchangeRunner based on self.
-
-        """
-        return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
-
-    def run(self, communicator, system_runner, store):
+    def run(self, system_runner, store):
         """
         Run replica exchange until finished
 
         Parameters
-            communicator -- A communicator object to talk with slaves
             system_runner -- a ReplicaRunner object to run the simulations
             store -- a Store object to handle storing data to disk
 
         """
         logger.info('Beginning replica exchange')
         # check to make sure n_replicas matches
-        assert self._n_replicas == communicator.n_replicas
         assert self._n_replicas == store.n_replicas
 
         # load previous state from the store
@@ -96,25 +86,26 @@ class MasterReplicaExchangeRunner(object):
                         self._step, self._max_steps)
             # update alphas
             ramp_weight = self._compute_ramp_weight()
-            system_runner.set_alpha(0., ramp_weight)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
-            communicator.broadcast_alphas_to_slaves(self._alphas)
 
-            # do one step
-            my_state = communicator.broadcast_states_to_slaves(states)
-            if self._step == 1:
-                logger.info('First step, minimizing and then running.')
-                my_state = system_runner.minimize_then_run(my_state)
-            else:
-                logger.info('Running molecular dynamics.')
-                my_state = system_runner.run(my_state)
+            for state_index in range(self._n_replicas):
+                states[state_index].alpha = self._alphas[state_index]
+                system_runner.set_alpha(self._alphas[state_index], ramp_weight)
 
-            # gather all of the states
-            states = communicator.exchange_states_for_energy_calc(my_state)
+                if self._step == 1:
+                    logger.info('First step, minimizing and then running.')
+                    states[state_index] = system_runner.minimize_then_run(states[state_index])
+                else:
+                    logger.info('Running molecular dynamics.')
+                    states[state_index] = system_runner.run(states[state_index])
 
-            # compute our energy for each state
-            my_energies = self._compute_energies(states, system_runner)
-            energies = communicator.gather_energies_from_slaves(my_energies)
+            energies = []
+            for state_index in range(self._n_replicas):
+                system_runner.set_alpha(self._alphas[state_index], ramp_weight)
+                # compute our energy for each state
+                my_energies = self._compute_energies(states, system_runner)
+                energies.append(my_energies)
+            energies = np.array(energies)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
