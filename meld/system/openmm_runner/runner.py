@@ -55,9 +55,10 @@ class OpenMMRunner(object):
         alpha = self._alpha
         a1 = self._options.sc_alpha_min
         a2 = self._options.sc_alpha_max_coulomb
-        a3 = self._options.sc_alpha_max_lj
+        a3 = self._options.sc_alpha_max_lennard_jones
 
         if self._options.softcore:
+            logger.info('updating softcore')
             if alpha <= a1:
                 self._sc_lambda_coulomb = 1.0
                 self._sc_lambda_lj = 1.0
@@ -95,9 +96,10 @@ class OpenMMRunner(object):
         if self._initialized:
             self._integrator.setTemperature(self._temperature)
             if self._options.softcore:
-                self._system.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
-                self._system.context.setParameter('lj_lambda', self._sc_lambda_lj)
-                self._system.context.setParameter('sc_lambda', self._sc_lambda_lj)
+                self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
+                self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
+                self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
+                logger.info('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
 
             meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha,
                                                           self._ramp_weight, self._force_dict)
@@ -118,9 +120,6 @@ class OpenMMRunner(object):
 
             if self._options.softcore:
                 sys = softcore.add_soft_core(sys)
-                self._system.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
-                self._system.context.setParameter('lj_lambda', self._sc_lambda_lj)
-                self._system.context.setParameter('sc_lambda', self._sc_lambda_lj)
 
             if self._options.use_amap:
                 adder = cmap.CMAPAdder(self._parm_string, self._options.amap_alpha_bias, self._options.amap_beta_bias)
@@ -139,6 +138,13 @@ class OpenMMRunner(object):
 
             self._simulation = _create_openmm_simulation(prmtop.topology, sys, self._integrator,
                                                         platform, properties)
+
+            if self._options.softcore:
+                self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
+                self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
+                self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
+                logger.info('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
+
 
     def _run(self, state, minimize):
         assert state.alpha == self._alpha

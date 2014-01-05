@@ -11,10 +11,13 @@ from xml.etree import ElementTree as ET
 def _extract_force(root, force_name):
     forces = root.find('Forces')
     force = forces.findall('./Force[@type="{}"]'.format(force_name))
-    assert len(force) == 1
-    force = force[0]
-    forces.remove(force)
-    return force
+    if force:
+        assert len(force) == 1
+        force = force[0]
+        forces.remove(force)
+        return force
+    else:
+        return None
 
 
 def _get_sc_nb_force(charges, sigmas, epsilons, sigma_sc, exceptions):
@@ -107,7 +110,6 @@ def add_soft_core(system, sigma_min=0.151):
     gb_string = _extract_force(root, 'GBSAOBCForce')
 
     nb_force = mm.XmlSerializer.deserialize(ET.tostring(nb_string))
-    gb_force = mm.XmlSerializer.deserialize(ET.tostring(gb_string))
 
     n_particles = nb_force.getNumParticles()
 
@@ -120,19 +122,20 @@ def add_soft_core(system, sigma_min=0.151):
 
     sigma_sc = [sigma_min * nanometer if s == 0 else s for s in sigmas]
 
-    # extract the gb_parameters
-    gb_params = [gb_force.getParticleParameters(i) for i in range(n_particles)]
-    gb_charge = [p[0] for p in gb_params]
-    gb_radius = [p[1] for p in gb_params]
-    gb_scale = [p[2] for p in gb_params]
-
     sc_nb_force = _get_sc_nb_force(charges, sigmas, epsilons, sigma_sc, exceptions)
     sc_nb_exclusion_force = _get_sc_nb_exception_force(exceptions, sigma_sc)
-    sc_gb_force = _get_sc_gb_force(gb_charge, gb_radius, gb_scale, SA='ACE')
 
     new_system = mm.XmlSerializer.deserializeSystem(ET.tostring(root))
     new_system.addForce(sc_nb_force)
     new_system.addForce(sc_nb_exclusion_force)
-    new_system.addForce(sc_gb_force)
 
+    # extract the gb_parameters
+    if gb_string is not None:
+        gb_force = mm.XmlSerializer.deserialize(ET.tostring(gb_string))
+        gb_params = [gb_force.getParticleParameters(i) for i in range(n_particles)]
+        gb_charge = [p[0] for p in gb_params]
+        gb_radius = [p[1] for p in gb_params]
+        gb_scale = [p[2] for p in gb_params]
+        sc_gb_force = _get_sc_gb_force(gb_charge, gb_radius, gb_scale, SA='ACE')
+        new_system.addForce(sc_gb_force)
     return new_system
