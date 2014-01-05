@@ -35,7 +35,7 @@ def main():
 
     ext_trace = subparsers.add_parser('extract_trace', help='extract trace')
     ext_trace.add_argument('outfile', help='output filename')
-    ext_trace.set_defaults(func=ext_trace)
+    ext_trace.set_defaults(func=extract_trace)
 
     viz_fup = subparsers.add_parser('visualize_fup', help='visualize the value of f_up')
     viz_fup.set_defaults(func=visualize_fup)
@@ -47,8 +47,30 @@ def main():
     viz_accept = subparsers.add_parser('visualize_accept', help='visualize acceptance probabilities')
     viz_accept.set_defaults(func=visualize_accept)
 
+    viz_alpha_vs_rep = subparsers.add_parser('visualize_alpha_vs_rep', help='visualize alpha versus replica index')
+    viz_alpha_vs_rep.add_argument('--frame', type=int, help='frame to vizualize')
+    viz_alpha_vs_rep.set_defaults(func=alpha_vs_rep)
+
+    viz_accept_vs_rep = subparsers.add_parser('visualize_accept_vs_rep', help='visualize acceptance rate versus replica index')
+    viz_accept_vs_rep.add_argument('--frame', type=int, help='frame to vizualize')
+    viz_accept_vs_rep.set_defaults(func=accept_vs_rep)
+
     args = parser.parse_args()
     args.func(store, args)
+
+
+def alpha_vs_rep(store, args):
+    frame = args.frame
+    alphas = store.load_alphas(frame)
+    pyplot.plot(alphas, 'ko-')
+    pyplot.show()
+
+
+def accept_vs_rep(store, args):
+    frame = args.frame
+    alphas = store.load_acceptance_probabilities(frame)
+    pyplot.plot(alphas, 'ko-')
+    pyplot.show()
 
 
 def visualize_alpha(store, args):
@@ -164,7 +186,7 @@ def get_permutation_vectors(store, start, end):
     if start is None:
         start = 1
     if end is None:
-        end = store.max_safe_frame()
+        end = store.max_safe_frame() - 1
 
     perm_vecs = np.zeros((store.n_replicas, end - start), dtype=int)
     bar = get_progress_bar('Loading data', end - start).start()
