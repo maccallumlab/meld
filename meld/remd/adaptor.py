@@ -28,6 +28,21 @@ class AcceptanceCounter(object):
         return self.successes / (self.attempts + 1e-9)
 
 
+class NullAdaptor(AcceptanceCounter):
+    def __init__(self, n_replicas):
+        AcceptanceCounter.__init__(self, n_replicas)
+        self.reset()
+
+    def update(self, i, accepted):
+        AcceptanceCounter.update(self, i, accepted)
+
+    def adapt(self, previous_lambdas, step):
+        return previous_lambdas
+
+    def reset(self):
+        AcceptanceCounter.reset(self)
+
+
 class EqualAcceptanceAdaptor(AcceptanceCounter):
     '''
     Adaptor based on making acceptance rates uniform.

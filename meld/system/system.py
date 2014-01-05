@@ -252,6 +252,14 @@ class RunOptions(object):
         self._sc_alpha_min = 0.0
         self._sc_alpha_max_coulomb = 0.3
         self._sc_alpha_max_lennard_jones = 1.0
+        self._remove_com = True
+
+    @property
+    def remove_com(self):
+        return self._remove_com
+    @remove_com.setter
+    def remove_com(self, new_value):
+        self._remove_com = bool(new_value)
 
     @property
     def softcore(self):
