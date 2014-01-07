@@ -1,6 +1,7 @@
 from meld.remd import slave_runner
 from meld.remd.reseed import NullReseeder
 import logging
+import math
 
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ class MasterReplicaExchangeRunner(object):
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
-            states = self._permute_states(permutation_vector, states)
+            states = self._permute_states(permutation_vector, states, system_runner)
 
             # perform reseeding if it is time
             self.reseeder.reseed(self.step, states, store)
@@ -150,11 +151,15 @@ class MasterReplicaExchangeRunner(object):
         return my_energies
 
     @staticmethod
-    def _permute_states(permutation_matrix, states):
+    def _permute_states(permutation_matrix, states, system_runner):
         old_coords = [s.positions for s in states]
+        old_velocities = [s.velocities for s in states]
         old_energy = [s.energy for s in states]
+        temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
+
         for i, index in enumerate(permutation_matrix):
             states[i].positions = old_coords[index]
+            states[i].velocities = math.sqrt(temperatures[i] / temperatures[index]) * old_velocities[index]
             states[i].energy = old_energy[index]
         return states
 
@@ -169,4 +174,4 @@ class MasterReplicaExchangeRunner(object):
             if self._step > self._ramp_steps:
                 return 1.0
             else:
-                return float(self.step + 1) / float(self._ramp_steps)
+                return (float(self.step + 1) / float(self._ramp_steps)) ** 4
