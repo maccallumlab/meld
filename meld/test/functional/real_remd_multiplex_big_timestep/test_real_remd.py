@@ -40,6 +40,7 @@ def setup_system():
 
     # create the options
     options = system.RunOptions()
+    options.use_big_timestep = True
 
     # create a store
     store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BACKUP_FREQ)
@@ -76,7 +77,7 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('mpirun -np 2 launch_remd', shell=True)
+        subprocess.check_call('launch_remd_multiplex', shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()

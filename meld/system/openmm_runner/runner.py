@@ -2,7 +2,7 @@ from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, CustomExternalForce
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
-from simtk.unit import Quantity, kilojoule, mole
+from simtk.unit import Quantity, kilojoule, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
 from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint, CartesianRestraint
 from meld.system.restraints import RdcRestraint
@@ -212,9 +212,11 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
         cutoff_dist = cutoff
 
     if use_big_timestep:
-        constraint_type = ff.HAngles
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 3.0 * gram / mole
     else:
         constraint_type = ff.HBonds
+        hydrogen_mass = None
 
     if implicit_solvent == 'obc':
         implicit_type = OBC2
@@ -226,12 +228,12 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
         implicit_type = None
     return parm_object.createSystem(nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
                                     constraints=constraint_type, implicitSolvent=implicit_type,
-                                    removeCMMotion=remove_com)
+                                    removeCMMotion=remove_com, hydrogenMass=hydrogen_mass)
 
 
 def _create_integrator(temperature, use_big_timestep):
     if use_big_timestep:
-        timestep = 3.5 * femtosecond
+        timestep = 4.0 * femtosecond
     else:
         timestep = 2.0 * femtosecond
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)

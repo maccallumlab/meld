@@ -76,7 +76,7 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('mpirun -np 2 launch_remd', shell=True)
+        subprocess.check_call('launch_remd_multiplex', shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
