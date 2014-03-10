@@ -12,7 +12,7 @@
  *       being compiled with the expectation of linking with the
  *       OpenMM static library (nothing special needed)
  * In the CMake script for building this library, we define one of the symbols
- *     OPENMM_EXAMPLE_BUILDING_{SHARED|STATIC}_LIBRARY
+ *     EXAMPLE_BUILDING_{SHARED|STATIC}_LIBRARY
  * Client code normally has no special symbol defined, in which case we'll
  * assume it wants to use the shared library. However, if the client defines
  * the symbol OPENMM_USE_STATIC_LIBRARIES we'll suppress the dllimport so
@@ -27,9 +27,9 @@
     #pragma warning(disable:4996)
     // Keep MS VC++ quiet about lack of dll export of private members.
     #pragma warning(disable:4251)
-    #if defined(OPENMM_EXAMPLE_BUILDING_SHARED_LIBRARY)
+    #if defined(EXAMPLE_BUILDING_SHARED_LIBRARY)
         #define OPENMM_EXPORT_EXAMPLE __declspec(dllexport)
-    #elif defined(OPENMM_EXAMPLE_BUILDING_STATIC_LIBRARY) || defined(OPENMM_EXAMPLE_USE_STATIC_LIBRARIES)
+    #elif defined(EXAMPLE_BUILDING_STATIC_LIBRARY) || defined(EXAMPLE_USE_STATIC_LIBRARIES)
         #define OPENMM_EXPORT_EXAMPLE
     #else
         #define OPENMM_EXPORT_EXAMPLE __declspec(dllimport)   // i.e., a client of a shared library
