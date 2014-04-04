@@ -1,6 +1,6 @@
 %module exampleplugin
 
-%import(module="simtk.openmm") "OpenMM_headers.i"
+%import(module="simtk.openmm") "OpenMMSwigHeaders.i"
 
 %{
 #include "ExampleForce.h"

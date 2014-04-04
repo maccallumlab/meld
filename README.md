@@ -102,6 +102,32 @@ as `OpenCLExampleKernelSources::exampleForce`.  If you add more .cl files to thi
 correspondingly named variables will automatically be added to `OpenCLExampleKernelSources`.
 
 
+Python API
+==========
+
+OpenMM uses [SWIG](http://www.swig.org) to generate its Python API.  SWIG takes an "interface
+file", which is essentially a C++ header file with some extra annotations added, as its input.
+It then generates a Python extension module exposing the C++ API in Python.
+
+When building OpenMM's Python API, the interface file is generated automatically from the C++
+API.  That guarantees the C++ and Python APIs are always synchronized with each other and avoids
+the potential bugs that would come from have duplicate definitions.  It takes a lot of complex
+processing to do that, though, and for a single plugin it's far simpler to just write the
+interface file by hand.  You will find it in the "python" directory.
+
+To build and install the Python API, build the "PythonInstall" target, for example by typing
+"make PythonInstall".  (If you are installing into the system Python, you may need to use sudo.)
+This runs SWIG to generate the C++ and Python files for the extension module
+(ExamplePluginWrapper.cpp and exampleplugin.py), then runs a setup.py script to build and
+install the module.  Once you do that, you can use the plugin from your Python scripts:
+
+    from simtk.openmm import System
+    from exampleplugin import ExampleForce
+    system = System()
+    force = ExampleForce()
+    system.addForce(force)
+
+
 License
 =======
 
