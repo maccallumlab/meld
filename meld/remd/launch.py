@@ -4,6 +4,7 @@ from meld.system import get_runner
 from meld import version as meld_version
 from simtk.openmm import version as mm_version
 from meld.remd import multiplex_runner
+import socket
 
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,11 @@ def launch(debug=False):
     communicator = store.load_communicator()
     communicator.initialize()
 
+    hostname = socket.gethostname()
+
     if communicator.is_master():
         level = logging.DEBUG if debug else logging.INFO
-        format = '%(asctime)s  %(name)s: %(message)s'
+        format = '{:8s} %(asctime)s  %(name)s: %(message)s'.format(hostname)
         datefmt = '%Y-%m-%d %H:%M:%S'
         logging.basicConfig(filename='remd.log', level=level, format=format,
                             datefmt=datefmt)
@@ -30,7 +33,7 @@ def launch(debug=False):
         log_versions()
     else:
         if debug:
-            format = '%(asctime)s  %(name)s: %(message)s'
+            format = '{:8s} %(asctime)s  %(name)s: %(message)s'.format(hostname)
             datefmt = '%Y-%m-%d %H:%M:%S'
             logging.basicConfig(level=logging.DEBUG, format=format,
                                 datefmt=datefmt)
