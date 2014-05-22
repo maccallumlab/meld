@@ -233,7 +233,7 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
 
 def _create_integrator(temperature, use_big_timestep):
     if use_big_timestep:
-        timestep = 4.0 * femtosecond
+        timestep = 3.5 * femtosecond
     else:
         timestep = 2.0 * femtosecond
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
