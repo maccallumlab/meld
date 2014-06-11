@@ -1,5 +1,5 @@
-#ifndef OPENMM_WINDOWSEXPORTEXAMPLE_H_
-#define OPENMM_WINDOWSEXPORTEXAMPLE_H_
+#ifndef OPENMM_WINDOWSEXPORTMELD_H_
+#define OPENMM_WINDOWSEXPORTMELD_H_
 
 /*
  * Shared libraries are messy in Visual Studio. We have to distinguish three
@@ -12,7 +12,7 @@
  *       being compiled with the expectation of linking with the
  *       OpenMM static library (nothing special needed)
  * In the CMake script for building this library, we define one of the symbols
- *     EXAMPLE_BUILDING_{SHARED|STATIC}_LIBRARY
+ *     OPENMM_MELD_BUILDING_{SHARED|STATIC}_LIBRARY
  * Client code normally has no special symbol defined, in which case we'll
  * assume it wants to use the shared library. However, if the client defines
  * the symbol OPENMM_USE_STATIC_LIBRARIES we'll suppress the dllimport so
@@ -27,15 +27,15 @@
     #pragma warning(disable:4996)
     // Keep MS VC++ quiet about lack of dll export of private members.
     #pragma warning(disable:4251)
-    #if defined(EXAMPLE_BUILDING_SHARED_LIBRARY)
-        #define OPENMM_EXPORT_EXAMPLE __declspec(dllexport)
-    #elif defined(EXAMPLE_BUILDING_STATIC_LIBRARY) || defined(EXAMPLE_USE_STATIC_LIBRARIES)
-        #define OPENMM_EXPORT_EXAMPLE
+    #if defined(OPENMM_MELD_BUILDING_SHARED_LIBRARY)
+        #define OPENMM_EXPORT_MELD___declspec(dllexport)
+    #elif defined(OPENMM_MELD_BUILDING_STATIC_LIBRARY) || defined(OPENMM_MELD_USE_STATIC_LIBRARIES)
+		#define OPENMM_EXPORT_MELD
     #else
-        #define OPENMM_EXPORT_EXAMPLE __declspec(dllimport)   // i.e., a client of a shared library
+		#define OPENMM_EXPORT_MELD __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
-    #define OPENMM_EXPORT_EXAMPLE // Linux, Mac
+    #define OPENMM_EXPORT_MELD // Linux, Mac
 #endif
 
-#endif // OPENMM_WINDOWSEXPORTEXAMPLE_H_
+#endif // OPENMM_WINDOWSEXPORTMELD_H_
