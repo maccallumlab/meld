@@ -1,7 +1,8 @@
 #ifndef MELD_OPENMM_KERNELS_H_
 #define MELD_OPENMM_KERNELS_H_
 
-#include "OpenMMMeld.h"
+#include "MeldForce.h"
+#include "RdcForce.h"
 #include "openmm/KernelImpl.h"
 #include "openmm/System.h"
 #include "openmm/Platform.h"

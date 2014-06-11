@@ -1,13 +1,13 @@
 #---------------------------------------------------
-# OpenMM Example Plugin CUDA Platform
+# OpenMM MELD Plugin CUDA Platform
 #----------------------------------------------------
 
 # Collect up information about the version of the OpenMM library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(EXAMPLE_CUDA_LIBRARY_NAME ExamplePluginCUDA)
+SET(MELD_CUDA_LIBRARY_NAME MeldPluginCUDA)
 
-SET(SHARED_TARGET ${EXAMPLE_CUDA_LIBRARY_NAME})
+SET(SHARED_TARGET ${MELD_CUDA_LIBRARY_NAME})
 
 
 # Ensure that debug libraries have "_d" appended to their names.
@@ -51,7 +51,7 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_BINARY_DIR}/platforms/cuda/src)
 # Set variables needed for encoding kernel sources into a C++ class
 
 SET(CUDA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-SET(CUDA_SOURCE_CLASS CudaExampleKernelSources)
+SET(CUDA_SOURCE_CLASS CudaMeldKernelSources)
 SET(CUDA_KERNELS_CPP ${CMAKE_CURRENT_BINARY_DIR}/src/${CUDA_SOURCE_CLASS}.cpp)
 SET(CUDA_KERNELS_H ${CMAKE_CURRENT_BINARY_DIR}/src/${CUDA_SOURCE_CLASS}.h)
 SET(SOURCE_FILES ${SOURCE_FILES} ${CUDA_KERNELS_CPP} ${CUDA_KERNELS_H})
@@ -73,7 +73,7 @@ ADD_LIBRARY(${SHARED_TARGET} SHARED ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} ${AP
 TARGET_LINK_LIBRARIES(${SHARED_TARGET} ${CUDA_LIBRARIES})
 TARGET_LINK_LIBRARIES(${SHARED_TARGET} debug OpenMM_d optimized OpenMM)
 TARGET_LINK_LIBRARIES(${SHARED_TARGET} debug OpenMMCUDA_d optimized OpenMMCUDA)
-TARGET_LINK_LIBRARIES(${SHARED_TARGET} debug ${EXAMPLE_LIBRARY_NAME}_d optimized ${EXAMPLE_LIBRARY_NAME})
+TARGET_LINK_LIBRARIES(${SHARED_TARGET} debug ${MELD_LIBRARY_NAME}_d optimized ${MELD_LIBRARY_NAME})
 SET_TARGET_PROPERTIES(${SHARED_TARGET} PROPERTIES COMPILE_FLAGS "-DOPENMM_BUILDING_SHARED_LIBRARY")
 IF (APPLE)
     SET_TARGET_PROPERTIES(${SHARED_TARGET} PROPERTIES LINK_FLAGS "-F/Library/Frameworks -framework CUDA")
