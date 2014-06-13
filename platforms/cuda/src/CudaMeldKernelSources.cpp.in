@@ -26,6 +26,6 @@
 
 #include "CudaMeldKernelSources.h"
 
-using namespace OpenMM;
+using namespace MeldPlugin;
 using namespace std;
 

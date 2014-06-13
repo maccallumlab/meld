@@ -5,7 +5,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 # We need to know where OpenMM is installed so we can access the headers and libraries.
-SET(OPENMM_DIR "/Users/grollins/src/openmm/_install" CACHE PATH "Where OpenMM is installed")
+SET(OPENMM_DIR "/home/ec2-user/downloads/openmm/_install" CACHE PATH "Where OpenMM is installed")
 INCLUDE_DIRECTORIES("${OPENMM_DIR}/include")
 LINK_DIRECTORIES("${OPENMM_DIR}/lib" "${OPENMM_DIR}/lib/plugins")
 
@@ -65,7 +65,16 @@ ADD_SUBDIRECTORY(serialization/tests)
 
 # Build the implementations for different platforms
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
-ADD_SUBDIRECTORY(platforms/cuda)
+
+FIND_PACKAGE(CUDA QUIET)
+IF(CUDA_FOUND)
+    SET(EXAMPLE_BUILD_CUDA_LIB ON CACHE BOOL "Build implementation for CUDA")
+ELSE(CUDA_FOUND)
+    SET(EXAMPLE_BUILD_CUDA_LIB OFF CACHE BOOL "Build implementation for CUDA")
+ENDIF(CUDA_FOUND)
+IF(EXAMPLE_BUILD_CUDA_LIB)
+    ADD_SUBDIRECTORY(platforms/cuda)
+ENDIF(EXAMPLE_BUILD_CUDA_LIB)
 
 # Build the Python API
 ADD_SUBDIRECTORY(python)

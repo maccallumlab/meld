@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
 /**
  * This class is a central holding place for the source code of CUDA kernels.
@@ -11,11 +11,11 @@ namespace OpenMM {
  * kernels subfolder.
  */
 
-class OPENMM_EXPORT CudaMeldKernelSources {
+class CudaMeldKernelSources {
 public:
 @CUDA_FILE_DECLARATIONS@
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*OPENMM_CUDAMELDKERNELSOURCES_H_*/

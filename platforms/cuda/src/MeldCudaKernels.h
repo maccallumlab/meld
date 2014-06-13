@@ -4,8 +4,8 @@
 #include "meldKernels.h"
 #include "openmm/kernels.h"
 #include "openmm/System.h"
-#include "openmm/cuda/CudaArray.h"
 #include "openmm/cuda/CudaContext.h"
+#include "openmm/cuda/CudaArray.h"
 #include "openmm/cuda/CudaSort.h"
 #include <cufft.h>
 
