@@ -7,9 +7,9 @@
 #include <map>
 #include <vector>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
-class OPENMM_EXPORT_MELD MeldForce : public Force {
+class OPENMM_EXPORT_MELD MeldForce : public OpenMM::Force {
 
 public:
     /**
@@ -17,7 +17,7 @@ public:
      */
      MeldForce();
 
-    void updateParametersInContext(Context& context);
+    void updateParametersInContext(OpenMM::Context& context);
 
     int getNumDistRestraints() const;
     int getNumTorsionRestraints() const;
@@ -91,7 +91,7 @@ public:
     int addCollection(std::vector<int> group_indices, int n_active);
 
 protected:
-    ForceImpl* createImpl() const;
+    OpenMM::ForceImpl* createImpl() const;
 
 private:
     class TorsionRestraintInfo;
@@ -228,6 +228,6 @@ private:
     };
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*OPENMM_MELD_FORCE_H_*/

@@ -9,25 +9,25 @@
 #include <vector>
 #include <string>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
-class MeldForceImpl : public ForceImpl {
+class MeldForceImpl : public OpenMM::ForceImpl {
 public:
     MeldForceImpl(const MeldForce& owner);
 
     ~MeldForceImpl();
 
-    void initialize(ContextImpl& context);
+    void initialize(OpenMM::ContextImpl& context);
 
     const MeldForce& getOwner() const {
         return owner;
     }
 
-    void updateContextState(ContextImpl& context) {
+    void updateContextState(OpenMM::ContextImpl& context) {
         // This force field doesn't update the state directly.
     }
 
-    double calcForcesAndEnergy(ContextImpl& context, bool includeForces, bool includeEnergy, int groups);
+    double calcForcesAndEnergy(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy, int groups);
 
     std::map<std::string, double> getDefaultParameters() {
         return std::map<std::string, double>(); // This force field doesn't define any parameters.
@@ -35,13 +35,13 @@ public:
 
     std::vector<std::string> getKernelNames();
 
-    void updateParametersInContext(ContextImpl& context);
+    void updateParametersInContext(OpenMM::ContextImpl& context);
 
 private:
     const MeldForce& owner;
-    Kernel kernel;
+    OpenMM::Kernel kernel;
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*OPENMM_MELD_FORCE_IMPL_H_*/

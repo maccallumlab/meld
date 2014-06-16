@@ -4,6 +4,7 @@
 #include "openmm/OpenMMException.h"
 #include "openmm/internal/windowsExport.h"
 
+using namespace MeldPlugin;
 using namespace OpenMM;
 
 extern "C" void registerPlatforms() {

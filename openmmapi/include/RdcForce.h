@@ -7,9 +7,9 @@
 #include <map>
 #include <vector>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
-class OPENMM_EXPORT_MELD RdcForce : public Force {
+class OPENMM_EXPORT_MELD RdcForce : public OpenMM::Force {
 
 public:
     /**
@@ -17,7 +17,7 @@ public:
      */
     RdcForce();
 
-    void updateParametersInContext(Context& context);
+    void updateParametersInContext(OpenMM::Context& context);
     int getNumExperiments() const;
     int getNumRestraints(int experiment) const;
     int getNumTotalRestraints() const;
@@ -34,7 +34,7 @@ public:
             int& globalIndex) const;
 
 protected:
-    ForceImpl* createImpl() const;
+    OpenMM::ForceImpl* createImpl() const;
 
 private:
     class RdcRestraintInfo;
@@ -79,6 +79,6 @@ private:
     };
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*OPENMM_RDC_FORCE_H_*/

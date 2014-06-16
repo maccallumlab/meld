@@ -9,14 +9,14 @@
 #include "openmm/cuda/CudaSort.h"
 #include <cufft.h>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
 class CudaCalcMeldForceKernel : public CalcMeldForceKernel {
 public:
     CudaCalcMeldForceKernel(std::string name,
-                                          const Platform& platform,
-                                          CudaContext& cu,
-                                          const System& system);
+                                          const OpenMM::Platform& platform,
+                                          OpenMM::CudaContext& cu,
+                                          const OpenMM::System& system);
     ~CudaCalcMeldForceKernel();
 
     /**
@@ -25,7 +25,7 @@ public:
      * @param system     the System this kernel will be applied to
      * @param force      the MeldForce this kernel will be used for
      */
-    void initialize(const System& system, const MeldForce& force);
+    void initialize(const OpenMM::System& system, const MeldForce& force);
 
     /**
      * Execute the kernel to calculate the forces and/or energy.
@@ -35,9 +35,9 @@ public:
      * @param includeEnergy  true if the energy should be calculated
      * @return the potential energy due to the force
      */
-    double execute(ContextImpl& context, bool includeForces, bool includeEnergy);
+    double execute(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy);
 
-    void copyParametersToContext(ContextImpl& context, const MeldForce& force);
+    void copyParametersToContext(OpenMM::ContextImpl& context, const MeldForce& force);
 
 private:
     class ForceInfo;
@@ -50,8 +50,8 @@ private:
     int numRestraints;
     int numGroups;
     int numCollections;
-    CudaContext& cu;
-    const System& system;
+    OpenMM::CudaContext& cu;
+    const OpenMM::System& system;
     CUfunction computeDistRestKernel;
     CUfunction computeTorsionRestKernel;
     CUfunction computeDistProfileRestKernel;
@@ -69,105 +69,105 @@ private:
      *
      * Each array has size numDistRestraints
      */
-    CudaArray* distanceRestRParams;       // float4 to hold r1-r4
+    OpenMM::CudaArray* distanceRestRParams;       // float4 to hold r1-r4
     std::vector<float4> h_distanceRestRParams;
 
-    CudaArray* distanceRestKParams;       // float to hold k
+    OpenMM::CudaArray* distanceRestKParams;       // float to hold k
     std::vector<float> h_distanceRestKParams;
 
-    CudaArray* distanceRestAtomIndices;   // int2 to hold i,j
+    OpenMM::CudaArray* distanceRestAtomIndices;   // int2 to hold i,j
     std::vector<int2> h_distanceRestAtomIndices;
 
-    CudaArray* distanceRestGlobalIndices; // int to hold the global index for this restraint
+    OpenMM::CudaArray* distanceRestGlobalIndices; // int to hold the global index for this restraint
     std::vector<int> h_distanceRestGlobalIndices;
 
-    CudaArray* distanceRestForces; // cache to hold force computations until the final application step
+    OpenMM::CudaArray* distanceRestForces; // cache to hold force computations until the final application step
 
     /**
      * Arrays for torsion restraints
      *
      * Each array has size numTorsionRestraints
      */
-    CudaArray* torsionRestParams;           // float3 to hold phi, deltaPhi, forceConstant
+    OpenMM::CudaArray* torsionRestParams;           // float3 to hold phi, deltaPhi, forceConstant
     std::vector<float3> h_torsionRestParams;
 
-    CudaArray* torsionRestAtomIndices;      // int4 to hold i,j,k,l
+    OpenMM::CudaArray* torsionRestAtomIndices;      // int4 to hold i,j,k,l
     std::vector<int4> h_torsionRestAtomIndices;
 
-    CudaArray* torsionRestGlobalIndices;    // int to hold the global index for this restraint
+    OpenMM::CudaArray* torsionRestGlobalIndices;    // int to hold the global index for this restraint
     std::vector<int> h_torsionRestGlobalIndices;
 
-    CudaArray* torsionRestForces;           // float3 * 4 to hold the forces on i,j,k,l for this restraint
+    OpenMM::CudaArray* torsionRestForces;           // float3 * 4 to hold the forces on i,j,k,l for this restraint
 
     /**
      * Arrays for DistProfile restraints
      */
-    CudaArray* distProfileRestAtomIndices; // int2 to hold i, j
+    OpenMM::CudaArray* distProfileRestAtomIndices; // int2 to hold i, j
     std::vector<int2> h_distProfileRestAtomIndices;
 
-    CudaArray* distProfileRestDistRanges;  // float2 to hold rMin, rMax
+    OpenMM::CudaArray* distProfileRestDistRanges;  // float2 to hold rMin, rMax
     std::vector<float2> h_distProfileRestDistRanges;
 
-    CudaArray* distProfileRestNumBins;     // int to hold the number of bins between rMin and rMax
+    OpenMM::CudaArray* distProfileRestNumBins;     // int to hold the number of bins between rMin and rMax
     std::vector<int> h_distProfileRestNumBins;
 
-    CudaArray* distProfileRestParamBounds; // int2 to hold the start and end of the parameter blocks for each rest
+    OpenMM::CudaArray* distProfileRestParamBounds; // int2 to hold the start and end of the parameter blocks for each rest
     std::vector<int2> h_distProileRestParamBounds;
 
-    CudaArray* distProfileRestParams;      // float4 to hold a0..a3. There are NumBins of these for each rest
+    OpenMM::CudaArray* distProfileRestParams;      // float4 to hold a0..a3. There are NumBins of these for each rest
     std::vector<float4> h_distProfileRestParams;
 
-    CudaArray* distProfileRestScaleFactor; // float to hold the scale factor for each restraint
+    OpenMM::CudaArray* distProfileRestScaleFactor; // float to hold the scale factor for each restraint
     std::vector<float> h_distProfileRestScaleFactor;
 
-    CudaArray* distProfileRestGlobalIndices;// int to hold the global index for each rest
+    OpenMM::CudaArray* distProfileRestGlobalIndices;// int to hold the global index for each rest
     std::vector<int> h_distProfileRestGlobalIndices;
 
-    CudaArray* distProfileRestForces;       // cache to hold the forces for each rest until the final application step
+    OpenMM::CudaArray* distProfileRestForces;       // cache to hold the forces for each rest until the final application step
 
     /**
      * Arrays for TorsProfile restraints
      */
-    CudaArray* torsProfileRestAtomIndices0; // int4to hold i, j, k, l for torsion 0
+    OpenMM::CudaArray* torsProfileRestAtomIndices0; // int4to hold i, j, k, l for torsion 0
     std::vector<int4> h_torsProfileRestAtomIndices0;
 
-    CudaArray* torsProfileRestAtomIndices1; // int4to hold i, j, k, l for torsion 1
+    OpenMM::CudaArray* torsProfileRestAtomIndices1; // int4to hold i, j, k, l for torsion 1
     std::vector<int4> h_torsProfileRestAtomIndices1;
 
-    CudaArray* torsProfileRestNumBins;     // int to hold the number of bins
+    OpenMM::CudaArray* torsProfileRestNumBins;     // int to hold the number of bins
     std::vector<int> h_torsProfileRestNumBins;
 
-    CudaArray* torsProfileRestParamBounds; // int2 to hold the start and end of the parameter blocks for each rest
+    OpenMM::CudaArray* torsProfileRestParamBounds; // int2 to hold the start and end of the parameter blocks for each rest
     std::vector<int2> h_torsProileRestParamBounds;
 
-    CudaArray* torsProfileRestParams0;      // float4 to hold a0..a3. There are NumBins of these for each rest
+    OpenMM::CudaArray* torsProfileRestParams0;      // float4 to hold a0..a3. There are NumBins of these for each rest
     std::vector<float4> h_torsProfileRestParams0;
-    CudaArray* torsProfileRestParams1;      // float4 to hold a4..a7. There are NumBins of these for each rest
+    OpenMM::CudaArray* torsProfileRestParams1;      // float4 to hold a4..a7. There are NumBins of these for each rest
     std::vector<float4> h_torsProfileRestParams1;
-    CudaArray* torsProfileRestParams2;      // float4 to hold a8..a11. There are NumBins of these for each rest
+    OpenMM::CudaArray* torsProfileRestParams2;      // float4 to hold a8..a11. There are NumBins of these for each rest
     std::vector<float4> h_torsProfileRestParams2;
-    CudaArray* torsProfileRestParams3;      // float4 to hold a12..a15. There are NumBins of these for each rest
+    OpenMM::CudaArray* torsProfileRestParams3;      // float4 to hold a12..a15. There are NumBins of these for each rest
     std::vector<float4> h_torsProfileRestParams3;
 
-    CudaArray* torsProfileRestScaleFactor; // float to hold the scale factor for each restraint
+    OpenMM::CudaArray* torsProfileRestScaleFactor; // float to hold the scale factor for each restraint
     std::vector<float> h_torsProfileRestScaleFactor;
 
-    CudaArray* torsProfileRestGlobalIndices;// int to hold the global index for each rest
+    OpenMM::CudaArray* torsProfileRestGlobalIndices;// int to hold the global index for each rest
     std::vector<int> h_torsProfileRestGlobalIndices;
 
-    CudaArray* torsProfileRestForces;       // float3 * 8 to hold the forces on i, j, k, l, for this restraint
+    OpenMM::CudaArray* torsProfileRestForces;       // float3 * 8 to hold the forces on i, j, k, l, for this restraint
 
     /**
      * Arrays for all restraints
      *
      * Each array has size numRestraints
      */
-    CudaArray* restraintEnergies;           // energy for each restraint
+    OpenMM::CudaArray* restraintEnergies;           // energy for each restraint
 
-    CudaArray* restraintActive;             // is this restraint active?
+    OpenMM::CudaArray* restraintActive;             // is this restraint active?
 
-    CudaArray* groupRestraintIndices;       // each group has bounds that index into this array, which gives restraints
-    CudaArray* groupRestraintIndicesTemp;
+    OpenMM::CudaArray* groupRestraintIndices;       // each group has bounds that index into this array, which gives restraints
+    OpenMM::CudaArray* groupRestraintIndicesTemp;
     std::vector<int> h_groupRestraintIndices;
 
     /**
@@ -175,17 +175,17 @@ private:
      *
      * Each array has size numGroups
      */
-    CudaArray* groupEnergies;                // energy for each group
+    OpenMM::CudaArray* groupEnergies;                // energy for each group
 
-    CudaArray* groupActive;                  // is this group active?
+    OpenMM::CudaArray* groupActive;                  // is this group active?
 
-    CudaArray* groupBounds;                  // which range of groupRestraintIndices belongs to each group
+    OpenMM::CudaArray* groupBounds;                  // which range of groupRestraintIndices belongs to each group
     std::vector<int2> h_groupBounds;
 
-    CudaArray* groupNumActive;               // number of restraints active for each group
+    OpenMM::CudaArray* groupNumActive;               // number of restraints active for each group
     std::vector<int> h_groupNumActive;
 
-    CudaArray* collectionGroupIndices;       // each collection has bounds that index into this array, giving groups
+    OpenMM::CudaArray* collectionGroupIndices;       // each collection has bounds that index into this array, giving groups
     std::vector<int> h_collectionGroupIndices;
 
     /**
@@ -193,13 +193,13 @@ private:
      *
      * Each array has size numCollections
      */
-    CudaArray* collectionBounds;             // which range of collectionGroupIndices belongs to each collection
+    OpenMM::CudaArray* collectionBounds;             // which range of collectionGroupIndices belongs to each collection
     std::vector<int2> h_collectionBounds;
 
-    CudaArray* collectionNumActive;          // number of groups for each collection
+    OpenMM::CudaArray* collectionNumActive;          // number of groups for each collection
     std::vector<int> h_collectionNumActive;
 
-    CudaArray* collectionEnergies;
+    OpenMM::CudaArray* collectionEnergies;
 
     void allocateMemory(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);
@@ -215,39 +215,39 @@ private:
 class CudaCalcRdcForceKernel : public CalcRdcForceKernel {
 public:
     CudaCalcRdcForceKernel(std::string name,
-                           const Platform& platform,
-                           CudaContext& cu,
-                           const System& system);
+                           const OpenMM::Platform& platform,
+                           OpenMM::CudaContext& cu,
+                           const OpenMM::System& system);
 
     ~CudaCalcRdcForceKernel();
 
-    void initialize(const System& system, const RdcForce& force);
+    void initialize(const OpenMM::System& system, const RdcForce& force);
 
-    double execute(ContextImpl& context, bool includeForces, bool includeEnergy);
+    double execute(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy);
 
-    void copyParametersToContext(ContextImpl& context, const RdcForce& force);
+    void copyParametersToContext(OpenMM::ContextImpl& context, const RdcForce& force);
 
 private:
     class ForceInfo;
     int numRdcRestraints;
     int numExperiments;
-    CudaContext& cu;
-    const System& system;
+    OpenMM::CudaContext& cu;
+    const OpenMM::System& system;
     CUfunction computeRdcPhase1;
     CUfunction computeRdcPhase3;
 
     /*
      * Per RDC data
      */
-    CudaArray* r;                       // float4 array to hold direction cosines and norm of r
-    CudaArray* atomExptIndices;         // int3 of indices of atoms involved in each dipole and exp't index
-    CudaArray* lhs;                     // float 5 x numRdcRestraints array of the left-hand side of the LLS equations
-    CudaArray* rhs;                     // float x numRdcRestraints array of observed couplings
-    CudaArray* kappa;                   // float x numRedRestraints array of constants
-    CudaArray* tolerance;               // float x numRdcRestraints array of tolerances
-    CudaArray* force_const;             // float x numRdcRestraints array of force constants
-    CudaArray* weight;                  // float x numRdcRestraints array of weights
-    CudaArray* S;                       // float 5 x numExperiments array of alignment tensor elements
+    OpenMM::CudaArray* r;                       // float4 array to hold direction cosines and norm of r
+    OpenMM::CudaArray* atomExptIndices;         // int3 of indices of atoms involved in each dipole and exp't index
+    OpenMM::CudaArray* lhs;                     // float 5 x numRdcRestraints array of the left-hand side of the LLS equations
+    OpenMM::CudaArray* rhs;                     // float x numRdcRestraints array of observed couplings
+    OpenMM::CudaArray* kappa;                   // float x numRedRestraints array of constants
+    OpenMM::CudaArray* tolerance;               // float x numRdcRestraints array of tolerances
+    OpenMM::CudaArray* force_const;             // float x numRdcRestraints array of force constants
+    OpenMM::CudaArray* weight;                  // float x numRdcRestraints array of weights
+    OpenMM::CudaArray* S;                       // float 5 x numExperiments array of alignment tensor elements
     // host vectors
     std::vector<int3> h_atomExptIndices;
     std::vector<int2> h_experimentBounds;
@@ -265,6 +265,6 @@ private:
     void computeRdcPhase2();
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*MELD_OPENMM_CUDAKERNELS_H*/

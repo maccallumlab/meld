@@ -4,7 +4,9 @@
 #include "openmm/Platform.h"
 #include <vector>
 
+using namespace MeldPlugin;
 using namespace OpenMM;
+using namespace std;
 
 RdcForceImpl::RdcForceImpl(const RdcForce& owner) : owner(owner) {
 }

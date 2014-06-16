@@ -4,7 +4,9 @@
 #include "openmm/OpenMMException.h"
 #include <vector>
 
+using namespace MeldPlugin;
 using namespace OpenMM;
+using namespace std;
 
 MeldForce::MeldForce() : n_restraints(0) {
 }

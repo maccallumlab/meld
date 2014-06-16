@@ -11,17 +11,17 @@
 #include <string>
 #include <vector>
 
-namespace OpenMM {
+namespace MeldPlugin {
 
 
-class CalcMeldForceKernel : public KernelImpl {
+class CalcMeldForceKernel : public OpenMM::KernelImpl {
 
 public:
     static std::string Name() {
         return "CalcMeldForce";
     }
 
-    CalcMeldForceKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+    CalcMeldForceKernel(std::string name, const OpenMM::Platform& platform) : OpenMM::KernelImpl(name, platform) {
     }
 
     /**
@@ -30,7 +30,7 @@ public:
      * @param system     the System this kernel will be applied to
      * @param force      the MeldForce this kernel will be used for
      */
-    virtual void initialize(const System& system, const MeldForce& force) = 0;
+    virtual void initialize(const OpenMM::System& system, const MeldForce& force) = 0;
 
     /**
      * Execute the kernel to calculate the forces and/or energy.
@@ -40,19 +40,19 @@ public:
      * @param includeEnergy  true if the energy should be calculated
      * @return the potential energy due to the force
      */
-    virtual double execute(ContextImpl& context, bool includeForces, bool includeEnergy) = 0;
+    virtual double execute(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy) = 0;
 
-    virtual void copyParametersToContext(ContextImpl& context, const MeldForce& force) = 0;
+    virtual void copyParametersToContext(OpenMM::ContextImpl& context, const MeldForce& force) = 0;
 };
 
-class CalcRdcForceKernel : public KernelImpl {
+class CalcRdcForceKernel : public OpenMM::KernelImpl {
 
 public:
     static std::string Name() {
         return "CalcRdcForce";
     }
 
-    CalcRdcForceKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+    CalcRdcForceKernel(std::string name, const OpenMM::Platform& platform) : OpenMM::KernelImpl(name, platform) {
     }
 
     /**
@@ -61,7 +61,7 @@ public:
      * @param system     the System this kernel will be applied to
      * @param force      the MeldForce this kernel will be used for
      */
-    virtual void initialize(const System& system, const RdcForce& force) = 0;
+    virtual void initialize(const OpenMM::System& system, const RdcForce& force) = 0;
 
     /**
      * Execute the kernel to calculate the forces and/or energy.
@@ -71,11 +71,11 @@ public:
      * @param includeEnergy  true if the energy should be calculated
      * @return the potential energy due to the force
      */
-    virtual double execute(ContextImpl& context, bool includeForces, bool includeEnergy) = 0;
+    virtual double execute(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy) = 0;
 
-    virtual void copyParametersToContext(ContextImpl& context, const RdcForce& force) = 0;
+    virtual void copyParametersToContext(OpenMM::ContextImpl& context, const RdcForce& force) = 0;
 };
 
-} // namespace OpenMM
+} // namespace MeldPlugin
 
 #endif /*MELD_OPENMM_KERNELS_H*/

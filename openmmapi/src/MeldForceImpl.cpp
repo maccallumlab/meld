@@ -4,7 +4,9 @@
 #include "openmm/Platform.h"
 #include <vector>
 
+using namespace MeldPlugin;
 using namespace OpenMM;
+using namespace std;
 
 MeldForceImpl::MeldForceImpl(const MeldForce& owner) : owner(owner) {
 }
