@@ -10,6 +10,7 @@ add_custom_command(
         -o "${WRAP_FILE}"
         "-I${OPENMM_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/exampleplugin.i"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/exampleplugin.i"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
