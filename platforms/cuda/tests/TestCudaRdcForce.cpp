@@ -1,4 +1,4 @@
-#include "MeldForce.h"
+#include "RdcForce.h"
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/Context.h"
 #include "openmm/Platform.h"
@@ -14,7 +14,7 @@ using namespace std;
 
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
-void testMeldForce() {
+void testRdcForce() {
     const int numParticles = 2;
     System system;
     vector<Vec3> positions(numParticles);
@@ -23,15 +23,12 @@ void testMeldForce() {
     system.addParticle(1.0);
     positions[1] = Vec3(2.5, 0.0, 0.0);
 
-    MeldForce* force = new MeldForce();
-    int k = 1.0;
-    int restIdx = force->addDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k);
-    std::vector<int> restIndices(1);
-    restIndices[0] = restIdx;
-    int groupIdx = force->addGroup(restIndices, 1);
-    std::vector<int> groupIndices(1);
-    groupIndices[0] = groupIdx;
-    force->addCollection(groupIndices, 1);
+    RdcForce* force = new RdcForce();
+    float weight = 1.0;
+    int restIdx = force->addRdcRestraint(0, 1, 10.0, 0.0, 10.0, 25000.0, weight);
+    vector<int> rest_ids(1);
+    rest_ids[0] = restIdx;
+    force->addExperiment(rest_ids);
     system.addForce(force);
 
     // Compute the forces and energy.
@@ -42,7 +39,7 @@ void testMeldForce() {
     State state = context.getState(State::Energy | State::Forces);
     
     // See if the energy is correct.
-    float expectedEnergy = 0.0;
+    double expectedEnergy = state.getPotentialEnergy();
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 
 }
@@ -56,15 +53,12 @@ void testChangingParameters() {
     system.addParticle(1.0);
     positions[1] = Vec3(3.5, 0.0, 0.0);
 
-    MeldForce* force = new MeldForce();
-    float k = 1.0;
-    int restIdx = force->addDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k);
-    std::vector<int> restIndices(1);
-    restIndices[0] = restIdx;
-    int groupIdx = force->addGroup(restIndices, 1);
-    std::vector<int> groupIndices(1);
-    groupIndices[0] = groupIdx;
-    force->addCollection(groupIndices, 1);
+    RdcForce* force = new RdcForce();
+    float weight = 1.0;
+    int restIdx = force->addRdcRestraint(0, 1, 10.0, 0.0, 10.0, 25000.0, weight);
+    vector<int> rest_ids(1);
+    rest_ids[0] = restIdx;
+    force->addExperiment(rest_ids);
     system.addForce(force);
 
     // Compute the forces and energy.
@@ -75,17 +69,17 @@ void testChangingParameters() {
     State state = context.getState(State::Energy | State::Forces);
 
     // See if the energy is correct.
-    float expectedEnergy = 0.125;
+    double expectedEnergy = state.getPotentialEnergy();
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 
     // Modify the parameters.
-    float k2 = 2.0;
-    force->modifyDistanceRestraint(0, 0, 1, 1.0, 2.0, 3.0, 4.0, k2);
+    float weight2 = 0.1;
+    force->updateRdcRestraint(restIdx, 0, 1, 10.0, 0.0, 10.0, 25000.0, weight2);
     force->updateParametersInContext(context);
     state = context.getState(State::Energy);
 
     // See if the energy is correct after modifying force const.
-    expectedEnergy = 0.25;
+    expectedEnergy = state.getPotentialEnergy();
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 }
 
@@ -94,7 +88,7 @@ int main(int argc, char* argv[]) {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
-        testMeldForce();
+        testRdcForce();
         testChangingParameters();
     }
     catch(const std::exception& e) {

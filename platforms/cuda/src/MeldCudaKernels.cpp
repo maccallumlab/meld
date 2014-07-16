@@ -597,7 +597,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     std::map<std::string, std::string> defines;
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
-    CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::computeMeld, replacements), defines);
+    CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
     computeTorsionRestKernel = cu.getKernel(module, "computeTorsionRest");
     computeDistProfileRestKernel = cu.getKernel(module, "computeDistProfileRest");
@@ -827,7 +827,7 @@ void CudaCalcRdcForceKernel::initialize(const System& system, const RdcForce& fo
     std::map<std::string, std::string> defines;
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
-    CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::computeRdc, replacements), defines);
+    CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeRdc, replacements), defines);
     computeRdcPhase1 = cu.getKernel(module, "computeRdcPhase1");
     computeRdcPhase3 = cu.getKernel(module, "computeRdcPhase3");
 }
