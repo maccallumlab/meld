@@ -5,9 +5,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 # We need to know where OpenMM is installed so we can access the headers and libraries.
-SET(OPENMM_DIR "/home/ec2-user/downloads/openmm/_install" CACHE PATH "Where OpenMM is installed")
-INCLUDE_DIRECTORIES("${OPENMM_DIR}/include")
-LINK_DIRECTORIES("${OPENMM_DIR}/lib" "${OPENMM_DIR}/lib/plugins")
+INCLUDE_DIRECTORIES("$ENV{OPENMM_DIR}/include")
+LINK_DIRECTORIES("$ENV{OPENMM_DIR}/lib" "$ENV{OPENMM_DIR}/lib/plugins")
 
 # Select where to install
 IF(${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT})
