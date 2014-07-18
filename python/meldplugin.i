@@ -6,6 +6,8 @@
 #include "MeldForce.h"
 #include "RdcForce.h"
 #include "OpenMM.h"
+#include "OpenMMAmoeba.h"
+#include "OpenMMDrude.h"
 #include <vector>
 %}
 
@@ -14,7 +16,7 @@ namespace MeldPlugin {
     class MeldForce : public OpenMM::Force {
     public:
         MeldForce();
-        void updateParametersInContext(Context& context);
+        void updateParametersInContext(OpenMM::Context& context);
         int getNumDistRestraints() const;
         int getNumTorsionRestraints() const;
         int getNumDistProfileRestraints() const;
@@ -76,7 +78,7 @@ namespace MeldPlugin {
     class RdcForce : public OpenMM::Force {
     public:
         RdcForce();
-        void updateParametersInContext(Context& context);
+        void updateParametersInContext(OpenMM::Context& context);
         int getNumExperiments() const;
         int getNumRestraints(int experiment) const;
         int getNumTotalRestraints() const;
