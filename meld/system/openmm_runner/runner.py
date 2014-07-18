@@ -1,6 +1,7 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MeldForce, Platform, RdcForce, CustomExternalForce
+from simtk.openmm import LangevinIntegrator, Platform, CustomExternalForce
+from meldplugin import MeldForce, RdcForce
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint

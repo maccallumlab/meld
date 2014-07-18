@@ -4,7 +4,7 @@ from meld.system import OpenMMRunner, RunOptions
 from meld.system.openmm_runner.runner import _parm_top_from_string, _create_openmm_system, _create_integrator
 from meld.system.openmm_runner.runner import _add_always_active_restraints, _add_selectively_active_restraints
 from meld.system import protein, builder, ConstantTemperatureScaler
-from simtk.openmm import MeldForce
+from meldplugin import MeldForce
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator
