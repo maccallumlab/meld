@@ -14,7 +14,7 @@ using namespace std;
 
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
-void testMeldForce() {
+void testDistRest() {
     const int numParticles = 2;
     System system;
     vector<Vec3> positions(numParticles);
@@ -47,7 +47,8 @@ void testMeldForce() {
 
 }
 
-void testChangingParameters() {
+void testDistRestChangingParameters() {
+    // Create particles
     const int numParticles = 2;
     System system;
     vector<Vec3> positions(numParticles);
@@ -56,6 +57,7 @@ void testChangingParameters() {
     system.addParticle(1.0);
     positions[1] = Vec3(3.5, 0.0, 0.0);
 
+    // Define distance restraint
     MeldForce* force = new MeldForce();
     float k = 1.0;
     int restIdx = force->addDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k);
@@ -89,13 +91,146 @@ void testChangingParameters() {
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 }
 
+void testTorsRest() {
+    // Create particles
+    const int numParticles = 4;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    positions[0] = Vec3(-3.0, -3.0, 0.0);
+    system.addParticle(1.0);
+    positions[1] = Vec3(-3.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[2] = Vec3(3.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[3] = Vec3(3.0, 3.0, 0.0);
+
+    // Define torsion restraint
+    MeldForce* force = new MeldForce();
+    float k = 1.0;
+    int restIdx = force->addTorsionRestraint(0, 1, 2, 3, 0.0, 0.0, k);
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state = context.getState(State::Energy | State::Forces);
+
+    // See if the energy is correct.
+    float expectedEnergy = 16200;
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+}
+
+void testDistProfileRest() {
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[1] = Vec3(2.5, 0.0, 0.0);
+
+    MeldForce* force = new MeldForce();
+    int nBins = 5;
+    int restIdx = 0;
+    try {
+        std::vector<double> a(nBins);
+        for(int i=0; i<a.size(); i++) {
+            a[i] = 1.0;
+        }
+        restIdx = force->addDistProfileRestraint(0, 1, 1.0, 4.0, nBins, a, a, a, a, 1.0);
+    }
+    catch (std::bad_alloc& ba)
+    {
+        std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+    }
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state = context.getState(State::Energy | State::Forces);
+    
+    // See if the energy is correct.
+    float expectedEnergy = 75.8565;
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+}
+
+void testTorsProfileRest() {
+    // Create particles
+    const int numParticles = 4;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    positions[0] = Vec3(-3.0, -3.0, 0.0);
+    system.addParticle(1.0);
+    positions[1] = Vec3(-3.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[2] = Vec3(3.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[3] = Vec3(3.0, 3.0, 0.0);
+
+    // Define torsion restraint
+    MeldForce* force = new MeldForce();
+    int nBins = 5;
+    int restIdx = 0;
+    try {
+        std::vector<double> a(nBins);
+        for(int i=0; i<a.size(); i++) {
+            a[i] = 1.0;
+        }
+        restIdx = force->addTorsProfileRestraint(0, 1, 2, 3, 0, 1, 2, 3, nBins, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, 1.0);
+    }
+    catch (std::bad_alloc& ba)
+    {
+        std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+    }
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state = context.getState(State::Energy | State::Forces);
+
+    // See if the energy is correct.
+    float expectedEnergy = 1.0;
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+}
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
-        testMeldForce();
-        testChangingParameters();
+        testDistRest();
+        testDistRestChangingParameters();
+        testTorsRest();
+        testDistProfileRest();
+        testTorsProfileRest();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;
