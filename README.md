@@ -22,3 +22,5 @@ Building The Plugin
     make
     make test
     make install
+    make PythonInstall
+    
