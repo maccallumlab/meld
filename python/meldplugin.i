@@ -2,6 +2,15 @@
 
 %import(module="simtk.openmm") "OpenMMSwigHeaders.i"
 
+
+%include "std_vector.i"
+
+namespace std {
+  %template(vectord) vector<double>;
+  %template(vectori) vector<int>;
+};
+
+
 %{
 #include "MeldForce.h"
 #include "RdcForce.h"
