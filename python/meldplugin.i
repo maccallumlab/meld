@@ -160,16 +160,97 @@ namespace MeldPlugin {
 
         int getNumCollections() const;
 
+        %apply int& OUTPUT {int& atom1};
+        %apply int& OUTPUT {int& atom2};
+        %apply float& OUTPUT {float& r1};
+        %apply float& OUTPUT {float& r2};
+        %apply float& OUTPUT {float& r3};
+        %apply float& OUTPUT {float& r4};
+        %apply float& OUTPUT {float& forceConstant};
+        %apply int& OUTPUT {int& globalIndex};
         void getDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
                 float& r4, float& forceConstant, int& globalIndex) const;
+        %clear int& atom1;
+        %clear int& atom2;
+        %clear float& r1;
+        %clear float& r2;
+        %clear float& r3;
+        %clear float& r4;
+        %clear float& forceConstant;
+        %clear int& globalIndex;
 
+        %apply int& OUTPUT {int& atom1};
+        %apply int& OUTPUT {int& atom2};
+        %apply int& OUTPUT {int& atom3};
+        %apply int& OUTPUT {int& atom4};
+        %apply float& OUTPUT {float& phi};
+        %apply float& OUTPUT {float& deltaPhi};
+        %apply float& OUTPUT {float& forceConstant};
+        %apply int& OUTPUT {int& globalIndex};
         void getTorsionRestraintParams(int index, int& atom1, int& atom2, int& atom3, int&atom4,
                 float& phi, float& deltaPhi, float& forceConstant, int& globalIndex) const;
+        %clear int& atom1;
+        %clear int& atom2;
+        %clear int& atom3;
+        %clear int& atom4;
+        %clear float& phi;
+        %clear float& deltaPhi;
+        %clear float& forceConstant;
+        %clear int& globalIndex;
 
+        %apply int& OUTPUT {int& atom1};
+        %apply int& OUTPUT {int& atom2};
+        %apply float& OUTPUT {float& rMin};
+        %apply float& OUTPUT {float& rMax};
+        %apply int& OUTPUT {int& nBins};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a0};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a1};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a2};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a3};
+        %apply float& OUTPUT {float& scaleFactor};
+        %apply int& OUTPUT {int& globalIndex};
         void getDistProfileRestraintParams(int index, int& atom1, int& atom2, float& rMin, float & rMax,
                 int& nBins, std::vector<double>& a0, std::vector<double>& a1, std::vector<double>& a2,
                 std::vector<double>& a3, float& scaleFactor, int& globalIndex) const;
+        %clear int& atom1;
+        %clear int& atom2;
+        %clear float& rMin;
+        %clear float& rMax;
+        %clear int& nBins;
+        %clear vector<double>& a0;
+        %clear std::vector<double>& a1;
+        %clear std::vector<double>& a2;
+        %clear std::vector<double>& a3;
+        %clear float& scaleFactor;
+        %clear int& globalIndex;
 
+        %apply int& OUTPUT {int& atom1};
+        %apply int& OUTPUT {int& atom2};
+        %apply int& OUTPUT {int& atom3};
+        %apply int& OUTPUT {int& atom4};
+        %apply int& OUTPUT {int& atom5};
+        %apply int& OUTPUT {int& atom6};
+        %apply int& OUTPUT {int& atom7};
+        %apply int& OUTPUT {int& atom8};
+        %apply int& OUTPUT {int& nBins};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a0};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a1};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a2};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a3};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a4};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a5};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a6};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a7};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a8};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a9};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a10};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a11};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a12};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a13};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a14};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& a15};
+        %apply float& OUTPUT {float& scaleFactor};
+        %apply int& OUTPUT {int& globalIndex};
         void getTorsProfileRestraintParams(int index, int& atom1, int& atom2, int& atom3, int& atom4,
                 int& atom5, int& atom6, int& atom7, int& atom8, int& nBins,
                 std::vector<double>&  a0, std::vector<double>&  a1, std::vector<double>&  a2,
@@ -178,10 +259,45 @@ namespace MeldPlugin {
                 std::vector<double>&  a9, std::vector<double>& a10, std::vector<double>& a11,
                 std::vector<double>& a12, std::vector<double>& a13, std::vector<double>& a14,
                 std::vector<double>& a15, float& scaleFactor, int& globalIndex) const;
+        %clear int& atom1;
+        %clear int& atom2;
+        %clear int& atom3;
+        %clear int& atom4;
+        %clear int& atom5;
+        %clear int& atom6;
+        %clear int& atom7;
+        %clear int& atom8;
+        %clear int& nBins;
+        %clear std::vector<double>& a0;
+        %clear std::vector<double>& a1;
+        %clear std::vector<double>& a2;
+        %clear std::vector<double>& a3;
+        %clear std::vector<double>& a4;
+        %clear std::vector<double>& a5;
+        %clear std::vector<double>& a6;
+        %clear std::vector<double>& a7;
+        %clear std::vector<double>& a8;
+        %clear std::vector<double>& a9;
+        %clear std::vector<double>& a10;
+        %clear std::vector<double>& a11;
+        %clear std::vector<double>& a12;
+        %clear std::vector<double>& a13;
+        %clear std::vector<double>& a14;
+        %clear std::vector<double>& a15;
+        %clear float& scaleFactor;
+        %clear int& globalIndex;
 
+        %apply std::vector<int>& OUTPUT {std::vector<int>& indices};
+        %apply int& OUTPUT {int& numActive};
         void getGroupParams(int index, std::vector<int>& indices, int& numActive) const;
+        %clear std::vector<int>& indices;
+        %clear int& numActive;
 
+        %apply std::vector<int>& OUTPUT {std::vector<int>& indices};
+        %apply int& OUTPUT {int& numActive};
         void getCollectionParams(int index, std::vector<int>& indices, int& numActive) const;
+        %clear std::vector<int>& indices;
+        %clear int& numActive;
 
         int addDistanceRestraint(int particle1, int particle2, float r1, float r2, float r3, float r4,
                 float force_constant);
@@ -244,11 +360,29 @@ namespace MeldPlugin {
         void updateRdcRestraint(int index, int particle1, int particle2, float kappa, float dObs,
                 float tolerance, float force_const, float weight);
 
+        %apply std::vector<int>& OUTPUT {std::vector<int>& restraints};
         void getExperimentInfo(int index, std::vector<int>& restraints) const;
+        %clear std::vector<int> & restraints;
 
+        %apply int& OUTPUT {int & particle1};
+        %apply int& OUTPUT {int & particle2};
+        %apply float& OUTPUT {float & kappa};
+        %apply float& OUTPUT {float & dObs};
+        %apply float& OUTPUT {float & tolerance};
+        %apply float& OUTPUT {float & force_const};
+        %apply float& OUTPUT {float & weight};
+        %apply int& OUTPUT {int & globalIndex};
         void getRdcRestraintInfo(int index, int& particle1, int& partcile2, float& kappa,
                 float& dObs, float& tolerance, float& force_const, float& weight,
                 int& globalIndex) const;
+        %clear int & particle1;
+        %clear int & particle2;
+        %clear float & kappa;
+        %clear float & dObs;
+        %clear float & tolerance;
+        %clear float & force_const;
+        %clear float & weight;
+        %clear int & globalIndex;
     };
 }
 
