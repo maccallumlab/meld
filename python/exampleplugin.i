@@ -30,98 +30,7 @@ namespace std {
 */
 
 %pythoncode %{
-
-import numpy
-
-import sys
-import math
-import simtk.unit as unit
-from simtk.openmm.vec3 import Vec3
-
-
-# Strings can cause trouble
-# as can any container that has infinite levels of containment
-def _is_string(x):
-    # step 1) String is always a container
-    # and its contents are themselves containers.
-    try:
-        first_item = iter(x).next()
-        inner_item = iter(first_item).next()
-        if first_item == inner_item:
-            return True
-        else:
-            return False
-    except TypeError:
-        return False
-    except StopIteration:
-        return False
-    except ValueError:
-        return False
-
-
-def stripUnits(args):
-    """
-    getState(self, quantity) 
-          -> value with *no* units
-
-    Examples
-    >>> import simtk
-
-    >>> x = 5
-    >>> print x
-    5
-
-    >>> x = stripUnits((5*simtk.unit.nanometer,))
-    >>> x
-    (5,)
-
-    >>> arg1 = 5*simtk.unit.angstrom
-    >>> x = stripUnits((arg1,))
-    >>> x
-    (0.5,)
-
-    >>> arg1 = 5
-    >>> x = stripUnits((arg1,))
-    >>> x
-    (5,)
-
-    >>> arg1 = (1*simtk.unit.angstrom, 5*simtk.unit.angstrom)
-    >>> x = stripUnits((arg1,))
-    >>> x
-    ((0.10000000000000001, 0.5),)
-
-    >>> arg1 = (1*simtk.unit.angstrom,
-    ...         5*simtk.unit.kilojoule_per_mole,
-    ...         1*simtk.unit.kilocalorie_per_mole)
-    >>> y = stripUnits((arg1,))
-    >>> y
-    ((0.10000000000000001, 5, 4.1840000000000002),)
-
-    """
-    newArgList=[]
-    for arg in args:
-        if 'numpy' in sys.modules and isinstance(arg, numpy.ndarray):
-           arg = arg.tolist()
-        elif unit.is_quantity(arg):
-            # JDC: Ugly workaround for OpenMM using 'bar' for fundamental pressure unit.
-            if arg.unit.is_compatible(unit.bar):
-                arg = arg / unit.bar
-            else:
-                arg=arg.value_in_unit_system(unit.md_unit_system)                
-            # JDC: End workaround.
-        elif isinstance(arg, dict):
-            newKeys = stripUnits(arg.keys())
-            newValues = stripUnits(arg.values())
-            arg = dict(zip(newKeys, newValues))
-        elif not _is_string(arg):
-            try:
-                iter(arg)
-                # Reclusively strip units from all quantities
-                arg=stripUnits(arg)
-            except TypeError:
-                pass
-        newArgList.append(arg)
-    return tuple(newArgList)
+import simtk.openmm as mm
 %}
 
 %pythonappend OpenMM::Context::Context %{
@@ -132,7 +41,7 @@ def stripUnits(args):
 /* strip the units off of all input arguments */
 %pythonprepend %{
 try:
-    args=stripUnits(args)
+    args=mm.stripUnits(args)
 except UnboundLocalError:
     pass
 %}
