@@ -15,14 +15,14 @@ using namespace std;
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
 void testDistRest() {
+    // setup system
     const int numParticles = 2;
     System system;
     vector<Vec3> positions(numParticles);
     system.addParticle(1.0);
-    positions[0] = Vec3(0.0, 0.0, 0.0);
     system.addParticle(1.0);
-    positions[1] = Vec3(2.5, 0.0, 0.0);
 
+    // setup meld force
     MeldForce* force = new MeldForce();
     int k = 1.0;
     int restIdx = force->addDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k);
@@ -34,14 +34,18 @@ void testDistRest() {
     force->addCollection(groupIndices, 1);
     system.addForce(force);
 
-    // Compute the forces and energy.
+    // setup the context
     VerletIntegrator integ(1.0);
     Platform& platform = Platform::getPlatformByName("CUDA");
     Context context(system, integ, platform);
+
+    // test the flat region
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.5, 0.0, 0.0);
     context.setPositions(positions);
     State state = context.getState(State::Energy | State::Forces);
-    
-    // See if the energy is correct.
     float expectedEnergy = 0.0;
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 
