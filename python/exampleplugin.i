@@ -31,12 +31,9 @@ namespace std {
 
 %pythoncode %{
 import simtk.openmm as mm
+import simtk.unit as unit
 %}
 
-%pythonappend OpenMM::Context::Context %{
-    self._system = args[0]
-    self._integrator = args[1]
-%}
 
 /* strip the units off of all input arguments */
 %pythonprepend %{
