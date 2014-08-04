@@ -14,6 +14,14 @@ using namespace std;
 
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
+
+void compareForces(const Vec3& expected, const Vec3& actual) {
+    ASSERT_EQUAL_TOL(expected[0], actual[0], 1e-5);
+    ASSERT_EQUAL_TOL(expected[1], actual[1], 1e-5);
+    ASSERT_EQUAL_TOL(expected[2], actual[2], 1e-5);
+}
+
+
 void testDistRest() {
     // setup system
     const int numParticles = 2;
@@ -39,16 +47,87 @@ void testDistRest() {
     Platform& platform = Platform::getPlatformByName("CUDA");
     Context context(system, integ, platform);
 
-    // test the flat region
+    // There are five regions:
+    // I:       r < 1
+    // II:  1 < r < 2
+    // III: 2 < r < 3
+    // IV:  3 < r < 4
+    // V:   4 < r
+
+    // test region I
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(0.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 1.0;
+    Vec3 expectedForce = Vec3(-1.0, 0.0, 0.0);
+
+    State stateI = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce, stateI.getForces()[0]);
+    compareForces(-expectedForce, stateI.getForces()[1]);
+
+    // test region II
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.125;
+    expectedForce = Vec3(-0.5, 0.0, 0.0);
+
+    State stateII = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateII.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce, stateII.getForces()[0]);
+    compareForces(-expectedForce, stateII.getForces()[1]);
+
+    // test region III
     // set the postitions, compute the forces and energy
     // test to make sure they have the expected values
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(2.5, 0.0, 0.0);
     context.setPositions(positions);
-    State state = context.getState(State::Energy | State::Forces);
-    float expectedEnergy = 0.0;
-    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 
+    expectedEnergy = 0.0;
+    expectedForce = Vec3(0.0, 0.0, 0.0);
+
+    State stateIII = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateIII.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce, stateIII.getForces()[0]);
+    compareForces(expectedForce, stateIII.getForces()[1]);
+
+    // test region IV
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(3.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.125;
+    expectedForce = Vec3(0.5, 0.0, 0.0);
+
+    State stateIV = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateIV.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce, stateIV.getForces()[0]);
+    compareForces(-expectedForce, stateIV.getForces()[1]);
+
+    // test region V
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(4.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 1.0;
+    expectedForce = Vec3(1.0, 0.0, 0.0);
+
+    State stateV = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateV.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce, stateV.getForces()[0]);
+    compareForces(-expectedForce, stateV.getForces()[1]);
 }
 
 void testDistRestChangingParameters() {
