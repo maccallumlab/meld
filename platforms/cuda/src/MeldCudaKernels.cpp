@@ -33,6 +33,14 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
                                                  const System& system) :
     CalcMeldForceKernel(name, platform), cu(cu), system(system)
 {
+
+    if (cu.getUseDoublePrecision()) {
+        cout << "***\n";
+        cout << "*** MeldForce does not support double precision.\n";
+        cout << "***" << endl;
+        throw OpenMMException("MeldForce does not support double precision");
+    }
+
     numDistRestraints = 0;
     numTorsionRestraints = 0;
     numDistProfileRestraints = 0;
@@ -789,6 +797,14 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
 CudaCalcRdcForceKernel::CudaCalcRdcForceKernel(std::string name, const Platform& platform,
         CudaContext& cu, const System& system) :
     CalcRdcForceKernel(name, platform), cu(cu), system(system) {
+
+    if (cu.getUseDoublePrecision()) {
+        cout << "***\n";
+        cout << "*** RdcForce does not support double precision.\n";
+        cout << "***" << endl;
+        throw OpenMMException("RdcForce does not support double precision");
+    }
+
     int numExperiments = 0;
     int numRdcRestraints = 0;
 
