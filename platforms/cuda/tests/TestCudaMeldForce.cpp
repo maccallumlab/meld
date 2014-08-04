@@ -304,6 +304,124 @@ void testTorsProfileRest() {
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 }
 
+void testGroupSelectsCorrectly() {
+    // setup system
+    const int numParticles = 3;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int restIdx1 = force->addDistanceRestraint(0, 1, 0.0, 0.0, 3.0, 999.0, 1.0);
+    int restIdx2 = force->addDistanceRestraint(1, 2, 0.0, 0.0, 3.0, 999.0, 1.0);
+
+    // setup group
+    std::vector<int> group(2);
+    group[0] = restIdx1;
+    group[1] = restIdx2;
+    int groupIdx = force->addGroup(group, 1);
+
+    // setup collection
+    std::vector<int> collection(1);
+    collection[0] = groupIdx;
+    force->addCollection(collection, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // set the positions
+    // the first has length 4.0
+    // the second has length 5.0
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(4.0, 0.0, 0.0);
+    positions[2] = Vec3(9.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    // the expected energy is 0.5 * (4 - 3)**2 = 0.5
+    float expectedEnergy = 0.5;
+
+    // the force on atom 1 should be
+    // f = - k * (4 - 3) = 1.0
+    Vec3 expectedForce1 = Vec3(1.0, 0.0, 0.0);
+    Vec3 expectedForce2 = -expectedForce1;
+    // should be no force on atom 3
+    Vec3 expectedForce3 = Vec3(0.0, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce1, state.getForces()[0]);
+    compareForces(expectedForce2, state.getForces()[1]);
+    compareForces(expectedForce3, state.getForces()[2]);
+}
+
+void testCollectionSelectsCorrectly() {
+    // setup system
+    const int numParticles = 3;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int restIdx1 = force->addDistanceRestraint(0, 1, 0.0, 0.0, 3.0, 999.0, 1.0);
+    int restIdx2 = force->addDistanceRestraint(1, 2, 0.0, 0.0, 3.0, 999.0, 1.0);
+
+    // setup group1
+    std::vector<int> group1(1);
+    group1[0] = restIdx1;
+    int groupIdx1 = force->addGroup(group1, 1);
+
+    // setup group2
+    std::vector<int> group2(1);
+    group2[0] = restIdx2;
+    int groupIdx2 = force->addGroup(group2, 1);
+
+    // setup collection
+    std::vector<int> collection(2);
+    collection[0] = groupIdx1;
+    collection[1] = groupIdx2;
+    force->addCollection(collection, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // set the positions
+    // the first has length 4.0
+    // the second has length 5.0
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(4.0, 0.0, 0.0);
+    positions[2] = Vec3(9.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    // the expected energy is 0.5 * (4 - 3)**2 = 0.5
+    float expectedEnergy = 0.5;
+
+    // the force on atom 1 should be
+    // f = - k * (4 - 3) = 1.0
+    Vec3 expectedForce1 = Vec3(1.0, 0.0, 0.0);
+    Vec3 expectedForce2 = -expectedForce1;
+    // should be no force on atom 3
+    Vec3 expectedForce3 = Vec3(0.0, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    compareForces(expectedForce1, state.getForces()[0]);
+    compareForces(expectedForce2, state.getForces()[1]);
+    compareForces(expectedForce3, state.getForces()[2]);
+}
+
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
@@ -314,6 +432,8 @@ int main(int argc, char* argv[]) {
         testTorsRest();
         testDistProfileRest();
         testTorsProfileRest();
+        testGroupSelectsCorrectly();
+        testCollectionSelectsCorrectly();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;
