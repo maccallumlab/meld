@@ -15,13 +15,6 @@ using namespace std;
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
 
-void compareForces(const Vec3& expected, const Vec3& actual) {
-    ASSERT_EQUAL_TOL(expected[0], actual[0], 1e-5);
-    ASSERT_EQUAL_TOL(expected[1], actual[1], 1e-5);
-    ASSERT_EQUAL_TOL(expected[2], actual[2], 1e-5);
-}
-
-
 void testDistRest() {
     // setup system
     const int numParticles = 2;
@@ -66,8 +59,8 @@ void testDistRest() {
 
     State stateI = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce, stateI.getForces()[0]);
-    compareForces(-expectedForce, stateI.getForces()[1]);
+    ASSERT_EQUAL_VEC(expectedForce, stateI.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateI.getForces()[1], 1e-5);
 
     // test region II
     // set the postitions, compute the forces and energy
@@ -81,8 +74,8 @@ void testDistRest() {
 
     State stateII = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, stateII.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce, stateII.getForces()[0]);
-    compareForces(-expectedForce, stateII.getForces()[1]);
+    ASSERT_EQUAL_VEC(expectedForce, stateII.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateII.getForces()[1], 1e-5);
 
     // test region III
     // set the postitions, compute the forces and energy
@@ -96,8 +89,8 @@ void testDistRest() {
 
     State stateIII = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, stateIII.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce, stateIII.getForces()[0]);
-    compareForces(expectedForce, stateIII.getForces()[1]);
+    ASSERT_EQUAL_VEC(expectedForce, stateIII.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateIII.getForces()[1], 1e-5);
 
     // test region IV
     // set the postitions, compute the forces and energy
@@ -111,8 +104,8 @@ void testDistRest() {
 
     State stateIV = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, stateIV.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce, stateIV.getForces()[0]);
-    compareForces(-expectedForce, stateIV.getForces()[1]);
+    ASSERT_EQUAL_VEC(expectedForce, stateIV.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateIV.getForces()[1], 1e-5);
 
     // test region V
     // set the postitions, compute the forces and energy
@@ -126,8 +119,8 @@ void testDistRest() {
 
     State stateV = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, stateV.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce, stateV.getForces()[0]);
-    compareForces(-expectedForce, stateV.getForces()[1]);
+    ASSERT_EQUAL_VEC(expectedForce, stateV.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateV.getForces()[1], 1e-5);
 }
 
 void testDistRestChangingParameters() {
@@ -355,9 +348,9 @@ void testGroupSelectsCorrectly() {
 
     State state = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce1, state.getForces()[0]);
-    compareForces(expectedForce2, state.getForces()[1]);
-    compareForces(expectedForce3, state.getForces()[2]);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[1], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce3, state.getForces()[2], 1e-5);
 }
 
 void testCollectionSelectsCorrectly() {
@@ -416,9 +409,9 @@ void testCollectionSelectsCorrectly() {
 
     State state = context.getState(State::Energy | State::Forces);
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
-    compareForces(expectedForce1, state.getForces()[0]);
-    compareForces(expectedForce2, state.getForces()[1]);
-    compareForces(expectedForce3, state.getForces()[2]);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[1], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce3, state.getForces()[2], 1e-5);
 }
 
 
