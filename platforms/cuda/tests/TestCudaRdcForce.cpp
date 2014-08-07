@@ -83,6 +83,78 @@ void testChangingParameters() {
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 }
 
+void testTranslatingSystemDoesNotChangeEnergy() {
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[1] = Vec3(3.5, 0.0, 0.0);
+
+    RdcForce* force = new RdcForce();
+    float weight = 1.0;
+    int restIdx = force->addRdcRestraint(0, 1, 10.0, 0.0, 10.0, 25000.0, weight);
+    vector<int> rest_ids(1);
+    rest_ids[0] = restIdx;
+    force->addExperiment(rest_ids);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state1 = context.getState(State::Energy | State::Forces);
+    double energy1 = state1.getPotentialEnergy();
+
+    // Translate particles
+    positions[0][0] += 10.0;
+    positions[1][0] += 10.0;
+    context.setPositions(positions);
+    State state2 = context.getState(State::Energy | State::Forces);
+    double energy2 = state2.getPotentialEnergy();
+
+    // See if the energy is correct.
+    ASSERT_EQUAL_TOL(energy1, energy2, 1e-5);
+}
+
+void testRotatingSystemDoesNotChangeEnergy() {
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    system.addParticle(1.0);
+    positions[1] = Vec3(3.5, 0.0, 0.0);
+
+    RdcForce* force = new RdcForce();
+    float weight = 1.0;
+    int restIdx = force->addRdcRestraint(0, 1, 10.0, 0.0, 10.0, 25000.0, weight);
+    vector<int> rest_ids(1);
+    rest_ids[0] = restIdx;
+    force->addExperiment(rest_ids);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state1 = context.getState(State::Energy | State::Forces);
+    double energy1 = state1.getPotentialEnergy();
+
+    // 90 degree rotation
+    positions[1][0] = 0.0;
+    positions[1][1] = 3.5;
+    context.setPositions(positions);
+    State state2 = context.getState(State::Energy | State::Forces);
+    double energy2 = state2.getPotentialEnergy();
+
+    // See if the energy is correct.
+    ASSERT_EQUAL_TOL(energy1, energy2, 1e-5);
+}
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
@@ -90,6 +162,8 @@ int main(int argc, char* argv[]) {
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
         testRdcForce();
         testChangingParameters();
+        testTranslatingSystemDoesNotChangeEnergy();
+        testRotatingSystemDoesNotChangeEnergy();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;
