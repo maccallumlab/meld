@@ -23,22 +23,17 @@ sys.excepthook = mpi_excepthook
 
 class MPICommunicator(object):
     """
-    Class to handle communications between master and slaves using MPI
+    Class to handle communications between master and slaves using MPI.
+    
+    :param n_atoms: number of atoms
+    :param n_replicas: number of replicas
 
+    .. note::
+        creating an MPI communicator will not actually initialize MPI. To do that,
+        call :meth:`initialize`.
     """
 
     def __init__(self, n_atoms, n_replicas):
-        """
-        Create an MPICommunicator
-
-        Parameters
-            n_atoms -- number of atoms
-            n_replicas -- number of replicas
-
-        Note: creating an MPI communicator will not actually initialize MPI. To do that,
-        call initialize().
-
-        """
         # We're not using n_atoms and n_replicas, but if we switch
         # to more efficient buffer-based MPI routines, we'll need them.
         self._n_atoms = n_atoms
@@ -66,8 +61,7 @@ class MPICommunicator(object):
         """
         Is this the master node?
 
-        Returns
-            True if we are the master, otherwise False
+        :returns: :const:`True` if we are the master, otherwise :const:`False`
 
         """
         if self._my_rank == 0:
@@ -82,15 +76,13 @@ class MPICommunicator(object):
     @log_timing(logger)
     def broadcast_alphas_to_slaves(self, alphas):
         """
-        Send the alpha values to the slaves
+        broadcast_alphas_to_slaves(alphas)
+        Send the alpha values to the slaves.
 
-        Parameters
-            alphas -- a list of alpha values, one for each replica
-        Returns
-            None
-
-        The master node's alpha value should be included in this list.
-        The master node will always be at alpha=0.0
+        :param alphas: a list of alpha values, one for each replica.
+            The master node's alpha value should be included in this list.
+            The master node will always be at alpha=0.0
+        :returns: :const:`None`
 
         """
         self._mpi_comm.scatter(alphas, root=0)
@@ -98,10 +90,10 @@ class MPICommunicator(object):
     @log_timing(logger)
     def receive_alpha_from_master(self):
         """
-        Receive alpha value from master node
+        receive_alpha_from_master()
+        Receive alpha value from master node.
 
-        Returns
-            a floating point value for alpha in [0,1]
+        :returns: a floating point value for alpha in ``[0,1]``
 
         """
         return self._mpi_comm.scatter(None, root=0)
@@ -109,15 +101,13 @@ class MPICommunicator(object):
     @log_timing(logger)
     def broadcast_states_to_slaves(self, states):
         """
-        Send a state to each slave
+        broadcast_states_to_slaves(states)
+        Send a state to each slave.
 
-        Parameters
-            states -- a list of states
-        Returns
-            the state to run on the master node
-
-        The list of states should include the state for the master node. These are the
-        states that will be simulated on each replica for each step.
+        :param states: a list of states. The list of states should include
+            the state for the master node. These are the states that will
+            be simulated on each replica for each step.
+        :returns: the state to run on the master node
 
         """
         return self._mpi_comm.scatter(states, root=0)
@@ -125,10 +115,10 @@ class MPICommunicator(object):
     @log_timing(logger)
     def receive_state_from_master(self):
         """
+        receive_state_from_master()
         Get state to run for this step
 
-        Returns
-            the state to run for this step
+        :returns: the state to run for this step
 
         """
         return self._mpi_comm.scatter(None, root=0)
@@ -136,14 +126,12 @@ class MPICommunicator(object):
     @log_timing(logger)
     def gather_states_from_slaves(self, state_on_master):
         """
+        gather_states_from_slaves(state_on_master)
         Receive states from all slaves
 
-        Parameters
-            state_on_master -- the state on the master after simulating
-        Returns
-            a list of states, one from each replica
-
-        The returned states are the states after simulating.
+        :param state_on_master: the state on the master after simulating
+        :returns: A list of states, one from each replica.
+                  The returned states are the states after simulating.
 
         """
         return self._mpi_comm.gather(state_on_master, root=0)
@@ -151,14 +139,12 @@ class MPICommunicator(object):
     @log_timing(logger)
     def send_state_to_master(self, state):
         """
+        send_state_to_master(state)
         Send state to master
 
-        Parameters
-            state -- state to send to master
-        Returns
-            None
-
-        This is the state after simulating this step.
+        :param state: State to send to master. This is the state after
+                      simulating this step.
+        :returns: :const:`None`
 
         """
         self._mpi_comm.gather(state, root=0)
@@ -166,15 +152,12 @@ class MPICommunicator(object):
     @log_timing(logger)
     def broadcast_states_for_energy_calc_to_slaves(self, states):
         """
-        Broadcast states to all slaves
+        broadcast_states_for_energy_calc_to_slaves(states)
+        Broadcast states to all slaves. Send all results from this step to every
+        slave so that we can calculate the energies and do replica exchange.
 
-        Parameters
-            states -- a list of states
-        Returns
-            None
-
-        Send all results from this step to every slave so that we can calculate
-        the energies and do replica exchange.
+        :param states: a list of states
+        :returns: :const:`None`
 
         """
         self._mpi_comm.bcast(states, root=0)
@@ -182,12 +165,11 @@ class MPICommunicator(object):
     @log_timing(logger)
     def exchange_states_for_energy_calc(self, state):
         """
-        Exchange states between all processes
+        exchange_states_for_energy_calc(state)
+        Exchange states between all processes.
 
-        Parameters
-            state -- the state for this node
-        Returns
-            states -- a list of states from all nodes
+        :param state: the state for this node
+        :returns: a list of states from all nodes
 
         """
         return self._mpi_comm.allgather(state)
@@ -195,10 +177,10 @@ class MPICommunicator(object):
     @log_timing(logger)
     def receive_states_for_energy_calc_from_master(self):
         """
-        Receive all states from master
+        receive_states_for_energy_calc_from_master()
+        Receive all states from master.
 
-        Returns
-            a list of states to calculate the energy of
+        :returns: a list of states to calculate the energy of
 
         """
         return self._mpi_comm.bcast(None, root=0)
@@ -206,12 +188,12 @@ class MPICommunicator(object):
     @log_timing(logger)
     def gather_energies_from_slaves(self, energies_on_master):
         """
-        Receive a list of energies from each slave
+        gather_energies_from_slaves(energies_on_master)
+        Receive a list of energies from each slave.
 
-        Parameters
-            energies_on_master -- a list of energies from the master
-        Returns
-            a square matrix of every state on every replica to be used for replica exchange
+        :param energies_on_master: a list of energies from the master
+        :returns: a square matrix of every state on every replica to be used
+                  for replica exchange
 
         """
         energies = self._mpi_comm.gather(energies_on_master, root=0)
@@ -220,12 +202,11 @@ class MPICommunicator(object):
     @log_timing(logger)
     def send_energies_to_master(self, energies):
         """
-        Send a list of energies to the master
+        send_energies_to_master(energies)
+        Send a list of energies to the master.
 
-        Parameters
-            energies -- a list of energies to send to the master
-        Returns
-            None
+        :param energies: a list of energies to send to the master
+        :returns: :const:`None`
 
         """
         return self._mpi_comm.gather(energies, root=0)

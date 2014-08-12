@@ -1,18 +1,14 @@
 class SystemState(object):
     """
-    Class to hold the state of a system
+    Class to hold the state of a system.
+
+    :param positions: coordinates of structure, ``numpy.array(n_atoms, 3)``
+    :param velocities: velocities for structure, same as coords
+    :param alpha: alpha value, within ``[0, 1]``
+    :param energy: total potential energy, including restraints
+    
     """
     def __init__(self, positions, velocities, alpha, energy):
-        """
-        Initialize a SystemState object
-
-        Parameters
-            positions -- coordinates of structure, numpy array (n_atoms, 3)
-            velocities -- velocities for structure, same as coords
-            alpha -- alpha value, within [0, 1]
-            energy -- total potential energy, including restraints
-
-        """
         self.positions = positions
         self.n_atoms = positions.shape[0]
         self.velocities = velocities

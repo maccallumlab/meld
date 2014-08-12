@@ -1,5 +1,6 @@
 from collections import namedtuple
-from meld.system.restraints import RestraintGroup, TorsionRestraint, DistanceRestraint, RdcRestraint
+from meld.system.restraints import RestraintGroup, TorsionRestraint
+from meld.system.restraints import DistanceRestraint, RdcRestraint
 
 
 aa_map = {

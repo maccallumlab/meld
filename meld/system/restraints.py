@@ -54,25 +54,26 @@ class NonSelectableRestraint(Restraint):
 
 
 class DistanceRestraint(SelectableRestraint):
+    """
+    Distance restraint
+
+    :param system: a System object
+    :param scaler: a force scaler
+    :param atom_1_res_index: integer, starting from 1
+    :param atom_1_name: atom name
+    :param atom_2_res_index: integer, starting from 1
+    :param atom_2_name: atom name
+    :param r1: in nanometers
+    :param r2: in nanometers
+    :param r3: in nanometers
+    :param r4: in nanometers
+    :param k: in :math:`kJ/mol/nm^2`
+    """
+
     _restraint_key_ = 'distance'
 
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  r1, r2, r3, r4, k):
-        """
-        Distance restraint
-
-        :param system: a System object
-        :param scaler: a force scaler
-        :param atom_1_res_index: integer, starting from 1
-        :param atom_1_name: atom name
-        :param atom_2_res_index:  integer, starting from 1
-        :param atom_2_name: atom name
-        :param r1: in nanometers
-        :param r2: in nanometers
-        :param r3: in nanometers
-        :param r4: in nanometers
-        :param k: in kJ/mol/nm^2
-        """
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.r1 = r1
@@ -98,28 +99,30 @@ class DistanceRestraint(SelectableRestraint):
 
 
 class TorsionRestraint(SelectableRestraint):
+    """
+    A torsion restraint
+
+    :param system: System
+    :param scaler:  force scaler
+    :param atom_1_res_index: integer, starting from 1
+    :param atom_1_name: atom name
+    :param atom_2_res_index: integer, starting from 1
+    :param atom_2_name: atom name
+    :param atom_3_res_index: integer, starting from 1
+    :param atom_3_name: atom name
+    :param atom_4_res_index: integer, starting from 1
+    :param atom_4_name: atom name
+    :param phi: equilibrium value, degrees
+    :param delta_phi: flat within delta_phi, degrees
+    :param k: :math:`kJ/mol/degree^2`
+    """
+
     _restraint_key_ = 'torsion'
 
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
                  phi, delta_phi, k):
-        """
-        A torsion restraint
 
-        :param system: System
-        :param scaler:  force scaler
-        :param atom_1_res_index: integer, starting from 1
-        :param atom_1_name: atom name
-        :param atom_2_res_index: integer, starting from 1
-        :param atom_2_name: atom name
-        :param atom_3_res_index: integer, starting from 1
-        :param atom_3_name: atom name
-        :param atom_4_res_index: integer, starting from 1
-        :param atom_4_name: atom name
-        :param phi: equilibrium value, degrees
-        :param delta_phi: flat within delta_phi, degrees
-        :param k: kJ/mol/degree^2
-        """
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
@@ -195,31 +198,34 @@ class TorsProfileRestraint(SelectableRestraint):
 
 
 class RdcRestraint(NonSelectableRestraint):
+    """
+    Residual Dipolar Coupling Restraint
+
+    :param system: a System object
+    :param scaler: a force scaler
+    :param atom_1_res_index: integer, starting from 1
+    :param atom_1_name: atom name
+    :param atom_2_res_index:  integer, starting from 1
+    :param atom_2_name: atom name
+    :param kappa: prefactor for RDC calculation in :math:`Hz / Angstrom^3`
+    :param d_obs: observed dipolar coupling in Hz
+    :param tolerance: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
+    :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
+    :param weight: dimensionless weight to place on this restraint
+    :param expt_index: integer experiment id
+
+    Typical values for kappa are:
+    
+    - 1H - 1H: :math:`-360300 \ Hz / Angstrom^3`
+    - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
+    - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
+
+    """
+
     _restraint_key_ = 'rdc'
 
     def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  kappa, d_obs, tolerance, force_const, weight, expt_index):
-        """
-        Residual Dipolar Coupling Restraint
-
-        :param system: a System object
-        :param scaler: a force scaler
-        :param atom_1_res_index: integer, starting from 1
-        :param atom_1_name: atom name
-        :param atom_2_res_index:  integer, starting from 1
-        :param atom_2_name: atom name
-        :param kappa: prefactor for RDC calculation in Hz / Angstrom^3
-        :param d_obs: observed dipolar coupling in Hz
-        :param tolerance: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
-        :param force_const: force sonstant in kJ/mol/Hz^2
-        :param weight: dimensionless weight to place on this restraint
-        :param expt_index: integer experiment id
-
-        Typical values for kappa are:
-            1H - 1H: -360300 Hz / Angstrom^3
-            13C - 1H: -90600 Hz / Angstrom^3
-            15N - 1H: 36500 Hz / Angstrom^3
-        """
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.kappa = float(kappa)
@@ -243,24 +249,25 @@ class RdcRestraint(NonSelectableRestraint):
 
 
 class ConfinementRestraint(NonSelectableRestraint):
+    """
+    Confinement restraint
+
+    :param system: a System object
+    :param scaler: a force scaler
+    :param res_index: integer, starting from 1
+    :param atom_name: atom name
+    :param raidus: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
+    :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
+
+    Confines an atom to be within radius of the origin. These restraints are typically set to somewhat
+    larger than the expected radius of gyration of the protein and help to keep the structures comapct
+    even when the protein is unfolded. Typically used with a ConstantScaler.
+
+    """
+
     _restraint_key_ = 'confine'
 
     def __init__(self, system, scaler, res_index, atom_name, radius, force_const):
-        """
-        Confinement restraint
-
-        :param system: a System object
-        :param scaler: a force scaler
-        :param res_index: integer, starting from 1
-        :param atom_name: atom name
-        :param raidus: calculed couplings within tolerance (in Hz) of d_obs will have zero energy and force
-        :param force_const: force sonstant in kJ/mol/Hz^2
-
-        Confines an atom to be within radius of the origin. These restraints are typically set to somewhat
-        larger than the expected radius of gyration of the protein and help to keep the structures comapct
-        even when the protein is unfolded. Typically used with a ConstantScaler.
-
-        """
         self.atom_index = system.index_of_atom(res_index, atom_name)
         self.radius = float(radius)
         self.force_const = float(force_const)
