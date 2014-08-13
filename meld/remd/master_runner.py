@@ -13,6 +13,14 @@ class MasterReplicaExchangeRunner(object):
 
     This class doesn't really know much about the calculation that is happening,
     but it's the glue that holds everything together.
+
+    :param n_replicas: number of replicas
+    :param max_steps: maximum number of steps to run
+    :param ladder: Ladder object to handle exchanges
+    :param adaptor: Adaptor object to handle alphas adaptation
+    :param ramp_steps: integer number of steps to ramp up force constants at
+                       start of simulation
+
     """
 
     #
@@ -44,17 +52,6 @@ class MasterReplicaExchangeRunner(object):
     #
 
     def __init__(self, n_replicas, max_steps, ladder, adaptor, ramp_steps=None):
-        """
-        Initialize a MasterReplicaExchangeRunner
-
-        Parameters
-            n_replicas -- number of replicas
-            max_steps -- maximum number of steps to run
-            ladder -- Ladder object to handle exchanges
-            adaptor -- Adaptor object to handle alphas adaptation
-            ramp_steps -- integer number of steps to ramp up force constants at start of simulation
-
-        """
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
@@ -78,10 +75,9 @@ class MasterReplicaExchangeRunner(object):
         """
         Run replica exchange until finished
 
-        Parameters
-            communicator -- A communicator object to talk with slaves
-            system_runner -- a ReplicaRunner object to run the simulations
-            store -- a Store object to handle storing data to disk
+        :param communicator: A communicator object to talk with slaves
+        :param system_runner: a ReplicaRunner object to run the simulations
+        :param store: a Store object to handle storing data to disk
 
         """
         logger.info('Beginning replica exchange')

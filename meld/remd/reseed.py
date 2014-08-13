@@ -19,14 +19,12 @@ class Reseeder(object):
 
     This class implements a reseeder that will periodically reseed all replicas with
     structures from the past history of the lowest replica.
+
+    :param interval: number of timesteps between reseeding
+    :param candidate_frames: consider this many frames previous to the current frame for reseeding
+
     '''
     def __init__(self, interval, candidate_frames):
-        '''
-        Initialize the reseeder.
-
-        :param interval: number of timesteps between reseeding
-        :param candidate_frames: consider this many frames previous to the current frame for reseeding
-        '''
         self.interval = interval
         self._next_reseed = interval
         self.candidate_frames = candidate_frames

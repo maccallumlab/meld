@@ -14,10 +14,9 @@ class SlaveReplicaExchangeRunner(object):
         '''
         Initialize a new slave from a master.
 
-        Parameters
-            master -- a MasterReplicaExchangeRunner to serve as a template
-        Returns
-            a SlaveReplicaExchangeRunner
+        :param master: a :class:`meld.remd.master_runner.MasterReplicaExchangeRunner`
+                       to serve as a template
+        :return: a :class:`SlaveReplicaExchangeRunner`
 
         '''
         new_slave = cls(master.step, master.max_steps, master.ramp_steps)
@@ -35,9 +34,9 @@ class SlaveReplicaExchangeRunner(object):
         '''
         Continue running slave jobs until done.
 
-        Parameters
-            communicator -- a communicator object for talking to the master
-            system_runner -- a system_runner object for actually running the simulations
+        :param communicator: a communicator object for talking to the master
+        :param system_runner: a system_runner object for actually running the
+                              simulations
 
         '''
         my_alpha = None
