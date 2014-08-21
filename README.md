@@ -23,4 +23,8 @@ Building The Plugin
     make test
     make install
     make PythonInstall
-    
+
+Documentation
+=============
+
+### [C++ API](http://meld.dillgroup.io/annotated.html)
