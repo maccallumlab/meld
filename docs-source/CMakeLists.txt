@@ -13,25 +13,25 @@ IF(DOXYGEN_EXECUTABLE)
           @ONLY )
     FILE(GLOB_RECURSE OPENMM_INCLUDES "openmmapi/include/*.h")
     ADD_CUSTOM_COMMAND(
-        OUTPUT "${CMAKE_BINARY_DIR}/api-c++/index.html"
+        OUTPUT "${CMAKE_BINARY_DIR}/meld-api-c++/index.html"
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXY_CONFIG_C++}
         DEPENDS ${OPENMM_INCLUDES}
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
         COMMENT "Generating C++ API documentation using Doxygen")
     ADD_CUSTOM_TARGET(C++ApiDocs 
-        DEPENDS "${CMAKE_BINARY_DIR}/api-c++/index.html"
+        DEPENDS "${CMAKE_BINARY_DIR}/meld-api-c++/index.html"
         COMMENT "Generating C++ API documentation using Doxygen"
         SOURCES 
             "${CMAKE_CURRENT_SOURCE_DIR}/DoxyfileC++.in"
             ${OPENMM_INCLUDES}
     ) 
-    FILE(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/api-c++/")
-    INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/api-c++/"
-            DESTINATION "docs/api-c++/")
+    FILE(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/meld-api-c++/")
+    INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/meld-api-c++/"
+            DESTINATION "docs/meld-api-c++/")
     INSTALL(FILES "C++ API Reference.html"
             DESTINATION "docs/")
     ADD_CUSTOM_TARGET(DoxygenApiDocs
-        DEPENDS "${CMAKE_BINARY_DIR}/api-c++/index.html"
+        DEPENDS "${CMAKE_BINARY_DIR}/meld-api-c++/index.html"
         COMMENT "Generating C++ API documentation using Doxygen"
         SOURCES 
         "${CMAKE_CURRENT_SOURCE_DIR}/DoxyfileC++.in"
