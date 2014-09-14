@@ -1,7 +1,6 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, Platform, CustomExternalForce
-from meldplugin import MeldForce, RdcForce
 from simtk.unit import kelvin, picosecond, femtosecond, angstrom
 from simtk.unit import Quantity, kilojoule, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
@@ -16,12 +15,25 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
+try:
+    from meldplugin import MeldForce, RdcForce
+except ImportError as e:
+    print 'Could not import meldplugin. Are you sure it is installed correctly?'
+    print 'Attempts to use meld restraints will fail.'
+
+try:
+    from onedimcomplugin import OneDimComForce
+except:
+    print 'Could not import onedimcomplugin. Are you sure it is installed correctly?'
+    print 'Attemps to use center of mass restraints will fail.'
+
 
 GAS_CONSTANT = 8.314e-3
 
 
 class OpenMMRunner(object):
     def __init__(self, system, options, communicator=None):
+        poop
         if communicator:
             self._device_id = communicator.negotiate_device_id()
             self._rank = communicator.rank
