@@ -33,7 +33,6 @@ GAS_CONSTANT = 8.314e-3
 
 class OpenMMRunner(object):
     def __init__(self, system, options, communicator=None):
-        poop
         if communicator:
             self._device_id = communicator.negotiate_device_id()
             self._rank = communicator.rank
