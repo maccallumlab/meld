@@ -1,6 +1,7 @@
 from collections import namedtuple
 from meld.system.restraints import RestraintGroup, TorsionRestraint
 from meld.system.restraints import DistanceRestraint, RdcRestraint
+from meld.system.restraints import ConstantRamp
 
 
 aa_map = {
@@ -93,7 +94,7 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None):
     return ' '.join(output)
 
 
-def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.48, distance_force_constant=2.48,
+def get_secondary_structure_restraints(system, scaler, ramp=None, torsion_force_constant=2.48, distance_force_constant=2.48,
                                        quadratic_cut=2.0, filename=None, contents=None, file=None):
     """
     Get a list of secondary structure restraints.
@@ -110,6 +111,9 @@ def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.
 
     Note: specify exactly one of filename, contents, file.
     """
+    if ramp is None:
+        ramp = ConstantRamp()
+
     contents = _get_secondary_sequence(filename, contents, file)
     torsion_force_constant /= 100.
     distance_force_constant *= 100.
@@ -121,17 +125,17 @@ def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.
     for helix in helices:
         rests = []
         for index in range(helix.start + 1, helix.end - 1):
-            phi = TorsionRestraint(system, scaler, index, 'C', index+1, 'N', index+1, 'CA',
+            phi = TorsionRestraint(system, scaler, ramp, index, 'C', index+1, 'N', index+1, 'CA',
                                    index+1, 'C', -62.5, 17.5, torsion_force_constant)
-            psi = TorsionRestraint(system, scaler, index+1, 'N', index+1, 'CA', index+1, 'C',
+            psi = TorsionRestraint(system, scaler, ramp, index+1, 'N', index+1, 'CA', index+1, 'C',
                                    index+2, 'N', -42.5, 17.5, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+4, 'CA',
+        d1 = DistanceRestraint(system, scaler, ramp, helix.start+1, 'CA', helix.start+4, 'CA',
                                0, 0.485, 0.561, 0.561 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, helix.start+2, 'CA', helix.start+5, 'CA',
+        d2 = DistanceRestraint(system, scaler, ramp, helix.start+2, 'CA', helix.start+5, 'CA',
                                0, 0.485, 0.561, 0.561 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, helix.start+1, 'CA', helix.start+5, 'CA',
+        d3 = DistanceRestraint(system, scaler, ramp, helix.start+1, 'CA', helix.start+5, 'CA',
                                0, 0.581, 0.684, 0.684 + quadratic_cut, distance_force_constant)
         rests.append(d1)
         rests.append(d2)
@@ -143,17 +147,17 @@ def get_secondary_structure_restraints(system, scaler, torsion_force_constant=2.
     for ext in extended:
         rests = []
         for index in range(ext.start + 1, ext.end - 1):
-            phi = TorsionRestraint(system, scaler, index, 'C', index+1, 'N', index+1, 'CA',
+            phi = TorsionRestraint(system, scaler, ramp, index, 'C', index+1, 'N', index+1, 'CA',
                                    index+1, 'C', -117.5, 27.5, torsion_force_constant)
-            psi = TorsionRestraint(system, scaler, index+1, 'N', index+1, 'CA', index+1, 'C',
+            psi = TorsionRestraint(system, scaler, ramp, index+1, 'N', index+1, 'CA', index+1, 'C',
                                    index+2, 'N', 145, 25.0, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, ext.start+1, 'CA', ext.start+4, 'CA',
+        d1 = DistanceRestraint(system, scaler, ramp, ext.start+1, 'CA', ext.start+4, 'CA',
                                0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, ext.start+2, 'CA', ext.start+5, 'CA',
+        d2 = DistanceRestraint(system, scaler, ramp, ext.start+2, 'CA', ext.start+5, 'CA',
                                0, 0.785, 1.063, 1.063 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, ext.start+1, 'CA', ext.start+5, 'CA',
+        d3 = DistanceRestraint(system, scaler, ramp, ext.start+1, 'CA', ext.start+5, 'CA',
                                0, 1.086, 1.394, 1.394 + quadratic_cut, distance_force_constant)
         rests.append(d1)
         rests.append(d2)
@@ -210,7 +214,10 @@ def _handle_arguments(filename, contents, file):
         return file.read()
 
 
-def get_rdc_restraints(system, scaler, filename=None, contents=None, file=None):
+def get_rdc_restraints(system, scaler, ramp=None, filename=None, contents=None, file=None):
+    if ramp is None:
+        ramp = ConstantRamp()
+
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith('#')]
@@ -229,7 +236,7 @@ def get_rdc_restraints(system, scaler, filename=None, contents=None, file=None):
         force_const = float(cols[8])
         weight = float(cols[9])
 
-        rest = RdcRestraint(system, scaler, res_i, atom_i, res_j, atom_j, kappa, obs,
+        rest = RdcRestraint(system, scaler, ramp, res_i, atom_i, res_j, atom_j, kappa, obs,
                             tolerance, force_const, weight, expt)
         restraints.append(rest)
     return restraints

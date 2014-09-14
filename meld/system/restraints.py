@@ -72,7 +72,7 @@ class DistanceRestraint(SelectableRestraint):
 
     _restraint_key_ = 'distance'
 
-    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  r1, r2, r3, r4, k):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
@@ -82,6 +82,7 @@ class DistanceRestraint(SelectableRestraint):
         self.r4 = r4
         self.k = k
         self.scaler = scaler
+        self.ramp = ramp
         self._check(system)
 
     def _check(self, system):
@@ -119,7 +120,7 @@ class TorsionRestraint(SelectableRestraint):
 
     _restraint_key_ = 'torsion'
 
-    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
                  phi, delta_phi, k):
 
@@ -131,6 +132,7 @@ class TorsionRestraint(SelectableRestraint):
         self.delta_phi = delta_phi
         self.k = k
         self.scaler = scaler
+        self.ramp = ramp
         self._check()
 
     def _check(self):
@@ -147,9 +149,10 @@ class TorsionRestraint(SelectableRestraint):
 class DistProfileRestraint(SelectableRestraint):
     _restraint_key_ = 'dist_prof'
 
-    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  r_min, r_max, n_bins, spline_params, scale_factor):
         self.scaler = scaler
+        self.ramp = ramp
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.r_min = r_min
@@ -170,13 +173,14 @@ class DistProfileRestraint(SelectableRestraint):
 class TorsProfileRestraint(SelectableRestraint):
     _restraint_key_ = 'tors_prof'
 
-    def __init__(self, system, scaler,
+    def __init__(self, system, scaler, ramp,
                  atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  atom_3_res_index, atom_3_name, atom_4_res_index, atom_4_name,
                  atom_5_res_index, atom_5_name, atom_6_res_index, atom_6_name,
                  atom_7_res_index, atom_7_name, atom_8_res_index, atom_8_name,
                  n_bins, spline_params, scale_factor):
         self.scaler = scaler
+        self.ramp = ramp
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
@@ -215,7 +219,7 @@ class RdcRestraint(NonSelectableRestraint):
     :param expt_index: integer experiment id
 
     Typical values for kappa are:
-    
+
     - 1H - 1H: :math:`-360300 \ Hz / Angstrom^3`
     - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
     - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
@@ -224,7 +228,7 @@ class RdcRestraint(NonSelectableRestraint):
 
     _restraint_key_ = 'rdc'
 
-    def __init__(self, system, scaler, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
+    def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name, atom_2_res_index, atom_2_name,
                  kappa, d_obs, tolerance, force_const, weight, expt_index):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
@@ -235,6 +239,7 @@ class RdcRestraint(NonSelectableRestraint):
         self.weight = float(weight)
         self.expt_index = int(expt_index)
         self.scaler = scaler
+        self.ramp = ramp
         self._check(system)
 
     def _check(self, system):
@@ -267,11 +272,12 @@ class ConfinementRestraint(NonSelectableRestraint):
 
     _restraint_key_ = 'confine'
 
-    def __init__(self, system, scaler, res_index, atom_name, radius, force_const):
+    def __init__(self, system, scaler, ramp, res_index, atom_name, radius, force_const):
         self.atom_index = system.index_of_atom(res_index, atom_name)
         self.radius = float(radius)
         self.force_const = float(force_const)
         self.scaler = scaler
+        self.ramp = ramp
         self._check(system)
 
     def _check(self, system):
@@ -284,7 +290,7 @@ class ConfinementRestraint(NonSelectableRestraint):
 class CartesianRestraint(NonSelectableRestraint):
     _restraint_key_ = 'cartesian'
 
-    def __init__(self, system, scaler, res_index, atom_name, x, y, z, delta, force_const):
+    def __init__(self, system, scaler, ramp, res_index, atom_name, x, y, z, delta, force_const):
         self.atom_index = system.index_of_atom(res_index, atom_name)
         self.x = x
         self.y = y
@@ -292,6 +298,7 @@ class CartesianRestraint(NonSelectableRestraint):
         self.delta = delta
         self.force_const = force_const
         self.scaler = scaler
+        self.ramp = ramp
         self._check()
 
     def _check(self):
@@ -408,10 +415,20 @@ class RestraintManager(object):
     def add_selectively_active_collection(self, rest_list, num_active):
         self._selective_collections.append(SelectivelyActiveCollection(rest_list, num_active))
 
-    def create_restraint(self, rest_type, scaler=None, **kwargs):
+    def create_restraint(self, rest_type, scaler=None, ramp=None, positioner=None, **kwargs):
         if scaler is None:
             scaler = ConstantScaler()
-        return RestraintRegistry.get_constructor_for_key(rest_type)(self._system, scaler, **kwargs)
+        else:
+            if not isinstance(scaler, RestraintScaler):
+                raise ValueError('scaler must be a subclass of RestraintScaler, you tried to add a {}.'.format(type(scaler)))
+
+        if ramp is None:
+            ramp = ConstantRamp()
+        else:
+            if not isinstance(ramp, TimeRamp):
+                raise ValueError('ramp must be a subclass of TimeRamp, you tried to add a {}.'.format(type(ramp)))
+
+        return RestraintRegistry.get_constructor_for_key(rest_type)(self._system, scaler, ramp, **kwargs)
 
     def create_restraint_group(self, rest_list, num_active):
         return RestraintGroup(rest_list, num_active)
@@ -434,7 +451,7 @@ class ScalerRegistry(type):
     _scaler_registry = {}
 
     def __init__(cls, name, bases, attrs):
-        if name in ['Scaler']:
+        if name in ['AlphaMapper', 'RestraintScaler', 'TimeRamp', 'Positioner']:
             pass    # we don't register the base classes
         else:
             try:
@@ -457,7 +474,7 @@ class ScalerRegistry(type):
                 'Unknown scaler type "{}".'.format(key))
 
 
-class Scaler(object):
+class AlphaMapper(object):
     '''Base class for all scalers.'''
     __metaclass__ = ScalerRegistry
 
@@ -482,7 +499,15 @@ class Scaler(object):
                 self._alpha_min, self._alpha_max))
 
 
-class ConstantScaler(Scaler):
+class RestraintScaler(AlphaMapper):
+    '''Base class for all resraint scaler classes.'''
+
+
+class Positioner(AlphaMapper):
+    '''Base class for all positioner classes.'''
+
+
+class ConstantScaler(RestraintScaler):
     '''This scaler is "always on" and always returns a value of 1.0".'''
 
     _scaler_key_ = 'constant'
@@ -492,7 +517,7 @@ class ConstantScaler(Scaler):
         return 1.0
 
 
-class LinearScaler(Scaler):
+class LinearScaler(RestraintScaler):
     '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_max.'''
 
     _scaler_key_ = 'linear'
@@ -514,7 +539,7 @@ class LinearScaler(Scaler):
         return scale
 
 
-class NonLinearScaler(Scaler):
+class NonLinearScaler(RestraintScaler):
     '''
     '''
 
@@ -541,7 +566,7 @@ class NonLinearScaler(Scaler):
         return scale
 
 
-class GeometricScaler(Scaler):
+class GeometricScaler(RestraintScaler):
     _scaler_key_ = 'geometric'
 
     def __init__(self, alpha_min, alpha_max, strength_at_alpha_min, strength_at_alpha_max):
@@ -568,3 +593,106 @@ class GeometricScaler(Scaler):
 
         else:
             return self._strength_at_alpha_max
+
+
+class TimeRamp(AlphaMapper):
+    '''Base class for all time ramp classes.'''
+
+
+class ConstantRamp(TimeRamp):
+    '''TimeRamp that always returns 1.0'''
+    _scaler_key_ = 'constant_ramp'
+
+    def __call__(self, timestep):
+        if timestep < 0:
+            raise ValueError('Timestep is < 0.')
+        return 1.0
+
+
+class LinearRamp(TimeRamp):
+    '''TimeRamp that interpolates linearly'''
+
+    _scaler_key_ = 'linear_ramp'
+
+    def __init__(self, start_time, end_time, start_weight, end_weight):
+        self.t_start = float(start_time)
+        self.t_end = float(end_time)
+        self.w_start = float(start_weight)
+        self.w_end = float(end_weight)
+
+    def __call__(self, timestep):
+        if timestep < 0:
+            raise ValueError('Timestep is < 0.')
+        if timestep < self.t_start:
+            return self.w_start
+        elif timestep < self.t_end:
+            return (self.w_start + (self.w_end - self.w_start) *
+                    (float(timestep) - self.t_start) / (self.t_end - self.t_start))
+        else:
+            return self.w_end
+
+
+class NonLinearRamp(TimeRamp):
+    '''TimeRamp that interpolates non-linearly'''
+
+    _scaler_key_ = 'nonlinear_ramp'
+
+    def __init__(self, start_time, end_time, start_weight, end_weight, factor):
+        if end_time <= start_time:
+            raise ValueError('end_time must be > start_time')
+        if factor < 1.0:
+            raise ValueError('factor myst be > 1.0')
+
+        self.t_start = float(start_time)
+        self.t_end = float(end_time)
+        self.w_start = float(start_weight)
+        self.w_end = float(end_weight)
+        self.factor = float(factor)
+
+    def __call__(self, timestep):
+        if timestep < 0:
+            raise ValueError('timestep is < 0.')
+
+        if timestep < self.t_start:
+            return self.w_start
+        elif timestep < self.t_end:
+            # we scale differently depending on if we are ramping up or down
+            # we change more slowly at lower values and more rapidly at
+            # higher values
+            #
+            # this is for scaling up
+            if self.w_end > self.w_start:
+                delta = 1.0 - (float(timestep) - self.t_start) / (self.t_end - self.t_start)
+                norm = 1.0 / (math.exp(self.factor) - 1.0)
+                scale = norm * (math.exp(self.factor * (1.0 - delta)) - 1.0)
+                return scale * (self.w_end - self.w_start) + self.w_start
+            # this is for scaling down
+            else:
+                delta = (float(timestep) - self.t_start) / (self.t_end - self.t_start)
+                norm = 1.0 / (math.exp(self.factor) - 1.0)
+                scale = norm * (math.exp(self.factor * (1.0 - delta)) - 1.0)
+                return (1.0 - scale) * (self.w_end - self.w_start) + self.w_start
+        else:
+            return self.w_end
+
+
+class TimeRampSwitcher(TimeRamp):
+    '''
+    Switches between two TimeRamp objects.
+
+    Class first_ramp before switching time. At the switching
+    time it switches to second_ramp, which it uses thereafter.
+    '''
+
+    _scaler_key_ = 'ramp_switcher'
+
+    def __init__(self, first_ramp, second_ramp, switching_time):
+        self.first_ramp = first_ramp
+        self.second_ramp = second_ramp
+        self.switching_time = switching_time
+
+    def __call__(self, timestep):
+        if timestep < self.switching_time:
+            return self.first_ramp(timestep)
+        else:
+            return self.second_ramp(timestep)

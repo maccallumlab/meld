@@ -11,6 +11,7 @@ from simtk.openmm import LangevinIntegrator
 from simtk.unit import kelvin, picosecond, femtosecond, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint
 from meld.system.restraints import TorsionRestraint, LinearScaler, RestraintGroup, SelectivelyActiveCollection
+from meld.system.restraints import ConstantRamp
 
 
 class TestOpenMMRunner(unittest.TestCase):
@@ -118,6 +119,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_system.index_of_atom.side_effect = range(1, 100)
         self.scaler = LinearScaler(0, 1)
+        self.ramp = ConstantRamp()
         self.mock_openmm_system = mock.Mock()
 
     def tearDown(self):
@@ -130,7 +132,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
 
     def test_meld_force_should_be_created_with_non_empty_input(self):
         force_dict = {}
-        dist_rest = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
+        dist_rest = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
         _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=1.0, ramp_weight=1.0,
                                            force_dict=force_dict)
         self.assertEqual(self.MockMeldForce.call_count, 1)
@@ -141,7 +143,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         force_dict = {}
         self.mock_meld_force.addDistanceRestraint.return_value = 0
         self.mock_meld_force.addGroup.return_value = 0
-        dist_rest = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
+        dist_rest = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
         _add_selectively_active_restraints(self.mock_openmm_system, [], [dist_rest], alpha=0.25, ramp_weight=1.0,
                                            force_dict=force_dict)
         self.mock_meld_force.addDistanceRestraint.assert_called_once_with(0, 1, 0, 0, 0.3, 999., 7.5)
@@ -152,7 +154,7 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         force_dict = {}
         self.mock_meld_force.addTorsionRestraint.return_value = 0
         self.mock_meld_force.addGroup.return_value = 0
-        tors_rest = TorsionRestraint(self.mock_system, self.scaler,
+        tors_rest = TorsionRestraint(self.mock_system, self.scaler, self.ramp,
                                      1, 'CA', 2, 'CA',
                                      3, 'CA', 4, 'CA',
                                      0, 10, 10.0)
@@ -167,10 +169,10 @@ class TestAddSelectivelyActiveRestraints(unittest.TestCase):
         self.mock_meld_force.addDistanceRestraint.side_effect = range(100)
         self.mock_meld_force.addGroup.side_effect = range(100)
 
-        r1 = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
-        r2 = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
-        r3 = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
-        r4 = DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
+        r1 = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
+        r2 = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
+        r3 = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
+        r4 = DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 10.0)
 
         g1 = RestraintGroup([r1, r2], 1)
         g2 = RestraintGroup([r3], 1)

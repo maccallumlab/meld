@@ -148,9 +148,10 @@ class TestDistanceRestraint(unittest.TestCase):
     def setUp(self):
         self.mock_system = mock.Mock()
         self.scaler = restraints.ConstantScaler()
+        self.ramp = restraints.ConstantRamp()
 
     def test_should_find_two_indices(self):
-        restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
+        restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
         calls = [
             mock.call(1, 'CA'),
             mock.call(2, 'CA')]
@@ -160,27 +161,27 @@ class TestDistanceRestraint(unittest.TestCase):
         self.mock_system.index_of_atom.side_effect = KeyError()
 
         with self.assertRaises(KeyError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'BAD', 2, 'CA', 0, 0, 0.3, 999., 1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'BAD', 2, 'CA', 0, 0, 0.3, 999., 1.0)
 
     def test_should_raise_if_r2_less_than_r1(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 10., 0., 10., 10., 1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 0., 10., 10., 1.0)
 
     def test_should_raise_if_r3_less_than_r2(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 10., 10., 0., 10., 1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 0., 10., 1.0)
 
     def test_should_raise_if_r4_less_than_r3(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 10., 10., 10., 0., 1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 10., 0., 1.0)
 
     def test_should_raise_with_negative_r(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', -1., 10., 10., 10., 1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', -1., 10., 10., 10., 1.0)
 
     def test_should_raise_with_negative_k(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, 1, 'CA', 2, 'CA', 10., 10., 10., 10., -1.0)
+            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 10., 10., -1.0)
 
 
 class TestTorsionRestraint(unittest.TestCase):
@@ -188,11 +189,13 @@ class TestTorsionRestraint(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_system.index_of_atom.side_effect = [0, 1, 2, 3]
         self.scaler = mock.Mock()
+        self.ramp = mock.Mock()
 
     def test_should_find_four_indices(self):
         restraints.TorsionRestraint(
             self.mock_system,
             self.scaler,
+            self.ramp,
             1, 'CA',
             2, 'CA',
             3, 'CA',
@@ -212,6 +215,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 1, 'CA',
                 3, 'CA',
@@ -223,6 +227,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 2, 'CA',
                 3, 'CA',
@@ -234,6 +239,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 2, 'CA',
                 3, 'CA',
@@ -245,6 +251,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 2, 'CA',
                 3, 'CA',
@@ -256,6 +263,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 2, 'CA',
                 3, 'CA',
@@ -267,6 +275,7 @@ class TestTorsionRestraint(unittest.TestCase):
             restraints.TorsionRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'CA',
                 2, 'CA',
                 3, 'CA',
@@ -279,11 +288,13 @@ class TestRdcRestraint(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_system.index_of_atom.side_effect = [0, 1]
         self.scaler = mock.Mock()
+        self.ramp = mock.Mock()
 
     def test_should_find_four_indices(self):
         restraints.RdcRestraint(
             self.mock_system,
             self.scaler,
+            self.ramp,
             1, 'N',
             1, 'H',
             100., 10.,
@@ -301,6 +312,7 @@ class TestRdcRestraint(unittest.TestCase):
             restraints.RdcRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'N',
                 1, 'N', # repeated index
                 100., 10.,
@@ -312,6 +324,7 @@ class TestRdcRestraint(unittest.TestCase):
             restraints.RdcRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'N',
                 1, 'H',
                 100., 10.,
@@ -323,6 +336,7 @@ class TestRdcRestraint(unittest.TestCase):
             restraints.RdcRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'N',
                 1, 'H',
                 100., 10.,
@@ -334,6 +348,7 @@ class TestRdcRestraint(unittest.TestCase):
             restraints.RdcRestraint(
                 self.mock_system,
                 self.scaler,
+                self.ramp,
                 1, 'N',
                 1, 'H',
                 100., 10.,
@@ -493,3 +508,128 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
             atom_2_name='CA',
             r1=0, r2=1, r3=3, r4=4, k=1.0)
         self.assertTrue(isinstance(rest.scaler, restraints.LinearScaler))
+
+    def test_creating_restraint_should_raise_if_scaler_is_wrong_type(self):
+        scaler = restraints.TimeRamp()
+        self.mock_system.index_of_atom.side_effect = [0, 1]
+        with self.assertRaises(ValueError):
+            rest = self.manager.create_restraint(
+                'distance',
+                scaler,
+                atom_1_res_index=1,
+                atom_1_name='CA',
+                atom_2_res_index=2,
+                atom_2_name='CA',
+                r1=0., r2=1., r3=3., r4=4., k=1.0)
+
+    def test_creating_restraint_should_raise_if_ramp_is_wrong_type(self):
+        scaler = restraints.ConstantScaler()
+        ramp = restraints.ConstantScaler()
+        self.mock_system.index_of_atom.side_effect = [0, 1]
+        with self.assertRaises(ValueError):
+            rest = self.manager.create_restraint(
+                'distance',
+                scaler,
+                ramp=ramp,
+                atom_1_res_index=1,
+                atom_1_name='CA',
+                atom_2_res_index=2,
+                atom_2_name='CA',
+                r1=0., r2=1., r3=3., r4=4., k=1.0)
+
+    def test_create_restraint_without_specifying_ramp_should_use_constant_ramp(self):
+        scaler = restraints.ConstantScaler()
+        self.mock_system.index_of_atom.side_effect = [0, 1]
+        rest = self.manager.create_restraint(
+            'distance',
+            scaler,
+            atom_1_res_index=1,
+            atom_1_name='CA',
+            atom_2_res_index=2,
+            atom_2_name='CA',
+            r1=0., r2=1., r3=3., r4=4., k=1.0)
+        self.assertTrue(isinstance(rest.ramp, restraints.ConstantRamp))
+
+class TestConstantRamp(unittest.TestCase):
+    def setUp(self):
+        self.ramp = restraints.ConstantRamp()
+
+    def test_should_raise_with_negative_time(self):
+        with self.assertRaises(ValueError):
+            self.ramp(-1)
+
+    def test_should_always_return_one(self):
+        self.assertEqual(self.ramp(0), 1.0)
+        self.assertEqual(self.ramp(1000), 1.0)
+        self.assertEqual(self.ramp(1000000000), 1.0)
+
+
+class TestLinearRamp(unittest.TestCase):
+    def setUp(self):
+        self.ramp = restraints.LinearRamp(100, 200, 0.1, 0.9)
+
+    def test_should_raise_with_negative_time(self):
+        with self.assertRaises(ValueError):
+            self.ramp(-1)
+
+    def test_should_return_start_weight_before_start_time(self):
+        self.assertEqual(self.ramp(0), 0.1)
+
+    def test_return_end_weight_after_end_time(self):
+        self.assertEqual(self.ramp(500), 0.9)
+
+    def test_should_return_midpoint_half_way_between_start_and_end(self):
+        self.assertAlmostEqual(self.ramp(150), 0.5)
+
+
+class TestNonLinearRampUpWard(unittest.TestCase):
+    def setUp(self):
+        self.ramp = restraints.NonLinearRamp(100, 200, 0.1, 0.9, 4)
+
+    def test_should_raise_with_negative_time(self):
+        with self.assertRaises(ValueError):
+            self.ramp(-1)
+
+    def test_should_return_start_weight_before_start_time(self):
+        self.assertEqual(self.ramp(0), 0.1)
+
+    def test_should_return_end_weight_after_end_time(self):
+        self.assertEqual(self.ramp(500), 0.9)
+
+    def test_should_return_correct_value_at_midpoint(self):
+        self.assertAlmostEqual(self.ramp(150), 0.195362337617)
+
+
+class TestNonLinearRampDownWard(unittest.TestCase):
+    def setUp(self):
+        self.ramp = restraints.NonLinearRamp(100, 200, 0.9, 0.1, 4)
+
+    def test_should_raise_with_negative_time(self):
+        with self.assertRaises(ValueError):
+            self.ramp(-1)
+
+    def test_should_return_start_weight_before_start_time(self):
+        self.assertEqual(self.ramp(0), 0.9)
+
+    def test_should_return_end_weight_after_end_time(self):
+        self.assertEqual(self.ramp(500), 0.1)
+
+    def test_should_return_correct_value_at_midpoint(self):
+        self.assertAlmostEqual(self.ramp(150), 0.195362337617)
+
+
+class TestTimeRampSwitcher(unittest.TestCase):
+    def setUp(self):
+        self.first_ramp = mock.Mock()
+        self.second_ramp = mock.Mock()
+        self.ramp_switch = restraints.TimeRampSwitcher(self.first_ramp, self.second_ramp, 500)
+
+    def test_should_call_first_ramp_before_switching_time(self):
+        self.ramp_switch(0)
+        self.first_ramp.assert_called_once_with(0)
+        self.assertEqual(self.second_ramp.call_count, 0)
+
+    def test_should_call_second_ramp_on_switching_time(self):
+        self.ramp_switch(500)
+        self.second_ramp.assert_called_once_with(500)
+        self.assertEqual(self.first_ramp.call_count, 0)
