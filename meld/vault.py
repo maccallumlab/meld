@@ -10,14 +10,19 @@ from meld.system import state
 
 class DataStore(object):
     """
-    Class to handle storing data from MeLD runs.
+    Class to handle storing data from MELD runs.
+
+    :param n_atoms: number of atoms
+    :param n_replicas: number of replicas
+    :param block_size: size of netcdf blocks and frequency to do backups
 
     Data will be stored in the 'Data' subdirectory. Backups will be stored in 'Data/Backup'.
 
     Some information is stored as python pickled files:
-        data_store.dat -- the DataStore object
-        communicator.dat -- the MPICommunicator object
-        remd_runner.dat -- the MasterReplicaExchangeRunner object
+    
+    - data_store.dat -- the DataStore object
+    - communicator.dat -- the MPICommunicator object
+    - remd_runner.dat -- the MasterReplicaExchangeRunner object
 
     Other data (positions, velocities, etc) is stored in the results.nc file.
 
@@ -57,15 +62,6 @@ class DataStore(object):
     traj_backup_path = os.path.join(backup_dir, traj_filename)
 
     def __init__(self, n_atoms, n_replicas, pdb_writer, block_size=100):
-        """
-        Create a DataStore object.
-
-        Parameters
-            n_atoms -- number of atoms
-            n_replicas -- number of replicas
-            block_size -- size of netcdf blocks and frequency to do backups
-
-        """
         self._n_atoms = n_atoms
         self._n_replicas = n_replicas
         self._block_size = block_size
@@ -110,13 +106,13 @@ class DataStore(object):
         """
         Prepare to use the DataStore object.
 
-        Parameters
-            mode -- mode to open in.
+        :param mode: mode to open in.
 
         Available modes are:
-            'w' -- create a new directory structure and initialize the hd5 file
-            'a' -- append to the existing files
-            'r' -- open the file in read-only mode
+        
+        - 'w' -- create a new directory structure and initialize the hd5 file
+        - 'a' -- append to the existing files
+        - 'r' -- open the file in read-only mode
 
         """
         if mode == 'w':
@@ -178,9 +174,8 @@ class DataStore(object):
         """
         Save the positions to disk.
 
-        Parameters
-            positions -- n_replicas x n_atoms x 3 array
-            stage -- int stage to store
+        :param positions: n_replicas x n_atoms x 3 array
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -191,8 +186,7 @@ class DataStore(object):
         """
         Load positions from disk.
 
-        Parameters
-            stage -- int stage to load
+        :param stage: int stage to load
 
         """
         self._handle_load_stage(stage)
@@ -202,11 +196,10 @@ class DataStore(object):
         """
         Load positions from disk.
 
-        Parameters
-            stage -- int stage to load
+        :param stage: int stage to load
 
-        This differs from load_positions in that you can positions from any stage,
-        while load_positions can only move forward in time. However, this comes at
+        This differs from :meth:`load_positions` in that you can positions from any stage,
+        while :meth:`load_positions` can only move forward in time. However, this comes at
         a performance penalty.
         """
         # get the block for this stage
@@ -249,9 +242,8 @@ class DataStore(object):
         """
         Save velocities to disk.
 
-        Parameters
-            velocities -- n_replicas x n_atoms x 3 array
-            stage -- int stage to store
+        :param velocities: n_replicas x n_atoms x 3 array
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -262,8 +254,7 @@ class DataStore(object):
         """
         Load velocities from disk.
 
-        Parameters
-            stage -- int stage to load
+        :param stage: int stage to load
 
         """
         self._handle_load_stage(stage)
@@ -283,9 +274,8 @@ class DataStore(object):
         """
         Save states to disk.
 
-        Parameters
-            states -- list of SystemStage objects to store
-            stage -- int stage to store
+        :param states: list of SystemStage objects to store
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -303,11 +293,9 @@ class DataStore(object):
         """
         Load states from disk
 
-        Parameters
-            stage -- integer stage to load
+        :param stage: integer stage to load
 
-        Returns
-            list of SystemState objects
+        :return: list of SystemState objects
 
         """
         self._handle_load_stage(stage)
@@ -330,9 +318,8 @@ class DataStore(object):
         """
         Save alphas to disk.
 
-        Parameters
-            alphas -- n_replicas array
-            stage -- int stage to store
+        :param alphas: n_replicas array
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -343,11 +330,8 @@ class DataStore(object):
         """
         Load alphas from disk.
 
-        Parameters
-            stage -- int stage to load from disk
-
-        Returns
-            n_replicas array
+        :param stage: int stage to load from disk
+        :return: n_replicas array
 
         """
         self._handle_load_stage(stage)
@@ -367,9 +351,8 @@ class DataStore(object):
         """
         Save energies to disk.
 
-        Parameters
-            energies -- n_replicas array
-            stage -- int stage to save
+        :param energies: n_replicas array
+        :param stage: int stage to save
 
         """
         self._can_save()
@@ -380,11 +363,8 @@ class DataStore(object):
         """
         Load energies from disk.
 
-        Parameters
-            stage -- int stage to load
-
-        Returns
-            n_replicas array
+        :param stage: int stage to load
+        :return: n_replicas array
 
         """
         self._handle_load_stage(stage)
@@ -417,9 +397,8 @@ class DataStore(object):
         """
         Save permutation vector to disk.
 
-        Parameters
-            perm_vec -- n_replicas array of int
-            stage -- int stage to store
+        :param perm_vec: n_replicas array of int
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -430,11 +409,9 @@ class DataStore(object):
         """
         Load permutation vector from disk.
 
-        Parameters
-            stage -- int stage to load
+        :param stage: int stage to load
 
-        Returns
-            n_replicas array of int
+        :return: n_replicas array of int
 
         """
         self._handle_load_stage(stage)
@@ -467,9 +444,8 @@ class DataStore(object):
         """
         Save acceptance probabilities vector to disk.
 
-        Parameters
-            accept_probs -- n_replicas array of int
-            stage -- int stage to store
+        :param accept_probs: n_replicas array of int
+        :param stage: int stage to store
 
         """
         self._can_save()
@@ -480,11 +456,8 @@ class DataStore(object):
         """
         Load acceptance probability vector from disk.
 
-        Parameters
-            stage -- int stage to load
-
-        Returns
-            n_replica_pairs array of int
+        :param stage: int stage to load
+        :return: n_replica_pairs array of int
 
         """
         self._handle_load_stage(stage)
@@ -536,10 +509,9 @@ class DataStore(object):
         """
         Backup all files to Data/Backup.
 
-        Parameters
-            stage -- int stage
+        :param stage: int stage
 
-        Backup will occur if stage mod backup_freq == 0
+        Backup will occur if `stage % backup_freq == 0`
 
         """
         self._can_save()

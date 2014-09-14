@@ -18,8 +18,7 @@ class ProteinBase(object):
         '''
         Set the translation vector.
 
-        Parameters
-            translation_vector -- numpy.array(3) in nanometers
+        :param translation_vector: ``numpy.array(3)`` in nanometers
 
         Translation happens after rotation.
 
@@ -30,9 +29,8 @@ class ProteinBase(object):
         '''
         Set the rotation.
 
-        Parameters
-            rotation_axis -- numpy.array(3) in nanometers
-            theta -- angle of rotation in degrees
+        :param rotation_axis: ``numpy.array(3)`` in nanometers
+        :param theta: angle of rotation in degrees
 
         Rotation happens after translation.
 
@@ -49,12 +47,12 @@ class ProteinBase(object):
         '''
         Add a disulfide bond.
 
-        Parameters
-            res_index_i -- one-based index of residue i
-            res_index_j -- one-based index of residue j
+        :param res_index_i: one-based index of residue i
+        :param res_index_j: one-based index of residue j
 
-        Note: indexing starts from one and the residue numbering from the PDB file is ignored. When loading
-        from a PDB or creating a sequence, residue name must be CYX, not CYS.
+        .. note::
+            indexing starts from one and the residue numbering from the PDB file is ignored. When loading
+            from a PDB or creating a sequence, residue name must be CYX, not CYS.
 
         '''
         self._disulfide_list.append((res_index_i, res_index_j))
@@ -78,24 +76,17 @@ class ProteinBase(object):
 
 class ProteinMoleculeFromSequence(ProteinBase):
     '''
-    Class to create a protein from sequence.
-
-    This class will create a protein molecule from sequence. This class is pretty dumb and relies on AmberTools
+    Class to create a protein from sequence. This class will create a protein molecule from sequence. This class is pretty dumb and relies on AmberTools
     to do all of the heavy lifting.
+
+    :param sequence: sequence of the protein to create
+
+    The sequence is specified in Amber/Leap format. There are special NRES and CRES variants for the N-
+    and C-termini. Different protonation states are also available via different residue names. E.g. ASH
+    for neutral ASP.
 
     '''
     def __init__(self, sequence):
-        '''
-        Create a new ProteinMoleculeFromSequence.
-
-        Parameters
-            sequence --- sequence of the protein to create
-
-        The sequence is specified in Amber/Leap format. There are special NRES and CRES variants for the N-
-        and C-termini. Different protonation states are also available via different residue names. E.g. ASH
-        for neutral ASP.
-
-        '''
         super(ProteinMoleculeFromSequence, self).__init__()
         self._sequence = sequence
 
@@ -115,21 +106,16 @@ class ProteinMoleculeFromSequence(ProteinBase):
 class ProteinMoleculeFromPdbFile(ProteinBase):
     '''
     Create a new protein molecule from a pdb file.
-
     This class is dumb and relies on AmberTools for the heavy lifting.
+
+    :param pdb_path: string path to the pdb file
+
+    .. note::
+        no processing happens to this pdb file. It must be understandable by tleap and atoms/residues may
+        need to be added/deleted/renamed. These manipulations should happen to the file before MELD is invoked.
 
     '''
     def __init__(self, pdb_path):
-        '''
-        Create a new ProteinMoleculeFromPdbFile.
-
-        Parameters
-            pdb_path -- string path to the pdb file
-
-        Note: no processing happens to this pdb file. It must be understandable by tleap and atoms/residues may
-        need to be added/deleted/renamed. These manipulations should happen to the file before MeLD is invoked.
-
-        '''
         super(ProteinMoleculeFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()

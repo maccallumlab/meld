@@ -8,7 +8,7 @@ from meldplugin import MeldForce
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator
-from simtk.unit import kelvin, picosecond, femtosecond
+from simtk.unit import kelvin, picosecond, femtosecond, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint
 from meld.system.restraints import TorsionRestraint, LinearScaler, RestraintGroup, SelectivelyActiveCollection
 
@@ -31,37 +31,36 @@ class TestPrmTopFromString(unittest.TestCase):
         with mock.patch('meld.system.openmm_runner.runner.AmberPrmtopFile') as mock_parm:
             _parm_top_from_string('ABCD')
 
-            mock_parm.assert_called_once_with(parm_string='ABCD')
-
+            self.assertEqual(mock_parm.call_count, 1)
 
 class TestCreateOpenMMSystem(unittest.TestCase):
     def setUp(self):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
 
     def test_no_cutoff_should_set_correct_method(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='obc')
-        self.mock_parm.createSystem.assert_called_with(nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
-                                                       constraints=ff.HBonds, implicitSolvent=OBC2)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='obc', remove_com=False)
+        self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
+                                                       constraints=ff.HBonds, implicitSolvent=OBC2, hydrogenMass=None)
 
     def test_cutoff_sets_correct_method(self):
-        _create_openmm_system(self.mock_parm, cutoff=1.5, use_big_timestep=False, implicit_solvent='obc')
-        self.mock_parm.createSystem.assert_called_with(nonbondedMethod=ff.CutoffNonPeriodic, nonbondedCutoff=1.5,
-                                                       constraints=ff.HBonds, implicitSolvent=OBC2)
+        _create_openmm_system(self.mock_parm, cutoff=1.5, use_big_timestep=False, implicit_solvent='obc', remove_com=False)
+        self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.CutoffNonPeriodic, nonbondedCutoff=1.5,
+                                                       constraints=ff.HBonds, implicitSolvent=OBC2, hydrogenMass=None)
 
-    def test_big_timestep_sets_hangles(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=True, implicit_solvent='obc')
-        self.mock_parm.createSystem.assert_called_with(nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
-                                                       constraints=ff.HAngles, implicitSolvent=OBC2)
+    def test_big_timestep_sets_allbonds_and_hydrogen_masses(self):
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=True, implicit_solvent='obc', remove_com=False)
+        self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
+                                                       constraints=ff.AllBonds, implicitSolvent=OBC2, hydrogenMass=3.0 * (gram / mole))
 
     def test_gbneck_sets_correct_solvent_model(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck')
-        self.mock_parm.createSystem.assert_called_with(nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
-                                                       constraints=ff.HBonds, implicitSolvent=GBn)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck', remove_com=False)
+        self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
+                                                       constraints=ff.HBonds, implicitSolvent=GBn, hydrogenMass=None)
 
     def test_gbneck2_sets_correct_solvent_model(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck2')
-        self.mock_parm.createSystem.assert_called_with(nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
-                                                       constraints=ff.HBonds, implicitSolvent=GBn2)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck2', remove_com=False)
+        self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
+                                                       constraints=ff.HBonds, implicitSolvent=GBn2, hydrogenMass=None)
 
 
 class TestCreateIntegrator(unittest.TestCase):

@@ -46,16 +46,13 @@ class NullAdaptor(AcceptanceCounter):
 class EqualAcceptanceAdaptor(AcceptanceCounter):
     '''
     Adaptor based on making acceptance rates uniform.
+
+    :param n_replicas: number of replicas
+    :param min_acc_prob: all acceptence probabilities below this value will be
+                         raised to this value
+
     '''
     def __init__(self, n_replicas, adaptation_policy, min_acc_prob=0.1):
-        '''
-        Initialize adaptor
-
-        Parameters
-            n_replicas -- number of replicas
-            min_acc_prob -- all acceptence probabilities below this value will be raised to this value
-
-        '''
         AcceptanceCounter.__init__(self, n_replicas)
 
         self.adaptation_policy = adaptation_policy
@@ -68,9 +65,8 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         '''
         Update adaptor with exchange.
 
-        Parameters
-            i -- index of first replica; second replica is i+1
-            accepted -- True if the exchange was accepted
+        :param i: index of first replica; second replica is i+1
+        :param accepted: True if the exchange was accepted
 
         '''
         AcceptanceCounter.update(self, i, accepted)
@@ -79,11 +75,9 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         '''
         Compute new optimal values of lambda.
 
-        Parameters
-            previous_lambdas -- a list of the previous lambda values
-            step -- the current simulation step
-        Returns
-            a list of the new, optimized lambda values
+        :param previous_lambdas: a list of the previous lambda values
+        :param step: the current simulation step
+        :return: a list of the new, optimized lambda values
 
         '''
         should_adapt = self.adaptation_policy.should_adapt(step)
@@ -264,21 +258,19 @@ class SwitchingCompositeAdaptor(object):
 
 class AdaptationPolicy(object):
     '''
-    Repeat adaptation on a regular schedule with an optional burn-in and increasing adaptation times.
+    Repeat adaptation on a regular schedule with an optional burn-in and
+    increasing adaptation times.
+    
+    :param growth_factor: increase adapt_every by a factor of growth_factor
+                          every adaptation
+    :param burn_in: number of steps to ignore at the beginning
+    :param adapt_every: how frequently to adapt (in picoseconds)
+
     '''
     # named tuple to hold the results
     AdaptationRequired = namedtuple('AdaptationRequired', 'adapt_now reset_now')
 
     def __init__(self, growth_factor, burn_in, adapt_every):
-        '''
-        Initialize a repeating adaptation scheduler
-
-        Parameters:
-            growth_factor -- increase adapt_every by a factor of growth_factor every adaptation
-            burn_in -- number of steps to ignore at the beginning
-            adapt_every -- how frequently to adapt (in picoseconds)
-
-        '''
         self.growth_factor = growth_factor
         self.burn_in = burn_in
         self.adapt_every = adapt_every
@@ -288,10 +280,9 @@ class AdaptationPolicy(object):
         '''
         Is adaptation required?
 
-        Parameters:
-            step -- the current simulation step
-        Returns:
-            an AdaptationRequired object indicating if adaptation or resetting is necessary
+        :param step: the current simulation step
+        :return: an :class:`AdaptationPolicy.AdaptationRequired` object
+                 indicating if adaptation or resetting is necessary
 
         '''
         if self.burn_in:
