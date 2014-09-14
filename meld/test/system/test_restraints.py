@@ -633,3 +633,42 @@ class TestTimeRampSwitcher(unittest.TestCase):
         self.ramp_switch(500)
         self.second_ramp.assert_called_once_with(500)
         self.assertEqual(self.first_ramp.call_count, 0)
+
+
+class TestConstantPositioner(unittest.TestCase):
+    def setUp(self):
+        self.positioner = restraints.ConstantPositioner(42.0)
+
+    def test_should_raise_when_alpha_below_zero(self):
+        with self.assertRaises(ValueError):
+            self.positioner(-1)
+
+    def test_should_raise_when_alpha_above_one(self):
+        with self.assertRaises(ValueError):
+            self.positioner(2)
+
+    def test_always_returns_same_value(self):
+        self.assertEqual(self.positioner(0.0), 42.0)
+        self.assertEqual(self.positioner(0.5), 42.0)
+        self.assertEqual(self.positioner(1.0), 42.0)
+
+class TestLinearPositioner(unittest.TestCase):
+    def setUp(self):
+        self.positioner = restraints.LinearPositioner(0.1, 0.9, 0, 100)
+
+    def test_should_raise_when_alpha_below_zero(self):
+        with self.assertRaises(ValueError):
+            self.positioner(-1)
+
+    def test_should_raise_when_alpha_above_one(self):
+        with self.assertRaises(ValueError):
+            self.positioner(2)
+
+    def test_returns_min_value_below_alpha_min(self):
+        self.assertAlmostEqual(self.positioner(0), 0.0)
+
+    def test_returns_max_value_above_alpha_max(self):
+        self.assertAlmostEqual(self.positioner(1.0), 100.0)
+
+    def test_returns_mid_value_at_half_way(self):
+        self.assertAlmostEqual(self.positioner(0.5), 50.0)

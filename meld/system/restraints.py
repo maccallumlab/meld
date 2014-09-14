@@ -415,7 +415,7 @@ class RestraintManager(object):
     def add_selectively_active_collection(self, rest_list, num_active):
         self._selective_collections.append(SelectivelyActiveCollection(rest_list, num_active))
 
-    def create_restraint(self, rest_type, scaler=None, ramp=None, positioner=None, **kwargs):
+    def create_restraint(self, rest_type, scaler=None, ramp=None, **kwargs):
         if scaler is None:
             scaler = ConstantScaler()
         else:
@@ -501,10 +501,6 @@ class AlphaMapper(object):
 
 class RestraintScaler(AlphaMapper):
     '''Base class for all resraint scaler classes.'''
-
-
-class Positioner(AlphaMapper):
-    '''Base class for all positioner classes.'''
 
 
 class ConstantScaler(RestraintScaler):
@@ -696,3 +692,51 @@ class TimeRampSwitcher(TimeRamp):
             return self.first_ramp(timestep)
         else:
             return self.second_ramp(timestep)
+
+
+class Positioner(AlphaMapper):
+    '''Base class for all positioner classes.'''
+
+
+class ConstantPositioner(Positioner):
+    '''Always returns the supplied value.'''
+
+    _scaler_key_ = 'constant_positioner'
+
+    def __init__(self, value):
+        self._value = value
+
+    def __call__(self, alpha):
+        if alpha < 0:
+            raise ValueError('alpha must be >= 0')
+        if alpha > 1:
+            raise ValueError('alpha must be <= 1')
+
+        return self._value
+
+class LinearPositioner(Positioner):
+    '''Position restraints linearly within a range'''
+
+    _scaler_key_ = 'linear_positioner'
+
+    def __init__(self, alpha_min, alpha_max, pos_min, pos_max):
+        if alpha_max <= alpha_min:
+            raise ValueError('alpha_max must be > alpha_min')
+
+        self.alpha_min = float(alpha_min)
+        self.alpha_max = float(alpha_max)
+        self.pos_min = float(pos_min)
+        self.pos_max = float(pos_max)
+
+    def __call__(self, alpha):
+        if alpha < 0:
+            raise ValueError('alpha was < 0')
+        if alpha > 1:
+            raise ValueError('alpha was > 1')
+        if alpha < self.alpha_min:
+            return self.pos_min
+        elif alpha < self.alpha_max:
+            delta = (alpha - self.alpha_min) / (self.alpha_max - self.alpha_min)
+            return delta * (self.pos_max - self.pos_min) + self.pos_min
+        else:
+            return self.pos_max
