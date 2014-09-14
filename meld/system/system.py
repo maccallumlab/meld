@@ -238,10 +238,27 @@ class ParmTopReader(object):
 
 
 class RunOptions(object):
+
+    def __setattr__(self, name, value):
+        # open we only allow setting of these attributes
+        # all others will raise an error, which catches
+        # typos
+        allowed_attributes = [
+            'remove_com', 'softcore', 'sc_alpha_min',
+            'sc_alpha_max_coulomb', 'sc_alpha_max_lennard_jones',
+            'runner', 'timesteps', 'minimize_steps',
+            'implicit_solvent_model', 'cutoff', 'use_big_timestep',
+            'use_amap', 'amap_alpha_bias', 'amap_beta_bias']
+        allowed_attributes += ['_{}'.format(item) for item in allowed_attributes]
+        if not name in allowed_attributes:
+            raise ValueError('Attempted to set unknown attribute {}'.format(name))
+        else:
+            object.__setattr__(self, name, value)
+
     def __init__(self):
         self._runner = 'openmm'
         self._timesteps = 5000
-        self._minimize_Steps = 1000
+        self._minimize_steps = 1000
         self._implicit_solvent_model = 'gbNeck2'
         self._cutoff = None
         self._use_big_timestep = False
@@ -320,7 +337,7 @@ class RunOptions(object):
 
     @property
     def minimize_steps(self):
-        return self._minimize_Steps
+        return self._minimize_steps
 
     @minimize_steps.setter
     def minimize_steps(self, value):

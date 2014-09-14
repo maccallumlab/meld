@@ -47,9 +47,8 @@ class SlaveReplicaExchangeRunner(object):
 
             state = communicator.receive_state_from_master()
 
-            ramp_weight = self._compute_ramp_weight()
             my_alpha = new_alpha
-            system_runner.set_alpha(my_alpha, ramp_weight)
+            system_runner.set_alpha_and_timestep(my_alpha, self._step)
             state.alpha = my_alpha
 
             # do one round of simulation
@@ -68,12 +67,3 @@ class SlaveReplicaExchangeRunner(object):
             communicator.send_energies_to_master(energies)
 
             self._step += 1
-
-    def _compute_ramp_weight(self):
-        if self._ramp_steps is None:
-            return 1.0
-        else:
-            if self._step > self._ramp_steps:
-                return 1.0
-            else:
-                return (float(self.step + 1) / float(self._ramp_steps)) ** 4

@@ -92,8 +92,7 @@ class MasterReplicaExchangeRunner(object):
             logger.info('Running replica exchange step %d of %d.',
                         self._step, self._max_steps)
             # update alphas
-            ramp_weight = self._compute_ramp_weight()
-            system_runner.set_alpha(0., ramp_weight)
+            system_runner.set_alpha_and_timestep(0., self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_slaves(self._alphas)
 
@@ -162,12 +161,3 @@ class MasterReplicaExchangeRunner(object):
     def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)
         self._alphas = [i * delta for i in range(self._n_replicas)]
-
-    def _compute_ramp_weight(self):
-        if self._ramp_steps is None:
-            return 1.0
-        else:
-            if self._step > self._ramp_steps:
-                return 1.0
-            else:
-                return (float(self.step + 1) / float(self._ramp_steps)) ** 4
