@@ -15,8 +15,6 @@ class MultiplexReplicaExchangeRunner(object):
     :param max_steps: maximum number of steps to run
     :param ladder: Ladder object to handle exchanges
     :param adaptor: Adaptor object to handle alphas adaptation
-    :param ramp_steps: integer number of steps to ramp up force constants at
-                       start of simulation
 
     """
 
@@ -40,21 +38,16 @@ class MultiplexReplicaExchangeRunner(object):
     def max_steps(self):
         return self._max_steps
 
-    @property
-    def ramp_steps(self):
-        return self._ramp_steps
-
     #
     # public methods
     #
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor, ramp_steps=None):
+    def __init__(self, n_replicas, max_steps, ladder, adaptor):
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
-        self._ramp_steps = ramp_steps
 
         self._alphas = None
         self._setup_alphas()
@@ -80,12 +73,11 @@ class MultiplexReplicaExchangeRunner(object):
             logger.info('Running replica exchange step %d of %d.',
                         self._step, self._max_steps)
             # update alphas
-            ramp_weight = self._compute_ramp_weight()
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
 
             for state_index in range(self._n_replicas):
                 states[state_index].alpha = self._alphas[state_index]
-                system_runner.set_alpha(self._alphas[state_index], ramp_weight)
+                system_runner.set_alpha_and_timestep(self._alphas[state_index], self._step)
 
                 if self._step == 1:
                     logger.info('First step, minimizing and then running.')
@@ -96,7 +88,7 @@ class MultiplexReplicaExchangeRunner(object):
 
             energies = []
             for state_index in range(self._n_replicas):
-                system_runner.set_alpha(self._alphas[state_index], ramp_weight)
+                system_runner.set_alpha_and_timestep(self._alphas[state_index], self._step)
                 # compute our energy for each state
                 my_energies = self._compute_energies(states, system_runner)
                 energies.append(my_energies)
@@ -147,12 +139,3 @@ class MultiplexReplicaExchangeRunner(object):
     def _setup_alphas(self):
         delta = 1.0 / (self._n_replicas - 1.0)
         self._alphas = [i * delta for i in range(self._n_replicas)]
-
-    def _compute_ramp_weight(self):
-        if self._ramp_steps is None:
-            return 1.0
-        else:
-            if self._step > self._ramp_steps:
-                return 1.0
-            else:
-                return float(self.step + 1) / float(self._ramp_steps)

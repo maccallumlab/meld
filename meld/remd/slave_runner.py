@@ -4,10 +4,9 @@ class SlaveReplicaExchangeRunner(object):
 
     '''
 
-    def __init__(self, step, max_steps, ramp_steps=None):
+    def __init__(self, step, max_steps):
         self._step = step
         self._max_steps = max_steps
-        self._ramp_steps = ramp_steps
 
     @classmethod
     def from_master(cls, master):
@@ -19,7 +18,7 @@ class SlaveReplicaExchangeRunner(object):
         :return: a :class:`SlaveReplicaExchangeRunner`
 
         '''
-        new_slave = cls(master.step, master.max_steps, master.ramp_steps)
+        new_slave = cls(master.step, master.max_steps)
         return new_slave
 
     @property

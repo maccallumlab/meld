@@ -73,7 +73,6 @@ def launch_multiplex(debug=False):
     store.initialize(mode='a')
     remd_runner = store.load_remd_runner()
     runner = multiplex_runner.MultiplexReplicaExchangeRunner(remd_runner.n_replicas, remd_runner.max_steps,
-                                                             remd_runner.ladder, remd_runner.adaptor,
-                                                             remd_runner.ramp_steps)
+                                                             remd_runner.ladder, remd_runner.adaptor)
 
     runner.run(system_runner, store)

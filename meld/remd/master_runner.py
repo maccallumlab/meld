@@ -18,8 +18,6 @@ class MasterReplicaExchangeRunner(object):
     :param max_steps: maximum number of steps to run
     :param ladder: Ladder object to handle exchanges
     :param adaptor: Adaptor object to handle alphas adaptation
-    :param ramp_steps: integer number of steps to ramp up force constants at
-                       start of simulation
 
     """
 
@@ -43,21 +41,16 @@ class MasterReplicaExchangeRunner(object):
     def max_steps(self):
         return self._max_steps
 
-    @property
-    def ramp_steps(self):
-        return self._ramp_steps
-
     #
     # public methods
     #
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor, ramp_steps=None):
+    def __init__(self, n_replicas, max_steps, ladder, adaptor):
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
-        self._ramp_steps = ramp_steps
 
         self._alphas = None
         self._setup_alphas()

@@ -288,6 +288,8 @@ class ConfinementRestraint(NonSelectableRestraint):
 
 
 class CartesianRestraint(NonSelectableRestraint):
+    '''Cartesian restraint on xyz coordinates'''
+
     _restraint_key_ = 'cartesian'
 
     def __init__(self, system, scaler, ramp, res_index, atom_name, x, y, z, delta, force_const):
@@ -306,6 +308,90 @@ class CartesianRestraint(NonSelectableRestraint):
             raise ValueError('delta must be non-negative')
         if self.force_const < 0:
             raise ValueError('force_const must be non-negative')
+
+
+class YZCartesianRestraint(NonSelectableRestraint):
+    '''Cartesian restraint on yz coordinates only'''
+
+    _restraint_key_ = 'yzcartesian'
+
+    def __init__(self, system, scaler, ramp, res_index, atom_name, y, z, delta, force_const):
+        self.atom_index = system.index_of_atom(res_index, atom_name)
+        self.y = y
+        self.z = z
+        self.delta = delta
+        self.force_const = force_const
+        self.scaler = scaler
+        self.ramp = ramp
+        self._check()
+
+    def _check(self):
+        if self.delta < 0:
+            raise ValueError('delta must be non-negative')
+        if self.force_const < 0:
+            raise ValueError('force_const must be non-negative')
+
+
+class XAxisCOMRestraint(NonSelectableRestraint):
+    '''
+    Restraint on the displacement between two groups along the x-axis.
+
+    group1: [(res_index, atom_name), (res_index, atom_name)...]
+    group2: [(res_index, atom_name), (res_index, atom_name)...]
+    weights1:  A list of positive floats, or None, which will use masses
+    weights2:  A list of positive floats, or None, which will use masses
+    force_const: a force constant in kJ/mol/nm^2
+    position: a float or a Positioner
+    '''
+
+    _restraint_key_ = 'xcomrestraint'
+
+    def __init__(self, system, scaler, ramp, group1, group2, weights1, weights2, force_const, position):
+        # setup indices
+        self.scaler = scaler
+        self.ramp = ramp
+
+        self.indices1 = self._get_indices(system, group1)
+        self.indices2 = self._get_indices(system, group2)
+
+        # setup the weights
+        if weights1 is None:
+            self.weights1 = self._get_mass_weights(system, self.indices1)
+        else:
+            self.weights1 = [float(x) for x in weights1]
+            if any([w < 0 for w in self.weights1]):
+                raise ValueError('weights1 contained a value < 0')
+            norm = sum(self.weights1)
+            self.weights1 = [x / norm for x in self.weights1]
+
+        if weights2 is None:
+            self.weights2 = self._get_mass_weights(system, self.indices2)
+        else:
+            self.weights2 = [float(x) for x in weights2]
+            if any([w < 0 for w in self.weights2]):
+                raise ValueError('weights2 contained a value < 0')
+            norm = sum(self.weights2)
+            self.weights2 = [x / norm for x in self.weights2]
+
+        assert len(self.indices1) == len(self.weights1), 'length of group1 and weights1 do not match'
+        assert len(self.indices2) == len(self.weights2), 'length of group2 and weights2 do not match'
+
+        self.force_const = force_const
+
+        if isinstance(position, Positioner):
+            self.positioner = position
+        else:
+            self.positioner = ConstantPositioner(position)
+
+    def _get_indices(self, system, group):
+        return [system.index_of_atom(res_ind, atom_name) for (res_ind, atom_name) in group]
+
+    def _get_mass_weights(self, system, indices):
+        print 'Warning! This uses uniform weights, rather than mass weights.'
+        print 'I need to include the masses in the topology objects.'
+        masses = [1.0 for i in indices]
+        norm = sum(masses)
+        return [m / norm for m in masses]
 
 
 class AlwaysActiveCollection(object):

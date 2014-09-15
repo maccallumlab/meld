@@ -260,7 +260,7 @@ class AdaptationPolicy(object):
     '''
     Repeat adaptation on a regular schedule with an optional burn-in and
     increasing adaptation times.
-    
+
     :param growth_factor: increase adapt_every by a factor of growth_factor
                           every adaptation
     :param burn_in: number of steps to ignore at the beginning
@@ -270,11 +270,12 @@ class AdaptationPolicy(object):
     # named tuple to hold the results
     AdaptationRequired = namedtuple('AdaptationRequired', 'adapt_now reset_now')
 
-    def __init__(self, growth_factor, burn_in, adapt_every):
+    def __init__(self, growth_factor, burn_in, adapt_every, stop_after=None):
         self.growth_factor = growth_factor
         self.burn_in = burn_in
         self.adapt_every = adapt_every
         self.next_adapt = adapt_every + burn_in
+        self.stop_after = stop_after
 
     def should_adapt(self, step):
         '''
@@ -285,6 +286,10 @@ class AdaptationPolicy(object):
                  indicating if adaptation or resetting is necessary
 
         '''
+        if not self.stop_after is None:
+            if step > self.stop_after:
+                return self.AdaptationRequired(False, False)
+
         if self.burn_in:
             if step >= self.burn_in:
                 self.burn_in = None

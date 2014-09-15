@@ -652,6 +652,7 @@ class TestConstantPositioner(unittest.TestCase):
         self.assertEqual(self.positioner(0.5), 42.0)
         self.assertEqual(self.positioner(1.0), 42.0)
 
+
 class TestLinearPositioner(unittest.TestCase):
     def setUp(self):
         self.positioner = restraints.LinearPositioner(0.1, 0.9, 0, 100)
