@@ -171,7 +171,7 @@ class OpenMMRunner(object):
 
         # run energy minimization
         if minimize:
-            self._simulation.minimizeEnergy(self._options.minimize_steps)
+            self._simulation.minimizeEnergy(maxIterations=self._options.minimize_steps)
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
