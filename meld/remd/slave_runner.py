@@ -40,6 +40,10 @@ class SlaveReplicaExchangeRunner(object):
         '''
         my_alpha = None
 
+        # we always minimize when we first start, either on the first
+        # stage or the first stage after a restart
+        minimize = True
+
         while self._step <= self._max_steps:
             # update simulation conditions
             new_alpha = communicator.receive_alpha_from_master()
@@ -51,8 +55,9 @@ class SlaveReplicaExchangeRunner(object):
             state.alpha = my_alpha
 
             # do one round of simulation
-            if self._step == 1:
+            if minimize:
                 state = system_runner.minimize_then_run(state)
+                minimize = False    # we don't need to minimize again
             else:
                 state = system_runner.run(state)
 

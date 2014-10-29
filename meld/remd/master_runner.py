@@ -81,6 +81,10 @@ class MasterReplicaExchangeRunner(object):
         # load previous state from the store
         states = store.load_states(stage=self.step - 1)
 
+        # we always minimize when we first start, either on the first
+        # stage or the first stage after a restart
+        minimize = True
+
         while self._step <= self._max_steps:
             logger.info('Running replica exchange step %d of %d.',
                         self._step, self._max_steps)
@@ -91,9 +95,10 @@ class MasterReplicaExchangeRunner(object):
 
             # do one step
             my_state = communicator.broadcast_states_to_slaves(states)
-            if self._step == 1:
+            if minimize:
                 logger.info('First step, minimizing and then running.')
                 my_state = system_runner.minimize_then_run(my_state)
+                minimize = False    # we don't need to minimize again
             else:
                 logger.info('Running molecular dynamics.')
                 my_state = system_runner.run(my_state)
