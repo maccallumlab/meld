@@ -711,7 +711,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
     cu.executeKernel(evaluateAndActivateKernel, groupArgs, numGroups);
 
     // now evaluate and activate groups based on collections
-    std::vector<float> energies(numRestraints);
+    //std::vector<float> energies(numRestraints);
     //restraintEnergies->download(energies);
     void* collArgs[] = {
         &numCollections,
@@ -720,7 +720,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
         &groupActive->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, 1024*numCollections, 1024);
+    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, 64*numCollections, 64);
 
     // Now set the restraints active based on if the groups are active
     void* applyGroupsArgs[] = {
