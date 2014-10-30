@@ -22,19 +22,18 @@ def launch(debug=False):
     communicator.initialize()
 
     hostname = socket.gethostname()
+    hostid = '{}:{}'.format(hostname, communicator.rank)
+    format = '{:10} %(asctime)s  %(name)s: %(message)s'.format(hostid)
+    datefmt = '%Y-%m-%d %H:%M:%S'
 
     if communicator.is_master():
         level = logging.DEBUG if debug else logging.INFO
-        format = '{:8s} %(asctime)s  %(name)s: %(message)s'.format(hostname)
-        datefmt = '%Y-%m-%d %H:%M:%S'
         logging.basicConfig(filename='remd.log', level=level, format=format,
                             datefmt=datefmt)
         logger.info('Launching replica exchange')
         log_versions()
     else:
         if debug:
-            format = '{:8s} %(asctime)s  %(name)s: %(message)s'.format(hostname)
-            datefmt = '%Y-%m-%d %H:%M:%S'
             logging.basicConfig(level=logging.DEBUG, format=format,
                                 datefmt=datefmt)
             logger.info('Launching replica exchange')
