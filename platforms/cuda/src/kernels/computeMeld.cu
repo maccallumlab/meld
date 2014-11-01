@@ -401,43 +401,85 @@ extern "C" __global__ void evaluateAndActivate(
         float* __restrict__ activeArray,
         float* __restrict__ targetEnergyArray)
 {
-    for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numGroups; index+=blockDim.x*gridDim.x) {
+    // we store the energies and the indices in shared
+    // memory to improve performance
+    // scratch will have the maximum of blockDim.x * sizeof(float)
+    // or largestGroup * (sizeof(float) + sizeof(int))
+    extern __shared__ float scratch[];
+    float* scratchEnergy = scratch;
+    int* scratchIndexArray = (int*)&scratch[MAXGROUPSIZE];
+
+    // each thread block computes a single group
+    for (int index=blockIdx.x; index<numGroups; index+=gridDim.x) {
         int numActive = numActiveArray[index];
         int start = boundsArray[index].x;
         int end = boundsArray[index].y;
         int length = end - start;
         bool applyAll = numActive == length;
 
-        // copy to temp index
+        // copy indices and energy to shared memory
         if (!applyAll) {
-            for (int i = start; i<end; ++i) {
-                tempIndexArray[i] = pristineIndexArray[i];
+            for (int i=threadIdx.x; i<length; i+=blockDim.x) {
+                scratchIndexArray[i] = i;
+                scratchEnergy[i] = energyArray[pristineIndexArray[i + start]];
             }
+            __syncthreads();
         }
 
-        // find the the numActive'th energy
-        float energyCut = 0.0;
-        if (!applyAll) {
-            int* chunk = tempIndexArray + start;
-            energyCut = quick_select_float(energyArray, chunk, length, numActive-1);
-        } else {
-            energyCut = 9.0e999;
+        // the quick select algorithm is not parallelized and is run
+        // only by thread 0
+        if (threadIdx.x==0) {
+            // find the the numActive'th energy
+            float energyCut = 0.0;
+            if (!applyAll) {
+                energyCut = quick_select_float(scratchEnergy, scratchIndexArray, length, numActive-1);
+            } else {
+                energyCut = 9.0e999;
+            }
+            // store the energy cut for other threads
+            scratchEnergy[0] = energyCut;
         }
+
+        // now we're back on all threads again
+        // load the energy cut
+        __syncthreads();
+        float energyCut = scratchEnergy[0];
+        __syncthreads();
 
         // activate all springs where energy <= energyCut
         float thisActive = 0.0;
         float thisEnergy = 0.0;
-        float totalEnergy = 0.0;
 
-        for (int i=start; i<end; ++i) {
+        // reset the scratch to zero
+        scratch[threadIdx.x] = 0.0;
+
+        // sum up each the energy for each restraint
+        for (int i=threadIdx.x + start; i<end; i+=blockDim.x) {
             thisEnergy = energyArray[pristineIndexArray[i]];
             thisActive = (float)(thisEnergy <= energyCut);
             activeArray[pristineIndexArray[i]] = thisActive;
-            totalEnergy += thisActive * thisEnergy;
+            scratch[threadIdx.x] += thisActive * thisEnergy;
         }
+        __syncthreads();
+
+        // Now we do a parallel reduction
+        int totalThreads = blockDim.x;
+        int index2 = 0;
+        while (totalThreads > 1) {
+            int halfPoint = (totalThreads >> 1);
+            if (threadIdx.x < halfPoint) {
+                index2 = threadIdx.x + halfPoint;
+                scratch[threadIdx.x] += scratch[index2];
+            }
+            __syncthreads();
+            totalThreads = halfPoint;
+        }
+        __syncthreads();
 
         // store the total energy
-        targetEnergyArray[index] = totalEnergy;
+        if (threadIdx.x == 0) {
+            targetEnergyArray[index] = scratch[0];
+        }
     }
 }
 
@@ -620,10 +662,9 @@ extern "C" __global__ void applyGroups(
                             float* __restrict__ restraintActive,
                             const int2* __restrict__ bounds,
                             int numGroups) {
-    for (int groupIndex=blockIdx.x*blockDim.x+threadIdx.x; groupIndex<numGroups; groupIndex+=blockDim.x*gridDim.x) {
+    for (int groupIndex=blockIdx.x; groupIndex<numGroups; groupIndex+=gridDim.x) {
         float active = groupActive[groupIndex];
-        for (int i=bounds[groupIndex].x; i<bounds[groupIndex].y; ++i) {
-            float oldActive = restraintActive[i];
+        for (int i=bounds[groupIndex].x + threadIdx.x; i<bounds[groupIndex].y; i+=blockDim.x) {
             restraintActive[i] *= active;
         }
     }

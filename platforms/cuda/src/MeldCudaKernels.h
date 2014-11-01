@@ -50,6 +50,7 @@ private:
     int numRestraints;
     int numGroups;
     int numCollections;
+    int largestGroup;
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
     CUfunction computeDistRestKernel;
