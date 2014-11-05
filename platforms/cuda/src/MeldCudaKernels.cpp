@@ -48,6 +48,8 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     numGroups = 0;
     numCollections = 0;
     largestGroup = 0;
+    largestCollection = 0;
+    groupsPerBlock = 16;
 
     distanceRestRParams = NULL;
     distanceRestKParams = NULL;
@@ -527,6 +529,7 @@ void CudaCalcMeldForceKernel::setupGroups(const MeldForce& force) {
 
 
 void CudaCalcMeldForceKernel::setupCollections(const MeldForce& force) {
+    largestCollection = 0;
     std::vector<int> groupAssigned(numGroups, -1);
     int start=0;
     int end=0;
@@ -538,7 +541,13 @@ void CudaCalcMeldForceKernel::setupCollections(const MeldForce& force) {
         checkGroupCollectionIndices(numGroups, indices, groupAssigned, i, "Group", "Collection");
         checkNumActive(indices, numActive, i, "Collection");
 
-        end = start + indices.size();
+        int collectionSize = indices.size();
+
+        if (collectionSize > largestCollection) {
+            largestCollection = collectionSize;
+        }
+
+        end = start + collectionSize;
         h_collectionNumActive[i] = numActive;
         h_collectionBounds[i] = make_int2(start, end);
         for (int j=0; j<indices.size(); ++j) {
@@ -613,6 +622,8 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
     replacements["MAXGROUPSIZE"] = cu.intToString(largestGroup);
+    replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
+    replacements["GROUPSPERBLOCK"] = cu.intToString(groupsPerBlock);
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
     computeTorsionRestKernel = cu.getKernel(module, "computeTorsionRest");
@@ -707,8 +718,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
     }
 
     // now evaluate and active restraints based on groups
-    int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));
-    int sharedSizeThreads = 32 * sizeof(float);
+    int sharedSizeGroup = groupsPerBlock * largestGroup * (sizeof(float) + sizeof(int));
+    int sharedSizeThreads = groupsPerBlock * 32 * sizeof(float);
     int sharedSize = std::max(sharedSizeGroup, sharedSizeThreads);
     void* groupArgs[] = {
         &numGroups,
@@ -719,11 +730,17 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &restraintEnergies->getDevicePointer(),
         &restraintActive->getDevicePointer(),
         &groupEnergies->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, 32, sharedSize);
+    cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, groupsPerBlock * 32, sharedSize);
 
+    // the kernel will need to be modified if this value is changed
+    const int threadsPerCollection = 1024;
+    int sharedSizeCollectionEnergies = largestCollection * sizeof(float);
+    int sharedSizeCollectionMinMaxBuffer = threadsPerCollection * 2 * sizeof(float);
+    int sharedSizeCollectionBinCounts = threadsPerCollection * sizeof(int);
+    int sharedSizeCollectionBestBin = sizeof(int);
+    int sharedSizeCollection = sharedSizeCollectionEnergies + sharedSizeCollectionMinMaxBuffer +
+        sharedSizeCollectionBinCounts + sharedSizeCollectionBestBin;
     // now evaluate and activate groups based on collections
-    //std::vector<float> energies(numRestraints);
-    //restraintEnergies->download(energies);
     void* collArgs[] = {
         &numCollections,
         &collectionNumActive->getDevicePointer(),
@@ -731,7 +748,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
         &groupActive->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, 64*numCollections, 64);
+    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection, sharedSizeCollection);
 
     // Now set the restraints active based on if the groups are active
     void* applyGroupsArgs[] = {

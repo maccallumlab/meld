@@ -51,6 +51,8 @@ private:
     int numGroups;
     int numCollections;
     int largestGroup;
+    int largestCollection;
+    int groupsPerBlock;
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
     CUfunction computeDistRestKernel;
