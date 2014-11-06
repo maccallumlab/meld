@@ -42,6 +42,7 @@ public:
 private:
     class ForceInfo;
     int numDistRestraints;
+    int numHyperbolicDistRestraints;
     int numTorsionRestraints;
     int numDistProfileRestraints;
     int numDistProfileRestParams;
@@ -56,6 +57,7 @@ private:
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
     CUfunction computeDistRestKernel;
+    CUfunction computeHyperbolicDistRestKernel;
     CUfunction computeTorsionRestKernel;
     CUfunction computeDistProfileRestKernel;
     CUfunction computeTorsProfileRestKernel;
@@ -63,6 +65,7 @@ private:
     CUfunction evaluateAndActivateCollectionsKernel;
     CUfunction applyGroupsKernel;
     CUfunction applyDistRestKernel;
+    CUfunction applyHyperbolicDistRestKernel;
     CUfunction applyTorsionRestKernel;
     CUfunction applyDistProfileRestKernel;
     CUfunction applyTorsProfileRestKernel;
@@ -85,6 +88,25 @@ private:
     std::vector<int> h_distanceRestGlobalIndices;
 
     OpenMM::CudaArray* distanceRestForces; // cache to hold force computations until the final application step
+
+    /**
+     * Arrays for hyperbolic distance restraints
+     *
+     * Each array has size numHyperbolicDistRestraints
+     */
+    OpenMM::CudaArray* hyperbolicDistanceRestRParams;    // float4 to hold r1-r4
+    std::vector<float4> h_hyperbolicDistanceRestRParams;
+
+    OpenMM::CudaArray* hyperbolicDistanceRestParams;     // float4 to hold k1, k2, a, b
+    std::vector<float4> h_hyperbolicDistanceRestParams;
+
+    OpenMM::CudaArray* hyperbolicDistanceRestAtomIndices;   // int2 to hold i,j
+    std::vector<int2> h_hyperbolicDistanceRestAtomIndices;
+
+    OpenMM::CudaArray* hyperbolicDistanceRestGlobalIndices; // int to hold the global index for this restraint
+    std::vector<int> h_hyperbolicDistanceRestGlobalIndices;
+
+    OpenMM::CudaArray* hyperbolicDistanceRestForces; // cache to hold force computations until the final application step
 
     /**
      * Arrays for torsion restraints
@@ -206,6 +228,7 @@ private:
 
     void allocateMemory(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);
+    void setupHyperbolicDistanceRestraints(const MeldForce& force);
     void setupTorsionRestraints(const MeldForce& force);
     void setupDistProfileRestraints(const MeldForce& force);
     void setupTorsProfileRestraints(const MeldForce& force);

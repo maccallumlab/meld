@@ -19,6 +19,10 @@ int MeldForce::getNumDistRestraints() const {
     return distanceRestraints.size();
 }
 
+int MeldForce::getNumHyperbolicDistRestraints() const {
+    return hyperbolicDistanceRestraints.size();
+}
+
 int MeldForce::getNumTorsionRestraints() const {
     return torsions.size();
 }
@@ -51,7 +55,8 @@ int MeldForce::getNumTorsProfileRestParams() const {
 
 
 int MeldForce::getNumTotalRestraints() const {
-    return distanceRestraints.size() + torsions.size() + distProfileRestraints.size() + torsProfileRestraints.size();
+    return distanceRestraints.size() + hyperbolicDistanceRestraints.size() + torsions.size() +
+        distProfileRestraints.size() + torsProfileRestraints.size();
 }
 
 
@@ -80,6 +85,20 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
             DistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, oldGlobal);
 }
 
+int MeldForce::addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2,
+                                    float r3, float r4, float force_constant, float asymptote) {
+    hyperbolicDistanceRestraints.push_back(
+            HyperbolicDistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, asymptote, n_restraints));
+    n_restraints++;
+    return n_restraints - 1;
+}
+
+void MeldForce::modifyHyperbolicDistanceRestraint(int index, int particle1, int particle2, float r1, float r2,
+                                        float r3, float r4, float force_constant, float asymptote) {
+    int oldGlobal = hyperbolicDistanceRestraints[index].global_index;
+    hyperbolicDistanceRestraints[index] =
+            HyperbolicDistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, asymptote, oldGlobal);
+}
 
 int MeldForce::addTorsionRestraint(int atom1, int atom2, int atom3, int atom4,
                                    float phi, float deltaPhi, float forceConstant) {
@@ -177,6 +196,20 @@ void MeldForce::getDistanceRestraintParams(int index, int& atom1, int& atom2, fl
     r3 = rest.r3;
     r4 = rest.r4;
     forceConstant = rest.force_constant;
+    globalIndex = rest.global_index;
+}
+
+void MeldForce::getHyperbolicDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
+            float& r4, float& forceConstant, float& asymptote, int& globalIndex) const {
+    const HyperbolicDistanceRestraintInfo& rest = hyperbolicDistanceRestraints[index];
+    atom1 = rest.particle1;
+    atom2 = rest.particle2;
+    r1 = rest.r1;
+    r2 = rest.r2;
+    r3 = rest.r3;
+    r4 = rest.r4;
+    forceConstant = rest.force_constant;
+    asymptote = rest.asymptote;
     globalIndex = rest.global_index;
 }
 

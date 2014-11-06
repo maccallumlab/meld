@@ -27,7 +27,7 @@ public:
      * Simply call modifyDistanceRestaint(), modifyTorsionRestraint(), modifyDistProfileRestraint(),
      * or modifyTorsProfileRestraint() to modify the parameters of a restraint, then call updateParametersInContext()
      * to copy them over to the Context.
-     * 
+     *
      * This method has several limitations.  The only information it updates is the values of per-restraint parameters.
      * All other aspects of the Force (such as the energy function) are unaffected and can only be changed by reinitializing
      * the Context.  The set of particles involved in a restraint cannot be changed, nor can new restraints be added.
@@ -38,17 +38,22 @@ public:
      * @return The number of distance restraints.
      */
     int getNumDistRestraints() const;
-   
+
+    /**
+     * @return The number of hyperbolic distance restraints.
+     */
+    int getNumHyperbolicDistRestraints() const;
+
     /**
      * @return The number of torsion restraints.
      */
     int getNumTorsionRestraints() const;
-   
+
     /**
      * @return The number of distance profile restraints.
      */
     int getNumDistProfileRestraints() const;
-   
+
     /**
      * @return The number of distance profile restraint parameters.
      */
@@ -82,7 +87,7 @@ public:
     /**
      * Get the parameters for a distance restraint. See addDistanceRestraint()
      * for more details about the parameters.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -96,6 +101,24 @@ public:
     void getDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
             float& r4, float& forceConstant, int& globalIndex) const;
 
+    /**
+     * Get the parameters for a hyperbolic distance restraint. See addHyperbolicDistanceRestraint()
+     * for more details about the parameters.
+     *
+     * @param index  the index of the restraint
+     * @param atom1  the first atom
+     * @param atom2  the second atom
+     * @param r1  the upper bound of region 1
+     * @param r2  the upper bound of region 2
+     * @param r3  the upper bound of region 3
+     * @param r4  the upper bound of region 4
+     * @param forceConstant  the force constant for region 1
+     * @param asymptote the asymptotic energy in region 4
+     * @param globalIndex  the global index of the restraint
+     */
+
+    void getHyperbolicDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
+            float& r4, float& forceConstant, float& asymptote, int& globalIndex) const;
     /**
      * Get the parameters for a torsion restraint. See addTorsionRestraint() for
      * more details about the parameters.
@@ -116,7 +139,7 @@ public:
     /**
      * Get the parameters for a distance profile restraint. See addDistProfileRestraint()
      * for more details about the parameters.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -133,7 +156,7 @@ public:
 
     /**
      * Get the parameters for a torsion profile restraint.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -159,7 +182,7 @@ public:
 
     /**
      * Get the parameters for a group of restraints.
-     * 
+     *
      * @param index  the index of the group
      * @param indices  the indices of the restraints in the group
      * @param numActive  the number of active restraints in the group
@@ -189,6 +212,8 @@ public:
      *
      * V:   r4 < r
      *
+     * The energy is linear in regions I and V, quadratic in II and IV, and zero in III.
+     *
      * @param particle1  the first atom
      * @param particle2  the second atom
      * @param r1  the upper bound of region 1
@@ -204,7 +229,7 @@ public:
     /**
      * Modify an existing distance restraint. See addDistanceRestraint() for more
      * details about the parameters.
-     * 
+     *
      * @param index  the index of the restraint
      * @param particle1  the first atom
      * @param particle2  the second atom
@@ -218,8 +243,58 @@ public:
             float r4, float force_constant);
 
     /**
+     * Create a new hyperbolic distance restraint.
+     * There are five regions:
+     *
+     * I:    r < r1
+     *
+     * II:  r1 < r < r2
+     *
+     * III: r2 < r < r3
+     *
+     * IV:  r3 < r < r4
+     *
+     * V:   r4 < r
+     *
+     * The energy is linear in region I, quadratic in II and IV, and zero in III.
+     *
+     * The energy is hyperbolic in region V, with an asymptotic value set by the
+     * parameter asymptote. The energy will be 1/3 of the asymptotic value at r=r4.
+     * The distance between r3 and r4 controls the steepness of the potential.
+     *
+     * @param particle1  the first atom
+     * @param particle2  the second atom
+     * @param r1  the upper bound of region 1
+     * @param r2  the upper bound of region 2
+     * @param r3  the upper bound of region 3
+     * @param r4  the upper bound of region 4
+     * @param forceConstant  the force constant in regions I and II
+     * @param asymptote the asymptotic value in region V, also controls the steepness in region IV.
+     * @return the index of the restraint that was created
+     */
+    int addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2, float r3, float r4,
+            float force_constant, float asymptote);
+
+    /**
+     * Modify an existing hyperbolic distance restraint. See addHyperbolicDistanceRestraint() for more
+     * details about the parameters.
+     *
+     * @param index  the index of the restraint
+     * @param particle1  the first atom
+     * @param particle2  the second atom
+     * @param r1  the upper bound of region 1
+     * @param r2  the upper bound of region 2
+     * @param r3  the upper bound of region 3
+     * @param r4  the upper bound of region 4
+     * @param forceConstant  the force constant
+     * @param asymptote the asymptotic value
+     */
+    void modifyHyperbolicDistanceRestraint(int index, int particle1, int particle2, float r1, float r2, float r3,
+            float r4, float force_constant, float asymptote);
+
+    /**
      * Create a new torsion restraint.
-     * 
+     *
      * If (x - phi) < -deltaPhi:
      *    E = 1/2 * forceConstant * (x - phi + deltaPhi)^2
      *
@@ -243,7 +318,7 @@ public:
     /**
      * Modify an existing torsion restraint. See addTorsionRestraint() for more
      * details about the parameters.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -266,7 +341,7 @@ public:
      * t = (r - bin * binWidth + rMin) / binWidth;
      *
      * E = scaleFactor * (a0 + a1 * t + a2 * t^2 + a3 * t^3)
-     * 
+     *
      * @param atom1  the first atom
      * @param atom2  the second atom
      * @param rMin  the lower bound of the restraint
@@ -282,7 +357,7 @@ public:
     /**
      * Modify an existing distance profile restraint. See addDistProfileRestraint()
      * for more details about the parameters.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -298,7 +373,7 @@ public:
 
     /**
      * Create a new torsion profile restraint.
-     * 
+     *
      * @param atom1  the first atom
      * @param atom2  the second atom
      * @param atom3  the third atom
@@ -323,7 +398,7 @@ public:
 
     /**
      * Modify an existing torsion profile restraint.
-     * 
+     *
      * @param index  the index of the restraint
      * @param atom1  the first atom
      * @param atom2  the second atom
@@ -348,7 +423,7 @@ public:
 
     /**
      * Create a new group of restraints.
-     * 
+     *
      * @param restraint_indices  the indices of the restraints in the group
      * @param n_active  the number of active restraints in the group
      * @return the index of the group that was created
@@ -357,7 +432,7 @@ public:
 
     /**
      * Create a new collection of restraint groups.
-     * 
+     *
      * @param group_indices  the indices of the groups in the collection
      * @param n_active  the number of active groups in the collection
      * @return the index of the collection that was created
@@ -370,12 +445,14 @@ protected:
 private:
     class TorsionRestraintInfo;
     class DistanceRestraintInfo;
+    class HyperbolicDistanceRestraintInfo;
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
     int n_restraints;
     std::vector<DistanceRestraintInfo> distanceRestraints;
+    std::vector<HyperbolicDistanceRestraintInfo> hyperbolicDistanceRestraints;
     std::vector<TorsionRestraintInfo> torsions;
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
@@ -399,6 +476,26 @@ private:
                 float force_constant, int global_index) : particle1(particle1), particle2(particle2), r1(r1),
                                                             r2(r2), r3(r3), r4(r4), force_constant(force_constant),
                                                             global_index(global_index) {
+        }
+    };
+
+    class HyperbolicDistanceRestraintInfo {
+    public:
+        int particle1, particle2;
+        float r1, r2, r3, r4, force_constant, asymptote;
+        int global_index;
+
+        HyperbolicDistanceRestraintInfo() {
+            particle1 = particle2    = -1;
+            force_constant = 0.0;
+            r1 = r2 = r3 = r4 = asymptote = 0.0;
+            global_index = -1;
+        }
+
+        HyperbolicDistanceRestraintInfo(int particle1, int particle2, float r1, float r2, float r3, float r4,
+                float force_constant, float asymptote, int global_index) : particle1(particle1), particle2(particle2), r1(r1),
+                                                            r2(r2), r3(r3), r4(r4), force_constant(force_constant),
+                                                            asymptote(asymptote), global_index(global_index) {
         }
     };
 

@@ -97,7 +97,16 @@ extern "C" __global__ void computeDistRest(
                             const int numRestraints) {
     for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
         // get my global index
-        int globalIndex = indexToGlobal[index];
+        const int globalIndex = indexToGlobal[index];
+
+        // get the distances
+        const float r1 = distanceBounds[index].x;
+        const float r2 = distanceBounds[index].y;
+        const float r3 = distanceBounds[index].z;
+        const float r4 = distanceBounds[index].w;
+
+        // get the force constant
+        const float k = forceConstants[index];
 
         // get atom indices and compute distance
         int atomIndexA = atomIndices[index].x;
@@ -113,37 +122,123 @@ extern "C" __global__ void computeDistRest(
         float diff2 = 0.0;
         float3 f;
 
-        if(r < distanceBounds[index].x) {
-            energy = forceConstants[index] * (r - distanceBounds[index].x) * (distanceBounds[index].x - distanceBounds[index].y) +
-                0.5 * forceConstants[index] * (distanceBounds[index].x - distanceBounds[index].y) * (distanceBounds[index].x - distanceBounds[index].y);
-            dEdR = forceConstants[index] * (distanceBounds[index].x - distanceBounds[index].y);
+        if(r < r1) {
+            energy = k * (r - r1) * (r1 - r2) + 0.5 * k * (r1 - r2) * (r1 - r2);
+            dEdR = k * (r1 - r2);
         }
-        else if(r < distanceBounds[index].y) {
-            diff = r - distanceBounds[index].y;
+        else if(r < r2) {
+            diff = r - r2;
             diff2 = diff * diff;
-            energy = 0.5 * forceConstants[index] * diff2;
-            dEdR = forceConstants[index] * diff;
+            energy = 0.5 * k * diff2;
+            dEdR = k * diff;
         }
-        else if(r < distanceBounds[index].z) {
+        else if(r < r3) {
             dEdR = 0.0;
             energy = 0.0;
         }
-        else if(r < distanceBounds[index].w) {
-            diff = r - distanceBounds[index].z;
+        else if(r < r4) {
+            diff = r - r3;
             diff2 = diff * diff;
-            energy = 0.5 * forceConstants[index] * diff2;
-            dEdR = forceConstants[index] * diff;
+            energy = 0.5 * k * diff2;
+            dEdR = k * diff;
         }
         else {
-            energy = forceConstants[index] * (r - distanceBounds[index].w) * (distanceBounds[index].w - distanceBounds[index].z) +
-                0.5 * forceConstants[index] * (distanceBounds[index].w - distanceBounds[index].z) * (distanceBounds[index].w - distanceBounds[index].z);
-            dEdR = forceConstants[index] * (distanceBounds[index].w - distanceBounds[index].z);
+            energy = k * (r - r4) * (r4 - r3) + 0.5 * k * (r4 - r3) * (r4 - r3);
+            dEdR = k * (r4 - r3);
         }
 
         // store force into local buffer
-        f.x = delta.x * dEdR / r;
-        f.y = delta.y * dEdR / r;
-        f.z = delta.z * dEdR / r;
+        if (r > 0) {
+            f.x = delta.x * dEdR / r;
+            f.y = delta.y * dEdR / r;
+            f.z = delta.z * dEdR / r;
+        } else {
+            f.x = 0.0;
+            f.y = 0.0;
+            f.z = 0.0;
+        }
+        forceBuffer[index] = f;
+
+        // store energy into global buffer
+        energies[globalIndex] = energy;
+    }
+}
+
+
+extern "C" __global__ void computeHyperbolicDistRest(
+                            const real4* __restrict__ posq,             // positions and charges
+                            const int2* __restrict__ atomIndices,       // pair of atom indices
+                            const float4* __restrict__ distanceBounds,  // r1, r2, r3, r4
+                            const float4* __restrict__ params,          // k1, k2, a, b
+                            int* __restrict__ indexToGlobal,            // array of indices into global arrays
+                            float* __restrict__ energies,               // global array of restraint energies
+                            float3* __restrict__ forceBuffer,           // temporary buffer to hold the force
+                            const int numRestraints) {
+    for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
+        // get my global index
+        const int globalIndex = indexToGlobal[index];
+
+        // get the distances
+        const float r1 = distanceBounds[index].x;
+        const float r2 = distanceBounds[index].y;
+        const float r3 = distanceBounds[index].z;
+        const float r4 = distanceBounds[index].w;
+
+        // get the parameters
+        const float k1 = params[index].x;
+        const float k2 = params[index].y;
+        const float a = params[index].z;
+        const float b = params[index].w;
+
+        // get atom indices and compute distance
+        int atomIndexA = atomIndices[index].x;
+        int atomIndexB = atomIndices[index].y;
+        real4 delta = posq[atomIndexA] - posq[atomIndexB];
+        real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
+        real r = SQRT(distSquared);
+
+        // compute force and energy
+        float energy = 0.0;
+        float dEdR = 0.0;
+        float diff = 0.0;
+        float diff2 = 0.0;
+        float3 f;
+
+        if(r < r1) {
+            energy = k1 * (r - r1) * (r1 - r2) + 0.5 * k1 * (r1 - r2) * (r1 - r2);
+            dEdR = k1 * (r1 - r2);
+        }
+        else if(r < r2) {
+            diff = r - r2;
+            diff2 = diff * diff;
+            energy = 0.5 * k1 * diff2;
+            dEdR = k1 * diff;
+        }
+        else if(r < r3) {
+            dEdR = 0.0;
+            energy = 0.0;
+        }
+        else if(r < r4) {
+            diff = r - r3;
+            diff2 = diff * diff;
+            energy = 0.5 * k2 * diff2;
+            dEdR = k2 * diff;
+        }
+        else {
+            energy = 0.5 * k2 * (b / (r - r3) + a);
+            dEdR = -0.5 * b * k2 / (r - r3) / (r - r3);
+        }
+
+        // store force into local buffer
+        if (r > 0) {
+            f.x = delta.x * dEdR / r;
+            f.y = delta.y * dEdR / r;
+            f.z = delta.z * dEdR / r;
+        } else {
+            f.x = 0.0;
+            f.y = 0.0;
+            f.z = 0.0;
+        }
         forceBuffer[index] = f;
 
         // store energy into global buffer
@@ -741,6 +836,39 @@ extern "C" __global__ void applyGroups(
 
 
 extern "C" __global__ void applyDistRest(
+                                unsigned long long * __restrict__ force,
+                                real* __restrict__ energyBuffer,
+                                const int2* __restrict__ atomIndices,
+                                const int* __restrict__ globalIndices,
+                                const float3* __restrict__ restForces,
+                                const float* __restrict__ globalEnergies,
+                                const float* __restrict__ globalActive,
+                                const int numDistRestraints) {
+    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    float energyAccum = 0.0;
+
+    for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numDistRestraints; restraintIndex+=blockDim.x*gridDim.x) {
+        int globalIndex = globalIndices[restraintIndex];
+        if (globalActive[globalIndex]) {
+            int index1 = atomIndices[restraintIndex].x;
+            int index2 = atomIndices[restraintIndex].y;
+            energyAccum += globalEnergies[globalIndex];
+            float3 f = restForces[restraintIndex];
+
+            atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
+            atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
+            atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
+
+            atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+            atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+            atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+        }
+    }
+    energyBuffer[threadIndex] += energyAccum;
+}
+
+
+extern "C" __global__ void applyHyperbolicDistRest(
                                 unsigned long long * __restrict__ force,
                                 real* __restrict__ energyBuffer,
                                 const int2* __restrict__ atomIndices,

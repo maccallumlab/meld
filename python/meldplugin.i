@@ -47,6 +47,16 @@ except UnboundLocalError:
    val[6]=unit.Quantity(val[6], unit.kilojoule_per_mole/(unit.nanometer*unit.nanometer))
 %}
 
+%pythonappend MeldPlugin::MeldForce::getHyperbolicDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
+                                                                          float& r4, float& forceConstant, float& asymptote, int& globalIndex) const %{
+   val[2]=unit.Quantity(val[2], unit.nanometer)
+   val[3]=unit.Quantity(val[3], unit.nanometer)
+   val[4]=unit.Quantity(val[4], unit.nanometer)
+   val[5]=unit.Quantity(val[5], unit.nanometer)
+   val[6]=unit.Quantity(val[6], unit.kilojoule_per_mole/(unit.nanometer*unit.nanometer))
+   val[7]=unit.Quantity(val[7], unit.kilojoule_per_mole)
+%}
+
 %pythonappend MeldPlugin::MeldForce::getTorsionRestraintParams(int index, int& atom1, int& atom2, int& atom3, int&atom4,
                                                                float& phi, float& deltaPhi, float& forceConstant, int& globalIndex) const %{
     val[4] = unit.Quantity(val[4], unit.degree)
@@ -235,6 +245,12 @@ namespace MeldPlugin {
 
         void modifyDistanceRestraint(int index, int particle1, int particle2, float r1, float r2, float r3,
                 float r4, float force_constant);
+
+        int addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2, float r3, float r4,
+                float force_constant, float asymptote);
+
+        void modifyHyperbolicDistanceRestraint(int index, int particle1, int particle2, float r1, float r2, float r3,
+                float r4, float force_constant, float asymptote);
 
         int addTorsionRestraint(int atom1, int atom2, int atom3, int atom4, float phi, float deltaPhi, float forceConstant);
 

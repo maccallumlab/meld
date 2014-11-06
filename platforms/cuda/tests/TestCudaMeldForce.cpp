@@ -123,6 +123,116 @@ void testDistRest() {
     ASSERT_EQUAL_VEC(-expectedForce, stateV.getForces()[1], 1e-5);
 }
 
+void testHyperbolicDistRest() {
+    // setup system
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    float k = 1.0;
+    float asymptote = 3.0;
+
+    int restIdx = force->addHyperbolicDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k, asymptote);
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // There are five regions:
+    // I:       r < 1
+    // II:  1 < r < 2
+    // III: 2 < r < 3
+    // IV:  3 < r < 4
+    // V:   4 < r
+
+    // test region I
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(0.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 1.0;
+    Vec3 expectedForce = Vec3(-1.0, 0.0, 0.0);
+
+    State stateI = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateI.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateI.getForces()[1], 1e-5);
+
+    // test region II
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.125;
+    expectedForce = Vec3(-0.5, 0.0, 0.0);
+
+    State stateII = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateII.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateII.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateII.getForces()[1], 1e-5);
+
+    // test region III
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.0;
+    expectedForce = Vec3(0.0, 0.0, 0.0);
+
+    State stateIII = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateIII.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateIII.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateIII.getForces()[1], 1e-5);
+
+    // test region IV
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(3.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.250;
+    expectedForce = Vec3(1.0, 0.0, 0.0);
+
+    State stateIV = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateIV.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateIV.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateIV.getForces()[1], 1e-5);
+
+    // test region V
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(4.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 1.666666666;
+    expectedForce = Vec3(0.888888888888, 0.0, 0.0);
+
+    State stateV = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, stateV.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateV.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateV.getForces()[1], 1e-5);
+}
+
 void testDistRestChangingParameters() {
     // Create particles
     const int numParticles = 2;
@@ -422,6 +532,7 @@ int main(int argc, char* argv[]) {
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
         testDistRest();
         testDistRestChangingParameters();
+        testHyperbolicDistRest();
         testTorsRest();
         testDistProfileRest();
         testTorsProfileRest();
