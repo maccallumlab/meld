@@ -708,6 +708,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 max = binMax;
                 delta = max - min;
                 numActive = binCounts[*bestBin] - numActive;
+                __syncthreads();
             }
         }
 
@@ -720,6 +721,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 activeArray[indexArray[i + start]] = 0.0;
             }
         }
+        __syncthreads();
     }
 }
 
