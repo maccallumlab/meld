@@ -6,7 +6,7 @@ from simtk.unit import Quantity, kilojoule, mole, gram
 from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
 from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint
 from meld.system.restraints import CartesianRestraint, YZCartesianRestraint, XAxisCOMRestraint
-from meld.system.restraints import RdcRestraint
+from meld.system.restraints import RdcRestraint, HyperbolicDistanceRestraint
 from . import softcore
 import cmap
 import logging
@@ -320,18 +320,19 @@ def _add_selectively_active_restraints(system, collections, always_on, alpha, ti
 def _update_selectively_active_restraints(collections, always_on, alpha, timestep, force_dict):
     meld_force = force_dict['meld']
     dist_index = 0
+    hyper_index = 0
     tors_index = 0
     dist_prof_index = 0
     tors_prof_index = 0
     if always_on:
         for rest in always_on:
-            dist_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha, timestep,
-                                                                            dist_index, tors_index, dist_prof_index, tors_prof_index)
+            dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha, timestep,
+                                                                            dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index)
     for coll in collections:
         for group in coll.groups:
             for rest in group.restraints:
-                dist_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha, timestep,
-                                                                                dist_index, tors_index, dist_prof_index, tors_prof_index)
+                dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index = _update_meld_restraint(rest, meld_force, alpha, timestep,
+                                                                                dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index)
 
 
 def _add_confinement_restraints(system, restraint_list, alpha, timestep, force_dict):
@@ -569,6 +570,12 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
         rest_index = meld_force.addDistanceRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.r1, rest.r2, rest.r3, rest.r4,
                                                     rest.k * scale)
+
+    elif isinstance(rest, HyperbolicDistanceRestraint):
+        rest_index = meld_force.addHyperbolicDistanceRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                                               rest.r1, rest.r2, rest.r3, rest.r4,
+                                                               rest.k * scale, rest.asymptote * scale)
+
     elif isinstance(rest, TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                     rest.atom_index_3 - 1, rest.atom_index_4 - 1,
@@ -599,12 +606,17 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
     return rest_index
 
 
-def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index, tors_index, dist_prof_index, tors_prof_index):
+def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index):
     scale = rest.scaler(alpha) * rest.ramp(alpha)
     if isinstance(rest, DistanceRestraint):
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)
         dist_index += 1
+    elif isinstance(rest, HyperbolicDistanceRestrat):
+        meld_force.modifyHyperbolicDistanceRestraint(hyper_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+                                                     rest.r1, rest.r2, rest.r3, rest.r4, rest.k * scale,
+                                                     rest.asymptote * scale)
+        hyper_index +=1
     elif isinstance(rest, TorsionRestraint):
         meld_force.modifyTorsionRestraint(tors_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.atom_index_3 - 1,
                                           rest.atom_index_4 - 1, rest.phi, rest.delta_phi, rest.k * scale)
@@ -634,7 +646,7 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index, tors_i
         tors_prof_index += 1
     else:
         raise RuntimeError('Do not know how to handle restraint {}'.format(rest))
-    return dist_index, tors_index, dist_prof_index, tors_prof_index
+    return dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index
 
 
 #

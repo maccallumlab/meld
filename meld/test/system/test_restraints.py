@@ -184,6 +184,62 @@ class TestDistanceRestraint(unittest.TestCase):
             restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 10., 10., -1.0)
 
 
+class TestHyperbolicDistanceRestraint(unittest.TestCase):
+    def setUp(self):
+        self.mock_system = mock.Mock()
+        self.scaler = restraints.ConstantScaler()
+        self.ramp = restraints.ConstantRamp()
+
+    def test_should_find_two_indices(self):
+        restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0.0, 0.0, 0.6, 0.7, 1.0, 1.0)
+        calls = [
+            mock.call(1, 'CA'),
+            mock.call(2, 'CA')]
+        self.mock_system.index_of_atom.assert_has_calls(calls)
+
+    def test_should_raise_on_bad_index(self):
+        self.mock_system.index_of_atom.side_effect = KeyError()
+
+        with self.assertRaises(KeyError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'BAD', 2, 'CA', 0.0, 0.1, 0.2, 0.3, 1.0, 1.0)
+
+    def test_should_raise_with_negative_r(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', -1., 1.0, 2.0, 3.0, 1.0, 1.0)
+
+    def test_should_raise_if_r2_less_than_r1(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 10.0, 0.0, 1.0, 2.0, 1.0, 1.0)
+
+    def test_should_raise_if_r3_less_than_r2(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 0.0, 2.0, 1.0, 1.0)
+
+    def test_should_raise_if_r4_less_than_r3(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 2.0, 0.0, 1.0, 1.0)
+
+    def test_should_raise_if_r4_equals_r3(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 2.0, 2.0, 1.0, 1.0)
+
+    def test_should_raise_with_negative_k(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 1., 2., 3., 4., -1.0, 1.0)
+
+    def test_should_raise_with_negative_asymptote(self):
+        with self.assertRaises(RuntimeError):
+            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
+                                                   1, 'CA', 2, 'CA', 1., 2., 3., 4., 1.0, -1.0)
+
+
 class TestTorsionRestraint(unittest.TestCase):
     def setUp(self):
         self.mock_system = mock.Mock()

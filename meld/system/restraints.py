@@ -99,6 +99,49 @@ class DistanceRestraint(SelectableRestraint):
             raise RuntimeError('k must be >= 0. k={}.'.format(self.k))
 
 
+class HyperbolicDistanceRestraint(SelectableRestraint):
+    '''
+    '''
+
+    _restraint_key_ = 'hyperbolic'
+
+    def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name,
+                 atom_2_res_index, atom_2_name, r1, r2, r3, r4, k, asymptote):
+        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
+        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        self.r1 = r1
+        self.r2 = r2
+        self.r3 = r3
+        self.r4 = r4
+        self.k = k
+        self.asymptote = asymptote
+
+        self._check(system)
+
+    def _check(self, system):
+        if self.r1 < 0 or self.r2 < 0 or self.r3 < 0 or self.r4 < 0:
+            raise RuntimeError('r1 to r4 must be > 0. r1={} r2={} r3={} r4={}.'.format(
+                self.r1, self.r2, self.r3, self.r4))
+
+        if self.r2 < self.r1:
+            raise RuntimeError('r2 must be >= r1. r1={} r2={}.'.format(self.r1, self.r2))
+
+        if self.r3 < self.r2:
+            raise RuntimeError('r3 must be >= r2. r2={} r3={}.'.format(self.r2, self.r3))
+
+        if self.r4 < self.r3:
+            raise RuntimeError('r4 must be >= r3. r3={} r4={}.'.format(self.r3, self.r4))
+
+        if self.r3 == self.r4:
+            raise RuntimeError('r4 cannot be equal to r3. r3={} r4={}.'.format(self.r3, self.r4))
+
+        if self.k < 0:
+            raise RuntimeError('k must be >= 0. k={}.'.format(self.k))
+
+        if self.asymptote < 0:
+            raise RuntimeError('asymptote must be >= 0. asymptote={}.'.format(self.asymptote))
+
+
 class TorsionRestraint(SelectableRestraint):
     """
     A torsion restraint
