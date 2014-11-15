@@ -149,6 +149,8 @@ extern "C" __global__ void computeDistRest(
             dEdR = k * (r4 - r3);
         }
 
+        assert(isfinite(energy));
+
         // store force into local buffer
         if (r > 0) {
             f.x = delta.x * dEdR / r;
@@ -243,6 +245,8 @@ extern "C" __global__ void computeHyperbolicDistRest(
         }
         forceBuffer[index] = f;
 
+        assert(isfinite(energy));
+
         // store energy into global buffer
         energies[globalIndex] = energy;
     }
@@ -306,6 +310,9 @@ extern "C" __global__ void computeTorsionRest(
             energy = 0.0;
             dEdPhi = 0.0;
         }
+
+        assert(isfinite(energy));
+
         energies[globalIndex] = energy;
 
         computeTorsionForce(dEdPhi, r_ij, r_kj, r_kl, m, n, len_r_kj, len_m, len_n,
@@ -365,6 +372,8 @@ extern "C" __global__ void computeDistProfileRest(
             energy = scaleFactor[index] * (a0 + a1 * t + a2 * t * t + a3 * t * t * t);
             dEdR = scaleFactor[index] * (a1 + 2.0 * a2 * t + 3.0 * a3 * t * t) / binWidth;
         }
+
+        assert(isfinite(energy));
 
         // store force into local buffer
         float3 f;
@@ -459,6 +468,8 @@ extern "C" __global__ void computeTorsProfileRest(
                        params2[pi].x * u*u   + params2[pi].y * u*u*v   + params2[pi].z * u*u*v*v   + params2[pi].w * u*u*v*v*v +
                        params3[pi].x * u*u*u + params3[pi].y * u*u*u*v + params3[pi].z * u*u*u*v*v + params3[pi].w * u*u*u*v*v*v;
         energy = energy * scaleFactor[index];
+
+        assert(isfinite(energy));
 
         float dEdPhi = params1[pi].x         + params1[pi].y * v     + params1[pi].z * v*v     + params1[pi].w * v*v*v +
                        params2[pi].x * 2*u   + params2[pi].y * 2*u*v   + params2[pi].z * 2*u*v*v   + params2[pi].w * 2*u*v*v*v +
@@ -586,6 +597,7 @@ extern "C" __global__ void evaluateAndActivate(
         // now store the energy for this group
         if (threadOffsetInWarp == 0) {
             targetEnergyArray[groupIndex] = warpReductionBuffer[0];
+            assert(isfinite(warpReductionBuffer[0]));
         }
 
         // make sure we're all done before we start again
