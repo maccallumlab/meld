@@ -1,3 +1,5 @@
+#include "assert.h"
+
 #define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }
 __device__
 float quick_select_float(const float* energy, int *index, int nelems, int select) {
@@ -526,8 +528,10 @@ extern "C" __global__ void evaluateAndActivate(
         // copy the energies to shared memory and setup indices
         if (!applyAll) {
             for(int i=threadOffsetInWarp; i<length; i+=32) {
+                const float energy = energyArray[pristineIndexArray[i + start]];
+                assert(isfinite(energy));
                 warpScratchIndices[i] = i;
-                warpScratchEnergy[i] = energyArray[pristineIndexArray[i + start]];
+                warpScratchEnergy[i] = energy;
             }
         }
 
@@ -638,6 +642,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         const float* __restrict__ energyArray,
         float* __restrict__ activeArray)
 {
+    const float TOLERANCE = 1e-4;
     const int maxCollectionSize = MAXCOLLECTIONSIZE;
     const int tid = threadIdx.x;
     const int warp = tid / 32;
@@ -667,7 +672,9 @@ extern "C" __global__ void evaluateAndActivateCollections(
 
         // load the energy buffer for this collection
         for (int i=tid; i<length; i+=blockDim.x) {
-            energyBuffer[i] = energyArray[indexArray[start + i]];
+            const float energy = energyArray[indexArray[start + i]];
+            assert(isfinite(energy));
+            energyBuffer[i] = energy;
         }
         __syncthreads();
 
@@ -680,7 +687,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         // All of the energies are the same, so they should all be active.
         // Note: we need to break out here in this case, as otherwise delta
         // will be zero and bad things will happen
-        if (max == min) {
+        if (fabs(max-min) < TOLERANCE) {
             energyCutoff = max;
         } else {
             // Here we need to find the k'th highest energy. We do this using a recursive,
@@ -692,6 +699,12 @@ extern "C" __global__ void evaluateAndActivateCollections(
 
             // loop until we break out at convergence
             for (;;) {
+                /*if(tid==0) {*/
+                    /*printf("%d\t%f\t%f\n", collIndex, min, max);*/
+                    /*if (!isfinite(min) || !isfinite(max)) {*/
+                        /*asm("trap;");*/
+                    /*}*/
+                /*}*/
                 // zero out the buffers
                 binCounts[tid] = 0;
                 minBuffer[tid] = 9.0e99;
@@ -742,7 +755,6 @@ extern "C" __global__ void evaluateAndActivateCollections(
                     if (lane >= 4) binCounts[32 * tid + 31] += binCounts[32 * (tid - 4) + 31];
                     if (lane >= 8) binCounts[32 * tid + 31] += binCounts[32 * (tid - 8) + 31];
                     if (lane >= 16) binCounts[32 * tid + 31] += binCounts[32 * (tid - 16) + 31];
-                    // pass
                 }
                 __syncthreads();
 
@@ -784,7 +796,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 const float binMax = maxBuffer[*bestBin];
 
                 //  if all energies in this bin are the same, then we are done
-                if (binMin == binMax) {
+                if (fabs(binMin-binMax) < TOLERANCE) {
                     energyCutoff = binMax;
                     break;
                 }
