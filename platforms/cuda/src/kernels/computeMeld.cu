@@ -587,6 +587,9 @@ extern "C" __global__ void evaluateAndActivate(
         if (threadOffsetInWarp == 0) {
             targetEnergyArray[groupIndex] = warpReductionBuffer[0];
         }
+
+        // make sure we're all done before we start again
+        __syncthreads();
     }
 }
 
