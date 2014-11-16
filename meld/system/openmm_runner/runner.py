@@ -612,7 +612,7 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index, hyper_
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)
         dist_index += 1
-    elif isinstance(rest, HyperbolicDistanceRestrat):
+    elif isinstance(rest, HyperbolicDistanceRestraint):
         meld_force.modifyHyperbolicDistanceRestraint(hyper_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
                                                      rest.r1, rest.r2, rest.r3, rest.r4, rest.k * scale,
                                                      rest.asymptote * scale)
