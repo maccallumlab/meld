@@ -50,7 +50,7 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     numCollections = 0;
     largestGroup = 0;
     largestCollection = 0;
-    groupsPerBlock = 16;
+    groupsPerBlock = -1;
 
     distanceRestRParams = NULL;
     distanceRestKParams = NULL;
@@ -681,7 +681,20 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
     replacements["MAXGROUPSIZE"] = cu.intToString(largestGroup);
     replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
+
+    // setup thr maximum number of groups calculated in a single block
+    // want to maximize occupancy, but need to ensure that we fit
+    // into shared memory
+    int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));
+    int sharedSizeThreads = 32 * sizeof(float);
+    int sharedSize = std::max(sharedSizeGroup, sharedSizeThreads);
+    int maxSharedMemory = 48 * 1024;
+    groupsPerBlock = std::min(maxSharedMemory / sharedSize, 32);
+    if (groupsPerBlock < 1) {
+        throw OpenMMException("One of the groups is too large to fit into shared memory.");
+    }
     replacements["GROUPSPERBLOCK"] = cu.intToString(groupsPerBlock);
+
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
     computeHyperbolicDistRestKernel = cu.getKernel(module, "computeHyperbolicDistRest");
@@ -792,9 +805,10 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
     }
 
     // now evaluate and active restraints based on groups
-    int sharedSizeGroup = groupsPerBlock * largestGroup * (sizeof(float) + sizeof(int));
-    int sharedSizeThreads = groupsPerBlock * 32 * sizeof(float);
+    int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));
+    int sharedSizeThreads = 32 * sizeof(float);
     int sharedSize = std::max(sharedSizeGroup, sharedSizeThreads);
+
     void* groupArgs[] = {
         &numGroups,
         &groupNumActive->getDevicePointer(),
@@ -804,7 +818,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &restraintEnergies->getDevicePointer(),
         &restraintActive->getDevicePointer(),
         &groupEnergies->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, groupsPerBlock * 32, sharedSize);
+    cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, groupsPerBlock * 32, groupsPerBlock * sharedSize);
 
     // the kernel will need to be modified if this value is changed
     const int threadsPerCollection = 1024;
