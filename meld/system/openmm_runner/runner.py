@@ -607,7 +607,7 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
 
 
 def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index, hyper_index, tors_index, dist_prof_index, tors_prof_index):
-    scale = rest.scaler(alpha) * rest.ramp(alpha)
+    scale = rest.scaler(alpha) * rest.ramp(timestep)
     if isinstance(rest, DistanceRestraint):
         meld_force.modifyDistanceRestraint(dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
                                            rest.r2, rest.r3, rest.r4, rest.k * scale)
