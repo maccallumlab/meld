@@ -117,7 +117,7 @@ def get_secondary_structure_restraints(system, scaler, ramp=None, torsion_force_
     contents = _get_secondary_sequence(filename, contents, file)
     torsion_force_constant /= 100.
     distance_force_constant *= 100.
-    quadratic_cut /= 10.
+    quadratic_cut *= 10.
 
     groups = []
 
