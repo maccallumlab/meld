@@ -57,9 +57,9 @@ def launch_multiplex(debug=False):
     store = vault.DataStore.load_data_store()
 
     level = logging.DEBUG if debug else logging.INFO
-    format = '%(asctime)s  %(name)s: %(message)s'
+    fmt = '%(asctime)s  %(name)s: %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
-    logging.basicConfig(filename='remd.log', level=level, format=format,
+    logging.basicConfig(filename='remd.log', level=level, format=fmt,
                         datefmt=datefmt)
     logger.info('Launching replica exchange')
     log_versions()
@@ -72,6 +72,7 @@ def launch_multiplex(debug=False):
     store.initialize(mode='a')
     remd_runner = store.load_remd_runner()
     runner = multiplex_runner.MultiplexReplicaExchangeRunner(remd_runner.n_replicas, remd_runner.max_steps,
-                                                             remd_runner.ladder, remd_runner.adaptor)
+                                                             remd_runner.ladder, remd_runner.adaptor,
+                                                             remd_runner._step)
 
     runner.run(system_runner, store)
