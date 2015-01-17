@@ -4,8 +4,9 @@
 import os
 from glob import glob
 import argparse
-from meld import vault
 import shutil
+
+from meld import vault
 
 
 def main():
@@ -37,8 +38,8 @@ def process_restart(do_it):
     runner = store.load_remd_runner()
     print
 
-    last_safe_frame = store.max_safe_frame()
-    last_safe_block = store._max_safe_block
+    last_safe_frame = store.max_safe_frame
+    last_safe_block = store.max_safe_block
     current_stage = runner.step
     print 'Data store says last safe frame is {}.'.format(last_safe_frame)
     print 'Data store says last safe block is {}.'.format(last_safe_block)
@@ -47,8 +48,8 @@ def process_restart(do_it):
     print
     print 'Closing datastore.'
     store.close()
-    del(store)
-    del(runner)
+    del store
+    del runner
     print
 
     copy_store(do_it)
@@ -130,6 +131,7 @@ def remove_blocks(do_it, max_block):
         else:
             block_name = 'block_{:06d}.nc'.format(block)
             os.remove(os.path.join(vault.DataStore.blocks_dir, block_name))
+
 
 if __name__ == '__main__':
     main()
