@@ -22,6 +22,9 @@ class FakeSystemRunner(object):
     '''
     Fake runner for test purposes.
     '''
+    def __init__(self, system, options, communicator=None):
+        self.temperature_scaler = system.temperature_scaler
+
     def set_alpha_and_timestep(self, alpha, timestep):
         pass
 
@@ -39,6 +42,6 @@ def get_runner(system, options, comm):
     if options.runner == 'openmm':
         return OpenMMRunner(system, options, comm)
     elif options.runner == 'fake_runner':
-        return FakeSystemRunner()
+        return FakeSystemRunner(system, options, comm)
     else:
         raise RuntimeError('Unknown type of runner: {}'.format(options.runner))
