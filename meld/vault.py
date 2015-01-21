@@ -223,7 +223,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_positions(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def iterate_positions(self, start=None, end=None):
         """
@@ -233,7 +233,7 @@ class DataStore(object):
         if start is None:
             start = 0
         if end is None:
-            end = self.max_safe_frame()
+            end = self.max_safe_frame
 
         for i in range(start, end):
             yield self.load_positions(i)
@@ -268,7 +268,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_velocities(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def save_states(self, states, stage):
         """
@@ -345,7 +345,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_alphas(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def save_energies(self, energies, stage):
         """
@@ -378,7 +378,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_energies(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def save_energy_matrix(self, energy_matrix, stage):
         self._can_save()
@@ -391,7 +391,7 @@ class DataStore(object):
 
     def load_all_energy_matrices(self):
         return np.concatenate([np.array(self.load_energy_matrix(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def save_permutation_vector(self, perm_vec, stage):
         """
@@ -425,7 +425,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_permutation_vector(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def iterate_permutation_vectors(self, start=None, end=None):
         """
@@ -435,7 +435,7 @@ class DataStore(object):
         if start is None:
             start = 0
         if end is None:
-            end = self.max_safe_frame()
+            end = self.max_safe_frame
 
         for i in range(start, end):
             yield self.load_permutation_vector(i)
@@ -471,7 +471,7 @@ class DataStore(object):
 
         """
         return np.concatenate([np.array(self.load_acceptance_probabilities(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame())], axis=-1)
+                               for i in range(self.max_safe_frame)], axis=-1)
 
     def save_remd_runner(self, runner):
         """Save replica runner to disk"""
@@ -586,7 +586,7 @@ class DataStore(object):
                 raise RuntimeError('Tried to read an unsafe block')
         else:
             if block_index < self._current_block:
-                raise RuntimeError('Cannot go back in time')
+                raise RuntimeError('Tried to load from an index before the current block, which is not allowed.')
 
         if block_index != self._current_block:
             self.close()
@@ -600,5 +600,10 @@ class DataStore(object):
         path = self.net_cdf_path_template.format(self._current_block)
         self._cdf_data_set = cdf.Dataset(path, 'r')
 
+    @property
     def max_safe_frame(self):
         return (self._max_safe_block + 1) * self._block_size
+
+    @property
+    def max_safe_block(self):
+        return self._max_safe_block

@@ -141,7 +141,7 @@ def visualize_accept(store, args):
     if args.end:
         end = args.end
     else:
-        end = store.max_safe_frame()
+        end = store.max_safe_frame
 
     n_steps = end - start
     n_pairs = store.n_replicas - 1
@@ -169,7 +169,7 @@ def get_alphas(store, start, end):
     if start is None:
         start = 1
     if end is None:
-        end = store.max_safe_frame()
+        end = store.max_safe_frame
 
     bar = get_progress_bar('Loading data', end - start).start()
 
@@ -186,7 +186,7 @@ def get_permutation_vectors(store, start, end):
     if start is None:
         start = 1
     if end is None:
-        end = store.max_safe_frame() - 1
+        end = store.max_safe_frame - 1
 
     perm_vecs = np.zeros((store.n_replicas, end - start), dtype=int)
     bar = get_progress_bar('Loading data', end - start).start()

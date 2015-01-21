@@ -26,7 +26,7 @@ try:
     from onedimcomplugin import OneDimComForce
 except:
     print 'Could not import onedimcomplugin. Are you sure it is installed correctly?'
-    print 'Attemps to use center of mass restraints will fail.'
+    print 'Attempts to use center of mass restraints will fail.'
 
 
 GAS_CONSTANT = 8.314e-3

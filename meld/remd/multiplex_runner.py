@@ -42,10 +42,10 @@ class MultiplexReplicaExchangeRunner(object):
     # public methods
     #
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor):
+    def __init__(self, n_replicas, max_steps, ladder, adaptor, step):
         self._n_replicas = n_replicas
         self._max_steps = max_steps
-        self._step = 1
+        self._step = step
         self.ladder = ladder
         self.adaptor = adaptor
 

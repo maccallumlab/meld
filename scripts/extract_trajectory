@@ -94,7 +94,7 @@ def extract_traj(store, args):
     pdb_writer = get_pdb_writer(store)
 
     n_replicas = store.n_replicas
-    max_step = store.max_safe_frame()
+    max_step = store.max_safe_frame
 
     start = args.start
     if not start is None:
@@ -158,7 +158,7 @@ def extract_last(store, args):
     pdb_writer = get_pdb_writer(store)
 
     if args.end is None:
-        end = store.max_safe_frame() - 1
+        end = store.max_safe_frame - 1
     else:
         end = args.end
     positions = store.load_positions(end)
@@ -174,7 +174,7 @@ def extract_random(store, args):
 
     if args.end is None and args.start is None:
         start = 0
-        end = store.max_safe_frame()
+        end = store.max_safe_frame
     elif not (args.end is None) and not (args.start is None):
         start = args.start
         end = args.end
@@ -198,7 +198,7 @@ def follow_structure(store, args):
     pdb_writer = get_pdb_writer(store)
 
     n_replicas = store.n_replicas
-    max_step = store.max_safe_frame()
+    max_step = store.max_safe_frame
 
     start = args.start
     if not start is None:
@@ -234,7 +234,7 @@ def follow_structure(store, args):
 
 def follow_structure_dcd(store, args):
     n_replicas = store.n_replicas
-    max_step = store.max_safe_frame()
+    max_step = store.max_safe_frame
 
     start = args.start
     if not start is None:
