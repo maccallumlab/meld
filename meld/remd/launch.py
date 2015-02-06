@@ -9,7 +9,6 @@ import socket
 
 logger = logging.getLogger(__name__)
 
-
 def log_versions():
     logger.info('Meld version is %s', meld_version.full_version)
     logger.info('OpenMM_Meld version is %s', mm_version.full_version)

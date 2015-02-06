@@ -2,6 +2,8 @@
 # encoding: utf-8
 
 
+import logging
+logging.basicConfig()
 import argparse
 from meld.remd import launch
 

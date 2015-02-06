@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 try:
     from meldplugin import MeldForce, RdcForce
 except ImportError as e:
-    print 'Could not import meldplugin. Are you sure it is installed correctly?'
-    print 'Attempts to use meld restraints will fail.'
+    logger.warning('Could not import meldplugin. Are you sure it is installed correctly?')
+    logger.warning('Attempts to use meld restraints will fail.')
 
 try:
     from onedimcomplugin import OneDimComForce
 except:
-    print 'Could not import onedimcomplugin. Are you sure it is installed correctly?'
-    print 'Attempts to use center of mass restraints will fail.'
+    logger.warning('Could not import onedimcomplugin. Are you sure it is installed correctly?')
+    logger.warning('Attempts to use center of mass restraints will fail.')
 
 
 GAS_CONSTANT = 8.314e-3
@@ -72,19 +72,21 @@ class OpenMMRunner(object):
         a3 = self._options.sc_alpha_max_lennard_jones
 
         if self._options.softcore:
-            logger.info('updating softcore')
-            if alpha <= a1:
-                self._sc_lambda_coulomb = 1.0
-                self._sc_lambda_lj = 1.0
-            elif alpha >= a3:
-                self._sc_lambda_coulomb = 0.0
-                self._sc_lambda_lj = 0.0
-            elif alpha < a2:
-                self._sc_lambda_lj = 1.0
-                self._sc_lambda_coulomb = 1.0 - (alpha - a1) / (a2 - a1)
-            else:
-                self._sc_lambda_coulomb = 0.0
-                self._sc_lambda_lj = 1.0 - (alpha - a2) / (a3 - a2)
+            self._sc_lambda_coulomb = alpha
+            self._sc_lambda_lj = alpha
+            #logger.info('updating softcore')
+            #if alpha <= a1:
+            #    self._sc_lambda_coulomb = 1.0
+            #    self._sc_lambda_lj = 1.0
+            #elif alpha >= a3:
+            #    self._sc_lambda_coulomb = 0.0
+            #    self._sc_lambda_lj = 0.0
+            #elif alpha < a2:
+            #    self._sc_lambda_lj = 1.0
+            #    self._sc_lambda_coulomb = 1.0 - (alpha - a1) / (a2 - a1)
+            #else:
+            #    self._sc_lambda_coulomb = 0.0
+            #    self._sc_lambda_lj = 1.0 - (alpha - a2) / (a3 - a2)
 
     @log_timing(logger)
     def minimize_then_run(self, state):
@@ -103,13 +105,13 @@ class OpenMMRunner(object):
         snapshot = self._simulation.context.getState(getPositions=True, getVelocities=True, getEnergy=True)
         e_potential = snapshot.getPotentialEnergy()
         e_potential = e_potential.value_in_unit(kilojoule / mole) / GAS_CONSTANT / self._temperature
-
         return e_potential
 
     def _initialize_simulation(self):
         if self._initialized:
             self._integrator.setTemperature(self._temperature)
             if self._options.softcore:
+                print self._sc_lambda_lj
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
@@ -152,14 +154,42 @@ class OpenMMRunner(object):
                                                          platform, properties)
 
             if self._options.softcore:
+                print self._sc_lambda_lj
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
                 logger.info('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
 
+    def _run_min_mc(self, state):
+        if self._options.min_mc is not None:
+            logger.info('Running MCMC before minimization.')
+            logger.info('Starting energy {:.3f}'.format(self.get_energy(state)))
+            state.energy = self.get_energy(state)
+            state = self._options.min_mc.update(state, self)
+            logger.info('Ending energy {:.3f}'.format(self.get_energy(state)))
+            if self._options.remove_com:
+                state.positions = state.positions - np.mean(state.positions, axis=0)
+        return state
+
+    def _run_mc(self, state):
+        if self._options.run_mc is not None:
+            logger.info('Running MCMC before minimization.')
+            logger.info('Starting energy {:.3f}'.format(self.get_energy(state)))
+            state.energy = self.get_energy(state)
+            state = self._options.run_mc.update(state, self)
+            logger.info('Ending energy {:.3f}'.format(self.get_energy(state)))
+            if self._options.remove_com:
+                state.positions = state.positions - np.mean(state.positions, axis=0)
+        return state
 
     def _run(self, state, minimize):
         assert abs(state.alpha - self._alpha) < 1e-6
+
+        # run Monte Carlo
+        if minimize:
+            state = self._run_min_mc(state)
+        else:
+            state = self._run_mc(state)
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
@@ -235,8 +265,12 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
         implicit_type = GBn
     elif implicit_solvent == 'gbNeck2':
         implicit_type = GBn2
+    elif implicit_solvent == 'vacuum':
+        implicit_type = None
     elif implicit_solvent is None:
         implicit_type = None
+    else:
+        RuntimeError('Should never get here')
     return parm_object.createSystem(nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
                                     constraints=constraint_type, implicitSolvent=implicit_type,
                                     removeCMMotion=remove_com, hydrogenMass=hydrogen_mass)

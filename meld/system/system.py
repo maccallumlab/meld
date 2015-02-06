@@ -248,7 +248,8 @@ class RunOptions(object):
             'sc_alpha_max_coulomb', 'sc_alpha_max_lennard_jones',
             'runner', 'timesteps', 'minimize_steps',
             'implicit_solvent_model', 'cutoff', 'use_big_timestep',
-            'use_amap', 'amap_alpha_bias', 'amap_beta_bias']
+            'use_amap', 'amap_alpha_bias', 'amap_beta_bias',
+            'min_mc', 'run_mc']
         allowed_attributes += ['_{}'.format(item) for item in allowed_attributes]
         if not name in allowed_attributes:
             raise ValueError('Attempted to set unknown attribute {}'.format(name))
@@ -270,6 +271,21 @@ class RunOptions(object):
         self._sc_alpha_max_coulomb = 0.3
         self._sc_alpha_max_lennard_jones = 1.0
         self._remove_com = True
+        self._min_mc = None
+        self._run_mc = None
+
+    @property
+    def min_mc(self):
+        return self._min_mc
+    @min_mc.setter
+    def min_mc(self, new_value):
+        self._min_mc = new_value
+    @property
+    def run_mc(self):
+        return self._run_mc
+    @run_mc.setter
+    def run_mc(self, new_value):
+        self._run_mc = new_value
 
     @property
     def remove_com(self):
@@ -352,7 +368,7 @@ class RunOptions(object):
 
     @implicit_solvent_model.setter
     def implicit_solvent_model(self, value):
-        if not value in [None, 'obc', 'gbNeck', 'gbNeck2']:
+        if not value in [None, 'obc', 'gbNeck', 'gbNeck2', 'vacuum']:
             raise RuntimeError('unknown value for implicit solvent model {}'.format(value))
         self._implicit_solvent_model = value
 
@@ -410,5 +426,5 @@ class RunOptions(object):
         if self._softcore:
             assert self._sc_alpha_min >= 0.0
             assert self._sc_alpha_max_coulomb > self._sc_alpha_min
-            assert self._sc_alpha_max_lennard_jones > self._sc_alpha_max_coulomb
+            assert self._sc_alpha_max_lennard_jones >= self._sc_alpha_max_coulomb
             assert self._sc_alpha_max_lennard_jones <= 1.0
