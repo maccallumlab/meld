@@ -1,7 +1,7 @@
 import logging
+import meld
 from meld import vault
 from meld.system import get_runner
-from meld import version as meld_version
 from simtk.openmm import version as mm_version
 from meld.remd import multiplex_runner
 import socket
@@ -10,7 +10,7 @@ import socket
 logger = logging.getLogger(__name__)
 
 def log_versions():
-    logger.info('Meld version is %s', meld_version.full_version)
+    logger.info('Meld version is %s', meld.__version__)
     logger.info('OpenMM_Meld version is %s', mm_version.full_version)
 
 
