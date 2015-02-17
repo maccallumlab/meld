@@ -76,7 +76,7 @@ write_version_py()
 
 setup(
     name='Meld',
-    version='0.1.0',
+    version='0.2.0',
     author='Justin L. MacCallum',
     author_email='justin.maccallum@me.com',
     packages=find_packages(),
