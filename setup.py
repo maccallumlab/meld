@@ -1,6 +1,6 @@
 import os
 import subprocess
-from distutils.core import setup
+
 from setuptools import find_packages
 
 
@@ -68,9 +68,6 @@ if not release:
         a.close()
 
 
-MAJOR = 0
-MINOR = 1
-MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
@@ -79,7 +76,7 @@ write_version_py()
 
 setup(
     name='Meld',
-    version=VERSION,
+    version='0.1.0',
     author='Justin L. MacCallum',
     author_email='justin.maccallum@me.com',
     packages=find_packages(),
