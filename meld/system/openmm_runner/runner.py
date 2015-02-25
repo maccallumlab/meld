@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 try:
     from meldplugin import MeldForce, RdcForce
 except ImportError as e:
-    logger.warning('Could not import meldplugin. Are you sure it is installed correctly?')
-    logger.warning('Attempts to use meld restraints will fail.')
+    logger.warning('Could not import meldplugin. Are you sure it is installed correctly?\n'
+                   'Attempts to use meld restraints will fail.')
 
 try:
     from onedimcomplugin import OneDimComForce
 except:
-    logger.warning('Could not import onedimcomplugin. Are you sure it is installed correctly?')
-    logger.warning('Attempts to use center of mass restraints will fail.')
+    logger.warning('Could not import onedimcomplugin. Are you sure it is installed correctly?\n'
+                   'Attempts to use center of mass restraints will fail.')
 
 
 GAS_CONSTANT = 8.314e-3
@@ -154,7 +154,6 @@ class OpenMMRunner(object):
                                                          platform, properties)
 
             if self._options.softcore:
-                print self._sc_lambda_lj
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)

@@ -3,7 +3,12 @@
 
 
 import logging
-logging.basicConfig()
+meld_logger = logging.getLogger('meld')
+meld_logger.setLevel(logging.DEBUG)
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+meld_logger.addHandler(console)
+
 import argparse
 from meld.remd import launch
 
@@ -14,7 +19,7 @@ def main():
     parser.add_argument('--debug', default=False, action='store_true')
     args = parser.parse_args()
 
-    launch.launch_multiplex(args.debug)
+    launch.launch_multiplex(console, args.debug)
 
 
 if __name__ == '__main__':
