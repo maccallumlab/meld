@@ -29,7 +29,7 @@ import simtk.openmm as mm
 
 /* include version information */
 %pythoncode %{
-__version__ = '0.0.0'
+__version__ = '0.1.0'
 %}
 
 /* strip the units off of all input arguments */
