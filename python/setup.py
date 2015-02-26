@@ -19,6 +19,7 @@ if platform.system() == 'Darwin':
     extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7', '-Wl', '-rpath', openmm_lib_path]
 
 extension = Extension(name='_meldplugin',
+                      version='0.1.0',
                       sources=['MeldPluginWrapper.cpp'],
                       libraries=['OpenMM', 'MeldPlugin'],
                       include_dirs=[os.path.join(openmm_dir, 'include'), meldplugin_header_dir],
