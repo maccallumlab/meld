@@ -115,7 +115,7 @@ class OpenMMRunner(object):
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
-                logger.info('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
+                logger.debug('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
 
             meld_rests = _update_always_active_restraints(self._always_on_restraints, self._alpha,
                                                           self._timestep, self._force_dict)
@@ -157,7 +157,7 @@ class OpenMMRunner(object):
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)
-                logger.info('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
+                logger.debug('set sc %d %f %f %f', self._rank, self._sc_lambda_coulomb, self._sc_lambda_lj, self._sc_lambda_lj)
 
     def _run_min_mc(self, state):
         if self._options.min_mc is not None:
@@ -172,11 +172,11 @@ class OpenMMRunner(object):
 
     def _run_mc(self, state):
         if self._options.run_mc is not None:
-            logger.info('Running MCMC before minimization.')
-            logger.info('Starting energy {:.3f}'.format(self.get_energy(state)))
+            logger.info('Running MCMC.')
+            logger.debug('Starting energy {:.3f}'.format(self.get_energy(state)))
             state.energy = self.get_energy(state)
             state = self._options.run_mc.update(state, self)
-            logger.info('Ending energy {:.3f}'.format(self.get_energy(state)))
+            logger.debug('Ending energy {:.3f}'.format(self.get_energy(state)))
             if self._options.remove_com:
                 state.positions = state.positions - np.mean(state.positions, axis=0)
         return state
