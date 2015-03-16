@@ -14,7 +14,7 @@ setup(
     package_data={'meld.system.openmm_runner': ['maps/*.txt']},
     scripts=['scripts/analyze_energy', 'scripts/analyze_remd', 'scripts/extract_trajectory',
              'scripts/launch_remd', 'scripts/process_fragments', 'scripts/prepare_restart',
-             'scripts/launch_remd_multiplex'],
+             'scripts/launch_remd_multiplex', 'scripts/extract_meld_energy'],
     url='http://laufercenter.org',
     license='LICENSE.txt',
     description='Moldeling Employing Limited Data',
