@@ -1,39 +1,51 @@
 #!/usr/bin/env python
 
 
+import argparse
 import progressbar
 from meld import vault
 import meld.system.openmm_runner.runner as omm_runner
 import meld.system.restraints as restraints
 from simtk.openmm.openmm import (HarmonicBondForce, HarmonicAngleForce,
                                  PeriodicTorsionForce, NonbondedForce)
-from simtk.openmm import XmlSerializer
-from xml.etree import ElementTree as ET
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--full-energy', default=False, action='store_true')
+    parser.add_argument('--rep', type=int, default=0)
+    args = parser.parse_args()
+    return args
 
 
 def main():
+    args = parse_args()
+
     store = vault.DataStore.load_data_store()
     store.initialize('r')
-    runner = get_runner(store)
+    runner = get_runner(store, args.full_energy)
     max_frame = store.max_safe_frame
 
-    widgets = ['meld energy: ', progressbar.Percentage(), ' ', progressbar.Bar(),
-               ' ', progressbar.ETA()]
+    widgets = ['meld energy: ', progressbar.Percentage(), ' ',
+               progressbar.Bar(), ' ', progressbar.ETA()]
     bar = progressbar.ProgressBar(maxval=max_frame, widgets=widgets)
 
-    with open('meld_energy.dat', 'w') as outfile:
+    filename = ('full_energy_{:03d}.dat' if args.full_energy
+                else 'meld_energy_{:03d}.dat')
+    filename = filename.format(args.rep)
+    with open(filename, 'w') as outfile:
         for frame in range(1, max_frame):
             bar.update(frame)
             runner.set_alpha_and_timestep(0.0, frame)
-            state = store.load_states(frame)[0]
+            state = store.load_states(frame)[args.rep]
             energy = runner.get_energy(state)
             print >>outfile, frame, energy
 
 
-def get_runner(store):
+def get_runner(store, full_energy):
     system = store.load_system()
     # line below will remove meld restraints from system
-    #system.restraints = restraints.RestraintManager(system)
+    # system.restraints = restraints.RestraintManager(system)
 
     # add in ramps to restraints if they come
     # from old versions
@@ -41,10 +53,11 @@ def get_runner(store):
 
     # load and modify the options
     options = store.load_run_options()
-    options.use_amap = False
-    options.cutoff = 0.1
-    options.implicit_solvent_model = 'vacuum'
-    options.remove_com = False
+    if not full_energy:
+        options.use_amap = False
+        options.cutoff = 0.1
+        options.implicit_solvent_model = 'vacuum'
+        options.remove_com = False
 
     # add softcore information for old versions
     if not hasattr(options, '_sc_alpha_min'):
@@ -58,44 +71,23 @@ def get_runner(store):
     runner.set_alpha_and_timestep(0.0, 0)
     forces = runner._simulation.system.getForces()
 
-    #s = runner._simulation.system
-    #s = munge_system(s)
-    #runner._simulation.system = s
+    if not full_energy:
+        dispatch = {
+            HarmonicBondForce: fix_harmonic_bond_force,
+            HarmonicAngleForce: fix_harmonic_angle_force,
+            PeriodicTorsionForce: fix_periodic_torsion_force,
+            NonbondedForce: fix_nonbonded_force}
 
-    #return runner
-
-    dispatch = {
-        HarmonicBondForce: fix_harmonic_bond_force,
-        HarmonicAngleForce: fix_harmonic_angle_force,
-        PeriodicTorsionForce: fix_periodic_torsion_force,
-        NonbondedForce: fix_nonbonded_force}
-
-    for force in forces:
-        try:
-            dispatch[type(force)](force)
-        except KeyError:
-            print 'Leaving', type(force), 'alone.'
-        try:
-            force.updateParametersInContext(runner._simulation.context)
-        except AttributeError:
-            print 'Could not update', type(force)
+        for force in forces:
+            try:
+                dispatch[type(force)](force)
+            except KeyError:
+                print 'Leaving', type(force), 'alone.'
+            try:
+                force.updateParametersInContext(runner._simulation.context)
+            except AttributeError:
+                print 'Could not update', type(force)
     return runner
-
-
-def munge_system(system):
-    xml = XmlSerializer.serializeSystem(system)
-    root = ET.fromstring(xml)
-    forces = root.find('Forces')
-    bond_forces = forces.findall('./Force[@type="HarmonicBondForce"]')
-    angle_forces = forces.findall('./Force[@type="HarmonicAngleForce"]')
-    torsion_forces = forces.findall('./Force[@type="PeriodicTorsionForce"]')
-    nonbonded_forces = forces.findall('./Force[@type="NonbondedForce"]')
-    forces_to_remove =  (bond_forces + angle_forces +
-                         torsion_forces + nonbonded_forces)
-    for f in forces_to_remove:
-        forces.remove(f)
-    system = XmlSerializer.deserializeSystem(ET.tostring(root))
-    return system
 
 
 def fix_harmonic_bond_force(force):
