@@ -22,8 +22,9 @@ def _extract_force(root, force_name):
 
 def _get_sc_nb_force(charges, sigmas, epsilons, sigma_sc, exceptions):
     force = mm.CustomNonbondedForce(
-        'qq_lambda * 138.935485 * q1 * q2 / r + lj_lambda * 4 * eps * (sig^12 / r_eff^12 - sig^6 / r_eff^6);'
-        'r_eff = ( 0.5 * (1 - sc_lambda) * sig_sc^6 + r^6)^(1/6);'
+        '(1 - sc_lambda)^6 * 138.935485 * q1 * q2 / r_eff_coul + 4 * eps * ((1 - sc_lambda) * sig^12 / r6_eff_lj^2 - (1 - sc_lambda)^2 * sig^6 / r6_eff_lj);'
+        'r_eff_coul = (sc_lambda + r^2)^0.5;'
+        'r6_eff_lj = sc_lambda^3 * sig_sc^6 + r^6;'
         'sig = 0.5 * (sigma1 + sigma2);'
         'eps = sqrt(epsilon1 * epsilon2);'
         'sig_sc = 0.5 * (sigma_sc1 + sigma_sc2)')
@@ -46,9 +47,9 @@ def _get_sc_nb_force(charges, sigmas, epsilons, sigma_sc, exceptions):
 
 def _get_sc_nb_exception_force(exceptions, sigma_sc):
     force = mm.CustomBondForce(
-        'qq_lambda * 138.935485 * qq / r + lj_lambda * 4 * eps * (sig^12 / r_eff^12 - sig^6 / r_eff^6);'
-        'r_eff = (0.5 * (1 - sc_lambda) * sigma_sc^6 + r^6) ^ (1/6);')
-
+        '138.935485 * qq / r_eff_coul + 4 * eps * (sig^12 / r6_eff_lj^2 - sig^6 / r6_eff_lj);'
+        'r_eff_coul = (sc_lambda^2 + r^2)^0.5;'
+        'r6_eff_lj = sc_lambda^2 * sigma_sc^6 + r^6;')
     force.addGlobalParameter('sc_lambda', 1.)
     force.addGlobalParameter('qq_lambda', 1.)
     force.addGlobalParameter('lj_lambda', 1.)
@@ -83,16 +84,16 @@ def _get_sc_gb_force(charges, radii, scale, solventDielectric=78.5, soluteDielec
     force.addComputedValue('B', '1/(1/or-tanh(psi-0.8*psi^2+4.85*psi^3)/radius);'
                                 'psi=I*or; or=radius-offset', mm.CustomGBForce.SingleParticle)
 
-    force.addEnergyTerm('qq_lambda * -0.5*138.935485*(1/soluteDielectric-1/solventDielectric)*q^2/B', mm.CustomGBForce.SingleParticle)
+    force.addEnergyTerm('0 * qq_lambda * -0.5*138.935485*(1/soluteDielectric-1/solventDielectric)*q^2/B', mm.CustomGBForce.SingleParticle)
     if SA == 'ACE':
-        force.addEnergyTerm('qq_lambda * 28.3919551*(radius+0.14)^2*(radius/B)^6', mm.CustomGBForce.SingleParticle)
+        force.addEnergyTerm('0 * qq_lambda * 28.3919551*(radius+0.14)^2*(radius/B)^6', mm.CustomGBForce.SingleParticle)
     elif SA is not None:
         raise ValueError('Unknown surface area method: ' + SA)
     if cutoff is None:
-        force.addEnergyTerm('qq_lambda * -138.935485*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;'
+        force.addEnergyTerm('0 * qq_lambda * -138.935485*(1/soluteDielectric-1/solventDielectric)*q1*q2/f;'
                             'f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)));', mm.CustomGBForce.ParticlePairNoExclusions)
     else:
-        force.addEnergyTerm('qq_lambda * -138.935485*(1/soluteDielectric-1/solventDielectric)*q1*q2*(1/f-' + str(1 / cutoff) + ');'
+        force.addEnergyTerm('0 * qq_lambda * -138.935485*(1/soluteDielectric-1/solventDielectric)*q1*q2*(1/f-' + str(1 / cutoff) + ');'
                             'f=sqrt(r^2+B1*B2*exp(-r^2/(4*B1*B2)));', mm.CustomGBForce.ParticlePairNoExclusions)
 
     for c, r, s in zip(charges, radii, scale):
@@ -102,6 +103,7 @@ def _get_sc_gb_force(charges, radii, scale, solventDielectric=78.5, soluteDielec
 
 
 def add_soft_core(system, sigma_min=0.151):
+    raise NotImplementedError('Softcore interactions are unavailable in this version of MELD.')
     system_xml = mm.XmlSerializer.serializeSystem(system)
 
     # grab and remove the non-bonded force

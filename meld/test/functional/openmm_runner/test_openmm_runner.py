@@ -14,7 +14,7 @@ class TestOpenRunner(unittest.TestCase):
         options.timesteps = 10000
 
         runner = system.OpenMMRunner(sys, options)
-        runner.set_alpha(0.)
+        runner.set_alpha_and_timestep(0., 1)
 
         pos = sys._coordinates.copy()
         vel = numpy.zeros_like(pos)

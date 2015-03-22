@@ -68,9 +68,6 @@ class TestSlaveSingle(unittest.TestCase):
 
     def test_calls_receive_alpha(self):
         "should call receive_alpha"
-        print dir(self.mock_system_runner)
-        print runner.__file__
-        print runner.ReplicaRunner.__doc__
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         self.mock_comm.receive_alpha_from_master.assert_called_once_with()

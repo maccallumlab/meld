@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import logging
+meld_logger = logging.getLogger('meld')
+console = logging.StreamHandler()
+meld_logger.setLevel(logging.DEBUG)
+console.setLevel(logging.DEBUG)
+meld_logger.addHandler(console)
 
 import argparse
 from meld.remd import launch
@@ -10,9 +16,10 @@ def main():
     parser = argparse.ArgumentParser(
         description='Launch replica exchange run.')
     parser.add_argument('--debug', default=False, action='store_true')
+    parser.add_argument('--console-log', default=False, action='store_true')
     args = parser.parse_args()
 
-    launch.launch(args.debug)
+    launch.launch(console, args.debug, args.console_log)
 
 
 if __name__ == '__main__':

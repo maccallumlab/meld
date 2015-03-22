@@ -88,6 +88,25 @@ class MPICommunicator(object):
         self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
+    def broadcast_logger_address_to_slaves(self, address):
+        """
+        Broadcast the hostname and port of the logger to slaves.
+
+        :param address: a tuple (hostname, port)
+        :return: :const: `None`
+        """
+        self._mpi_comm.bcast(address, root=0)
+
+    @log_timing(logger)
+    def receive_logger_address_from_master(self):
+        """
+        Receive the hostname and port of the logger from the master
+
+        :return: a (hostname, port) tuple
+        """
+        return self._mpi_comm.bcast(None, root=0)
+
+    @log_timing(logger)
     def receive_alpha_from_master(self):
         """
         receive_alpha_from_master()
@@ -216,14 +235,14 @@ class MPICommunicator(object):
         hostname = platform.node()
         try:
             visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
-            logger.debug('%s found cuda devices: %s', hostname, visible_devices)
+            logger.info('%s found cuda devices: %s', hostname, visible_devices)
             visible_devices = visible_devices.split(',')
             if visible_devices:
                 visible_devices = [int(dev) for dev in visible_devices]
             else:
                 raise RuntimeError('No cuda devices available')
         except KeyError:
-            logger.debug('%s CUDA_VISIBLE_DEVICES is not set.', hostname)
+            logger.info('%s CUDA_VISIBLE_DEVICES is not set.', hostname)
             visible_devices = None
 
         hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
@@ -277,7 +296,7 @@ class MPICommunicator(object):
             device_ids = None
         # do the communication
         device_id = self._mpi_comm.scatter(device_ids, root=0)
-        logger.debug('hostname: %s, device_id: %d', hostname, device_id)
+        logger.info('hostname: %s, device_id: %d', hostname, device_id)
         return device_id
 
     @property

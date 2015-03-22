@@ -46,3 +46,5 @@ reg_settings.py
 # ignore version string
 meld/version.py
 
+
+.idea
