@@ -2,18 +2,21 @@
 
 
 import argparse
+import numpy as np
 import progressbar
 from meld import vault
 import meld.system.openmm_runner.runner as omm_runner
 import meld.system.restraints as restraints
 from simtk.openmm.openmm import (HarmonicBondForce, HarmonicAngleForce,
                                  PeriodicTorsionForce, NonbondedForce)
+import mdtraj
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--full-energy', default=False, action='store_true')
-    parser.add_argument('--rep', type=int, default=0)
+    parser.add_argument('--rep', type=int, default=None)
+    parser.add_argument('--native', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -21,25 +24,47 @@ def parse_args():
 def main():
     args = parse_args()
 
+    if not args.rep is None and args.native:
+        raise RuntimeError('Cannot set --rep and --native options.')
+
+    if args.rep is None:
+        args.rep = 0
+
     store = vault.DataStore.load_data_store()
     store.initialize('r')
     runner = get_runner(store, args.full_energy)
-    max_frame = store.max_safe_frame
 
-    widgets = ['meld energy: ', progressbar.Percentage(), ' ',
-               progressbar.Bar(), ' ', progressbar.ETA()]
-    bar = progressbar.ProgressBar(maxval=max_frame, widgets=widgets)
+    if not args.native:
+        max_frame = store.max_safe_frame
 
-    filename = ('full_energy_{:03d}.dat' if args.full_energy
-                else 'meld_energy_{:03d}.dat')
-    filename = filename.format(args.rep)
-    with open(filename, 'w') as outfile:
-        for frame in range(1, max_frame):
-            bar.update(frame)
-            runner.set_alpha_and_timestep(0.0, frame)
-            state = store.load_states(frame)[args.rep]
-            energy = runner.get_energy(state)
-            print >>outfile, frame, energy
+        widgets = ['meld energy: ', progressbar.Percentage(), ' ',
+                progressbar.Bar(), ' ', progressbar.ETA()]
+        bar = progressbar.ProgressBar(maxval=max_frame, widgets=widgets)
+
+        filename = ('full_energy_{:03d}.dat' if args.full_energy
+                    else 'meld_energy_{:03d}.dat')
+        filename = filename.format(args.rep)
+        with open(filename, 'w') as outfile:
+            for frame in range(1, max_frame):
+                bar.update(frame)
+                runner.set_alpha_and_timestep(0.0, frame)
+                state = store.load_states(frame)[args.rep]
+                energy = runner.get_energy(state)
+                print >>outfile, frame, energy
+    else:
+        native = mdtraj.load_pdb('native.pdb')
+        pos = native.xyz[0, :, :]
+        pos -=  np.mean(pos, axis=0)
+        print np.mean(pos, axis=0)
+        runner.set_alpha_and_timestep(0.0, 100000)
+        state = store.load_states(1)[0]
+        state.positions = pos * 10.
+        energy = runner.get_energy(state)
+        print
+        print 'The energy for the native structure is:'
+        print energy
+        print 'in units of kT.'
+        print
 
 
 def get_runner(store, full_energy):
@@ -53,11 +78,11 @@ def get_runner(store, full_energy):
 
     # load and modify the options
     options = store.load_run_options()
+    options.remove_com = False
     if not full_energy:
         options.use_amap = False
         options.cutoff = 0.1
         options.implicit_solvent_model = 'vacuum'
-        options.remove_com = False
 
     # add softcore information for old versions
     if not hasattr(options, '_sc_alpha_min'):
