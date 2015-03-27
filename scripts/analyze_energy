@@ -52,6 +52,8 @@ def main():
 
     if args.command == 'visualize_energy':
         visualize_energy(store, args)
+    if args.command == 'extract_energy':
+        extract_energy(store, args)
     if args.command == 'visualize_delta':
         visualize_delta(store, args)
     if args.command == 'visualize_column':
@@ -74,6 +76,15 @@ def visualize_energy(store, args):
 def extract_energy(store,args):
     energies = get_energy(store, args.start, args.end)
     n_reps = energies.shape[0]
+    if args.index is None:
+        replicas = range(n_reps)
+    else:
+        replicas = args.index
+    new_energies = []
+    for rep in replicas:
+        new_energies.append(energies[rep, :])
+    new_energies = np.array(new_energies)
+    print new_energies.shape
     np.savetxt(args.outfile, energies)
 
 
