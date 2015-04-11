@@ -144,6 +144,7 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
 
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
+        leap_cmds.append(self._gen_read_prep_string())
         leap_cmds.append('{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
