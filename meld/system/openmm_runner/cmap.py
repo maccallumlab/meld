@@ -103,7 +103,7 @@ class CMAPAdder(object):
         # use an ordered dict to remember num, name pairs in order, while removing duplicates
         residues = OrderedDict((num, name) for (num, name) in zip(self._residue_numbers, self._residue_names))
         print residues
-        capped = ['ACE','NHE']
+        capped = ['ACE','NHE','OHE', 'NME']
         new_res = []
         for r in residues.items():
             num,name = r
