@@ -43,8 +43,12 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None, capped=False,
     :param file: a file-like object to read from
     :return: a string that can be used to initialize a system
     :raise: RuntimeError on bad input
+    :capped: will know that there are caps. Specify which in nter and cter
+    :nter: Specify capping residue at the N terminus if not specified in sequence
+    :cter: Specify capping residue at the C terminus if not specified in sequence
 
     Note: specify exactly one of filename, contents, file
+    Note: will have to set options in setup script to skip cmap assignment
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
@@ -81,6 +85,9 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None, capped=False,
     :param file: a file-like object to read from
     :return: a string that can be used to initialize a system
     :raise: RuntimeError on bad input
+    :capped: will know that there are caps. Either read from sequence or specified in nter and cter
+    :nter: Specify capping residue at the N terminus if not specified in sequence
+    :cter: Specify capping residue at the C terminus if not specified in sequence
 
     Note: specify exactly one of filename, contents, file
     """
