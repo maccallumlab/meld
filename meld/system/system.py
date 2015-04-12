@@ -249,7 +249,7 @@ class RunOptions(object):
             'runner', 'timesteps', 'minimize_steps',
             'implicit_solvent_model', 'cutoff', 'use_big_timestep',
             'use_amap', 'amap_alpha_bias', 'amap_beta_bias',
-            'min_mc', 'run_mc']
+            'min_mc', 'run_mc', 'ccap', 'ncap']
         allowed_attributes += ['_{}'.format(item) for item in allowed_attributes]
         if not name in allowed_attributes:
             raise ValueError('Attempted to set unknown attribute {}'.format(name))
@@ -273,6 +273,8 @@ class RunOptions(object):
         self._remove_com = True
         self._min_mc = None
         self._run_mc = None
+        self._ccap = False
+        self._ncap = False
 
     @property
     def min_mc(self):
@@ -401,6 +403,22 @@ class RunOptions(object):
     @use_amap.setter
     def use_amap(self, value):
         self._use_amap = bool(value)
+
+    @property
+    def ccap(self):
+        return self._ccap
+
+    @ccap.setter
+    def ccap(self, value):
+        self._ccap = bool(value)
+
+    @property
+    def ncap(self):
+        return self._ncap
+
+    @ncap.setter
+    def ncap(self, value):
+        self._ncap = bool(value)
 
     @property
     def amap_alpha_bias(self):
