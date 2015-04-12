@@ -31,10 +31,10 @@ aa_map = {
 # copy the canonical forms
 allowed_residues = [aa for aa in aa_map.values()]
 # add the alternate protonation states
-allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN']
+allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN', 'ACE', 'OHE', 'NME', 'NHE']
 
 
-def get_sequence_from_AA1(filename=None, contents=None, file=None):
+def get_sequence_from_AA1(filename=None, contents=None, file=None, capped=False, nter=None, cter=None):
     """
     Get the sequence from a list of 1-letter amino acid codes.
 
@@ -60,12 +60,19 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None):
             raise RuntimeError('Unknown amino acid "{}".'.format(aa))
 
     # append terminal qualifiers
-    output[0] = 'N' + output[0]
-    output[-1] = 'C' + output[-1]
+    if not capped:
+        output[0] = 'N' + output[0]
+        output[-1] = 'C' + output[-1]
+    else:
+        if nter:
+            output.insert(0,nter)
+        if cter:
+            output.append(cter)
+
     return ' '.join(output)
 
 
-def get_sequence_from_AA3(filename=None, contents=None, file=None):
+def get_sequence_from_AA3(filename=None, contents=None, file=None, capped=False, nter=None, cter=None):
     """
     Get the sequence from a list of 3-letter amino acid codes.
 
@@ -89,8 +96,17 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None):
             raise RuntimeError('Unknown residue {}.'.format(aa))
         else:
             output.append(aa)
-    output[0] = 'N' + output[0]
-    output[-1] = 'C' + output[-1]
+
+    # append terminal qualifiers
+    if not capped:
+        output[0] = 'N' + output[0]
+        output[-1] = 'C' + output[-1]
+    else:
+        if nter:
+            output.insert(0,nter)
+        if cter:
+            output.append(cter)
+
     return ' '.join(output)
 
 

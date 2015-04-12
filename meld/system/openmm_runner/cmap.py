@@ -42,7 +42,7 @@ class CMAPAdder(object):
         'ARG': 3
     }
 
-    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0):
+    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False):
         """
         Initialize a new CMAPAdder object
 
@@ -53,6 +53,8 @@ class CMAPAdder(object):
         self._top_string = top_string
         self._alpha_bias = alpha_bias
         self._beta_bias = beta_bias
+        self._ccap = ccap
+        self._ncap = ncap
         reader = ParmTopReader(self._top_string)
         self._bonds = reader.get_bonds()
         self._residue_numbers = reader.get_residue_numbers()
@@ -80,7 +82,13 @@ class CMAPAdder(object):
         for chain in self._iterate_cmap_chains():
             # loop over the interior residues
             n_res = len(chain)
-            for i in range(1, n_res - 1):
+            first_res = 1
+            last_res = n_res - 1
+            if self._ncap:
+                first_res = 2
+            if self._ccap:
+                last_res = last_res - 1
+            for i in range(first_res, last_res):
                 map_index = self._map_index[chain[i].res_name]
                 # subtract one from all of these to get zero-based indexing, as in openmm
                 c_prev = chain[i - 1].index_C - 1
