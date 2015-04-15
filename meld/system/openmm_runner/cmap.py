@@ -10,6 +10,9 @@ from meld.system.system import ParmTopReader
 
 CMAPResidue = namedtuple('CMAPResidue', 'res_num res_name index_N index_CA index_C')
 
+#Termini residues that act as a cap and have no amap term
+capped = ['ACE','NHE','OHE', 'NME']
+
 
 class CMAPAdder(object):
     _map_index = {
@@ -103,7 +106,6 @@ class CMAPAdder(object):
         # use an ordered dict to remember num, name pairs in order, while removing duplicates
         residues = OrderedDict((num, name) for (num, name) in zip(self._residue_numbers, self._residue_names))
         print residues
-        capped = ['ACE','NHE','OHE', 'NME']
         new_res = []
         for r in residues.items():
             num,name = r
