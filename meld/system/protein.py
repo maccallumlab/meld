@@ -14,6 +14,7 @@ class ProteinBase(object):
         self._rotatation_matrix = np.eye(3)
         self._disulfide_list = []
         self._prep_files = []
+        self._frcmod_files = []
 
     def set_translation(self, translation_vector):
         '''
@@ -66,6 +67,14 @@ class ProteinBase(object):
         '''
         self._prep_files.append(fname)
 
+    def add_frcmod_file(self,fname):
+        '''
+        Add a frcmod file.
+        This will be needed when using residues that 
+        are not defined in the general amber force field
+        '''
+        self._frcmod_files.append(fname)
+
     def _gen_translation_string(self, mol_id):
         return '''translate {mol_id} {{ {x} {y} {z} }}'''.format(mol_id=mol_id,
                                                                  x=self._translation_vector[0],
@@ -87,6 +96,12 @@ class ProteinBase(object):
         for p in self._prep_files:
             prep_string.append('loadAmberPrep {}'.format(p))
         return prep_string
+
+    def _gen_read_frcmod_string(self):
+        frcmod_string = []
+        for p in self._frcmod_files:
+            frcmod_string.append('loadAmberParams {}'.format(p))
+        return frcmod_string
 
 
 class ProteinMoleculeFromSequence(ProteinBase):
@@ -112,6 +127,7 @@ class ProteinMoleculeFromSequence(ProteinBase):
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
         leap_cmds.extend(self._gen_read_prep_string())
+        leap_cmds.extend(self._gen_read_frcmod_string())
         leap_cmds.append('{mol_id} = sequence {{ {seq} }}'.format(mol_id=mol_id, seq=self._sequence))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
@@ -145,6 +161,7 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
         leap_cmds.append(self._gen_read_prep_string())
+        leap_cmds.append(self._gen_read_frcmod_string())
         leap_cmds.append('{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
