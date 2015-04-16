@@ -141,8 +141,8 @@ class ProteinMoleculeFromSequence(ProteinBase):
 
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
-        leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_frcmod_string())
+        leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_lib_string())
         leap_cmds.append('{mol_id} = sequence {{ {seq} }}'.format(mol_id=mol_id, seq=self._sequence))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
@@ -176,8 +176,8 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
 
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
-        leap_cmds.append(self._gen_read_prep_string())
         leap_cmds.append(self._gen_read_frcmod_string())
+        leap_cmds.append(self._gen_read_prep_string())
         leap_cmds.append(self._gen_read_lib_string())
         leap_cmds.append('{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
