@@ -70,7 +70,6 @@ class FixedTemperatureScaler(object):
         elif alpha <= self._alpha_max:
             #without the round there is floating point error where int(1.0) = 0
             index = int( round((alpha-self._alpha_min) / self._diff_alpha))
-            print index,alpha,self._delta_alpha,self._diff_alpha
             return self._temperatures[index]
         else:
             return self._temperatures[-1]
