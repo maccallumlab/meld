@@ -499,8 +499,11 @@ def _add_xcom_restraints(system, restraint_list, alpha, timestep, force_dict):
     if len(my_restraints) == 1:
         rest = my_restraints[0]
         weight = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
-        force = OneDimComForce(rest.indices1,
-                               rest.indices2,
+        # convert indices from 1-based to 0-based
+        rest_indices1 = [r - 1 for r in rest.indices1]
+        rest_indices2 = [r - 1 for r in rest.indices2]
+        force = OneDimComForce(rest_indices1,
+                               rest_indices2,
                                rest.weights1,
                                rest.weights2,
                                rest.force_const,
