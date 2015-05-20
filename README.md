@@ -20,7 +20,6 @@ Building The Plugin
     mkdir _build && cd _build
     cmake .. -DCMAKE_INSTALL_PREFIX=/home/ec2-user/openmm
     make
-    make test
     make install
     make PythonInstall
 
