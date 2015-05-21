@@ -31,10 +31,10 @@ aa_map = {
 # copy the canonical forms
 allowed_residues = [aa for aa in aa_map.values()]
 # add the alternate protonation states
-allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN']
+allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN', 'ACE', 'OHE', 'NME', 'NHE']
 
 
-def get_sequence_from_AA1(filename=None, contents=None, file=None):
+def get_sequence_from_AA1(filename=None, contents=None, file=None, capped=False, nter=None, cter=None):
     """
     Get the sequence from a list of 1-letter amino acid codes.
 
@@ -43,8 +43,12 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None):
     :param file: a file-like object to read from
     :return: a string that can be used to initialize a system
     :raise: RuntimeError on bad input
+    :capped: will know that there are caps. Specify which in nter and cter
+    :nter: Specify capping residue at the N terminus if not specified in sequence
+    :cter: Specify capping residue at the C terminus if not specified in sequence
 
     Note: specify exactly one of filename, contents, file
+    Note: will have to set options in setup script to skip cmap assignment
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
@@ -60,12 +64,19 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None):
             raise RuntimeError('Unknown amino acid "{}".'.format(aa))
 
     # append terminal qualifiers
-    output[0] = 'N' + output[0]
-    output[-1] = 'C' + output[-1]
+    if not capped:
+        output[0] = 'N' + output[0]
+        output[-1] = 'C' + output[-1]
+    else:
+        if nter:
+            output.insert(0,nter)
+        if cter:
+            output.append(cter)
+
     return ' '.join(output)
 
 
-def get_sequence_from_AA3(filename=None, contents=None, file=None):
+def get_sequence_from_AA3(filename=None, contents=None, file=None, capped=False, nter=None, cter=None):
     """
     Get the sequence from a list of 3-letter amino acid codes.
 
@@ -74,6 +85,9 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None):
     :param file: a file-like object to read from
     :return: a string that can be used to initialize a system
     :raise: RuntimeError on bad input
+    :capped: will know that there are caps. Either read from sequence or specified in nter and cter
+    :nter: Specify capping residue at the N terminus if not specified in sequence
+    :cter: Specify capping residue at the C terminus if not specified in sequence
 
     Note: specify exactly one of filename, contents, file
     """
@@ -89,8 +103,17 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None):
             raise RuntimeError('Unknown residue {}.'.format(aa))
         else:
             output.append(aa)
-    output[0] = 'N' + output[0]
-    output[-1] = 'C' + output[-1]
+
+    # append terminal qualifiers
+    if not capped:
+        output[0] = 'N' + output[0]
+        output[-1] = 'C' + output[-1]
+    else:
+        if nter:
+            output.insert(0,nter)
+        if cter:
+            output.append(cter)
+
     return ' '.join(output)
 
 

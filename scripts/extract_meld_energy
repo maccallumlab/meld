@@ -1,0 +1,151 @@
+#!/usr/bin/env python
+
+
+import argparse
+import progressbar
+from meld import vault
+import meld.system.openmm_runner.runner as omm_runner
+import meld.system.restraints as restraints
+from simtk.openmm.openmm import (HarmonicBondForce, HarmonicAngleForce,
+                                 PeriodicTorsionForce, NonbondedForce)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--full-energy', default=False, action='store_true')
+    parser.add_argument('--rep', type=int, default=0)
+    args = parser.parse_args()
+    return args
+
+
+def main():
+    args = parse_args()
+
+    store = vault.DataStore.load_data_store()
+    store.initialize('r')
+    runner = get_runner(store, args.full_energy)
+    max_frame = store.max_safe_frame
+
+    widgets = ['meld energy: ', progressbar.Percentage(), ' ',
+               progressbar.Bar(), ' ', progressbar.ETA()]
+    bar = progressbar.ProgressBar(maxval=max_frame, widgets=widgets)
+
+    filename = ('full_energy_{:03d}.dat' if args.full_energy
+                else 'meld_energy_{:03d}.dat')
+    filename = filename.format(args.rep)
+    with open(filename, 'w') as outfile:
+        for frame in range(1, max_frame):
+            bar.update(frame)
+            runner.set_alpha_and_timestep(0.0, frame)
+            state = store.load_states(frame)[args.rep]
+            energy = runner.get_energy(state)
+            print >>outfile, frame, energy
+
+
+def get_runner(store, full_energy):
+    system = store.load_system()
+    # line below will remove meld restraints from system
+    # system.restraints = restraints.RestraintManager(system)
+
+    # add in ramps to restraints if they come
+    # from old versions
+    fix_ramps(system)
+
+    # load and modify the options
+    options = store.load_run_options()
+    options.remove_com = False
+    if not full_energy:
+        options.use_amap = False
+        options.cutoff = 0.1
+        options.implicit_solvent_model = 'vacuum'
+        options.remove_com = False
+
+    # add softcore information for old versions
+    if not hasattr(options, '_sc_alpha_min'):
+        options._sc_alpha_min = 0.0
+        options._sc_alpha_max_coulomb = 1.0
+        options._sc_alpha_max_lennard_jones = 1.0
+        options._softcore = False
+
+
+    runner = omm_runner.OpenMMRunner(system, options)
+    runner.set_alpha_and_timestep(0.0, 0)
+    forces = runner._simulation.system.getForces()
+
+    if not full_energy:
+        dispatch = {
+            HarmonicBondForce: fix_harmonic_bond_force,
+            HarmonicAngleForce: fix_harmonic_angle_force,
+            PeriodicTorsionForce: fix_periodic_torsion_force,
+            NonbondedForce: fix_nonbonded_force}
+
+        for force in forces:
+            try:
+                dispatch[type(force)](force)
+            except KeyError:
+                print 'Leaving', type(force), 'alone.'
+            try:
+                force.updateParametersInContext(runner._simulation.context)
+            except AttributeError:
+                print 'Could not update', type(force)
+    return runner
+
+
+def fix_harmonic_bond_force(force):
+    force.setForceGroup(0)
+    n = force.getNumBonds()
+    for i in range(n):
+        params = force.getBondParameters(i)
+        params[-1] = 0.0
+        force.setBondParameters(i, *params)
+
+
+def fix_harmonic_angle_force(force):
+    force.setForceGroup(1)
+    n = force.getNumAngles()
+    for i in range(n):
+        params = force.getAngleParameters(i)
+        params[4] = 0.0
+        force.setAngleParameters(i, *params)
+
+
+def fix_periodic_torsion_force(force):
+    force.setForceGroup(2)
+    n = force.getNumTorsions()
+    for i in range(n):
+        params = force.getTorsionParameters(i)
+        params[-1] = 0.0
+        force.setTorsionParameters(i, *params)
+
+
+def fix_nonbonded_force(force):
+    force.setForceGroup(3)
+    n = force.getNumParticles()
+    for i in range(n):
+        params = force.getParticleParameters(i)
+        params[0] = 0.0
+        params[-1] = 0.0
+        force.setParticleParameters(i, *params)
+
+    n = force.getNumExceptions()
+    for i in range(n):
+        params = force.getExceptionParameters(i)
+        params[2] = 0.0
+        params[-1] = 0.0
+        force.setExceptionParameters(i, *params)
+
+
+def fix_ramps(system):
+    for rest in system.restraints._always_active._restraints:
+        if not hasattr(rest, 'ramp'):
+            rest.ramp = restraints.ConstantRamp()
+
+    for coll in system.restraints._selective_collections:
+        for group in coll.groups:
+            for rest in group.restraints:
+                if not hasattr(rest, 'ramp'):
+                    rest.ramp = restraints.ConstantRamp()
+
+
+if __name__ == '__main__':
+    main()
