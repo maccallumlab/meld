@@ -137,7 +137,7 @@ class OpenMMRunner(object):
                 sys = softcore.add_soft_core(sys)
 
             if self._options.use_amap:
-                adder = cmap.CMAPAdder(self._parm_string, self._options.amap_alpha_bias, self._options.amap_beta_bias)
+                adder = cmap.CMAPAdder(self._parm_string, self._options.amap_alpha_bias, self._options.amap_beta_bias, self._options.ccap, self._options.ncap)
                 adder.add_to_openmm(sys)
 
             meld_rests = _add_always_active_restraints(sys, self._always_on_restraints, self._alpha,

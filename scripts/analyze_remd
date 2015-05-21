@@ -83,6 +83,7 @@ def visualize_alpha(store, args):
 
 def extract_alpha(store, args):
     alphas = get_alphas(store, args.start, args.end)
+    print alphas.shape
     np.savetxt(args.outfile, alphas)
 
 
@@ -116,8 +117,14 @@ def visualize_trace(store, args):
 def extract_trace(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
     traces = deshuffle_traces(perm_vecs)
+    print traces.shape
     np.savetxt(args.outfile, traces)
 
+
+def roundtrips(store,args):
+    perm_vecs = get_permutation_vectors(store, args.start, args.end)
+    traces = deshuffle_traces(perm_vecs)
+    n_reps = traces.shape[1]
 
 def visualize_fup(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
@@ -214,6 +221,41 @@ def deshuffle_traces(perm_vecs):
     bar.finish()
     return np.array(results)
 
+def calc_roundtrips(traces):
+    # these are indexed by LADDER STEP
+    up_count = np.zeros_like(traces[0, :])
+    down_count = np.zeros_like(traces[0, :])
+    # these are indexed by REPLICA
+    going_up = np.zeros_like(traces[0, :])
+    going_down = np.zeros_like(traces[0, :])
+
+    n_steps = traces.shape[0]
+    n_reps = traces.shape[1]
+
+    bar = get_progress_bar('Computing f_up', n_steps).start()
+    for step in range(n_steps):
+        bar.update(step)
+        # this gives the REPLICA for each LADDER STEP
+        this_trace = traces[step, :]
+
+        # these are the top and bottom REPLICAS
+        top = this_trace[n_reps - 1]
+        bottom = this_trace[0]
+
+        # update if each replica is going up or down
+        going_up[top] = 0
+        going_down[top] = 1
+        going_up[bottom] = 1
+        going_down[bottom] = 0
+
+        up_count += going_up[this_trace]
+        down_count += going_down[this_trace]
+    bar.finish()
+
+    f_up = up_count / (up_count + down_count + 0.1)
+    f_down = down_count / (up_count + down_count + 0.1)
+    return f_up, f_down
+
 
 def compute_fup(traces):
     # these are indexed by LADDER STEP
@@ -260,3 +302,4 @@ def get_progress_bar(label, n_steps):
 
 if __name__ == '__main__':
     main()
+

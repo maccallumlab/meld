@@ -18,6 +18,11 @@ def parse_args():
                         help='last frame to extract (default: last)')
     subparsers = parser.add_subparsers(dest='command')
 
+    extract_energy = subparsers.add_parser('extract_energy', help='extract the energy')
+    extract_energy.add_argument('outfile', help='filename to output energy to')
+    extract_energy.add_argument('--index', type=int, default=None, nargs='+',
+                            help='ladder index to analyze energy for')
+
     vis_energy = subparsers.add_parser('visualize_energy', help='visualize the energy')
     vis_energy.add_argument('--index', type=int, default=None, nargs='+',
                             help='ladder index to analyze energy for')
@@ -47,6 +52,8 @@ def main():
 
     if args.command == 'visualize_energy':
         visualize_energy(store, args)
+    if args.command == 'extract_energy':
+        extract_energy(store, args)
     if args.command == 'visualize_delta':
         visualize_delta(store, args)
     if args.command == 'visualize_column':
@@ -65,6 +72,20 @@ def visualize_energy(store, args):
     for rep in replicas:
         pyplot.plot(energies[rep, :])
     pyplot.show()
+
+def extract_energy(store,args):
+    energies = get_energy(store, args.start, args.end)
+    n_reps = energies.shape[0]
+    if args.index is None:
+        replicas = range(n_reps)
+    else:
+        replicas = args.index
+    new_energies = []
+    for rep in replicas:
+        new_energies.append(energies[rep, :])
+    new_energies = np.array(new_energies)
+    print new_energies.shape
+    np.savetxt(args.outfile, energies)
 
 
 def visualize_delta(store, args):

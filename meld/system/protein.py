@@ -13,6 +13,9 @@ class ProteinBase(object):
         self._translation_vector = np.zeros(3)
         self._rotatation_matrix = np.eye(3)
         self._disulfide_list = []
+        self._prep_files = []
+        self._frcmod_files = []
+        self._lib_files = []
 
     def set_translation(self, translation_vector):
         '''
@@ -57,6 +60,30 @@ class ProteinBase(object):
         '''
         self._disulfide_list.append((res_index_i, res_index_j))
 
+    def add_prep_file(self,fname):
+        '''
+        Add a prep file.
+        This will be needed when using residues that 
+        are not defined in the general amber force field
+        '''
+        self._prep_files.append(fname)
+
+    def add_frcmod_file(self,fname):
+        '''
+        Add a frcmod file.
+        This will be needed when using residues that 
+        are not defined in the general amber force field
+        '''
+        self._frcmod_files.append(fname)
+
+    def add_lib_file(self,fname):
+        '''
+        Add a lib file.
+        This will be needed when using residues that 
+        are not defined in the general amber force field
+        '''
+        self._lib_files.append(fname)
+
     def _gen_translation_string(self, mol_id):
         return '''translate {mol_id} {{ {x} {y} {z} }}'''.format(mol_id=mol_id,
                                                                  x=self._translation_vector[0],
@@ -72,6 +99,24 @@ class ProteinBase(object):
             d = 'bond {mol_id}.{i}.SG {mol_id}.{j}.SG'.format(mol_id=mol_id, i=i, j=j)
             disulfide_strings.append(d)
         return disulfide_strings
+
+    def _gen_read_prep_string(self):
+        prep_string = []
+        for p in self._prep_files:
+            prep_string.append('loadAmberPrep {}'.format(p))
+        return prep_string
+
+    def _gen_read_frcmod_string(self):
+        frcmod_string = []
+        for p in self._frcmod_files:
+            frcmod_string.append('loadAmberParams {}'.format(p))
+        return frcmod_string
+
+    def _gen_read_lib_string(self):
+        lib_string = []
+        for p in self._lib_files:
+            lib_string.append('loadoff {}'.format(p))
+        return lib_string
 
 
 class ProteinMoleculeFromSequence(ProteinBase):
@@ -96,6 +141,9 @@ class ProteinMoleculeFromSequence(ProteinBase):
 
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
+        leap_cmds.extend(self._gen_read_frcmod_string())
+        leap_cmds.extend(self._gen_read_prep_string())
+        leap_cmds.extend(self._gen_read_lib_string())
         leap_cmds.append('{mol_id} = sequence {{ {seq} }}'.format(mol_id=mol_id, seq=self._sequence))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
@@ -128,6 +176,9 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
 
     def generate_tleap_input(self, mol_id):
         leap_cmds = []
+        leap_cmds.extend(self._gen_read_frcmod_string())
+        leap_cmds.extend(self._gen_read_prep_string())
+        leap_cmds.extend(self._gen_read_lib_string())
         leap_cmds.append('{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))

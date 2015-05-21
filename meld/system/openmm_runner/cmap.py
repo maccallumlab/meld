@@ -10,6 +10,9 @@ from meld.system.system import ParmTopReader
 
 CMAPResidue = namedtuple('CMAPResidue', 'res_num res_name index_N index_CA index_C')
 
+#Termini residues that act as a cap and have no amap term
+capped = ['ACE','NHE','OHE', 'NME', 'GLP','DUM']
+
 
 class CMAPAdder(object):
     _map_index = {
@@ -42,7 +45,7 @@ class CMAPAdder(object):
         'ARG': 3
     }
 
-    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0):
+    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False):
         """
         Initialize a new CMAPAdder object
 
@@ -53,6 +56,8 @@ class CMAPAdder(object):
         self._top_string = top_string
         self._alpha_bias = alpha_bias
         self._beta_bias = beta_bias
+        self._ccap = ccap
+        self._ncap = ncap
         reader = ParmTopReader(self._top_string)
         self._bonds = reader.get_bonds()
         self._residue_numbers = reader.get_residue_numbers()
@@ -80,7 +85,7 @@ class CMAPAdder(object):
         for chain in self._iterate_cmap_chains():
             # loop over the interior residues
             n_res = len(chain)
-            for i in range(1, n_res - 1):
+            for i in range(1, n_res-1):
                 map_index = self._map_index[chain[i].res_name]
                 # subtract one from all of these to get zero-based indexing, as in openmm
                 c_prev = chain[i - 1].index_C - 1
@@ -88,6 +93,7 @@ class CMAPAdder(object):
                 ca = chain[i].index_CA - 1
                 c = chain[i].index_C - 1
                 n_next = chain[i+1].index_N - 1
+                print "CMAP term:",i,map_index
                 cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
 
@@ -99,8 +105,17 @@ class CMAPAdder(object):
         """
         # use an ordered dict to remember num, name pairs in order, while removing duplicates
         residues = OrderedDict((num, name) for (num, name) in zip(self._residue_numbers, self._residue_names))
+        print residues
+        new_res = []
+        for r in residues.items():
+            num,name = r
+            if name not in capped:
+                new_res.append(r) 
+        residues = OrderedDict(new_res)
+        print residues
         # now turn the ordered dict into a list of CMAPResidues
         residues = [self._to_cmap_residue(num, name) for (num, name) in residues.items()]
+        print residues
 
         # is each residue i connected to it's predecessor, i-1?
         connected = self._compute_connected(residues)
@@ -117,6 +132,7 @@ class CMAPAdder(object):
 
             # we've taken a single connected chain, so yield it
             # then loop back to the beginning
+            print 'CHAIN:',chain
             yield chain
 
     def _compute_connected(self, residues):

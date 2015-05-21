@@ -45,6 +45,35 @@ class LinearTemperatureScaler(object):
         else:
             return self._temperature_max
 
+class FixedTemperatureScaler(object):
+    def __init__(self, alpha_min, alpha_max, temperatures):
+        if alpha_min < 0 or alpha_min > 1:
+            raise RuntimeError('0 <= alpha_min <=1')
+        if alpha_max < 0 or alpha_max > 1:
+            raise RuntimeError('0 <= alpha_max <=1')
+        if alpha_min >= alpha_max:
+            raise RuntimeError('alpha_min must be < alpha_max')
+        if float(temperatures[0]) <= 0 or float(temperatures[-1]) <= 0:
+            raise RuntimeError('temperatures must be positive')
+
+        self._alpha_min = float(alpha_min)
+        self._alpha_max = float(alpha_max)
+        self._temperatures = [float(t) for t in temperatures]
+        self._delta_alpha = self._alpha_max - self._alpha_min
+        self._diff_alpha = self._delta_alpha / float(len(self._temperatures) - 1)
+
+    def __call__(self, alpha):
+        if alpha < 0 or alpha > 1:
+            raise RuntimeError('0 <= alpha <=1 1')
+        if alpha <= self._alpha_min:
+            return self._temperatures[0]
+        elif alpha <= self._alpha_max:
+            #without the round there is floating point error where int(1.0) = 0
+            index = int( round((alpha-self._alpha_min) / self._diff_alpha))
+            return self._temperatures[index]
+        else:
+            return self._temperatures[-1]
+
 
 class GeometricTemperatureScaler(object):
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
@@ -249,7 +278,7 @@ class RunOptions(object):
             'runner', 'timesteps', 'minimize_steps',
             'implicit_solvent_model', 'cutoff', 'use_big_timestep',
             'use_amap', 'amap_alpha_bias', 'amap_beta_bias',
-            'min_mc', 'run_mc']
+            'min_mc', 'run_mc', 'ccap', 'ncap']
         allowed_attributes += ['_{}'.format(item) for item in allowed_attributes]
         if not name in allowed_attributes:
             raise ValueError('Attempted to set unknown attribute {}'.format(name))
@@ -273,6 +302,8 @@ class RunOptions(object):
         self._remove_com = True
         self._min_mc = None
         self._run_mc = None
+        self._ccap = False
+        self._ncap = False
 
     @property
     def min_mc(self):
@@ -401,6 +432,22 @@ class RunOptions(object):
     @use_amap.setter
     def use_amap(self, value):
         self._use_amap = bool(value)
+
+    @property
+    def ccap(self):
+        return self._ccap
+
+    @ccap.setter
+    def ccap(self, value):
+        self._ccap = bool(value)
+
+    @property
+    def ncap(self):
+        return self._ncap
+
+    @ncap.setter
+    def ncap(self, value):
+        self._ncap = bool(value)
 
     @property
     def amap_alpha_bias(self):
