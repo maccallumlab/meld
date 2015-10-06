@@ -11,7 +11,7 @@ from meld.system.system import ParmTopReader
 CMAPResidue = namedtuple('CMAPResidue', 'res_num res_name index_N index_CA index_C')
 
 #Termini residues that act as a cap and have no amap term
-capped = ['ACE','NHE','OHE', 'NME', 'GLP','DUM']
+capped = ['ACE','NHE','OHE', 'NME', 'GLP','DUM','NAG']
 
 
 class CMAPAdder(object):
