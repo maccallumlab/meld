@@ -1,3 +1,9 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
+
 #include "assert.h"
 
 #define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }

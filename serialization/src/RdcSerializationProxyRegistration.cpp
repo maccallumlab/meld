@@ -1,3 +1,8 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
 #ifdef WIN32
 #include <windows.h>
 #include <sstream>

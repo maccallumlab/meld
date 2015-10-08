@@ -1,6 +1,6 @@
 /**
  * This file defines vector operations to simplify code elsewhere.
- */
+*/
 
 // Versions of make_x() that take a single value and set all components to that.
 
