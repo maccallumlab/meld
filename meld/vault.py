@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 import contextlib
 import os
 import time
@@ -19,7 +24,7 @@ class DataStore(object):
     Data will be stored in the 'Data' subdirectory. Backups will be stored in 'Data/Backup'.
 
     Some information is stored as python pickled files:
-    
+
     - data_store.dat -- the DataStore object
     - communicator.dat -- the MPICommunicator object
     - remd_runner.dat -- the MasterReplicaExchangeRunner object
@@ -109,7 +114,7 @@ class DataStore(object):
         :param mode: mode to open in.
 
         Available modes are:
-        
+
         - 'w' -- create a new directory structure and initialize the hd5 file
         - 'a' -- append to the existing files
         - 'r' -- open the file in read-only mode

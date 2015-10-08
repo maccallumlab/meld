@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 import numpy as np
 import math
 
@@ -63,7 +68,7 @@ class ProteinBase(object):
     def add_prep_file(self,fname):
         '''
         Add a prep file.
-        This will be needed when using residues that 
+        This will be needed when using residues that
         are not defined in the general amber force field
         '''
         self._prep_files.append(fname)
@@ -71,7 +76,7 @@ class ProteinBase(object):
     def add_frcmod_file(self,fname):
         '''
         Add a frcmod file.
-        This will be needed when using residues that 
+        This will be needed when using residues that
         are not defined in the general amber force field
         '''
         self._frcmod_files.append(fname)
@@ -79,7 +84,7 @@ class ProteinBase(object):
     def add_lib_file(self,fname):
         '''
         Add a lib file.
-        This will be needed when using residues that 
+        This will be needed when using residues that
         are not defined in the general amber force field
         '''
         self._lib_files.append(fname)

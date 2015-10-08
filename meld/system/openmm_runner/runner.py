@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, Platform, CustomExternalForce

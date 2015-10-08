@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, and Ken Dill
+# All rights reserved
+#
+
 import logging
 
 logger = logging.getLogger('meld')
