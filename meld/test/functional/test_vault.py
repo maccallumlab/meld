@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 import numpy as np
 import unittest
 import os

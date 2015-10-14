@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 import os
 import numpy as np
 import platform
@@ -24,7 +29,7 @@ sys.excepthook = mpi_excepthook
 class MPICommunicator(object):
     """
     Class to handle communications between master and slaves using MPI.
-    
+
     :param n_atoms: number of atoms
     :param n_replicas: number of replicas
 

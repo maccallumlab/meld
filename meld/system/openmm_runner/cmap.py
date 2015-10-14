@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 from collections import OrderedDict, namedtuple
 import os
 import math
@@ -110,7 +115,7 @@ class CMAPAdder(object):
         for r in residues.items():
             num,name = r
             if name not in capped:
-                new_res.append(r) 
+                new_res.append(r)
         residues = OrderedDict(new_res)
         print residues
         # now turn the ordered dict into a list of CMAPResidues

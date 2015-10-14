@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 class PDBWriter(object):
     header = 'REMARK stage {stage}'
     footer = 'TER\nEND\n\n'

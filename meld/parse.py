@@ -1,3 +1,8 @@
+#
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+#
+
 from collections import namedtuple
 from meld.system.restraints import RestraintGroup, TorsionRestraint
 from meld.system.restraints import DistanceRestraint, RdcRestraint
