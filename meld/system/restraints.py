@@ -668,6 +668,38 @@ class LinearScaler(RestraintScaler):
         scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
 
+class PlateauScaler(RestraintScaler):
+    '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_one, 
+       keeps the value of 1 until alpha_two and then decreases linearly until 0 in alpha_three.'''
+
+    _scaler_key_ = 'plateau'
+
+    def __init__(self, alpha_min, alpha_one, alpha_two,alpha_three, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
+        self._alpha_min = float(alpha_min)
+        self._alpha_one = float(alpha_one)
+        self._alpha_two = float(alpha_two)
+        self._alpha_three = float(alpha_three)
+        self._strength_at_alpha_min = strength_at_alpha_min
+        self._strength_at_alpha_max = strength_at_alpha_max
+        self._check_alpha_min_max()
+
+    def __call__(self, alpha):
+        self._check_alpha_range(alpha)
+        if alpha <= self._alpha_min:
+            scale = 0
+        else:
+            if alpha <= self._alpha_one:
+                scale = 1.0 - (self._alpha_one - alpha) / (self._alpha_one - self._alpha_min)
+            elif alpha <= self._alpha_two:
+                scale = 1.0
+            elif alpha <= self._alpha_three:
+                scale = 1.0 - (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
+            else:
+                scale = 0
+
+        scale = scale * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
+        return scale
+
 
 class NonLinearScaler(RestraintScaler):
     '''
