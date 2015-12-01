@@ -10,6 +10,7 @@ meld_logger.addHandler(console)
 
 import argparse
 from meld.remd import launch
+import os
 
 
 def main():
@@ -18,6 +19,8 @@ def main():
     parser.add_argument('--debug', default=False, action='store_true')
     parser.add_argument('--console-log', default=False, action='store_true')
     args = parser.parse_args()
+
+    #os.system('ls -l /opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9613.6.1/bin/nvcc')
 
     launch.launch(console, args.debug, args.console_log)
 
