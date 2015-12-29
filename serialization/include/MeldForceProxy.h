@@ -1,3 +1,8 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
 #ifndef OPENMM_MELD_FORCE_PROXY_H_
 #define OPENMM_MELD_FORCE_PROXY_H_
 

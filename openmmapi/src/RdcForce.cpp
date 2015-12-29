@@ -1,3 +1,8 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
 #include "RdcForce.h"
 #include "internal/RdcForceImpl.h"
 #include "openmm/Force.h"

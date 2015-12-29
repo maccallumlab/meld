@@ -1,3 +1,8 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
 #include "MeldForceProxy.h"
 #include "MeldForce.h"
 #include "openmm/serialization/SerializationNode.h"

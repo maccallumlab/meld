@@ -1,3 +1,9 @@
+/*
+   Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+   All rights reserved
+*/
+
+
 extern "C" __global__ void computeRdcPhase1(
                             const int numRestraints,
                             const float4* __restrict__ posQ,

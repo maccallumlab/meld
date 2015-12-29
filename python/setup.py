@@ -1,3 +1,6 @@
+# Copyright 2015 by Justin MacCallum, Alberto Perez, Ken Dill
+# All rights reserved
+
 from distutils.core import setup
 from distutils.extension import Extension
 import os
