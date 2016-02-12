@@ -803,17 +803,14 @@ class PlateauSmooth(RestraintScaler):
         else:
             if alpha <= self._alpha_one:
                 delta = (alpha - self._alpha_min) / (self._alpha_one - self._alpha_min)
-                norm = 1.0 / (math.exp(self._factor) - 1.0)
-                scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_max
+                scale = delta*delta*(3-2*delta)
+                scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
             elif alpha <= self._alpha_two:
                 scale = self._strength_at_alpha_min
             elif alpha <= self._alpha_three:
-                #scale = 1.0 - (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
                 delta = (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
-                norm = 1.0 / (math.exp(self._factor) - 1.0)
-                scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_max
+                scale = 1 + delta*delta*(2*delta-3)
+                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_min
             else:
                 scale = self._strength_at_alpha_max
 
