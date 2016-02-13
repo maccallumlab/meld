@@ -705,7 +705,7 @@ class PlateauScaler(RestraintScaler):
             elif alpha <= self._alpha_three:
                 #Increasing
                 scale = 1.0 - (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
-                scale = scale * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
+                scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
             else:
                 scale = self._strength_at_alpha_max
         return scale
@@ -772,7 +772,7 @@ class PlateauNonLinearScaler(RestraintScaler):
                 delta = (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
                 norm = 1.0 / (math.exp(self._factor) - 1.0)
                 scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_max
+                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_min
             else:
                 scale = self._strength_at_alpha_max
 
@@ -810,10 +810,9 @@ class PlateauSmooth(RestraintScaler):
             elif alpha <= self._alpha_three:
                 delta = (alpha - self._alpha_two) / (self._alpha_three - self._alpha_two)
                 scale = 1 + delta*delta*(2*delta-3)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_min
+                scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
             else:
                 scale = self._strength_at_alpha_max
-
         return scale
 
 
