@@ -769,11 +769,10 @@ class PlateauNonLinearScaler(RestraintScaler):
             elif alpha <= self._alpha_two:
                 scale = self._strength_at_alpha_min
             elif alpha <= self._alpha_max:
-                #scale = 1.0 - (alpha - self._alpha_two) / (self._alpha_max - self._alpha_two)
                 delta = (alpha - self._alpha_two) / (self._alpha_max - self._alpha_two)
                 norm = 1.0 / (math.exp(self._factor) - 1.0)
                 scale = norm * (math.exp(self._factor * (1.0 - delta)) - 1.0)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_min
+                scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
             else:
                 scale = self._strength_at_alpha_max
 
