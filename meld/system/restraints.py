@@ -689,6 +689,7 @@ class PlateauLinearScaler(RestraintScaler):
         self._alpha_max = float(alpha_max)
         self._strength_at_alpha_min = strength_at_alpha_min
         self._strength_at_alpha_max = strength_at_alpha_max
+        self._check_alpha_min_max()
 
     def __call__(self, alpha):
         self._check_alpha_range(alpha)
