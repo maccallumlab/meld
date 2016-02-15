@@ -668,7 +668,7 @@ class LinearScaler(RestraintScaler):
         scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
 
-class PlateauScaler(RestraintScaler):
+class PlateauLinearScaler(RestraintScaler):
     '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_one, 
        keeps the value of 1 until alpha_two and then decreases linearly until 0 in alpha_max.
            ------   strength alpha_min --> between two and one
