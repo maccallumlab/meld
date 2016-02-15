@@ -780,9 +780,10 @@ class PlateauNonLinearScaler(RestraintScaler):
         return scale
 
 
-class Smooth(RestraintScaler):
-    '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_one, 
-       keeps the value of 1 until alpha_two and then decreases linearly until 0 in alpha_max.'''
+class SmoothScaler(RestraintScaler):
+    '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_max, 
+        in a smooth way down (1+delta**2*(2(delta-3)
+        if want to smooth up has to use delta**2*(3-2*delta)'''
 
     _scaler_key_ = 'smooth'
 
@@ -800,14 +801,14 @@ class Smooth(RestraintScaler):
         else:
             if alpha <= self._alpha_max:
                 delta = (alpha - self._alpha_min) / (self._alpha_max - self._alpha_min)
-                scale = delta*delta*(3-2*delta)
-                scale = (1.0 - scale) * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_max
+                scale = 1+delta*delta*(2*delta-3)
+                scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_max
             else:
                 scale = self._strength_at_alpha_max
         return scale
 
 
-class PlateauSmooth(RestraintScaler):
+class PlateauSmoothScaler(RestraintScaler):
     '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_one, 
        keeps the value of 1 until alpha_two and then decreases linearly until 0 in alpha_max.'''
 
