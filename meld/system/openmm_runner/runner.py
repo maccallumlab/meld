@@ -136,6 +136,7 @@ class OpenMMRunner(object):
             # we need to set the whole thing from scratch
             prmtop = _parm_top_from_string(self._parm_string)
             sys = _create_openmm_system(prmtop, self._options.cutoff, self._options.use_big_timestep,
+                                        self._options.use_bigger_timestep,
                                         self._options.implicit_solvent_model, self._options.remove_com)
 
             if self._options.softcore:
@@ -150,7 +151,7 @@ class OpenMMRunner(object):
             _add_selectively_active_restraints(sys, self._selectable_collections, meld_rests, self._alpha,
                                                self._timestep, self._force_dict)
 
-            self._integrator = _create_integrator(self._temperature, self._options.use_big_timestep)
+            self._integrator = _create_integrator(self._temperature, self._options.use_big_timestep,self._options.use_bigger_timestep)
 
             platform = Platform.getPlatformByName('CUDA')
             properties = {'CudaDeviceIndex': str(self._device_id)}
@@ -248,7 +249,7 @@ def _parm_top_from_string(parm_string):
         return prm_top
 
 
-def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solvent, remove_com):
+def _create_openmm_system(parm_object, cutoff, use_big_timestep, use_bigger_timestep, implicit_solvent, remove_com):
     if cutoff is None:
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
@@ -259,6 +260,9 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
     if use_big_timestep:
         constraint_type = ff.AllBonds
         hydrogen_mass = 3.0 * gram / mole
+    elif use_bigger_timestep:
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 4.0 * gram / mole
     else:
         constraint_type = ff.HBonds
         hydrogen_mass = None
@@ -280,9 +284,11 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep, implicit_solven
                                     removeCMMotion=remove_com, hydrogenMass=hydrogen_mass)
 
 
-def _create_integrator(temperature, use_big_timestep):
+def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
     if use_big_timestep:
         timestep = 3.5 * femtosecond
+    elif use_bigger_timestep:
+        timestep = 4.5 * femtosecond
     else:
         timestep = 2.0 * femtosecond
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
