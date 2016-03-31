@@ -29,7 +29,7 @@ class SystemBuilder(object):
             with open('tleap.in', 'w') as tleap_file:
                 tleap_string = '\n'.join(leap_cmds)
                 tleap_file.write(tleap_string)
-                #print tleap_string
+                print tleap_string
             subprocess.check_call('tleap -f tleap.in > tleap.out', shell=True)
             with open('system.top') as top_file:
                 top = top_file.read()

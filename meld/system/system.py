@@ -281,7 +281,7 @@ class RunOptions(object):
             'remove_com', 'softcore', 'sc_alpha_min',
             'sc_alpha_max_coulomb', 'sc_alpha_max_lennard_jones',
             'runner', 'timesteps', 'minimize_steps',
-            'implicit_solvent_model', 'cutoff', 'use_big_timestep',
+            'implicit_solvent_model', 'cutoff', 'use_big_timestep', 'use_bigger_timestep',
             'use_amap', 'amap_alpha_bias', 'amap_beta_bias',
             'min_mc', 'run_mc', 'ccap', 'ncap']
         allowed_attributes += ['_{}'.format(item) for item in allowed_attributes]
@@ -297,6 +297,7 @@ class RunOptions(object):
         self._implicit_solvent_model = 'gbNeck2'
         self._cutoff = None
         self._use_big_timestep = False
+        self._use_bigger_timestep = False
         self._use_amap = False
         self._amap_alpha_bias = 1.0
         self._amap_beta_bias = 1.0
@@ -429,6 +430,14 @@ class RunOptions(object):
     @use_big_timestep.setter
     def use_big_timestep(self, value):
         self._use_big_timestep = bool(value)
+
+    @property
+    def use_bigger_timestep(self):
+        return self._use_bigger_timestep
+
+    @use_bigger_timestep.setter
+    def use_bigger_timestep(self, value):
+        self._use_bigger_timestep = bool(value)
 
     @property
     def use_amap(self):
