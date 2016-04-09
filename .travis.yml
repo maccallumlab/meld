@@ -1,0 +1,14 @@
+os:
+  - linux
+
+language: c
+sudo: required
+
+services:
+  - docker
+
+install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+       docker pull jchodera/omnia-build-box;
+    fi
+
