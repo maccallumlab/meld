@@ -8,10 +8,9 @@ services:
   - docker
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-       docker pull jchodera/omnia-build-box;
-    fi
+  - docker pull jchodera/omnia-build-box
 
 script:
-  - pwd
-  - ls -lh
+  - docker run -t -i --rm -v `pwd`:/io
+           jchodera/omnia-build-box:latest
+           bash /io/devtools/docker-build.sh
