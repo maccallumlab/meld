@@ -1,0 +1,17 @@
+package:
+  name: meld-test
+  version: "0.0.0"
+
+
+source:
+  path: /io
+
+requirements:
+  build:
+    - cmake
+    - python
+    - swig ==3.0.7
+    - eigen3
+
+  run:
+    - python
