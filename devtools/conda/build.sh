@@ -17,6 +17,7 @@ export OPENMM_DIR="/anaconda/"
 export OPENMM_INCLUDE_PATH=$OPENMM_DIR/include
 export OPENMM_LIB_PATH=$OPENMM_DIR/lib
 export LD_LIBRARY_PATH+=$OPENMM_DIR/lib
+export LD_LIBRARY_PATH+=$CUDA_PATH/lib64
 
 mkdir build
 cd build
@@ -24,5 +25,5 @@ cd build
 ls /anaconda/include
 
 cmake .. $CMAKE_FLAGS
-make -j$CPU_COUNT all
+VERBOSE=1 make -j$CPU_COUNT all
 make -j$CPU_COUNT install PythonInstall

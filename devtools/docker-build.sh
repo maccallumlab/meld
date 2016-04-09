@@ -17,9 +17,8 @@ PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/an
 conda config --add channels omnia
 # use Juanlu001 repository until we have an internal
 conda config --add channels Juanlu001
-conda install -yq conda-build jinja2 anaconda-client openmm eigen3
+conda install -yq conda-build jinja2 anaconda-client openmm-dev eigen3
 
 # build the meld conda package
-# copy of eigen3
 conda-build /io/devtools/conda
 
