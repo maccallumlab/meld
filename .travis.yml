@@ -12,3 +12,6 @@ install:
        docker pull jchodera/omnia-build-box;
     fi
 
+script:
+  - pwd
+  - ls -lh
