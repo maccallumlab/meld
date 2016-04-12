@@ -11,8 +11,9 @@ requirements:
     - cmake
     - python
     - swig ==3.0.7
-    - eigen3
     - openmm-dev
+    - eigen3
 
   run:
     - python
+    - openmm-dev
