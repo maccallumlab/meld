@@ -12,6 +12,7 @@ requirements:
     - python
     - swig ==3.0.7
     - eigen3
+    - openmm-dev
 
   run:
     - python
