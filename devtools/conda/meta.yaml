@@ -18,9 +18,9 @@ requirements:
     - python
     - openmm-dev
 
-# test:
-#     - imports:
-#         - meldplugin
+test:
+  imports:
+    meld-plugin
 
 about:
     home: https://github.com/maccallumlab/meld-openmm-plugin
