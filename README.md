@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
+Build Status
+============
+
+* Travis CI `linux` build tests:
+  * [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
 
 OpenMM Meld Plugin
 =====================
@@ -27,4 +31,6 @@ Building The Plugin
 Documentation
 =============
 
-### [C++ API](http://meld.dillgroup.io/annotated.html)
+See the following:
+* [C++ API](http://plugin-api.meldmd.org)
+* [MELD](http://github.com/maccallumlab/meld)
