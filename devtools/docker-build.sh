@@ -35,4 +35,4 @@ ls /anaconda
 ls /anaconda/conda-bld
 ls /anaconda/conda-bld/work
 ls /anaconda/conda-bld/work/build
-aws s3 sync --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://meld-test/
+aws s3 sync --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://plugin-api.meldmd.org/
