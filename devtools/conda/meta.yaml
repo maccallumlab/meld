@@ -9,6 +9,7 @@ source:
 requirements:
   build:
     - cmake
+    - doxygen
     - python
     - swig ==3.0.7
     - openmm-dev
