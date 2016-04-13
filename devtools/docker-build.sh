@@ -25,5 +25,6 @@ cd /
 # build the meld conda package
 conda-build --no-binstar-upload --python 2.7 --python 3.4 --python 3.5 /io/devtools/conda
 
+echo $ANACONDA_TOKEN
 # upload to anaconda.org
 anaconda --token $ANACONDA_TOKEN upload --user maccallumlab /anaconda/conda-bld/linux-64/meld*.bz2
