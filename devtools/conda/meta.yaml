@@ -20,7 +20,7 @@ requirements:
 
 test:
   imports:
-    - meld-plugin
+    - meldplugin
 
 about:
     home: https://github.com/maccallumlab/meld-openmm-plugin
