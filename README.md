@@ -3,6 +3,11 @@ OpenMM Meld Plugin
 
 This plugin defines two OpenMM Force subclasses: MeldForce and RdcForce. To install it, you'll first need to install OpenMM, Eigen3, and CUDA.
 
+Build Status
+============
+
+[![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
+
 
 Building The Plugin
 ===================
