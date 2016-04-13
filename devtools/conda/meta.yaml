@@ -1,6 +1,6 @@
 package:
-  name: meld-test
-  version: "0.0.0"
+  name: meld-plugin-test
+  version: {{ environ['GIT_DESCRIBE'] }}
 
 
 source:
@@ -17,3 +17,11 @@ requirements:
   run:
     - python
     - openmm-dev
+
+# test:
+#     - imports:
+#         - meldplugin
+
+about:
+    home: https://github.com/maccallumlab/meld-openmm-plugin
+    
