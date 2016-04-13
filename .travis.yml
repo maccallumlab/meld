@@ -12,7 +12,10 @@ install:
   - docker pull jchodera/omnia-build-box
 
 script:
-  - docker run -e ANACONDA_TOKEN -t -i --rm -v
+  - docker run
+      -e ANACONDA_TOKEN -t -i --rm -v
+      -e AWS_ACCESS_KEY_ID
+      -e AWS_SECRET_ACCESS_KEY
       `pwd`:/io jchodera/omnia-build-box:latest
       bash /io/devtools/docker-build.sh
 
