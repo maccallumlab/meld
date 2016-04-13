@@ -15,6 +15,10 @@ PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/an
 conda config --add channels omnia
 conda install -yq conda-build jinja2 anaconda-client
 
+# install aws
+pip install awscli
+yum install -y groff
+
 # get the git revision for the version string
 cd /io
 export GIT_DESCRIBE=`git describe --tags --long | tr - .`
@@ -25,3 +29,6 @@ conda-build --no-binstar-upload --python 2.7 --python 3.4 --python 3.5 /io/devto
 
 # upload to anaconda.org
 anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/linux-64/meld*.bz2
+
+# upload docs to S3
+aws s3 sync --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://meld-test/
