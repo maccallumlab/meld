@@ -4,7 +4,6 @@ set -e
 
 # Activate Holy Build Box environment
 source /hbb_exe/activate
-echo $ANACONDA_TOKEN
 
 # Disable PYTHONPATH
 unset PYTHONPATH

@@ -12,7 +12,9 @@ install:
   - docker pull jchodera/omnia-build-box
 
 script:
-  - docker run -t -i --rm -v `pwd`:/io jchodera/omnia-build-box:latest bash /io/devtools/docker-build.sh
+  - docker run -e ANACONDA_TOKEN -t -i --rm -v
+      `pwd`:/io jchodera/omnia-build-box:latest
+      bash /io/devtools/docker-build.sh
 
 env:
   global:
