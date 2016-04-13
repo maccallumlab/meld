@@ -22,8 +22,6 @@ export LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH
 mkdir build
 cd build
 
-ls /anaconda/include
-
 cmake .. $CMAKE_FLAGS
 make -j$CPU_COUNT all
 make -j$CPU_COUNT install PythonInstall
