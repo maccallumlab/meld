@@ -25,3 +25,4 @@ cd build
 cmake .. $CMAKE_FLAGS
 make -j$CPU_COUNT all
 make -j$CPU_COUNT install PythonInstall
+make -j$CPU_COUNT DoxygenApiDocs
