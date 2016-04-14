@@ -1,7 +1,8 @@
 Build Status
 ============
-
-* Travis CI `linux` build tests:
+* Anaconda Release version:
+  * Release [![Anaconda-Server Badge](https://anaconda.org/omnia/meld-plugin/badges/version.svg)](https://anaconda.org/omnia/meld-plugin)
+* Testing:
   * github `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
   * anaconda `meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
 
