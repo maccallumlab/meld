@@ -1,0 +1,27 @@
+package:
+  name: meld-plugin-dev-test
+  version: {{ environ['GIT_DESCRIBE'] }}
+
+source:
+  path: /io
+
+requirements:
+  build:
+    - cmake
+    - doxygen
+    - python
+    - swig ==3.0.7
+    - openmm-dev
+    - eigen3
+
+  run:
+    - python
+    - openmm-dev
+
+test:
+  imports:
+    - meldplugin
+
+about:
+    home: https://github.com/maccallumlab/meld-openmm-plugin
+    
