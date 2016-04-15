@@ -32,14 +32,14 @@ else
 fi
 
 # upload to anaconda.org
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && $"{TRAVIS_BRANCH}" == "master" ]]; then
+if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
     anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/linux-64/meld*.bz2
-elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && $"{TRAVIS_BRANCH}" == "dev" ]]; then
+elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
     anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/linux-64/meld*.bz2
 fi
 
 # upload docs to S3
 
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && $"{TRAVIS_BRANCH}" == "master" ]]; then
+if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
     aws s3 sync --region us-west-2 --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://plugin-api.meldmd.org/
 fi
