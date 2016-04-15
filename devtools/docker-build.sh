@@ -40,6 +40,6 @@ fi
 
 # upload docs to S3
 
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && $"{TRAVIS_BRANCH}" == "master" ]]; then
+if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
     aws s3 sync --region us-west-2 --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://plugin-api.meldmd.org/
 fi
