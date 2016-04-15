@@ -21,7 +21,12 @@ yum install -y groff
 
 # get the git revision for the version string
 cd /io
-export GIT_DESCRIBE=`git describe --tags --long | tr - .`
+GIT_DESCRIBE=`git describe --tags --long | tr - .`
+MAJOR=`echo $GIT_DESCRIBE | cut -f1 -d.`
+MINOR=`echo $GIT_DESCRIBE | cut -f2 -d.`
+PATCH=`echo $GIT_DESCRIBE | cut -f3 -d.`
+POST=`echo $GIT_DESCRIBE | cut -f4 -d.`
+export VERSTRING=${MAJOR}.${MINOR}.${PATCH}.post${POST}
 cd /
 
 # build the meld conda package

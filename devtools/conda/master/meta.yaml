@@ -1,6 +1,6 @@
 package:
   name: meld-plugin-test
-  version: {{ environ['GIT_DESCRIBE'] }}
+  version: {{ environ['VERSTRING'] }}
 
 
 source:
