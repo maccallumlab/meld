@@ -1,25 +1,21 @@
-Build Status
-============
-## Latest Release
+### Latest Release
 
 Omnia `master`:[![Build Status](https://travis-ci.org/omnia-md/conda-recipes.svg?branch=master)](https://travis-ci.org/omnia-md/conda-recipes) 
 [![Anaconda-Server Badge](https://anaconda.org/omnia/meld-plugin/badges/version.svg)](https://anaconda.org/omnia/meld-plugin)
 
-## Testing
+### Testing
 Branch `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
-meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
+[![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
 
 Branch `dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
-meld-plugin-dev-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
+[![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
   
 
-OpenMM Meld Plugin
-=====================
+## OpenMM Meld Plugin
 
 This plugin implements several forces that are used by the [MELD](https://github.com/maccallumlab/meld) package.
 
-Installing
-=============
+## Installing
 
 The easiest way to install is to use the
 [Anaconda packages](https://anaconda.org/omnia/meld-plugin)
@@ -29,8 +25,7 @@ conda config --add channels omnia
 conda install meld-plugin
 ```
 
-Building The Plugin
-===================
+## Building The Plugin
 
 If you need to build the plugin yourself, you first need to install OpenMM, Eigen3, and CUDA.
 
@@ -52,8 +47,7 @@ Next, after editing the paths as appropriate, you can use something like the fol
     make install
     make PythonInstall
 
-Documentation
-=============
+## Documentation
 
 See the following:
 * [C++ API](http://plugin-api.meldmd.org)
