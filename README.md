@@ -2,12 +2,15 @@ Build Status
 ============
 ## Latest Release
 
-Omnia `master`: [![Anaconda-Server Badge](https://anaconda.org/omnia/meld-plugin/badges/version.svg)](https://anaconda.org/omnia/meld-plugin)
+Omnia `master`:[![Build Status](https://travis-ci.org/omnia-md/conda-recipes.svg?branch=master)](https://travis-ci.org/omnia-md/conda-recipes) 
+[![Anaconda-Server Badge](https://anaconda.org/omnia/meld-plugin/badges/version.svg)](https://anaconda.org/omnia/meld-plugin)
 
 ## Testing
-Branch `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
+Branch `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
+meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
 
-Branch `dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-dev-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
+Branch `dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld-openmm-plugin)
+meld-plugin-dev-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
   
 
 OpenMM Meld Plugin
@@ -18,7 +21,9 @@ This plugin implements several forces that are used by the [MELD](https://github
 Installing
 =============
 
-The easiest solution is to use [Anaconda](http://anaconda.org):
+The easiest way to install is to use the
+[Anaconda packages](https://anaconda.org/omnia/meld-plugin)
+from the `omnia` channel:
 ```
 conda config --add channels omnia
 conda install meld-plugin
