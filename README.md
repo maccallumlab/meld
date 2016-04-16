@@ -1,11 +1,13 @@
 Build Status
 ============
-Release
+## Latest Release
+
 Omnia `master`: [![Anaconda-Server Badge](https://anaconda.org/omnia/meld-plugin/badges/version.svg)](https://anaconda.org/omnia/meld-plugin)
 
-Testing
-`master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
-`dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-dev-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
+## Testing
+Branch `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=master)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-test)
+
+Branch `dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld-openmm-plugin.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld-openmm-plugin) `meld-plugin-dev-test`: [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-plugin-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-plugin-dev-test)
   
 
 OpenMM Meld Plugin
@@ -16,7 +18,7 @@ This plugin implements several forces that are used by the [MELD](https://github
 Installing
 =============
 
-The easiest solution is to use [Conda](http://anaconda.org):
+The easiest solution is to use [Anaconda](http://anaconda.org):
 ```
 conda config --add channels omnia
 conda install meld-plugin
