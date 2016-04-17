@@ -20,9 +20,14 @@ Contents
 ========
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
+    getting_started
 
-    userguide/index
+=============
+API Reference
+=============
+.. toctree::
+    :maxdepth: 1
     reference/index
 
 Indices and tables
