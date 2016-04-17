@@ -16,19 +16,18 @@ Look how easy it is to use:
     # Get your stuff done
     project.do_stuff()
 
-Contents
-========
-
 .. toctree::
-    :maxdepth: 1
-    getting_started
 
-=============
+   :maxdepth: 1
+   getting_started
+
 API Reference
-=============
+-------------
+
 .. toctree::
-    :maxdepth: 1
-    reference/index
+
+   :maxdepth: 1
+   reference/index
 
 Indices and tables
 ==================
