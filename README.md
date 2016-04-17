@@ -51,4 +51,4 @@ Next, after editing the paths as appropriate, you can use something like the fol
 
 See the following:
 * [C++ API](http://plugin-api.meldmd.org)
-* [MELD](http://github.com/maccallumlab/meld)
+* [MELD](http://meldmd.org)
