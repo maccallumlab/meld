@@ -216,5 +216,4 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
         leap_cmds.append(self._gen_translation_string(mol_id))
-        #print leap_cmds
         return leap_cmds

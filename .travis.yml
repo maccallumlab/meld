@@ -1,0 +1,33 @@
+os:
+  - linux
+
+language: c
+
+sudo: required
+
+services:
+  - docker
+
+install:
+  - docker pull jchodera/omnia-build-box
+
+script:
+  - docker run
+      -e ANACONDA_TOKEN
+      -e AWS_ACCESS_KEY_ID
+      -e AWS_SECRET_ACCESS_KEY
+      -e TRAVIS_PULL_REQUEST
+      -e TRAVIS_BRANCH
+      -t -i --rm -v
+      `pwd`:/io jchodera/omnia-build-box:latest
+      bash /io/devtools/docker-build.sh
+
+env:
+  global:
+    # ANACONDA_TOKEN
+    - secure: "zzzzleqKZdSCuMinlB3ng37Up/nop47e9JePXthiJ5Slk/HsFMTT24VqX7Mas+AFYQIwNygl+WCIWMh1hIz3pQTsu7D3aN71Q6rO0//gLZgojECsiFZ+a+AODTVhjyt9eJBuiJE8ggO9WS85HDnubFX/LZfIKIuouTDz8VF0qEHmhiwqNmih4mhPk9DjxnRZAAdH0z3/Gs1tod2Qcuk6RXA7DznkEzA1Nk0vhuzalHvTiFqaNMIEz6dYk/8cT7RFnw+MaqYtL+7kWdnLcP59JHnT8YfDC15yd0SVx08vepBKBAsE9dHUjyRbPGqJiwfk6KBYNkMk6SYNsTjKS8JZzlkkbezyWvPVX7plnEDyXFUhBZoCStzHx5z3TXT5ZSmhxWqHNOO+nOfXNNV5gd5svxxUI56H+806wTDPusKM92hDjiXeRWjCqx26WwJmaneCOq5idvkE85uB/zt8BxBW19juY4dyuQlOwNbiMOFKDvsgGfCAFmJyfH8umfbZZMdcWfolO0CDn+Jm5FIvj5btCgfuBoe/y9XG40Qls/YKopXKUDwEPxTLA4Tkmh1quH2hUjNsqwLfTKfuYS0Jl3L8d9NiFugUhXJCeQ/erCyzLWFVh8xYBhxlZYB/Jb8LvzBSlNMxFHUGKJHWn5XjNrJ9tatwv2XVprBvl2PNdfkQdBo="
+    # AWS_ACCESS_KEY_ID
+    - secure: "gfO31dVb51AF57mNXv/scm7PeF3RMVM6B3ORhRTp2iLfL1cqtLEFF164zyVRIP7sYrV17fL1jsUmm10KmGuDfSYx5N0paiEjHJ0usZMqzHm81EQ9+cjlkjjQsZULqTRzxiQ7M51hyp8n5aR/KeVS23JRHkLR8eDOGQW3X/TJNbVQi/gSM+SgsS2p4w5zAGKG8iIzJ4VFjJVRcfkhrA5WGzDq0lxoXzksOoXRCyT7gQnZfYk3xowvtOzSgUGOkaFieVpbYHgpmDAtYxf2PyPl70RMmBy4/F3Z0NANmaoA211gVXkJwHERXp7P7Y5rix8Mxy5u0A4zJZbyaqQk0QbISomRclGrN9IvZqY3rfLcZ4RK/g6hDkQkxiM2UFmTO+ohNKRT3jdVJ5g5aDdqrNYg2LeOAjhW/J55VMqh5TUfIt69nU+DDxV7s1WkowDKcaF+nPVpWcmSkjsd8W2NnKdjv+BEHucaAvnTk/N9Tafl0BA3DsXXo7pey1zbNjf9pVFaitWjVO8NlIrI+DI8bMrID4c5Gz5ihtHwyu01ilzsNEatPVfksGVn4hhI6quQc9UTNAp3JxnViCqlPp1pt2vOJwjZcufEQwfDcY4oxv0g1hG+axKh7l6yv5vSOLcConEayulXD56yhkpTaoEn2OVTZheq93pbqMfbNWqSOTZNmcs="
+    # AWS_SECRET_ACCESS_KEY
+    - secure: "ROndXskAuT4fA1mIgvy5j/y5m471Xy5RmPmf6L4bmjoZG98eCRBnbiIA30S7IAG1SY17g5KezZI1x48NhLos8Ika+1OeEV3ghZ2Amn90/6M+9gl+W3ufY5f+k0dujKU5ahOBzyuym7DMEduWjIfz9yfn1f2kXr0XPBUNluamlvh0NcHZgruU1lQ0xWXN46hedNSARIzovtxJBZvW/Ff27Pef4YGJg8eVnKCj5PsPUI9pgcbm5Q/sqYnqEG8fJCpQt7liQzDNm2DHmbsEF9AHcteYk0UYL5A42LOUD+KFJIguDQ9oew23k7Uj38qejNy7988l44SmVtwzLCrwlSf1PO++npYK04DE7B9rn+MZveqgIBK2CKJ/Wtp5E67LHHMLmYTlq2wAmDOuaNgY5tdH42yoB9oDImCYtuYeoDtDZP2gd6blEJYIUK5PffekFUaWCMVzG7AzUIQzt23CaiN/shLNbZEx5YEsjvxdQQzWvzjJeq7TwYyuyJPy7MFD8ldjptoW6GmfH96BgqDcQWvIHOLN5iecA45+9V2VnxtKxp5GQi0uyrnwSYc5XDuf+7bmmFqYyggX90/5tWhMk0BtLkusGJX4L2G7sL3S/phqRXqQiVh6M8L6DgGSBSi7//VU5hDIqEGKs7cKQhWA3hPFxdaahd0D6AUmH4yB4il0Dyo="
+

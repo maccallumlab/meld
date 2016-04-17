@@ -83,7 +83,6 @@ def visualize_alpha(store, args):
 
 def extract_alpha(store, args):
     alphas = get_alphas(store, args.start, args.end)
-    print alphas.shape
     np.savetxt(args.outfile, alphas)
 
 
@@ -117,7 +116,6 @@ def visualize_trace(store, args):
 def extract_trace(store, args):
     perm_vecs = get_permutation_vectors(store, args.start, args.end)
     traces = deshuffle_traces(perm_vecs)
-    print traces.shape
     np.savetxt(args.outfile, traces)
 
 

@@ -408,13 +408,11 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
 
     def test_should_load_correct_states(self):
         for i in range(90):
-            print i
             states = self.store.load_states(stage=i)
             self.assertAlmostEqual(states[0].positions[0, 0], i)
 
     def test_load_all_positions_should_give_the_correct_positions(self):
         positions = self.store.load_all_positions()
-        print positions.shape
         self.assertEqual(positions.shape[0], self.N_REPLICAS)
         self.assertEqual(positions.shape[1], self.N_ATOMS)
         self.assertEqual(positions.shape[2], 3)
@@ -469,8 +467,6 @@ class TestPDBWriter(unittest.TestCase):
 
         result = lines[1]
         expected_result = 'ATOM   1000 ABCD XYZ   999       1.000   1.000   1.000'
-        print expected_result
-        print lines[1]
         self.assertEqual(result, expected_result)
 
     def test_other_atom_line_should_have_correct_format(self):
@@ -479,8 +475,6 @@ class TestPDBWriter(unittest.TestCase):
 
         result = lines[2]
         expected_result = 'ATOM   1001  A2   R2  1000       2.000   2.000   2.000'
-        print expected_result
-        print lines[2]
         self.assertEqual(result, expected_result)
 
 

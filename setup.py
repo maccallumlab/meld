@@ -1,6 +1,3 @@
-import os
-import subprocess
-
 from setuptools import setup, find_packages
 from meld import __version__
 
@@ -15,7 +12,7 @@ setup(
     scripts=['scripts/analyze_energy', 'scripts/analyze_remd', 'scripts/extract_trajectory',
              'scripts/launch_remd', 'scripts/process_fragments', 'scripts/prepare_restart',
              'scripts/launch_remd_multiplex'],
-    url='http://laufercenter.org',
+    url='http://meldmd.org',
     license='LICENSE.txt',
     description='Moldeling Employing Limited Data',
     long_description=open('README.md').read(),

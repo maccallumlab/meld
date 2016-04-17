@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from __future__ import print_function
 import math
 import os
 import argparse
@@ -225,9 +226,9 @@ def write_distance_distributions(distance_distributions, out_dir, dist_args):
         filename = os.path.join(out_dir, filename)
         with open(filename, 'w') as outfile:
             # divide by 10 for Angstrom -> nm
-            print >>outfile, dist_args.r_min / 10.
-            print >>outfile, dist_args.r_max / 10.
-            print >>outfile, dist_args.n_bins - 1
+            print(dist_args.r_min / 10., file=outfile)
+            print(dist_args.r_max / 10., file=outfile)
+            print(dist_args.n_bins - 1, file=outfile)
             numpy.savetxt(outfile, spline_coeff)
 
 
@@ -247,7 +248,7 @@ def write_rama_distributions(rama_distributions, out_dir, tors_args):
         filename = 'rama_distr_{0:03d}.dat'.format(res)
         filename = os.path.join(out_dir, filename)
         with open(filename, 'w') as outfile:
-            print >>outfile, tors_args.n_bins - 1
+            print (tors_args.n_bins - 1, file=outfile)
             numpy.savetxt(outfile, coeffs)
 
 

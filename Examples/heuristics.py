@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import print_function
 import numpy as np
 from meld.remd import ladder, adaptor, master_runner
 from meld import system
 from meld import comm, vault
 from meld import parse
-from meld.system.restraints import LinearRamp,ConstantRamp
+from meld.system.restraints import LinearRamp
 
 
 N_REPLICAS = 30
@@ -15,65 +16,72 @@ BLOCK_SIZE = 100
 
 
 hydrophobes = 'AILMFPWV'
-hydrophobes_res = ['ALA','ILE','LEU','MET','PHE','PRO','TRP','VAL']
+hydrophobes_res = ['ALA', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'VAL']
+
 
 def make_ss_groups(subset=None):
-           active = 0
-           extended = 0
-           sse = []
-           ss = open('ss.dat','r').readlines()[0]
-           for i,l in enumerate(ss.rstrip()):
-               print i,l
-               if l not in "HE.":
-                   continue
-               if l not in 'E' and extended:
-                   end = i
-                   sse.append((start+1,end))
-                   extended = 0
-               if l in 'E':
-                   if i+1 in subset:
-                       active = active + 1
-                   if extended:
-                       continue
-                   else:
-                       start = i
-                       extended = 1
-           print active
-           return sse,active
+    active = 0
+    extended = 0
+    sse = []
+    ss = open('ss.dat', 'r').readlines()[0]
+    for i, l in enumerate(ss.rstrip()):
+        print(i, l)
+        if l not in "HE.":
+            continue
+        if l not in 'E' and extended:
+            end = i
+            sse.append((start + 1, end))
+            extended = 0
+        if l in 'E':
+            if i+1 in subset:
+                active = active + 1
+            if extended:
+                continue
+            else:
+                start = i
+                extended = 1
+    print(active)
+    return(sse, active)
 
-def generate_strand_pairs(s,sse,active,subset=np.array([])):
+
+def generate_strand_pairs(s, sse, active, subset=None):
+    if subset is None:
+        subset = np.array([])
     n_res = s.residue_numbers[-1]
-    subset = subset if subset.size else np.array(range(n_res))+1 
+    subset = subset if subset.size else np.array(range(n_res)) + 1
     strand_pair = []
     for i in range(len(sse)):
-        start_i,end_i = sse[i]
-        for j in range(i+1,len(sse)):
-            start_j,end_j = sse[j]
-            
-            for res_i in range(start_i,end_i+1):
-                for res_j in range(start_j,end_j+1):
+        start_i, end_i = sse[i]
+        for j in range(i + 1, len(sse)):
+            start_j, end_j = sse[j]
+
+            for res_i in range(start_i, end_i + 1):
+                for res_j in range(start_j, end_j + 1):
                     if res_i in subset or res_j in subset:
-                        print res_i,res_j
+                        print(res_i, res_j)
                         g = []
-                        make_pairNO(g,s,res_i,res_j)
-                        strand_pair.append(s.restraints.create_restraint_group(g,1))
+                        make_pairNO(g, s, res_i, res_j)
+                        strand_pair.append(s.restraints.create_restraint_group(g, 1))
                         g = []
-                        make_pairON(g,s,res_i,res_j)
-                        strand_pair.append(s.restraints.create_restraint_group(g,1))
+                        make_pairON(g, s, res_i, res_j)
+                        strand_pair.append(s.restraints.create_restraint_group(g, 1))
     all_rest = len(strand_pair)
     active = int(active * 0.65)
-    print "strand_pairs:", all_rest,active
+    print("strand_pairs:", all_rest, active)
     s.restraints.add_selectively_active_collection(strand_pair, active)
+
 
 def make_pairNO(g,s,i,j):
     scaler = s.restraints.create_scaler('nonlinear', alpha_min=0.4, alpha_max=1.0, factor=4.0)
     g.append(s.restraints.create_restraint('distance', scaler, r1=0.0, r2=0.0, r3=0.3, r4=0.4, k=250.0,
             atom_1_res_index=i, atom_1_name='N', atom_2_res_index=j, atom_2_name='O'))
 
+
 def make_pairON(g,s,i,j):
     scaler = s.restraints.create_scaler('nonlinear', alpha_min=0.4, alpha_max=1.0, factor=4.0)
     g.append(s.restraints.create_restraint('distance', scaler, r1=0.0, r2=0.0, r3=0.3, r4=0.4, k=250.0,
             atom_1_res_index=i, atom_1_name='O', atom_2_res_index=j, atom_2_name='N'))
+
 
 def create_hydrophobes(s,ContactsPerHydroph=1.3,scaler=None,group_1=np.array([]),group_2=np.array([])):
     #Groups should be 1 centered
@@ -89,8 +97,8 @@ def create_hydrophobes(s,ContactsPerHydroph=1.3,scaler=None,group_1=np.array([])
     sequence = sorted(set(sequence))
     sequence = dict(sequence)
 
-    print sequence
-    print hydrophobes_res
+    print(sequence)
+    print(hydrophobes_res)
     #Get list of groups with only residues that are hydrophobs
     group_1 = [ res for res in group_1 if (sequence[res] in hydrophobes_res) ]
     group_2 = [ res for res in group_2 if (sequence[res] in hydrophobes_res) ]
@@ -114,11 +122,12 @@ def create_hydrophobes(s,ContactsPerHydroph=1.3,scaler=None,group_1=np.array([])
 
             hydroph_restraints.append(s.restraints.create_restraint('distance', scaler, r1=0.0, r2=0.0, r3=0.9, r4=1.1, k=250.0,
             atom_1_res_index=i, atom_1_name='CB', atom_2_res_index=j, atom_2_name='CB'))
-            print 'hydroph:',i,j
+            print('hydroph:',i,j)
     all_rest = len(hydroph_restraints)
     active = int( ContactsPerHydroph * len(group_1) )
-    print active,len(group_1),all_rest
+    print(active,len(group_1),all_rest)
     s.restraints.add_selectively_active_collection(hydroph_restraints, active)
+
 
 def gen_state(s, index):
     pos = s._coordinates

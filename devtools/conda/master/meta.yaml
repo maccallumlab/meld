@@ -1,0 +1,25 @@
+package:
+  name: meld-test
+  version: {{ environ['VERSTRING'] }}
+
+
+source:
+  path: /io
+
+requirements:
+  build:
+    - python
+    - openmm-dev
+    - meld-plugin
+
+  run:
+    - python
+    - openmm-dev
+    - meld-plugin
+
+test:
+  imports:
+    - meld
+
+about:
+    home: https://meldmd.org

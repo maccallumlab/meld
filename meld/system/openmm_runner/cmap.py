@@ -98,7 +98,6 @@ class CMAPAdder(object):
                 ca = chain[i].index_CA - 1
                 c = chain[i].index_C - 1
                 n_next = chain[i+1].index_N - 1
-                print "CMAP term:",i,map_index
                 cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
 
@@ -110,17 +109,14 @@ class CMAPAdder(object):
         """
         # use an ordered dict to remember num, name pairs in order, while removing duplicates
         residues = OrderedDict((num, name) for (num, name) in zip(self._residue_numbers, self._residue_names))
-        print residues
         new_res = []
         for r in residues.items():
             num,name = r
             if name not in capped:
                 new_res.append(r)
         residues = OrderedDict(new_res)
-        print residues
         # now turn the ordered dict into a list of CMAPResidues
         residues = [self._to_cmap_residue(num, name) for (num, name) in residues.items()]
-        print residues
 
         # is each residue i connected to it's predecessor, i-1?
         connected = self._compute_connected(residues)
@@ -137,7 +133,6 @@ class CMAPAdder(object):
 
             # we've taken a single connected chain, so yield it
             # then loop back to the beginning
-            print 'CHAIN:',chain
             yield chain
 
     def _compute_connected(self, residues):

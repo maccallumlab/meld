@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from __future__ import print_function
 import argparse
 import progressbar
 from meld import vault
@@ -39,7 +40,7 @@ def main():
             runner.set_alpha_and_timestep(0.0, frame)
             state = store.load_states(frame)[args.rep]
             energy = runner.get_energy(state)
-            print >>outfile, frame, energy
+            print(frame, energy, file=outfile)
 
 
 def get_runner(store, full_energy):
@@ -83,11 +84,11 @@ def get_runner(store, full_energy):
             try:
                 dispatch[type(force)](force)
             except KeyError:
-                print 'Leaving', type(force), 'alone.'
+                print('Leaving', type(force), 'alone.')
             try:
                 force.updateParametersInContext(runner._simulation.context)
             except AttributeError:
-                print 'Could not update', type(force)
+                print('Could not update', type(force))
     return runner
 
 

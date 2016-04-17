@@ -116,7 +116,6 @@ class OpenMMRunner(object):
         if self._initialized:
             self._integrator.setTemperature(self._temperature)
             if self._options.softcore:
-                print self._sc_lambda_lj
                 self._simulation.context.setParameter('qq_lambda', self._sc_lambda_coulomb)
                 self._simulation.context.setParameter('lj_lambda', self._sc_lambda_lj)
                 self._simulation.context.setParameter('sc_lambda', self._sc_lambda_lj)

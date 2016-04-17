@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+from __future__ import print_function
 import math
 
 
@@ -435,8 +436,8 @@ class XAxisCOMRestraint(NonSelectableRestraint):
         return [system.index_of_atom(res_ind, atom_name) for (res_ind, atom_name) in group]
 
     def _get_mass_weights(self, system, indices):
-        print 'Warning! This uses uniform weights, rather than mass weights.'
-        print 'I need to include the masses in the topology objects.'
+        print('Warning! This uses uniform weights, rather than mass weights.')
+        print('I need to include the masses in the topology objects.')
         masses = [1.0 for i in indices]
         norm = sum(masses)
         return [m / norm for m in masses]

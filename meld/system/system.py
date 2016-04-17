@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+from __future__ import print_function
 import math
 
 import numpy as np
@@ -155,8 +156,8 @@ class System(object):
         try:
             return self._atom_index[(residue_number, atom_name)]
         except KeyError:
-            print 'Could not find atom index for residue_number={} and atom name={}.'.format(
-                residue_number, atom_name)
+            print('Could not find atom index for residue_number={} and atom name={}.'.format(
+                residue_number, atom_name))
             raise
 
     def get_pdb_writer(self):
