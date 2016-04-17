@@ -9,16 +9,24 @@ source:
 requirements:
   build:
     - python
+    - numpy
+    - scipy
+    - netCDF4
     - openmm-dev
     - meld-plugin
     - sphinx
     - mock
     - six
+    - sphinx_rtd_theme ==0.1.9
+    - msmb_theme ==1.2.0
 
   run:
     - python
     - openmm-dev
     - meld-plugin
+    - numpy
+    - scipy
+    - netCDF4
     - mock
     - six
 
