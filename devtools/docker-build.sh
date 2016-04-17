@@ -45,5 +45,5 @@ fi
 
 # upload docs to S3
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    aws s3 sync --region us-west-2 --delete /anaconda/conda-bld/work/docs/_build/html/ s3://docs.meldmd.org/
+    aws s3 sync --region us-west-2 --delete /anaconda/conda-bld/work/docs/_build/html/ s3://meldmd.org/
 fi

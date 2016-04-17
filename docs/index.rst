@@ -1,6 +1,6 @@
-==================================
- Welcome to MELD's documentation!
-==================================
+=======================================
+ MELD - Modeling Employing Limited Data
+=======================================
 
 In the works of Stone, a predominant concept is the concept of modernist art. Thus, the subject is contextualised into a pretextual objectivism that includes culture as a whole.
 
@@ -31,4 +31,11 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+Omnia
+=====
+
+MELD is part of the `Omnia <http://omnia.md>`_ suite of tools.
+
+.. image:: /_static/omnia.svg
 
