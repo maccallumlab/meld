@@ -1,14 +1,19 @@
-# meld #
+### Testing
+
+Github `master` [![Build Status](https://travis-ci.org/maccallumlab/meld.svg?branch=master)](https://travis-ci.org/maccallumlab/meld)
+                [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-test)
+
+# meld
 
 Modeling with limited data
 
-# Prerequisites #
+# Prerequisites
 
 * [NetCDF4-python](https://code.google.com/p/netcdf4-python/) -- `pip install netCDF4`
 * [mpi4py](http://mpi4py.scipy.org) -- `pip install mpi4py`
 * [Openmm_Meld](https://github.com/laufercenter/OpenMM_Meld) -- follow instructions on github page
 
-# VirtualEnv Recommended #
+# VirtualEnv Recommended
 
 * `pip install virtualenv`
 * `mkdir VirtualEnv`
