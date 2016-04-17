@@ -6,14 +6,15 @@
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, Platform, CustomExternalForce
-from simtk.unit import kelvin, picosecond, femtosecond, angstrom
-from simtk.unit import Quantity, kilojoule, mole, gram
-from meld.system.restraints import SelectableRestraint, NonSelectableRestraint, DistanceRestraint, TorsionRestraint
-from meld.system.restraints import ConfinementRestraint, DistProfileRestraint, TorsProfileRestraint
-from meld.system.restraints import CartesianRestraint, YZCartesianRestraint, XAxisCOMRestraint
-from meld.system.restraints import RdcRestraint, HyperbolicDistanceRestraint
+from simtk.unit import (Quantity, kelvin, picosecond, femtosecond,
+                        angstrom, kilojoule, mole, gram)
+from meld.system.restraints import (SelectableRestraint, NonSelectableRestraint,
+                                    DistanceRestraint, TorsionRestraint, ConfinementRestraint,
+                                    DistProfileRestraint, TorsProfileRestraint, CartesianRestraint,
+                                    YZCartesianRestraint, XAxisCOMRestraint, RdcRestraint,
+                                    HyperbolicDistanceRestraint)
 from . import softcore
-import cmap
+from meld.system.openmm_runner import cmap
 import logging
 from meld.util import log_timing
 import numpy as np
@@ -23,13 +24,13 @@ logger = logging.getLogger(__name__)
 
 try:
     from meldplugin import MeldForce, RdcForce
-except ImportError as e:
+except ImportError:
     logger.warning('Could not import meldplugin. Are you sure it is installed correctly?\n'
                    'Attempts to use meld restraints will fail.')
 
 try:
     from onedimcomplugin import OneDimComForce
-except:
+except ImportError:
     logger.warning('Could not import onedimcomplugin. Are you sure it is installed correctly?\n'
                    'Attempts to use center of mass restraints will fail.')
 
@@ -56,6 +57,7 @@ class OpenMMRunner(object):
         self._options = options
         self._simulation = None
         self._integrator = None
+        self._timestep = None
         self._initialized = False
         self._alpha = 0.
         self._temperature = None

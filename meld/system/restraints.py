@@ -653,7 +653,8 @@ class LinearScaler(RestraintScaler):
 
     _scaler_key_ = 'linear'
 
-    def __init__(self, alpha_min, alpha_max, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
+    def __init__(self, alpha_min, alpha_max, strength_at_alpha_min=1.0,
+                 strength_at_alpha_max=0.0):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
         self._strength_at_alpha_min = strength_at_alpha_min
@@ -669,21 +670,21 @@ class LinearScaler(RestraintScaler):
         scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
         return scale
 
+
 class PlateauLinearScaler(RestraintScaler):
-    '''This scaler linearly interpolates between 0 and 1 from alpha_min to alpha_one, 
-       keeps the value of 1 until alpha_two and then decreases linearly until 0 in alpha_max.
-           ------   strength alpha_min --> between two and one
-         /        \
-       /           \ strength alpha_max --> > alpha_max and below alphamin
-       alphamin 
-           alpha_one
-                alpha_two
-                   alpha_max
-       '''
+    '''This scaler linearly interpolates between 0 and 1 from alpha_min to
+    alpha_one, keeps the value of 1 until alpha_two and then decreases
+    linearly until 0 in alpha_max.
+
+        ------   strength alpha_min --> between two and one
+      /        \
+    /           \ strength alpha_max --> > alpha_max and
+                                           below alphamin
+    '''
 
     _scaler_key_ = 'plateau'
 
-    def __init__(self, alpha_min, alpha_one, alpha_two,alpha_max, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
+    def __init__(self, alpha_min, alpha_one, alpha_two, alpha_max, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0):
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
         self._alpha_two = float(alpha_two)
@@ -698,14 +699,14 @@ class PlateauLinearScaler(RestraintScaler):
             scale = self._strength_at_alpha_max
         else:
             if alpha <= self._alpha_one:
-                #Decreasing
+                # Decreasing
                 scale = 1.0 - (self._alpha_one - alpha) / (self._alpha_one - self._alpha_min)
                 scale = scale * (self._strength_at_alpha_min - self._strength_at_alpha_max) + self._strength_at_alpha_max
 
             elif alpha <= self._alpha_two:
                 scale = self._strength_at_alpha_min
             elif alpha <= self._alpha_max:
-                #Increasing
+                # Increasing
                 scale = 1.0 - (alpha - self._alpha_two) / (self._alpha_max - self._alpha_two)
                 scale = (1.0 - scale) * (self._strength_at_alpha_max - self._strength_at_alpha_min) + self._strength_at_alpha_min
             else:

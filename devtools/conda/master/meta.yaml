@@ -11,11 +11,16 @@ requirements:
     - python
     - openmm-dev
     - meld-plugin
+    - sphinx
+    - mock
+    - six
 
   run:
     - python
     - openmm-dev
     - meld-plugin
+    - mock
+    - six
 
 test:
   imports:

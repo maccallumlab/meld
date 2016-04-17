@@ -6,7 +6,7 @@
 import contextlib
 import os
 import time
-import cPickle as pickle
+from six.moves import cPickle as pickle
 import netCDF4 as cdf
 import numpy as np
 import shutil
@@ -21,7 +21,8 @@ class DataStore(object):
     :param n_replicas: number of replicas
     :param block_size: size of netcdf blocks and frequency to do backups
 
-    Data will be stored in the 'Data' subdirectory. Backups will be stored in 'Data/Backup'.
+    Data will be stored in the 'Data' subdirectory. Backups will be stored
+    in 'Data/Backup'.
 
     Some information is stored as python pickled files:
 

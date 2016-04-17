@@ -11,10 +11,10 @@ import time
 from functools import wraps
 import logging
 import logging.handlers
-import SocketServer
+from six.moves import socketserver
 import struct
 import pickle
-import Queue
+from six.moves import queue
 
 
 @contextlib.contextmanager
@@ -38,13 +38,14 @@ def log_timing(dest_logger):
             t1 = time.time()
             res = func(*args, **kwds)
             t2 = time.time()
-            dest_logger.debug('%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0))
+            dest_logger.debug('%s took %0.3f ms' %
+                              (func.func_name, (t2-t1)*1000.0))
             return res
         return wrapper
     return wrap
 
 
-class LogRecordStreamHandler(SocketServer.StreamRequestHandler):
+class LogRecordStreamHandler(socketserver.StreamRequestHandler):
     """Handler for a streaming logging request.
 
     This basically logs the record using whatever logging policy is
@@ -87,7 +88,7 @@ class LogRecordStreamHandler(SocketServer.StreamRequestHandler):
         logger.handle(record)
 
 
-class LogRecordSocketReceiver(SocketServer.ThreadingTCPServer):
+class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
     """
     Simple TCP socket-based logging receiver.
 
@@ -99,9 +100,10 @@ class LogRecordSocketReceiver(SocketServer.ThreadingTCPServer):
 
     allow_reuse_address = 1
 
-    def __init__(self, host, abort_queue, socket_queue, handler=LogRecordStreamHandler):
+    def __init__(self, host, abort_queue, socket_queue,
+                 handler=LogRecordStreamHandler):
         # we request port zero, which should get an unused, non-privileged port
-        SocketServer.ThreadingTCPServer.__init__(self, (host, 0), handler)
+        socketserver.ThreadingTCPServer.__init__(self, (host, 0), handler)
         # queue used to communicate from the main MELD process that the
         # LogRecordSocketReciever should abort
         self.abort_queue = abort_queue
@@ -126,7 +128,7 @@ class LogRecordSocketReceiver(SocketServer.ThreadingTCPServer):
             # check the abort queue to see if we should terminate
             try:
                 abort = self.abort_queue.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
 
 
