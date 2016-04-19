@@ -13,10 +13,12 @@ import numpy as np
 from meld.system.system import ParmTopReader
 
 
-CMAPResidue = namedtuple('CMAPResidue', 'res_num res_name index_N index_CA index_C')
+CMAPResidue = namedtuple('CMAPResidue',
+                         'res_num res_name index_N index_CA index_C')
 
-#Termini residues that act as a cap and have no amap term
-capped = ['ACE','NHE','OHE', 'NME', 'GLP','DUM','NAG','DIF','BER','GUM','KNI','PU5','AMP','0E9']
+# Termini residues that act as a cap and have no amap term
+capped = ['ACE', 'NHE', 'OHE', 'NME', 'GLP', 'DUM', 'NAG', 'DIF', 'BER', 'GUM',
+          'KNI', 'PU5', 'AMP', '0E9']
 
 
 class CMAPAdder(object):
@@ -50,7 +52,8 @@ class CMAPAdder(object):
         'ARG': 3
     }
 
-    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False):
+    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False,
+                 ncap=False):
         """
         Initialize a new CMAPAdder object
 
@@ -92,38 +95,44 @@ class CMAPAdder(object):
             n_res = len(chain)
             for i in range(1, n_res-1):
                 map_index = self._map_index[chain[i].res_name]
-                # subtract one from all of these to get zero-based indexing, as in openmm
+                # subtract one from all of these to get zero-based indexing,
+                # as in openmm
                 c_prev = chain[i - 1].index_C - 1
                 n = chain[i].index_N - 1
                 ca = chain[i].index_CA - 1
                 c = chain[i].index_C - 1
                 n_next = chain[i+1].index_N - 1
-                cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
+                cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca,
+                                      c, n_next)
         openmm_system.addForce(cmap_force)
 
     def _iterate_cmap_chains(self):
         """
-        Yield a series of chains of amino acid residues that are bonded together.
+        Yield a series of chains of amino acid residues that are bonded
+        together.
 
         :return: a generator that will yield lists of CMAPResidue
         """
-        # use an ordered dict to remember num, name pairs in order, while removing duplicates
-        residues = OrderedDict((num, name) for (num, name) in zip(self._residue_numbers, self._residue_names))
+        # use an ordered dict to remember num, name pairs in order, while
+        # removing duplicates
+        residues = OrderedDict((num, name) for (num, name) in
+                               zip(self._residue_numbers, self._residue_names))
         new_res = []
         for r in residues.items():
-            num,name = r
+            num, name = r
             if name not in capped:
                 new_res.append(r)
         residues = OrderedDict(new_res)
         # now turn the ordered dict into a list of CMAPResidues
-        residues = [self._to_cmap_residue(num, name) for (num, name) in residues.items()]
+        residues = [self._to_cmap_residue(num, name) for
+                    (num, name) in residues.items()]
 
         # is each residue i connected to it's predecessor, i-1?
         connected = self._compute_connected(residues)
 
         # now we iterate until we've handled all residues
         while connected:
-            chain = [residues.pop(0)]             # we always take the first residue
+            chain = [residues.pop(0)]  # we always take the first residue
             connected.pop(0)
 
             # if there are other residues connected, take them too
@@ -137,20 +146,25 @@ class CMAPAdder(object):
 
     def _compute_connected(self, residues):
         """
-        Return a list of boolean values indicating if each residue is connected to its predecessor.
+        Return a list of boolean values indicating if each residue is
+        connected to its predecessor.
 
         :param residues: a list of CMAPResidue objects
-        :return: a list of boolean values indicating if residue i is bonded to i-1
+        :return: a list of boolean values indicating if residue i is bonded
+                 to i-1
         """
         def has_c_n_bond(res_i, res_j):
-            """Return True if there is a bond between C of res_i and N of res_j, otherwise False."""
+            """Return True if there is a bond between C of res_i and N of
+            res_j, otherwise False.
+            """
             if (res_i.index_C, res_j.index_N) in self._bonds:
                 return True
             else:
                 return False
 
         # zip to together consecutive residues and see if they are bonded
-        connected = [has_c_n_bond(i, j) for (i, j) in zip(residues[0:], residues[1:])]
+        connected = [has_c_n_bond(i, j) for (i, j) in zip(residues[0:],
+                                                          residues[1:])]
         # the first element has no element to the left, so it's not connected
         connected = [False] + connected
         return connected
@@ -166,13 +180,18 @@ class CMAPAdder(object):
         n = self._atom_map[(num, 'N')]
         ca = self._atom_map[(num, 'CA')]
         c = self._atom_map[(num, 'C')]
-        res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca, index_C=c)
+        res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca,
+                          index_C=c)
         return res
 
     def _load_map(self, stem):
         basedir = os.path.join(os.path.dirname(__file__), 'maps')
-        alpha = np.loadtxt(os.path.join(basedir, '{}_alpha.txt'.format(stem))) * self._alpha_bias
-        beta = np.loadtxt(os.path.join(basedir, '{}_beta.txt'.format(stem))) * self._beta_bias
+        alpha = (
+            np.loadtxt(os.path.join(basedir, '{}_alpha.txt'.format(stem))) *
+                       self._alpha_bias)
+        beta = (
+            np.loadtxt(os.path.join(basedir, '{}_beta.txt'.format(stem))) *
+            self._beta_bias)
         total = alpha + beta
         assert total.shape[0] == total.shape[1]
         n = int(math.ceil(total.shape[0] / 2.0))

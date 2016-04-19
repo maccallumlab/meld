@@ -13,6 +13,7 @@ class AcceptanceCounter(object):
     '''
     Class to keep track of acceptance rates.
     '''
+
     def __init__(self, n_replicas):
         self.n_replicas = n_replicas
         self.successes = None
@@ -57,6 +58,7 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
                          raised to this value
 
     '''
+
     def __init__(self, n_replicas, adaptation_policy, min_acc_prob=0.1):
         AcceptanceCounter.__init__(self, n_replicas)
 
@@ -98,8 +100,8 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
             # compute the desired t_lens based on equal spacing
             even_spacing = np.linspace(0, t_lens[-1], self.n_replicas)
 
-            # compute the values of lambda that will give the desired evenly spaced
-            # t_lens
+            # compute the values of lambda that will give the desired evenly
+            # spaced t_lens
             new_lambdas = np.interp(even_spacing[1:-1], t_lens, lambda_grid)
             new_lambdas = [x for x in new_lambdas]
             new_lambdas = [0.] + new_lambdas + [1.]
@@ -130,11 +132,13 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         self.accept_probs = self.successes / self.attempts
 
         # set minimum percentage
-        self.accept_probs[self.accept_probs < self.min_acc_prob] = self.min_acc_prob
+        index = self.accept_probs < self.min_acc_prob
+        self.accept_probs[index] = self.min_acc_prob
 
     def _compute_t_len(self):
         # compute the t_len between adjacent pairs
-        delta_ts = [math.sqrt(-2.0 * math.log(acc)) for acc in self.accept_probs]
+        delta_ts = [math.sqrt(-2.0 * math.log(acc))
+                    for acc in self.accept_probs]
 
         # compute a running total
         t_lens = [0.]
@@ -149,7 +153,8 @@ class FluxAdaptor(AcceptanceCounter):
     def __init__(self, n_replicas, adaptation_policy, smooth_factor=0.5):
         AcceptanceCounter.__init__(self, n_replicas)
         self.adaptation_policy = adaptation_policy
-        assert smooth_factor > 0, 'A small, positive smoothing factor is required.'
+        assert smooth_factor > 0, \
+            'A small, positive smoothing factor is required.'
         self.smooth_factor = smooth_factor
 
         self.up_state = None
@@ -273,7 +278,8 @@ class AdaptationPolicy(object):
 
     '''
     # named tuple to hold the results
-    AdaptationRequired = namedtuple('AdaptationRequired', 'adapt_now reset_now')
+    AdaptationRequired = namedtuple('AdaptationRequired',
+                                    'adapt_now reset_now')
 
     def __init__(self, growth_factor, burn_in, adapt_every, stop_after=None):
         self.growth_factor = growth_factor
@@ -291,7 +297,7 @@ class AdaptationPolicy(object):
                  indicating if adaptation or resetting is necessary
 
         '''
-        if not self.stop_after is None:
+        if self.stop_after is not None:
             if step > self.stop_after:
                 return self.AdaptationRequired(False, False)
 

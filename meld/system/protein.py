@@ -48,25 +48,29 @@ class ProteinBase(object):
         rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
         a = np.cos(theta / 2.)
         b, c, d = -rotation_axis * np.sin(theta / 2.)
-        self._rotatation_matrix = np.array([[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d+a*c)],
-                                           [2*(b*c+a*d), a*a+c*c-b*b-d*d, 2*(c*d-a*b)],
-                                           [2*(b*d-a*c), 2*(c*d+a*b), a*a+d*d-b*b-c*c]])
+        self._rotatation_matrix = np.array(
+            [[a*a+b*b-c*c-d*d, 2*(b*c-a*d), 2*(b*d+a*c)],
+             [2*(b*c+a*d), a*a+c*c-b*b-d*d, 2*(c*d-a*b)],
+             [2*(b*d-a*c), 2*(c*d+a*b), a*a+d*d-b*b-c*c]])
 
-    def add_bond(self, res_index_i, res_index_j, atom_name_i, atom_name_j, bond_type):
+    def add_bond(self, res_index_i, res_index_j, atom_name_i,
+                 atom_name_j, bond_type):
         '''
         Add a general bond.
 
         :param res_index_i: one-based index of residue i
         :param res_index_j: one-based index of residue j
         :param atom_name_i: string name of i
-        :param atom_name_j: string name of j 
+        :param atom_name_j: string name of j
         :param bond_type:   string specifying the "S", "D","T"... bond
 
         .. note::
-            indexing starts from one and the residue numbering from the PDB file is ignored. 
+            indexing starts from one and the residue numbering from the
+            PDB file is ignored.
 
         '''
-        self._general_bond.append((res_index_i, res_index_j,atom_name_i,atom_name_j,bond_type))
+        self._general_bond.append((res_index_i, res_index_j, atom_name_i,
+                                   atom_name_j, bond_type))
 
     def add_disulfide(self, res_index_i, res_index_j):
         '''
@@ -76,13 +80,14 @@ class ProteinBase(object):
         :param res_index_j: one-based index of residue j
 
         .. note::
-            indexing starts from one and the residue numbering from the PDB file is ignored. When loading
-            from a PDB or creating a sequence, residue name must be CYX, not CYS.
+            indexing starts from one and the residue numbering from the
+            PDB file is ignored. When loading from a PDB or creating a
+            sequence, residue name must be CYX, not CYS.
 
         '''
         self._disulfide_list.append((res_index_i, res_index_j))
 
-    def add_prep_file(self,fname):
+    def add_prep_file(self, fname):
         '''
         Add a prep file.
         This will be needed when using residues that
@@ -90,7 +95,7 @@ class ProteinBase(object):
         '''
         self._prep_files.append(fname)
 
-    def add_frcmod_file(self,fname):
+    def add_frcmod_file(self, fname):
         '''
         Add a frcmod file.
         This will be needed when using residues that
@@ -98,7 +103,7 @@ class ProteinBase(object):
         '''
         self._frcmod_files.append(fname)
 
-    def add_lib_file(self,fname):
+    def add_lib_file(self, fname):
         '''
         Add a lib file.
         This will be needed when using residues that
@@ -107,25 +112,26 @@ class ProteinBase(object):
         self._lib_files.append(fname)
 
     def _gen_translation_string(self, mol_id):
-        return '''translate {mol_id} {{ {x} {y} {z} }}'''.format(mol_id=mol_id,
-                                                                 x=self._translation_vector[0],
-                                                                 y=self._translation_vector[1],
-                                                                 z=self._translation_vector[2])
+        return '''translate {mol_id} {{ {x} {y} {z} }}'''.format(
+            mol_id=mol_id, x=self._translation_vector[0],
+            y=self._translation_vector[1], z=self._translation_vector[2])
 
     def _gen_rotation_string(self, mol_id):
         return ''
 
-    def _gen_bond_string(self,mol_id):
+    def _gen_bond_string(self, mol_id):
         bond_strings = []
-        for i,j,a,b,t in self._general_bond:
-            d = 'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'.format(mol_id=mol_id, i=i, j=j, a=a, b=b, t=t)
+        for i, j, a, b, t in self._general_bond:
+            d = 'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'.format(
+                mol_id=mol_id, i=i, j=j, a=a, b=b, t=t)
             bond_strings.append(d)
         return bond_strings
 
     def _gen_disulfide_string(self, mol_id):
         disulfide_strings = []
         for i, j in self._disulfide_list:
-            d = 'bond {mol_id}.{i}.SG {mol_id}.{j}.SG'.format(mol_id=mol_id, i=i, j=j)
+            d = 'bond {mol_id}.{i}.SG {mol_id}.{j}.SG'.format(
+                mol_id=mol_id, i=i, j=j)
             disulfide_strings.append(d)
         return disulfide_strings
 
@@ -150,13 +156,15 @@ class ProteinBase(object):
 
 class ProteinMoleculeFromSequence(ProteinBase):
     '''
-    Class to create a protein from sequence. This class will create a protein molecule from sequence. This class is pretty dumb and relies on AmberTools
+    Class to create a protein from sequence. This class will create a protein
+    molecule from sequence. This class is pretty dumb and relies on AmberTools
     to do all of the heavy lifting.
 
     :param sequence: sequence of the protein to create
 
-    The sequence is specified in Amber/Leap format. There are special NRES and CRES variants for the N-
-    and C-termini. Different protonation states are also available via different residue names. E.g. ASH
+    The sequence is specified in Amber/Leap format. There are special NRES and
+    CRES variants for the N- and C-termini. Different protonation states are
+    also available via different residue names. E.g. ASH
     for neutral ASP.
 
     '''
@@ -174,7 +182,8 @@ class ProteinMoleculeFromSequence(ProteinBase):
         leap_cmds.extend(self._gen_read_frcmod_string())
         leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_lib_string())
-        leap_cmds.append('{mol_id} = sequence {{ {seq} }}'.format(mol_id=mol_id, seq=self._sequence))
+        leap_cmds.append('{mol_id} = sequence {{ {seq} }}'.format(
+            mol_id=mol_id, seq=self._sequence))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.extend(self._gen_bond_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
@@ -190,8 +199,9 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
     :param pdb_path: string path to the pdb file
 
     .. note::
-        no processing happens to this pdb file. It must be understandable by tleap and atoms/residues may
-        need to be added/deleted/renamed. These manipulations should happen to the file before MELD is invoked.
+        no processing happens to this pdb file. It must be understandable by
+        tleap and atoms/residues may need to be added/deleted/renamed. These
+        manipulations should happen to the file before MELD is invoked.
 
     '''
     def __init__(self, pdb_path):
@@ -211,7 +221,8 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
         leap_cmds.extend(self._gen_read_frcmod_string())
         leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_lib_string())
-        leap_cmds.append('{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
+        leap_cmds.append(
+            '{mol_id} = loadPdb {mol_id}.pdb'.format(mol_id=mol_id))
         leap_cmds.extend(self._gen_bond_string(mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))

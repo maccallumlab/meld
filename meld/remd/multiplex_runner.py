@@ -4,7 +4,6 @@
 #
 
 import numpy as np
-from meld.remd import slave_runner
 from meld.remd.reseed import NullReseeder
 import logging
 
@@ -82,25 +81,30 @@ class MultiplexReplicaExchangeRunner(object):
 
             for state_index in range(self._n_replicas):
                 states[state_index].alpha = self._alphas[state_index]
-                system_runner.set_alpha_and_timestep(self._alphas[state_index], self._step)
+                system_runner.set_alpha_and_timestep(
+                    self._alphas[state_index], self._step)
 
                 if self._step == 1:
                     logger.info('First step, minimizing and then running.')
-                    states[state_index] = system_runner.minimize_then_run(states[state_index])
+                    states[state_index] = system_runner.minimize_then_run(
+                        states[state_index])
                 else:
                     logger.info('Running molecular dynamics.')
-                    states[state_index] = system_runner.run(states[state_index])
+                    states[state_index] = system_runner.run(
+                        states[state_index])
 
             energies = []
             for state_index in range(self._n_replicas):
-                system_runner.set_alpha_and_timestep(self._alphas[state_index], self._step)
+                system_runner.set_alpha_and_timestep(
+                    self._alphas[state_index], self._step)
                 # compute our energy for each state
                 my_energies = self._compute_energies(states, system_runner)
                 energies.append(my_energies)
             energies = np.array(energies)
 
             # ask the ladder how to permute things
-            permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
+            permutation_vector = self.ladder.compute_exchanges(
+                energies, self.adaptor)
             states = self._permute_states(permutation_vector, states)
 
             # perform reseeding if it is time
@@ -112,14 +116,16 @@ class MultiplexReplicaExchangeRunner(object):
             store.save_alphas(self._alphas, self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
-            store.save_acceptance_probabilities(self.adaptor.get_acceptance_probabilities(), self.step)
+            store.save_acceptance_probabilities(
+                self.adaptor.get_acceptance_probabilities(), self.step)
             store.save_data_store()
 
             # on to the next step!
             self._step += 1
             store.save_remd_runner(self)
             store.backup(self.step - 1)
-        logger.info('Finished %d steps of replica exchange successfully.', self._max_steps)
+        logger.info('Finished %d steps of replica exchange successfully.',
+                    self._max_steps)
 
     #
     # private helper methods

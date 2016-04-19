@@ -16,8 +16,8 @@ class MasterReplicaExchangeRunner(object):
     """
     Class to coordinate running of replica exchange
 
-    This class doesn't really know much about the calculation that is happening,
-    but it's the glue that holds everything together.
+    This class doesn't really know much about the calculation that
+    is happening, but it's the glue that holds everything together.
 
     :param n_replicas: number of replicas
     :param max_steps: maximum number of steps to run
@@ -116,8 +116,10 @@ class MasterReplicaExchangeRunner(object):
             energies = communicator.gather_energies_from_slaves(my_energies)
 
             # ask the ladder how to permute things
-            permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
-            states = self._permute_states(permutation_vector, states, system_runner)
+            permutation_vector = self.ladder.compute_exchanges(energies,
+                                                               self.adaptor)
+            states = self._permute_states(permutation_vector,
+                                          states, system_runner)
 
             # perform reseeding if it is time
             self.reseeder.reseed(self.step, states, store)
@@ -128,14 +130,16 @@ class MasterReplicaExchangeRunner(object):
             store.save_alphas(self._alphas, self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
-            store.save_acceptance_probabilities(self.adaptor.get_acceptance_probabilities(), self.step)
+            store.save_acceptance_probabilities(
+                self.adaptor.get_acceptance_probabilities(), self.step)
             store.save_data_store()
 
             # on to the next step!
             self._step += 1
             store.save_remd_runner(self)
             store.backup(self.step - 1)
-        logger.info('Finished %d steps of replica exchange successfully.', self._max_steps)
+        logger.info('Finished %d steps of replica exchange successfully.',
+                    self._max_steps)
 
     #
     # private helper methods
@@ -153,11 +157,14 @@ class MasterReplicaExchangeRunner(object):
         old_coords = [s.positions for s in states]
         old_velocities = [s.velocities for s in states]
         old_energy = [s.energy for s in states]
-        temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
+        temperatures = [system_runner.temperature_scaler(s.alpha)
+                        for s in states]
 
         for i, index in enumerate(permutation_matrix):
             states[i].positions = old_coords[index]
-            states[i].velocities = math.sqrt(temperatures[i] / temperatures[index]) * old_velocities[index]
+            states[i].velocities = (
+                math.sqrt(temperatures[i] / temperatures[index]) *
+                old_velocities[index])
             states[i].energy = old_energy[index]
         return states
 

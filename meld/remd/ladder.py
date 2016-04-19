@@ -18,6 +18,7 @@ class NearestNeighborLadder(object):
     :param n_trials: total number of replica exchange swaps to attempt
 
     """
+
     def __init__(self, n_trials):
         self.n_trials = n_trials
 
@@ -43,9 +44,10 @@ class NearestNeighborLadder(object):
         This method will attempt ``self.n_trials`` swaps between randomly
         chosen pairs of adjacent replicas. It will return a permutation vector
         that describes which index each structure should be at after swapping.
-        So, if the output was ``[2, 0, 1]``, it would mean that replica 0 should
-        now be at index 2, replica 1 should now be at index 0, and replica 2
-        should now be at index 1. Output of ``[0, 1, 2]`` would mean no change.
+        So, if the output was ``[2, 0, 1]``, it would mean that replica 0
+        should now be at index 2, replica 1 should now be at index 0, and
+        replica 2 should now be at index 1. Output of ``[0, 1, 2]`` would
+        mean no change.
 
         The adaptor object is called once for each attempted exchange with the
         indices of the attempted swap and the success or failure of the swap.
@@ -67,7 +69,8 @@ class NearestNeighborLadder(object):
 
     def _do_trial(self, i, j, permutation_vector, energies, adaptor):
         """Perform a replica exchange trial"""
-        delta = energies[i, i] - energies[j, i] + energies[j, j] - energies[i, j]
+        delta = (energies[i, i] - energies[j, i] +
+                 energies[j, j] - energies[i, j])
         accepted = False
 
         if delta >= 0:
@@ -88,7 +91,8 @@ class NearestNeighborLadder(object):
     @staticmethod
     def _swap_permutation(i, j, permutation_vector):
         """Swap two elements of the permutation matrix"""
-        permutation_vector[i], permutation_vector[j] = permutation_vector[j], permutation_vector[i]
+        permutation_vector[i], permutation_vector[j] = (
+            permutation_vector[j], permutation_vector[i])
 
     @staticmethod
     def _swap_energies(i, j, energies):

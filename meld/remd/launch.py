@@ -5,7 +5,6 @@
 
 import logging
 import logging.handlers
-import time
 import meld
 from meld import util
 from meld import vault
@@ -53,8 +52,9 @@ def launch(console_handler, debug=False, console_log=False):
             # start logging server
             abort_queue = multiprocessing.Queue()
             socket_queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=util.configure_logging_and_launch_listener,
-                                              args=(hostname, abort_queue, socket_queue))
+            process = multiprocessing.Process(
+                target=util.configure_logging_and_launch_listener,
+                args=(hostname, abort_queue, socket_queue))
             process.start()
             # communicate address to slaves
             logger_address = socket_queue.get(block=True, timeout=60)
@@ -64,9 +64,11 @@ def launch(console_handler, debug=False, console_log=False):
             logger_address = communicator.receive_logger_address_from_master()
 
         # create SocketHandler to write logging over network
-        handler = logging.handlers.SocketHandler(logger_address[0], logger_address[1])
+        handler = logging.handlers.SocketHandler(logger_address[0],
+                                                 logger_address[1])
     else:
-        fmt = '%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s'.format(hostid)
+        fmt = '%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s'
+        fmt = fmt.format(hostid)
         datefmt = '%Y-%m-%d %H:%M:%S'
         formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
         handler = logging.StreamHandler()
@@ -78,7 +80,6 @@ def launch(console_handler, debug=False, console_log=False):
     handler.setLevel(level)
     meld_logger.setLevel(level)
     meld_logger.propagate = False
-
 
     if communicator.is_master():
         logger.info('Launching replica exchange on master')
@@ -140,8 +141,8 @@ def launch_multiplex(console_handler, debug=False):
 
     store.initialize(mode='a')
     remd_runner = store.load_remd_runner()
-    runner = multiplex_runner.MultiplexReplicaExchangeRunner(remd_runner.n_replicas, remd_runner.max_steps,
-                                                             remd_runner.ladder, remd_runner.adaptor,
-                                                             remd_runner._step)
+    runner = multiplex_runner.MultiplexReplicaExchangeRunner(
+        remd_runner.n_replicas, remd_runner.max_steps, remd_runner.ladder,
+        remd_runner.adaptor, remd_runner._step)
 
     runner.run(system_runner, store)

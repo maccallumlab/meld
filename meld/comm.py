@@ -34,8 +34,8 @@ class MPICommunicator(object):
     :param n_replicas: number of replicas
 
     .. note::
-        creating an MPI communicator will not actually initialize MPI. To do that,
-        call :meth:`initialize`.
+        creating an MPI communicator will not actually initialize MPI.
+        To do that, call :meth:`initialize`.
     """
 
     def __init__(self, n_atoms, n_replicas):
@@ -47,7 +47,8 @@ class MPICommunicator(object):
 
     def __getstate__(self):
         # don't pickle _mpi_comm
-        return dict((k, v) for (k, v) in self.__dict__.iteritems() if not k == '_mpi_comm')
+        return dict((k, v) for (k, v) in self.__dict__.iteritems()
+                    if not k == '_mpi_comm')
 
     def __setstate__(self, state):
         # set _mpi_comm to None
@@ -177,8 +178,9 @@ class MPICommunicator(object):
     def broadcast_states_for_energy_calc_to_slaves(self, states):
         """
         broadcast_states_for_energy_calc_to_slaves(states)
-        Broadcast states to all slaves. Send all results from this step to every
-        slave so that we can calculate the energies and do replica exchange.
+        Broadcast states to all slaves. Send all results from this step
+        to every slave so that we can calculate the energies and do
+        replica exchange.
 
         :param states: a list of states
         :returns: :const:`None`
@@ -250,7 +252,8 @@ class MPICommunicator(object):
             logger.info('%s CUDA_VISIBLE_DEVICES is not set.', hostname)
             visible_devices = None
 
-        hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
+        hosts = self._mpi_comm.gather(
+            HostInfo(hostname, visible_devices), root=0)
 
         # the master computes the device ids
         if self._my_rank == 0:
@@ -278,17 +281,22 @@ class MPICommunicator(object):
                 # store the available devices on each node
                 for host in hosts:
                     if host.host_name in available_devices:
-                        assert host.devices == available_devices[host.host_name]
+                        if host.devices != available_devices[host.host_name]:
+                            raise RuntimeError(
+                                'GPU devices for host do not match')
                     else:
                         available_devices[host.host_name] = host.devices
 
                 # CUDA numbers the devices from 0 always,
                 # e.g. if CUDA_VISIBLE_DEVICES=2,3 we still need to ask for
                 # devices 0 and 1 to get physical devices 2 and 3.
-                # So, we subtract the minimum value from each each to make it zero
+                # So, we subtract the minimum value from each each to make
+                # it zero
                 for host in hosts:
                     min_device_id = min(available_devices[host.host_name])
-                    available_devices[host.host_name] = [device_id - min_device_id for device_id in available_devices[host.host_name]]
+                    available_devices[host.host_name] = [
+                        device_id - min_device_id for device_id in
+                        available_devices[host.host_name]]
 
                 # device ids for each node
                 device_ids = []

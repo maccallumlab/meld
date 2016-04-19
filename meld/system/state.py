@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+
 class SystemState(object):
     """
     Class to hold the state of a system.
@@ -34,7 +35,8 @@ class SystemState(object):
 
         # check velocities
         if not self.positions.shape == self.velocities.shape:
-            raise RuntimeError('velocities must have the same shape as positions')
+            raise RuntimeError(
+                'velocities must have the same shape as positions')
 
         # check alpha
         if self.alpha < 0 or self.alpha > 1:

@@ -14,14 +14,14 @@ class MonteCarloScheduler(object):
     """
     def __init__(self, movers_with_weights, update_trials):
         """
-        :param movers_with_weights: a list of (mover, weight) tuples; weights do not need to be normalized
+        :param movers_with_weights: a list of (mover, weight) tuples;
+                                    weights do not need to be normalized
         """
         self.update_trials = update_trials
         self._movers_with_weights = movers_with_weights
 
         self.trial_counts = np.zeros(len(self._movers_with_weights))
         self.accepted_counts = np.zeros(len(self._movers_with_weights))
-
 
     def update(self, starting_state, runner):
         """
@@ -82,10 +82,10 @@ class RandomTorsionMover(object):
 
         angle = generate_uniform_angle()
         trial_positions = starting_positions.copy()
-        trial_positions[self.atom_indices, :] = rotate_around_vector(starting_positions[self.index1, :],
-                                                                     starting_positions[self.index2, :],
-                                                                     angle,
-                                                                     starting_positions[self.atom_indices, :])
+        trial_positions[self.atom_indices, :] = rotate_around_vector(
+            starting_positions[self.index1, :],
+            starting_positions[self.index2, :],
+            angle, starting_positions[self.atom_indices, :])
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
 
@@ -101,7 +101,8 @@ class RandomTorsionMover(object):
 
 
 class DoubleTorsionMover(object):
-    def __init__(self, index1a, index1b, atom_indices1, index2a, index2b, atom_indices2):
+    def __init__(self, index1a, index1b, atom_indices1, index2a,
+                 index2b, atom_indices2):
         self.index1a = index1a
         self.index1b = index1b
         self.atom_indices1 = atom_indices1
@@ -123,14 +124,14 @@ class DoubleTorsionMover(object):
         angle2 = generate_uniform_angle()
 
         trial_positions = starting_positions.copy()
-        trial_positions[self.atom_indices1, :] = rotate_around_vector(starting_positions[self.index1a, :],
-                                                                      starting_positions[self.index1b, :],
-                                                                      angle1,
-                                                                      starting_positions[self.atom_indices1, :])
-        trial_positions[self.atom_indices2, :] = rotate_around_vector(trial_positions[self.index2a, :],
-                                                                      trial_positions[self.index2b, :],
-                                                                      angle2,
-                                                                      trial_positions[self.atom_indices2, :])
+        trial_positions[self.atom_indices1, :] = rotate_around_vector(
+            starting_positions[self.index1a, :],
+            starting_positions[self.index1b, :],
+            angle1, starting_positions[self.atom_indices1, :])
+        trial_positions[self.atom_indices2, :] = rotate_around_vector(
+            trial_positions[self.index2a, :],
+            trial_positions[self.index2b, :],
+            angle2, trial_positions[self.atom_indices2, :])
 
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
@@ -157,7 +158,8 @@ def rotate_around_vector(p1, p2, angle, points):
     direction = p2 - p1
     angle = angle / 180. * math.pi
     rot_mat = _rotation_matrix(angle, direction, point=p1)
-    return _covert_from_homogeneous(np.dot(_convert_to_homogeneous(points), rot_mat))
+    return _covert_from_homogeneous(
+        np.dot(_convert_to_homogeneous(points), rot_mat))
 
 
 def metropolis(current_energy, trial_energy, bias):
@@ -166,7 +168,8 @@ def metropolis(current_energy, trial_energy, bias):
 
     :param current_energy: current energy in units of kT
     :param trial_energy: energy of trial in units of kT
-    :param bias: negative log of ratio of forward and reverse move probabilities
+    :param bias: negative log of ratio of forward and reverse
+                 move probabilities
     :return: boolean indicating to accept or reject the step
     """
     total_trial = trial_energy + bias
@@ -202,9 +205,9 @@ def _rotation_matrix(angle, direction, point=None):
     R = np.diag([cosa, cosa, cosa])
     R += np.outer(direction, direction) * (1.0 - cosa)
     direction *= sina
-    R += np.array([[ 0.0,         -direction[2],  direction[1]],
-                      [ direction[2], 0.0,          -direction[0]],
-                      [-direction[1], direction[0],  0.0]])
+    R += np.array([[ 0.0,          -direction[2],  direction[1]],
+                   [ direction[2],  0.0,          -direction[0]],
+                   [-direction[1],  direction[0],  0.0]])
     M = np.identity(4)
     M[:3, :3] = R
     if point is not None:

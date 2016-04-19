@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+
 class SlaveReplicaExchangeRunner(object):
     '''
     This class coordinates running replica exchange on the slaves.
@@ -18,7 +19,8 @@ class SlaveReplicaExchangeRunner(object):
         '''
         Initialize a new slave from a master.
 
-        :param master: a :class:`meld.remd.master_runner.MasterReplicaExchangeRunner`
+        :param master: a :class:`meld.remd.master_runner.
+                                 MasterReplicaExchangeRunner`
                        to serve as a template
         :return: a :class:`SlaveReplicaExchangeRunner`
 
