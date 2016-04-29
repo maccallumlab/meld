@@ -1,5 +1,6 @@
 os:
   - linux
+  - osx
 
 language: c
 
@@ -9,18 +10,24 @@ services:
   - docker
 
 install:
-  - docker pull jchodera/omnia-build-box
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        docker pull jchodera/omnia-build-box;
+    fi
 
 script:
-  - docker run
-      -e ANACONDA_TOKEN
-      -e AWS_ACCESS_KEY_ID
-      -e AWS_SECRET_ACCESS_KEY
-      -e TRAVIS_PULL_REQUEST
-      -e TRAVIS_BRANCH
-      -t -i --rm -v
-      `pwd`:/io jchodera/omnia-build-box:latest
-      bash /io/devtools/docker-build.sh
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        docker run
+        -e ANACONDA_TOKEN
+        -e AWS_ACCESS_KEY_ID
+        -e AWS_SECRET_ACCESS_KEY
+        -e TRAVIS_PULL_REQUEST
+        -e TRAVIS_BRANCH
+        -t -i --rm -v
+        `pwd`:/io jchodera/omnia-build-box:latest
+        bash /io/devtools/docker-build.sh;
+    elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        bash devtools/osx-build.sh;
+    fi
 
 env:
   global:
