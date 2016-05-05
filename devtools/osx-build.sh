@@ -35,7 +35,7 @@ fi
 
 # upload to anaconda.org
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/osx-64/meld*.bz2
+    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab $HOME/anaconda/conda-bld/osx-64/meld*.bz2
 elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/osx-64/meld*.bz2
+    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab $HOME/anaconda/conda-bld/osx-64/meld*.bz2
 fi
