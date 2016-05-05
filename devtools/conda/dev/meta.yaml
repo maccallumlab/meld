@@ -1,0 +1,38 @@
+package:
+  name: meld-dev-test
+  version: {{ environ['VERSTRING'] }}
+
+
+source:
+  path: /io # [linux]
+  path: /Users/travis/build/maccallumlab/meld #[osx]
+
+requirements:
+  build:
+    - python
+    - numpy
+    - scipy
+    - netcdf4
+    - openmm-dev
+    - meld-plugin-test
+    - sphinx
+    - mock
+    - six
+    - sphinx_rtd_theme ==0.1.9
+
+  run:
+    - python
+    - openmm-dev
+    - meld-plugin-dev-test
+    - numpy
+    - scipy
+    - netcdf4
+    - mock
+    - six
+
+test:
+  imports:
+    - meld
+
+about:
+    home: https://meldmd.org
