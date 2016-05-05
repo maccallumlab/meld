@@ -4,7 +4,8 @@ package:
 
 
 source:
-  path: /io
+  path: /io # [linux]
+  path: /Users/travis/build/maccallumlab/meld #[osx]
 
 requirements:
   build:
@@ -13,7 +14,7 @@ requirements:
     - scipy
     - netcdf4
     - openmm-dev
-    - meld-plugin
+    - meld-plugin-test
     - sphinx
     - mock
     - six
@@ -22,7 +23,7 @@ requirements:
   run:
     - python
     - openmm-dev
-    - meld-plugin
+    - meld-plugin-test
     - numpy
     - scipy
     - netcdf4
