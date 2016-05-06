@@ -548,8 +548,6 @@ class DataStore(object):
     #
 
     def _create_cdf_file(self):
-        ds = self._cdf_data_set
-
         # create the file
         path = self.net_cdf_path_template.format(self._current_block)
         ds = cdf.Dataset(path, 'w', format='NETCDF4')
@@ -588,6 +586,8 @@ class DataStore(object):
                           ['n_replica_pairs', 'timesteps'],
                           zlib=True, fletcher32=True, shuffle=True,
                           complevel=9)
+
+        self._cdf_data_set = ds
 
     def _backup(self, src, dest):
         if os.path.exists(src):
