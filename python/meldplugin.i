@@ -29,7 +29,6 @@ namespace std {
 %}
 
 
-/* python code for routines to strip units */
 %pythoncode %{
 import simtk.unit as unit
 import simtk.openmm as mm
@@ -38,14 +37,6 @@ import simtk.openmm as mm
 /* include version information */
 %pythoncode %{
 __version__ = '0.1.3'
-%}
-
-/* strip the units off of all input arguments */
-%pythonprepend %{
-try:
-    args=mm.stripUnits(args)
-except UnboundLocalError:
-    pass
 %}
 
 /*
