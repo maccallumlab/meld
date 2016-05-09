@@ -11,12 +11,12 @@ requirements:
     - doxygen
     - python
     - swig ==3.0.7
-    - openmm-dev
+    - openmm
     - eigen3
 
   run:
     - python
-    - openmm-dev
+    - openmm
 
 test:
   imports:
