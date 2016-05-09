@@ -8,6 +8,7 @@ import mock
 from meld.remd import slave_runner, master_runner, launch
 from meld.system import OpenMMRunner
 from meld import comm, vault
+import logging
 
 
 class TestLaunchNotMaster(unittest.TestCase):
@@ -30,6 +31,7 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
+        self.mock_comm.receive_logger_address_from_master.return_value = ('127.0.0.1', 32768)
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
@@ -42,6 +44,8 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_store.load_run_options.return_value.runner = 'openmm'
 
+        self.log_handler = logging.StreamHandler()
+
     def cleanUp(self):
         self.patcher.stop()
         self.get_runner_patcher.stop()
@@ -49,31 +53,31 @@ class TestLaunchNotMaster(unittest.TestCase):
 
     def test_load_datastore(self):
         "should call vault.DataStore.load_data_store to load the data_store"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.MockDataStore.load_data_store.assert_called_once_with()
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_comm.initialize.assert_called_once_with()
 
     def test_should_call_to_slave(self):
         "should call to_slave on remd_runner"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_remd_master.to_slave.assert_called_once_with()
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_runner)
 
     def test_should_not_init_store(self):
         "should not init store"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.assertEqual(self.mock_store.initialize.call_count, 0)
 
@@ -107,30 +111,32 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_store.load_run_options.return_value.runner = 'openmm'
 
+        self.log_handler = logging.StreamHandler()
+
     def tearDown(self):
         self.patcher.stop()
         self.get_runner_patcher.stop()
 
     def test_load_datastore(self):
         "should call load the datastore"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.MockDataStore.load_data_store.assert_called_once_with()
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_comm.initialize.assert_called_once_with()
 
     def test_should_init_store(self):
         "should initialize the store"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_store.initialize.assert_called_once_with(mode='a')
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        launch.launch()
+        launch.launch(self.log_handler)
 
         self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_runner, self.mock_store)
