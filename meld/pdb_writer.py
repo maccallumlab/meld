@@ -15,6 +15,7 @@ class PDBWriter(object):
                  residue_names):
         self._atom_numbers = atom_numbers
         self._n_atoms = len(atom_numbers)
+        self.template = template
 
         assert len(atom_names) == self._n_atoms
         self._atom_names = atom_names
