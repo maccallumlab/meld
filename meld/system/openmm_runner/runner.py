@@ -285,7 +285,7 @@ def _create_openmm_simulation(topology, system, integrator,
 
 
 def _parm_top_from_string(parm_string):
-    with tempfile.NamedTemporaryFile() as parm_file:
+    with tempfile.NamedTemporaryFile(mode='w') as parm_file:
         parm_file.write(parm_string)
         parm_file.flush()
         prm_top = AmberPrmtopFile(parm_file.name)
