@@ -21,6 +21,7 @@ requirements:
     - sphinx_rtd_theme ==0.1.9
 
   run:
+    - ambermini
     - python
     - openmm-dev
     - meld-plugin-test
@@ -33,6 +34,10 @@ requirements:
 test:
   imports:
     - meld
+  requires:
+    - nose
+  commands:
+    - python -m unittest discover meld.test
 
 about:
     home: https://meldmd.org
