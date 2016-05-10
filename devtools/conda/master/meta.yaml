@@ -34,8 +34,6 @@ requirements:
 test:
   imports:
     - meld
-  requires:
-    - nose
   commands:
     - python -m unittest discover meld.test
 

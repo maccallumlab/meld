@@ -12,7 +12,7 @@ class RestraintRegistry(type):
     """
     Metaclass that maintains a registry of restraint types.
 
-    All classes that decend from Restraint inherit RestraintRegistry as their
+    All classes that descend from Restraint inherit RestraintRegistry as their
     metaclass. RestraintRegistry will automatically maintain a map between
     the class attribute '_restraint_key_' and all restraint types.
 
