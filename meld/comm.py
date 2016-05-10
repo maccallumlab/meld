@@ -4,6 +4,7 @@
 #
 
 import os
+import six
 import numpy as np
 import platform
 from collections import defaultdict, namedtuple
@@ -47,7 +48,7 @@ class MPICommunicator(object):
 
     def __getstate__(self):
         # don't pickle _mpi_comm
-        return dict((k, v) for (k, v) in self.__dict__.iteritems()
+        return dict((k, v) for (k, v) in six.iteritems(self.__dict__)
                     if not k == '_mpi_comm')
 
     def __setstate__(self, state):
