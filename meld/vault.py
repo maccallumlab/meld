@@ -153,7 +153,7 @@ class DataStore(object):
 
     def save_data_store(self):
         """Save this object to disk."""
-        with open(self.data_store_path, 'w') as store_file:
+        with open(self.data_store_path, 'wb') as store_file:
             pickle.dump(self, store_file)
 
     @classmethod
@@ -161,13 +161,13 @@ class DataStore(object):
         """Load the DataStore object from disk."""
         path = (cls.data_store_backup_path
                 if load_backup else cls.data_store_path)
-        with open(path) as store_file:
+        with open(path, 'rb') as store_file:
             return pickle.load(store_file)
 
     def save_communicator(self, comm):
         """Save the communicator to disk"""
         self._can_save()
-        with open(self.communicator_path, 'w') as comm_file:
+        with open(self.communicator_path, 'wb') as comm_file:
             pickle.dump(comm, comm_file)
 
     def load_communicator(self):
@@ -176,7 +176,7 @@ class DataStore(object):
             path = self.communicator_backup_path
         else:
             path = self.communicator_path
-        with open(path) as comm_file:
+        with open(path, 'rb') as comm_file:
             return pickle.load(comm_file)
 
     def save_positions(self, positions, stage):
@@ -495,36 +495,36 @@ class DataStore(object):
     def save_remd_runner(self, runner):
         """Save replica runner to disk"""
         self._can_save()
-        with open(self.remd_runner_path, 'w') as runner_file:
+        with open(self.remd_runner_path, 'wb') as runner_file:
             pickle.dump(runner, runner_file)
 
     def load_remd_runner(self):
         """Load replica runner from disk"""
         path = (self.remd_runner_backup_path
                 if self._readonly_mode else self.remd_runner_path)
-        with open(path) as runner_file:
+        with open(path, 'rb') as runner_file:
             return pickle.load(runner_file)
 
     def save_system(self, system):
         self._can_save()
-        with open(self.system_path, 'w') as system_file:
+        with open(self.system_path, 'wb') as system_file:
             pickle.dump(system, system_file)
 
     def load_system(self):
         path = (self.system_backup_path
                 if self._readonly_mode else self.system_path)
-        with open(path) as system_file:
+        with open(path, 'rb') as system_file:
             return pickle.load(system_file)
 
     def save_run_options(self, run_options):
         self._can_save()
-        with open(self.run_options_path, 'w') as options_file:
+        with open(self.run_options_path, 'wb') as options_file:
             pickle.dump(run_options, options_file)
 
     def load_run_options(self):
         path = (self.run_options_backup_path
                 if self._readonly_mode else self.run_options_path)
-        with open(path) as options_file:
+        with open(path, 'rb') as options_file:
             return pickle.load(options_file)
 
     def backup(self, stage):
