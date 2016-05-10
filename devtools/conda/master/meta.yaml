@@ -2,7 +2,6 @@ package:
   name: meld-plugin-test
   version: {{ environ['VERSTRING'] }}
 
-
 source:
   path: /io #[linux]
   path: /Users/travis/build/maccallumlab/meld-openmm-plugin #[osx]

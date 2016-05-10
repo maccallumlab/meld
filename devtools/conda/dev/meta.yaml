@@ -3,12 +3,13 @@ package:
   version: {{ environ['VERSTRING'] }}
 
 source:
-  path: /io
+  path: /io #[linux]
+  path: /Users/travis/build/maccallumlab/meld-openmm-plugin #[osx]
 
 requirements:
   build:
     - cmake
-    - doxygen
+    - doxygen #[not osx]
     - python
     - swig ==3.0.7
     - openmm-dev
