@@ -4,6 +4,7 @@
 #
 
 from __future__ import print_function
+from six import with_metaclass
 import math
 
 
@@ -47,9 +48,9 @@ class RestraintRegistry(type):
                 'Unknown restraint type "{}".'.format(key))
 
 
-class Restraint(object):
+class Restraint(with_metaclass(RestraintRegistry, object)):
     """Abstract class for all restraints."""
-    __metaclass__ = RestraintRegistry
+    pass
 
 
 class SelectableRestraint(Restraint):
@@ -658,9 +659,9 @@ class ScalerRegistry(type):
                 'Unknown scaler type "{}".'.format(key))
 
 
-class AlphaMapper(object):
+class AlphaMapper(with_metaclass(ScalerRegistry, object)):
     '''Base class for all scalers.'''
-    __metaclass__ = ScalerRegistry
+    pass
 
     def _check_alpha_range(self, alpha):
         if alpha < 0 or alpha > 1:
