@@ -4,8 +4,9 @@
 #
 
 import unittest
-from meld.system import protein, builder, ConstantTemperatureScaler, LinearTemperatureScaler
-from meld.system import GeometricTemperatureScaler, RunOptions
+from meld.system import (
+    protein, builder, ConstantTemperatureScaler, LinearTemperatureScaler,
+    FixedTemperatureScaler, GeometricTemperatureScaler, RunOptions)
 from meld.system.system import ParmTopReader
 
 
@@ -118,7 +119,7 @@ class TestLinearTemperatureScaler(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             LinearTemperatureScaler(0.0, 1.0, 300., -500.)
 
-class FixedTemperatureScaler(unittest.TestCase):
+class TestFixedTemperatureScaler(unittest.TestCase):
     def setUp(self):
         self.s = FixedTemperatureScaler(0.2, 0.8, [300,350,380,395,403])
 
@@ -128,7 +129,7 @@ class FixedTemperatureScaler(unittest.TestCase):
 
     def test_returns_max_when_alpha_is_high(self):
         t = self.s(1)
-        self.assertAlmostEqual(t, 500.)
+        self.assertAlmostEqual(t, 403.)
 
     def test_returns_mid_when_alpha_is_half(self):
         t = self.s(0.50)

@@ -890,11 +890,11 @@ class SmoothScaler(RestraintScaler):
             if alpha <= self._alpha_max:
                 delta = ((alpha - self._alpha_min) /
                          (self._alpha_max - self._alpha_min))
-                scale = 1+delta*delta*(2*delta-3)
+                scale = 1 + delta * delta * (2 * delta - 3)
                 scale = ((1.0 - scale) *
                          (self._strength_at_alpha_max -
                           self._strength_at_alpha_min) +
-                         self._strength_at_alpha_max)
+                         self._strength_at_alpha_min)
             else:
                 scale = self._strength_at_alpha_max
         return scale

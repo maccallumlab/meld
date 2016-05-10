@@ -107,8 +107,7 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None,
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith('#')]
-    items = [line.split() for line in lines]
-    sequence = ' '.join(items).split()
+    sequence = ' '.join(lines).split()
 
     output = []
     for aa in sequence:

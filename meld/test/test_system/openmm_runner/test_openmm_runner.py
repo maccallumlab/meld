@@ -44,27 +44,32 @@ class TestCreateOpenMMSystem(unittest.TestCase):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
 
     def test_no_cutoff_should_set_correct_method(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='obc', remove_com=False)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, use_bigger_timestep=False,
+                              implicit_solvent='obc', remove_com=False)
         self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
                                                        constraints=ff.HBonds, implicitSolvent=OBC2, hydrogenMass=None)
 
     def test_cutoff_sets_correct_method(self):
-        _create_openmm_system(self.mock_parm, cutoff=1.5, use_big_timestep=False, implicit_solvent='obc', remove_com=False)
+        _create_openmm_system(self.mock_parm, cutoff=1.5, use_big_timestep=False, use_bigger_timestep=False,
+                              implicit_solvent='obc', remove_com=False)
         self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.CutoffNonPeriodic, nonbondedCutoff=1.5,
                                                        constraints=ff.HBonds, implicitSolvent=OBC2, hydrogenMass=None)
 
     def test_big_timestep_sets_allbonds_and_hydrogen_masses(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=True, implicit_solvent='obc', remove_com=False)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=True, use_bigger_timestep=False,
+                              implicit_solvent='obc', remove_com=False)
         self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
                                                        constraints=ff.AllBonds, implicitSolvent=OBC2, hydrogenMass=3.0 * (gram / mole))
 
     def test_gbneck_sets_correct_solvent_model(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck', remove_com=False)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, use_bigger_timestep=False,
+                              implicit_solvent='gbNeck', remove_com=False)
         self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
                                                        constraints=ff.HBonds, implicitSolvent=GBn, hydrogenMass=None)
 
     def test_gbneck2_sets_correct_solvent_model(self):
-        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, implicit_solvent='gbNeck2', remove_com=False)
+        _create_openmm_system(self.mock_parm, cutoff=None, use_big_timestep=False, use_bigger_timestep=False,
+                              implicit_solvent='gbNeck2', remove_com=False)
         self.mock_parm.createSystem.assert_called_with(removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
                                                        constraints=ff.HBonds, implicitSolvent=GBn2, hydrogenMass=None)
 
@@ -78,11 +83,11 @@ class TestCreateIntegrator(unittest.TestCase):
         self.patcher.stop()
 
     def test_sets_correct_temperature(self):
-        _create_integrator(temperature=300., use_big_timestep=False)
+        _create_integrator(temperature=300., use_big_timestep=False, use_bigger_timestep=False)
         self.MockIntegrator.assert_called_with(300. * kelvin, 1.0 / picosecond, 2 * femtosecond)
 
     def test_big_timestep_should_set_correct_timestep(self):
-        _create_integrator(temperature=300., use_big_timestep=True)
+        _create_integrator(temperature=300., use_big_timestep=True, use_bigger_timestep=False)
         self.MockIntegrator.assert_called_with(300. * kelvin, 1.0 / picosecond, 3.5 * femtosecond)
 
 
