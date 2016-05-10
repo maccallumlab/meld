@@ -632,7 +632,7 @@ class DataStore(object):
             self._load_cdf_file_readonly()
 
     def _block_for_stage(self, stage):
-        return stage / self._block_size
+        return stage // self._block_size
 
     def _load_cdf_file_readonly(self):
         path = self.net_cdf_path_template.format(self._current_block)
