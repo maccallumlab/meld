@@ -636,52 +636,6 @@ class TestPlateauNonLinearScaler(unittest.TestCase):
         scaler = restraints.PlateauNonLinearScaler(0.7, 0.8,0.9,1.0, 4)
         self.assertAlmostEqual(scaler(0.75), 0.88079708)
 
-class TestSmoothScaler(unittest.TestCase):
-    def test_should_raise_when_alpha_min_below_zero(self):
-        with self.assertRaises(RuntimeError):
-            restraints.SmoothScaler(-1, 1)
-
-    def test_should_raise_when_alpha_min_above_one(self):
-        with self.assertRaises(RuntimeError):
-            restraints.SmoothScaler(2, 1)
-
-    def test_should_raise_when_alpha_max_below_zero(self):
-        with self.assertRaises(RuntimeError):
-            restraints.SmoothScaler(1,-1)
-
-    def test_should_raise_when_alpha_max_above_one(self):
-        with self.assertRaises(RuntimeError):
-            restraints.SmoothScaler(1, 2)
-
-    def test_should_raise_if_alpha_max_less_than_alpha_min(self):
-        with self.assertRaises(RuntimeError):
-            restraints.SmoothScaler(0.7, 0.6)
-
-    def test_should_raise_if_alpha_is_below_zero(self):
-        scaler = restraints.SmoothScaler(0.2,0.8)
-        with self.assertRaises(RuntimeError):
-            scaler(-1)
-
-    def test_should_raise_if_alpha_is_above_one(self):
-        scaler = restraints.SmoothScaler(0.2, 0.8)
-        with self.assertRaises(RuntimeError):
-            scaler(2)
-
-    def test_should_return_1_below_alpha_min(self):
-        scaler = restraints.SmoothScaler(0.2, 0.8)
-        self.assertAlmostEqual(scaler(0.1), 1.0)
-
-    def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.SmoothScaler(0.2,0.8)
-        self.assertAlmostEqual(scaler(0.9), 0.0)
-
-    def test_should_return_correct_value_middle(self):
-        scaler = restraints.SmoothScaler(0.5,1.0)
-        self.assertAlmostEqual(scaler(0.75), 0.5)
-
-    def test_should_return_correct_value_middle2(self):
-        scaler = restraints.SmoothScaler(0.5,1.0)
-        self.assertAlmostEqual(scaler(0.90), 0.104)
 
 class TestPlateauSmoothScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
