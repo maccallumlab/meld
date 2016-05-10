@@ -77,25 +77,21 @@ def setup_system():
 class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def setUp(self):
         self.setUpTempDir()
-
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('mpirun -np 2 launch_remd', shell=True)
+        subprocess.check_call('CUDA_VISIBLE_DEVICES="0,0" mpirun -np 2 launch_remd', shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
-
-    def test_data_dir_should_be_present(self):
-        self.assertTrue(os.path.exists('Data'))
-
-    def test_files_should_have_been_backed_up(self):
-        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
 
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
         s.initialize(mode='a')
         pos = s.load_positions(N_STEPS)
+
+        self.assertTrue(os.path.exists('Data'))
+        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
 
         self.assertEqual(pos.shape[0], N_REPLICAS)
         self.assertEqual(pos.shape[1], self.n_atoms)
