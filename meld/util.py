@@ -39,7 +39,7 @@ def log_timing(dest_logger):
             res = func(*args, **kwds)
             t2 = time.time()
             dest_logger.debug('%s took %0.3f ms' %
-                              (func.func_name, (t2-t1)*1000.0))
+                              (func.__name__, (t2-t1)*1000.0))
             return res
         return wrapper
     return wrap

@@ -230,7 +230,7 @@ def _get_secondary_sequence(filename=None, contents=None, file=None):
     for ss in sequence:
         if ss not in 'HE.':
             raise RuntimeError(
-                'Unknown secondary structure type "{}"'.format(aa))
+                'Unknown secondary structure type "{}"'.format(ss))
     return sequence
 
 

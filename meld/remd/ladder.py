@@ -57,7 +57,7 @@ class NearestNeighborLadder(object):
         assert energies.shape[0] == energies.shape[1]
 
         n_replicas = energies.shape[0]
-        permutation_vector = range(n_replicas)
+        permutation_vector = list(range(n_replicas))
 
         choices = range(n_replicas - 1)
         for iteration in range(self.n_trials):
