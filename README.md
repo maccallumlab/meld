@@ -19,6 +19,7 @@ conda install meld
 
 MELD requires a CUDA compatible GPU.
 
+* ambermini or ambertools
 * netcdf4
 * mpi4py
 * [openmm](https://github.com/pandegroup/openmm)
