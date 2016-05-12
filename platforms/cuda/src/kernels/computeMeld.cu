@@ -4,11 +4,9 @@
 */
 
 
-#include "assert.h"
-
 #define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }
-__device__
-float quick_select_float(const float* energy, int *index, int nelems, int select) {
+
+__device__ float quick_select_float(const float* energy, int *index, int nelems, int select) {
     int low, high, middle, ll, hh;
 
     low = 0;
