@@ -10,7 +10,7 @@ SET(MELD_CUDA_LIBRARY_NAME MeldPluginCUDA)
 SET(SHARED_TARGET ${MELD_CUDA_LIBRARY_NAME})
 
 # include Eigen3
-SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}" )
+SET( EIGEN3_INCLUDE_DIR "${EIGEN3_INCLUDE_DIR}" )
 IF( NOT EIGEN3_INCLUDE_DIR )
         MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
 ENDIF()
