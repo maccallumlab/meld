@@ -5,9 +5,9 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 # We need to know where OpenMM is installed so we can access the headers and libraries.
-SET(OPENMM_DIR "$ENV{OPENMM_DIR}" CACHE PATH "Where OpenMM is installed")
-INCLUDE_DIRECTORIES("$ENV{OPENMM_DIR}/include")
-LINK_DIRECTORIES("$ENV{OPENMM_DIR}/lib" "$ENV{OPENMM_DIR}/lib/plugins")
+SET(OPENMM_DIR "/usr/local/openmm" CACHE PATH "Where OpenMM is installed")
+INCLUDE_DIRECTORIES("${OPENMM_DIR}/include")
+LINK_DIRECTORIES("${OPENMM_DIR}/lib" "${OPENMM_DIR}/lib/plugins")
 
 # set flags for linking on mac
 IF(APPLE)
