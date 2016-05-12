@@ -20,17 +20,14 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
     export LD_LIBRARY_PATH=$OPENMM_DIR/lib:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH
 elif [[ "$OSTYPE" == "darwin"* ]]; then
+    export EIGEN3_INCLUDE_DIR="/Users/travis/anaconda/envs/_build/include/eigen3/"
     CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
     CMAKE_FLAGS+=" -DCUDA_SDK_ROOT_DIR=/Developer/NVIDIA/CUDA-7.5"
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=/Developer/NVIDIA/CUDA-7.5"
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk"
-
-    export EIGEN3_INCLUDE_DIR="/Users/travis/anaconda/envs/_build/include/eigen3/"
-    export OPENMM_DIR="/Users/travis/anaconda/envs/_build"
-    export OPENMM_INCLUDE_PATH=$OPENMM_DIR/include
-    export OPENMM_LIB_PATH=$OPENMM_DIR/lib
-    export LD_LIBRARY_PATH=$OPENMM_DIR/lib:$LD_LIBRARY_PATH
+    CMAKE_FLAGS+=" -DOPENMM_DIR=/Users/travis/anaconda/envs/_build"
+    export LD_LIBRARY_PATH=/Users/travis/anaconda/envs/_build/lib:$LD_LIBRARY_PATH
 fi
 
 mkdir build
