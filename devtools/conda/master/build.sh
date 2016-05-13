@@ -17,7 +17,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
     export LD_LIBRARY_PATH=$OPENMM_DIR/lib:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    CMAKE_FLAGS+=" -DEIGEN3_INCLUDE_DIR=/anaconda/envs/_build/include/eigen3/"
+    CMAKE_FLAGS+=" -DEIGEN3_INCLUDE_DIR=/Users/travis/anaconda/envs/_build/include/eigen3/"
     CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9"
     CMAKE_FLAGS+=" -DCUDA_SDK_ROOT_DIR=/Developer/NVIDIA/CUDA-7.5"
