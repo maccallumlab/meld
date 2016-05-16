@@ -646,7 +646,8 @@ extern "C" __global__ void evaluateAndActivateCollections(
         const int2* __restrict__ boundsArray,
         const int* __restrict__ indexArray,
         const float* __restrict__ energyArray,
-        float* __restrict__ activeArray)
+        float* __restrict__ activeArray,
+        int * __restrict__ encounteredNaN)
 {
     const float TOLERANCE = 1e-4;
     const int maxCollectionSize = MAXCOLLECTIONSIZE;
@@ -704,17 +705,25 @@ extern "C" __global__ void evaluateAndActivateCollections(
 
             // loop until we break out at convergence
             for (;;) {
-                /*if(tid==0) {*/
-                    /*printf("%d\t%f\t%f\n", collIndex, min, max);*/
-                    /*if (!isfinite(min) || !isfinite(max)) {*/
-                        /*asm("trap;");*/
-                    /*}*/
-                /*}*/
+
+                // check to see if have encountered NaN, which will
+                // result in an infinite loop
+                if(tid==0) {
+                    if (!isfinite(min) || !isfinite(max)) {
+                        *encounteredNaN = 1;
+                    }
+                }
                 // zero out the buffers
                 binCounts[tid] = 0;
                 minBuffer[tid] = 9.0e99;
                 maxBuffer[tid] = 0.0;
                 __syncthreads();
+
+                // If we hit a NaN then abort early now that encounteredNaN is set.
+                // This will cause an exception on the C++ side
+                if (*encounteredNaN) {
+                    return;
+                }
 
                 // loop over all energies
                 for (int i=tid; i<length; i+=blockDim.x) {

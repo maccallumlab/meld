@@ -231,6 +231,9 @@ private:
 
     OpenMM::CudaArray* collectionEnergies;
 
+    OpenMM::CudaArray* collectionEncounteredNaN;     // flag that indicates that we encountered NaN when processing collections
+    std::vector<int> h_collectionEncounteredNaN;
+
     void allocateMemory(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);
     void setupHyperbolicDistanceRestraints(const MeldForce& force);

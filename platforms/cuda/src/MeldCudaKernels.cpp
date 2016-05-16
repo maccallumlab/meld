@@ -103,6 +103,7 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     collectionBounds = NULL;
     collectionNumActive = NULL;
     collectionEnergies = NULL;
+    collectionEncounteredNaN = NULL;
 }
 
 CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
@@ -151,6 +152,7 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
     delete collectionBounds;
     delete collectionNumActive;
     delete collectionEnergies;
+    delete collectionEncounteredNaN;
 }
 
 
@@ -227,6 +229,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     collectionBounds          = CudaArray::create<int2>   ( cu, numCollections,    "collectionBounds");
     collectionNumActive       = CudaArray::create<int>    ( cu, numCollections,    "collectionNumActive");
     collectionEnergies        = CudaArray::create<int>    ( cu, numCollections,    "collectionEnergies");
+    collectionEncounteredNaN  = CudaArray::create<int>    ( cu, 1,                 "collectionEncounteredNaN");
 
     // setup host memory
     h_distanceRestRParams                 = std::vector<float4> (numDistRestraints, make_float4( 0, 0, 0, 0));
@@ -263,6 +266,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     h_collectionGroupIndices              = std::vector<int>    (numGroups, -1);
     h_collectionBounds                    = std::vector<int2>   (numCollections, make_int2( -1, -1));
     h_collectionNumActive                 = std::vector<int>    (numCollections, -1);
+    h_collectionEncounteredNaN            = std::vector<int>    (1, 0);
 }
 
 
@@ -834,6 +838,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
     int sharedSizeCollectionBestBin = sizeof(int);
     int sharedSizeCollection = sharedSizeCollectionEnergies + sharedSizeCollectionMinMaxBuffer +
         sharedSizeCollectionBinCounts + sharedSizeCollectionBestBin;
+    // set collectionsEncounteredNaN to zero and upload it
+    h_collectionEncounteredNaN[0] = 0;
+    collectionEncounteredNaN->upload(h_collectionEncounteredNaN);
     // now evaluate and activate groups based on collections
     void* collArgs[] = {
         &numCollections,
@@ -841,8 +848,14 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionBounds->getDevicePointer(),
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
-        &groupActive->getDevicePointer()};
+        &groupActive->getDevicePointer(),
+        &collectionEncounteredNaN->getDevicePointer()};
     cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection, sharedSizeCollection);
+    // check if we encountered NaN
+    collectionEncounteredNaN->download(h_collectionEncounteredNaN);
+    if (h_collectionEncounteredNaN[0]) {
+        throw OpenMMException("Encountered NaN when evaluating collections.");
+    }
 
     // Now set the restraints active based on if the groups are active
     void* applyGroupsArgs[] = {
