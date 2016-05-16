@@ -281,6 +281,28 @@ class DataStore(object):
             [np.array(self.load_velocities(i))[..., np.newaxis]
              for i in range(self.max_safe_frame)], axis=-1)
 
+    def save_box_vectors(self, box_vectors, stage):
+        """
+        Save the box_vectors to disk.
+
+        :param positions: n_replicas x n_atoms x 3 array
+        :param stage: int stage to store
+
+        """
+        self._can_save()
+        self._handle_save_stage(stage)
+        self._cdf_data_set.variables['box_vectors'][..., stage] = box_vectors
+
+    def load_box_vectors(self, stage):
+        """
+        Load box_vectors from disk.
+
+        :param stage: int stage to load
+
+        """
+        self._handle_load_stage(stage)
+        return self._cdf_data_set.variables['box_vectors'][..., stage]
+
     def save_states(self, states, stage):
         """
         Save states to disk.
@@ -295,8 +317,10 @@ class DataStore(object):
         velocities = np.array([s.velocities for s in states])
         alphas = np.array([s.alpha for s in states])
         energies = np.array([s.energy for s in states])
+        box_vectors = np.array([s.box_vector for s in states])
         self.save_positions(positions, stage)
         self.save_velocities(velocities, stage)
+        self.save_box_vectors(box_vectors, stage)
         self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
 
@@ -312,12 +336,14 @@ class DataStore(object):
         self._handle_load_stage(stage)
         positions = self.load_positions(stage)
         velocities = self.load_velocities(stage)
+        box_vectors = self.load_box_vectors(stage)
         alphas = self.load_alphas(stage)
         energies = self.load_energies(stage)
         states = []
         for i in range(self._n_replicas):
             s = state.SystemState(
-                positions[i], velocities[i], alphas[i], energies[i])
+                positions[i], velocities[i], alphas[i],
+                energies[i], box_vectors[i])
             states.append(s)
         return states
 
@@ -518,6 +544,7 @@ class DataStore(object):
 
     def save_run_options(self, run_options):
         self._can_save()
+        run_options.sanity_check()
         with open(self.run_options_path, 'wb') as options_file:
             pickle.dump(run_options, options_file)
 
@@ -525,7 +552,9 @@ class DataStore(object):
         path = (self.run_options_backup_path
                 if self._readonly_mode else self.run_options_path)
         with open(path, 'rb') as options_file:
-            return pickle.load(options_file)
+            options = pickle.load(options_file)
+        options.sanity_check()
+        return options
 
     def backup(self, stage):
         """
@@ -567,6 +596,10 @@ class DataStore(object):
                           complevel=9)
         ds.createVariable('velocities', float,
                           ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
+                          zlib=True, fletcher32=True, shuffle=True,
+                          complevel=9)
+        ds.createVariable('box_vectors', float,
+                          ['n_replicas', 'cartesian', 'timesteps'],
                           zlib=True, fletcher32=True, shuffle=True,
                           complevel=9)
         ds.createVariable('alphas', float, ['n_replicas', 'timesteps'],

@@ -22,9 +22,10 @@ BACKUP_FREQ = 2
 def gen_state(s):
     pos = s._coordinates
     vel = np.zeros_like(pos)
+    box_vectors = [0., 0., 0.]
     alpha = 0
     energy = 0
-    return system.SystemState(pos, vel, alpha, energy)
+    return system.SystemState(pos, vel, alpha, energy, box_vectors)
 
 
 def setup_system():

@@ -8,6 +8,14 @@ from .system import System
 import subprocess
 
 
+def load_amber_system(top_filename, crd_filename):
+    with open(top_filename, 'rt') as topfile:
+        top = topfile.read()
+    with open(crd_filename) as crdfile:
+        crd = crdfile.read()
+    return System(top, crd)
+
+
 class SystemBuilder(object):
     def __init__(self, forcefield='ff12sb', gb_radii='mbondi3'):
         self._forcefield = None
@@ -30,11 +38,7 @@ class SystemBuilder(object):
                 tleap_string = '\n'.join(leap_cmds)
                 tleap_file.write(tleap_string)
             subprocess.check_call('tleap -f tleap.in > tleap.out', shell=True)
-            with open('system.top') as top_file:
-                top = top_file.read()
-            with open('system.mdcrd') as crd_file:
-                crd = crd_file.read()
-            return System(top, crd)
+            return load_amber_system('system.top', 'system.mdcrd')
 
     def _set_forcefield(self, forcefield):
         ff_dict = {'ff12sb': 'leaprc.ff12SB',
