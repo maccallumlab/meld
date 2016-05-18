@@ -5,10 +5,12 @@
 
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, Platform, CustomExternalForce
+from simtk.openmm import (
+    LangevinIntegrator, Platform, CustomExternalForce,
+    MonteCarloBarostat)
 from simtk.unit import (
     Quantity, kelvin, picosecond, femtosecond, angstrom,
-    kilojoule, mole, gram)
+    kilojoule, mole, gram, nanometer, atmosphere)
 from meld.system.restraints import (
     SelectableRestraint, NonSelectableRestraint, DistanceRestraint,
     TorsionRestraint, ConfinementRestraint, DistProfileRestraint,
@@ -20,7 +22,7 @@ import logging
 from meld.util import log_timing
 import numpy as np
 import tempfile
-from collections import OrderedDict, Callable
+from collections import OrderedDict, Callable, namedtuple
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,11 @@ except ImportError:
 GAS_CONSTANT = 8.314e-3
 
 
+# namedtuples to store simulation information
+PressureCouplingParams = namedtuple('PressureCouplingParams', ['enable', 'pressure', 'temperature', 'steps'])
+PMEParams = namedtuple('PMEParams', ['enable', 'tolerance'])
+
+
 class OpenMMRunner(object):
     def __init__(self, system, options, communicator=None):
         if communicator:
@@ -64,6 +71,7 @@ class OpenMMRunner(object):
         self._options = options
         self._simulation = None
         self._integrator = None
+        self._barostat = None
         self._timestep = None
         self._initialized = False
         self._alpha = 0.
@@ -125,7 +133,14 @@ class OpenMMRunner(object):
 
     def _initialize_simulation(self):
         if self._initialized:
+            # update temperature and pressure
             self._integrator.setTemperature(self._temperature)
+            if self._options.enable_pressure_coupling:
+                self._simulation.context.setParameter(
+                    self._barostat.Temperature(),
+                    self._temperature)
+
+            # update softcore parameters
             if self._options.softcore:
                 self._simulation.context.setParameter(
                     'qq_lambda', self._sc_lambda_coulomb)
@@ -138,6 +153,7 @@ class OpenMMRunner(object):
                              self._sc_lambda_lj,
                              self._sc_lambda_lj)
 
+            # update meld parameters
             meld_rests = _update_always_active_restraints(
                 self._always_on_restraints, self._alpha,
                 self._timestep, self._force_dict)
@@ -149,14 +165,32 @@ class OpenMMRunner(object):
                     force.updateParametersInContext(self._simulation.context)
 
         else:
+            # we need to set the whole thing from scratch
             self._initialized = True
 
-            # we need to set the whole thing from scratch
             prmtop = _parm_top_from_string(self._parm_string)
-            sys = _create_openmm_system(
-                prmtop, self._options.cutoff, self._options.use_big_timestep,
+
+            # create parameter objects
+            pme_params = PMEParams(
+                enable=self._options.enable_pme,
+                tolerance=self._options.pme_tolerance)
+            pcouple_params = PressureCouplingParams(
+                enable=self._options.enable_pressure_coupling,
+                temperature=self._temperature,
+                pressure=self._options.pressure,
+                steps=self._options.pressure_coupling_update_steps)
+
+            # build the system
+            sys, barostat = _create_openmm_system(
+                prmtop, self._options.solvation,
+                self._options.cutoff, self._options.use_big_timestep,
                 self._options.use_bigger_timestep,
-                self._options.implicit_solvent_model, self._options.remove_com)
+                self._options.implicit_solvent_model,
+                pme_params,
+                pcouple_params,
+                self._options.remove_com,
+                self._temperature)
+            self._barostat = barostat
 
             if self._options.softcore:
                 sys = softcore.add_soft_core(sys)
@@ -180,7 +214,8 @@ class OpenMMRunner(object):
                 self._options.use_bigger_timestep)
 
             platform = Platform.getPlatformByName('CUDA')
-            properties = {'CudaDeviceIndex': str(self._device_id)}
+            properties = {'CudaDeviceIndex': str(self._device_id),
+                          'CudaPrecision': 'mixed'}
 
             self._simulation = _create_openmm_simulation(
                 prmtop.topology, sys, self._integrator, platform, properties)
@@ -205,9 +240,6 @@ class OpenMMRunner(object):
             state.energy = self.get_energy(state)
             state = self._options.min_mc.update(state, self)
             logger.info('Ending energy {:.3f}'.format(self.get_energy(state)))
-            if self._options.remove_com:
-                state.positions = (
-                    state.positions - np.mean(state.positions, axis=0))
         return state
 
     def _run_mc(self, state):
@@ -218,9 +250,6 @@ class OpenMMRunner(object):
             state.energy = self.get_energy(state)
             state = self._options.run_mc.update(state, self)
             logger.debug('Ending energy {:.3f}'.format(self.get_energy(state)))
-            if self._options.remove_com:
-                state.positions = (
-                    state.positions - np.mean(state.positions, axis=0))
         return state
 
     def _run(self, state, minimize):
@@ -236,9 +265,17 @@ class OpenMMRunner(object):
         # uses nm
         coordinates = Quantity(state.positions, angstrom)
         velocities = Quantity(state.velocities, angstrom / picosecond)
+        box_vectors  = Quantity(state.box_vector, angstrom)
 
         # set the positions
         self._simulation.context.setPositions(coordinates)
+
+        # if explicit solvent, then set the box vectors
+        if self._options.solvation == 'explicit':
+            self._simulation.context.setPeriodicBoxVectors(
+                [box_vectors[0].value_in_unit(nanometer), 0., 0.],
+                [0., box_vectors[1].value_in_unit(nanometer), 0.],
+                [0., 0., box_vectors[2].value_in_unit(nanometer)])
 
         # run energy minimization
         if minimize:
@@ -249,17 +286,32 @@ class OpenMMRunner(object):
         self._simulation.context.setVelocities(velocities)
 
         # run timesteps
-
         self._simulation.step(self._options.timesteps)
 
         # extract coords, vels, energy and strip units
-        snapshot = self._simulation.context.getState(
-            getPositions=True, getVelocities=True, getEnergy=True)
+        if self._options.solvation == 'implicit':
+            snapshot = self._simulation.context.getState(
+                getPositions=True, getVelocities=True, getEnergy=True)
+        elif self._options.solvation == 'explicit':
+            snapshot = self._simulation.context.getState(
+                getPositions=True, getVelocities=True, getEnergy=True,
+                enforcePeriodicBox=True)
         coordinates = snapshot.getPositions(
             asNumpy=True).value_in_unit(angstrom)
         velocities = (snapshot.getVelocities(asNumpy=True)
                       .value_in_unit(angstrom / picosecond))
         _check_for_nan(coordinates, velocities, self._rank)
+
+        # if explicit solvent, the recover the box vectors
+        if self._options.solvation == 'explicit':
+            box_vector = (
+                snapshot.getPeriodicBoxVectors().value_in_unit(angstrom))
+            box_vector = np.array((box_vector[0][0], box_vector[1][1], box_vector[2][2]))
+        # just store zeros for implicit solvent
+        else:
+            box_vector = np.zeros(3)
+
+        # get the energy
         e_potential = (
             snapshot.getPotentialEnergy().value_in_unit(kilojoule / mole) /
             GAS_CONSTANT / self._temperature)
@@ -268,6 +320,7 @@ class OpenMMRunner(object):
         state.positions = coordinates
         state.velocities = velocities
         state.energy = e_potential
+        state.box_vector = box_vector
 
         return state
 
@@ -292,8 +345,30 @@ def _parm_top_from_string(parm_string):
         return prm_top
 
 
-def _create_openmm_system(parm_object, cutoff, use_big_timestep,
-                          use_bigger_timestep, implicit_solvent, remove_com):
+def _create_openmm_system(parm_object, solvation_type,
+                          cutoff, use_big_timestep, use_bigger_timestep,
+                          implicit_solvent, pme_params,
+                          pcouple_params, remove_com,
+                          temperature):
+    if solvation_type == 'implicit':
+        return _create_openmm_system_implicit(
+            parm_object, cutoff,
+            use_big_timestep, use_bigger_timestep,
+            implicit_solvent, remove_com), None
+    elif solvation_type == 'explicit':
+        return _create_openmm_system_explicit(
+            parm_object, cutoff,
+            use_big_timestep, use_bigger_timestep,
+            pme_params, pcouple_params,
+            remove_com, temperature)
+    else:
+        raise ValueError(
+            'unknown value for solvation_type: {}'.format(solvation_type))
+
+
+def _create_openmm_system_implicit(parm_object, cutoff,
+                                   use_big_timestep, use_bigger_timestep,
+                                   implicit_solvent, remove_com):
     if cutoff is None:
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
@@ -327,6 +402,46 @@ def _create_openmm_system(parm_object, cutoff, use_big_timestep,
         nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
         constraints=constraint_type, implicitSolvent=implicit_type,
         removeCMMotion=remove_com, hydrogenMass=hydrogen_mass)
+
+
+def _create_openmm_system_explicit(parm_object, cutoff,
+                                   use_big_timestep, use_bigger_timestep,
+                                   pme_params, pcouple_params,
+                                   remove_com, temperature):
+    if cutoff is None:
+        raise ValueError(
+            'cutoff must be set for explicit solvent, but got None')
+    else:
+        if pme_params.enable:
+            cutoff_type = ff.PME
+        else:
+            cutoff_type = ff.CutoffPeriodic
+        cutoff_dist = cutoff
+
+    if use_big_timestep:
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 3.0 * gram / mole
+    elif use_bigger_timestep:
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 4.0 * gram / mole
+    else:
+        constraint_type = ff.HBonds
+        hydrogen_mass = None
+
+    s = parm_object.createSystem(
+        nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
+        constraints=constraint_type, implicitSolvent=None,
+        removeCMMotion=remove_com, hydrogenMass=hydrogen_mass,
+        rigidWater=True, ewaldErrorTolerance=pme_params.tolerance)
+
+    baro = None
+    if pcouple_params.enable:
+        baro = MonteCarloBarostat(pcouple_params.pressure,
+                                  pcouple_params.temperature,
+                                  pcouple_params.steps)
+        s.addForce(baro)
+
+    return s, baro
 
 
 def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
@@ -570,9 +685,9 @@ def _add_yzcartesian_restraints(system, restraint_list, alpha, timestep,
     if cartesian_restraints:
         # create the confinement force
         cartesian_force = CustomExternalForce(
-            '0.5 * cart_force_const * r_eff^2;'
-            'r_eff = max(0.0, r - cart_delta);'
-            'r = sqrt(dy*dy + dz*dz);'
+            '0.5 * cart_force_const * r_eff2;'
+            'r_eff2 = max(0.0, r2 - cart_delta^2);'
+            'r2 = dy*dy + dz*dz;'
             'dy = y - cart_y;'
             'dz = z - cart_z;')
         cartesian_force.addPerParticleParameter('cart_y')
@@ -583,8 +698,8 @@ def _add_yzcartesian_restraints(system, restraint_list, alpha, timestep,
         # add the atoms
         for r in cartesian_restraints:
             weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
-            cartesian_force.addParticle(r.atom_index - 1, [r.y, r.z, r.delta,
-                                                           weight])
+            cartesian_force.addParticle(r.atom_index - 1,
+                                        [r.y, r.z, r.delta, weight])
         system.addForce(cartesian_force)
         force_dict['yzcartesian'] = cartesian_force
     else:

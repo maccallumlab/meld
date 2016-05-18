@@ -14,10 +14,11 @@ class SystemState(object):
     :param energy: total potential energy, including restraints
 
     """
-    def __init__(self, positions, velocities, alpha, energy):
+    def __init__(self, positions, velocities, alpha, energy, box_vector):
         self.positions = positions
-        self.n_atoms = positions.shape[0]
         self.velocities = velocities
+        self.box_vector = box_vector
+        self.n_atoms = positions.shape[0]
         self.alpha = alpha
         self.energy = energy
 
@@ -37,6 +38,12 @@ class SystemState(object):
         if not self.positions.shape == self.velocities.shape:
             raise RuntimeError(
                 'velocities must have the same shape as positions')
+
+        # check box vectors
+        if self.box_vector is not None:
+            if not len(self.box_vector) == 3:
+                raise RuntimeError(
+                    'len(box_vectors) != 3')
 
         # check alpha
         if self.alpha < 0 or self.alpha > 1:

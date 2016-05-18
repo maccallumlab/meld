@@ -156,12 +156,14 @@ class MasterReplicaExchangeRunner(object):
     def _permute_states(permutation_matrix, states, system_runner):
         old_coords = [s.positions for s in states]
         old_velocities = [s.velocities for s in states]
+        old_box_vectors = [s.box_vector for s in states]
         old_energy = [s.energy for s in states]
         temperatures = [system_runner.temperature_scaler(s.alpha)
                         for s in states]
 
         for i, index in enumerate(permutation_matrix):
             states[i].positions = old_coords[index]
+            states[i].box_vector = old_box_vectors[index]
             states[i].velocities = (
                 math.sqrt(temperatures[i] / temperatures[index]) *
                 old_velocities[index])

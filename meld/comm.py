@@ -298,11 +298,14 @@ class MPICommunicator(object):
                 # devices 0 and 1 to get physical devices 2 and 3.
                 # So, we subtract the minimum value from each each to make
                 # it zero
+                # but we don't do this if the device ids are set to -1, which
+                # allows openmm to choose the gpu
                 for host in hosts:
                     min_device_id = min(available_devices[host.host_name])
-                    available_devices[host.host_name] = [
-                        device_id - min_device_id for device_id in
-                        available_devices[host.host_name]]
+                    if min_device_id != -1:
+                        available_devices[host.host_name] = [
+                            device_id - min_device_id for device_id in
+                            available_devices[host.host_name]]
 
                 # device ids for each node
                 device_ids = []

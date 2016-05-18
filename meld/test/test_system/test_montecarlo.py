@@ -167,7 +167,8 @@ class TestRandomTorsionMover(unittest.TestCase):
             [1., 0., -1.],
             [0., 0., 0.]])
 
-        state = meld.system.SystemState(start, np.zeros_like(start), 0., 0.)
+        state = meld.system.SystemState(start, np.zeros_like(start),
+                                        0., 0., np.zeros(3))
         mock_runner = mock.Mock()
         mock_runner.get_energy.return_value = -1.0
 
@@ -202,7 +203,8 @@ class TestRandomTorsionMover(unittest.TestCase):
             [0., 0., .0],
             [-1., 0., -1.]])
 
-        state = meld.system.SystemState(start, np.zeros_like(start), 0., 0.)
+        state = meld.system.SystemState(start, np.zeros_like(start),
+                                        0., 0., np.zeros(3))
         mock_runner = mock.Mock()
         mock_runner.get_energy.return_value = 1000.
 

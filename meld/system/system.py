@@ -5,11 +5,11 @@
 
 from __future__ import print_function
 import math
-
 import numpy as np
 
 from .restraints import RestraintManager
-from meld.pdb_writer import PDBWriter
+from ..pdb_writer import PDBWriter
+from simtk.unit import atmosphere
 
 
 class ConstantTemperatureScaler(object):
@@ -123,6 +123,7 @@ class System(object):
 
         self.temperature_scaler = None
         self._coordinates = None
+        self._box_vectors = None
         self._n_atoms = None
         self._setup_coords()
 
@@ -185,30 +186,53 @@ class System(object):
         self._atom_index = reader.get_atom_map()
 
     def _setup_coords(self):
-        self._coordinates = CrdReader(self._mdcrd_string).get_coordinates()
+        reader = CrdReader(self._mdcrd_string)
+        self._coordinates = reader.get_coordinates()
+        self._box_vectors = reader.get_box_vectors()
         self._n_atoms = self._coordinates.shape[0]
 
 
 class CrdReader(object):
     def __init__(self, crd_string):
         self.crd_string = crd_string
+        self._coords = None
+        self._box_vectors = None
+        self._read()
 
     def get_coordinates(self):
+        return self._coords
 
+    def get_box_vectors(self):
+        return self._box_vectors
+
+    def _read(self):
         def split_len(seq, length):
             return [seq[i:i+length] for i in range(0, len(seq), length)]
 
         lines = self.crd_string.splitlines()
         n_atoms = int(lines[1].split()[0])
         coords = []
+        box_vectors = None
+
         for line in lines[2:]:
             cols = split_len(line, 12)
             cols = [float(c) for c in cols]
             coords.extend(cols)
-        assert len(coords) == 3 * n_atoms
+
+        # check for box vectors
+        if len(coords) == 3 * n_atoms + 6:
+            coords, box_vectors = coords[:-6], coords[-6:]
+            for bv in box_vectors[-3:]:
+                if not bv == 90.0:
+                    raise RuntimeError('box angle != 90.0 degrees')
+            box_vectors = np.array(box_vectors[:-3])
+        elif not len(coords) == 3 * n_atoms:
+            raise RuntimeError('len(coords) != 3 * n_atoms')
+
         coords = np.array(coords)
         coords = coords.reshape((n_atoms, 3))
-        return coords
+        self._coords = coords
+        self._box_vectors = box_vectors
 
 
 class ParmTopReader(object):
@@ -300,7 +324,10 @@ class RunOptions(object):
             'runner', 'timesteps', 'minimize_steps',
             'implicit_solvent_model', 'cutoff', 'use_big_timestep',
             'use_bigger_timestep', 'use_amap', 'amap_alpha_bias',
-            'amap_beta_bias', 'min_mc', 'run_mc', 'ccap', 'ncap']
+            'amap_beta_bias', 'min_mc', 'run_mc', 'ccap', 'ncap',
+            'solvation', 'enable_pme', 'enable_pressure_coupling',
+            'pressure', 'pressure_coupling_update_steps',
+            'pme_tolerance']
         allowed_attributes += ['_{}'.format(item) for
                                item in allowed_attributes]
         if name not in allowed_attributes:
@@ -309,12 +336,24 @@ class RunOptions(object):
         else:
             object.__setattr__(self, name, value)
 
-    def __init__(self):
+    def __init__(self, solvation='implicit'):
+        self._solvation = solvation
+        if solvation == 'implicit':
+            self.implicit_solvent_model = 'gbNeck2'
+            self.cutoff = None
+            self.enable_pme = False
+            self.enable_pressure_coupling = False
+        elif solvation == 'explicit':
+            self.implicit_solvent_model = 'vacuum'
+            self.cutoff = 0.9
+            self.enable_pme = True
+            self.enable_pressure_coupling = True
+        else:
+            raise RuntimeError(
+                'Unknown value {} for solvation'.format(solvation))
         self._runner = 'openmm'
         self._timesteps = 5000
         self._minimize_steps = 1000
-        self._implicit_solvent_model = 'gbNeck2'
-        self._cutoff = None
         self._use_big_timestep = False
         self._use_bigger_timestep = False
         self._use_amap = False
@@ -324,11 +363,91 @@ class RunOptions(object):
         self._sc_alpha_min = 0.0
         self._sc_alpha_max_coulomb = 0.3
         self._sc_alpha_max_lennard_jones = 1.0
-        self._remove_com = True
         self._min_mc = None
         self._run_mc = None
         self._ccap = False
         self._ncap = False
+        self._remove_com = True
+        self._pressure = 1.0 * atmosphere
+        self._pressure_coupling_update_steps = 25
+        self._pme_tolerance = 0.0005
+
+    # solvation is a read-only property that must be set
+    # when the options are created
+    @property
+    def solvation(self):
+        return self._solvation
+
+    @property
+    def enable_pme(self):
+        return self._enable_pme
+
+    @enable_pme.setter
+    def enable_pme(self, new_value):
+        if new_value not in [True, False]:
+            raise ValueError('enable_pme must be True or False')
+        if new_value:
+            if self._solvation == 'implicit':
+                raise ValueError(
+                    'Tried to set enable_pme=True with implicit solvation')
+        else:
+            if self._solvation == 'explicit':
+                raise ValueError(
+                    'Tried to set enable_pme=False with explicit solvation')
+        self._enable_pme = new_value
+
+    @property
+    def pme_tolerance(self):
+        return self._pme_tolerance
+
+    @pme_tolerance.setter
+    def pme_tolerance(self, new_value):
+        if new_value <= 0:
+            raise ValueError(
+                'pme_tolerance must be > 0')
+        self._pme_tolerance = new_value
+
+    @property
+    def enable_pressure_coupling(self):
+        return self._enable_pressure_coupling
+
+    @enable_pressure_coupling.setter
+    def enable_pressure_coupling(self, new_value):
+        if new_value not in [True, False]:
+            raise ValueError('enable_pressure_coupling must be True or False')
+        if new_value:
+            if self._solvation == 'implicit':
+                raise ValueError(
+                    'Tried to set enable_pressure_coupling=True with '
+                    'implicit solvation')
+        else:
+            if self._solvation == 'explicit':
+                raise ValueError(
+                    'Tried to set enable_pressure_coupling=False with'
+                    'explicit solvation')
+        self._enable_pressure_coupling = new_value
+
+    @property
+    def pressure(self):
+        return self._pressure
+
+    @pressure.setter
+    def pressure(self, new_value):
+        if new_value <= 0:
+            raise ValueError(
+                'pressure must be > 0')
+        self._pressure = new_value
+
+    @property
+    def pressure_coupling_update_steps(self):
+        return self._pressure_coupling_update_steps
+
+    @pressure_coupling_update_steps.setter
+    def pressure_coupling_update_steps(self, new_value):
+        if new_value <= 0:
+            raise ValueError(
+                'pressure_coupling_update_steps must be > 0')
+        self._pressure_coupling_update_steps = new_value
 
     @property
     def min_mc(self):
@@ -506,6 +625,32 @@ class RunOptions(object):
         if value < 0:
             raise RuntimeError('amap_beta_bias < 0')
         self._amap_beta_bias = value
+
+    def sanity_check(self):
+        if self._solvation == 'implicit':
+            if self._enable_pme:
+                raise ValueError(
+                    'enable_pme == True for implicit solvation simulation')
+            if self._enable_pressure_coupling:
+                raise ValueError(
+                    'enable_pressure_coupling == True for implicit'
+                    'solvation simulation')
+
+        if self._solvation == 'explicit':
+            if not self._enable_pme:
+                raise ValueError(
+                    'enable_pme == False for explicit solvation simulation')
+
+            if not self._enable_pressure_coupling:
+                raise ValueError(
+                    'enable_pressure_coupling == False for explicit'
+                    'solvation simulation')
+
+            if not self._implicit_solvent_model == 'vacuum':
+                raise ValueError(
+                    'implicit_solvent_model != "vacuum" for explicit '
+                    'solvation simulation')
+        self._check_sc()
 
     def _check_sc(self):
         if self._softcore:

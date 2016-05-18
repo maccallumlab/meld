@@ -22,9 +22,10 @@ BACKUP_FREQ = 2
 def gen_state(s):
     pos = s._coordinates
     vel = np.zeros_like(pos)
+    box_vectors = [0., 0., 0.]
     alpha = 0
     energy = 0
-    return system.SystemState(pos, vel, alpha, energy)
+    return system.SystemState(pos, vel, alpha, energy, box_vectors)
 
 
 def setup_system():
@@ -80,7 +81,7 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('CUDA_VISIBLE_DEVICES="0,0" mpirun -np 2 launch_remd', shell=True)
+        subprocess.check_call('CUDA_VISIBLE_DEVICES="-1,-1" mpirun -np 2 launch_remd', shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
