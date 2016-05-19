@@ -351,11 +351,13 @@ def _create_openmm_system(parm_object, solvation_type,
                           pcouple_params, remove_com,
                           temperature):
     if solvation_type == 'implicit':
+        logger.info('Creating implicit solvent system')
         return _create_openmm_system_implicit(
             parm_object, cutoff,
             use_big_timestep, use_bigger_timestep,
             implicit_solvent, remove_com), None
     elif solvation_type == 'explicit':
+        logger.info('Creating explicit solvent system')
         return _create_openmm_system_explicit(
             parm_object, cutoff,
             use_big_timestep, use_bigger_timestep,
@@ -366,35 +368,49 @@ def _create_openmm_system(parm_object, solvation_type,
             'unknown value for solvation_type: {}'.format(solvation_type))
 
 
+def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):
+    if use_big_timestep:
+        logger.info('Enabling hydrogen mass=3, constraining all bonds')
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 3.0 * gram / mole
+    elif use_bigger_timestep:
+        logger.info('Enabling hydrogen mass=4, constraining all bonds')
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 4.0 * gram / mole
+    else:
+        logger.info(
+            'Enabling hydrogen mass=1, constraining bonds with hydrogen')
+        constraint_type = ff.HBonds
+        hydrogen_mass = None
+    return hydrogen_mass, constraint_type
+
+
 def _create_openmm_system_implicit(parm_object, cutoff,
                                    use_big_timestep, use_bigger_timestep,
                                    implicit_solvent, remove_com):
     if cutoff is None:
+        logger.info('Using no cutoff')
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
     else:
+        logger.info('USing a cutoff of {}'.format(cutoff))
         cutoff_type = ff.CutoffNonPeriodic
         cutoff_dist = cutoff
 
-    if use_big_timestep:
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 3.0 * gram / mole
-    elif use_bigger_timestep:
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 4.0 * gram / mole
-    else:
-        constraint_type = ff.HBonds
-        hydrogen_mass = None
+    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
+        use_big_timestep, use_bigger_timestep)
 
     if implicit_solvent == 'obc':
+        logger.info('Using "OBC" implicit solvent')
         implicit_type = OBC2
     elif implicit_solvent == 'gbNeck':
+        logger.info('Using "gbNeck" implicit solvent')
         implicit_type = GBn
     elif implicit_solvent == 'gbNeck2':
+        logger.info('Using "gbNeck2" implicit solvent')
         implicit_type = GBn2
-    elif implicit_solvent == 'vacuum':
-        implicit_type = None
-    elif implicit_solvent is None:
+    elif implicit_solvent == 'vacuum' or implicit_solvent is None:
+        logger.info('Using vacuum instead of implicit solvent')
         implicit_type = None
     else:
         RuntimeError('Should never get here')
@@ -413,20 +429,19 @@ def _create_openmm_system_explicit(parm_object, cutoff,
             'cutoff must be set for explicit solvent, but got None')
     else:
         if pme_params.enable:
+            logger.info(
+                'Using PME with tolerance {}'.format(pme_params.tolerance))
             cutoff_type = ff.PME
         else:
+            logger.info(
+                'Using reaction field')
             cutoff_type = ff.CutoffPeriodic
+
+        logger.info('Using a cutoff of {}'.format(cutoff))
         cutoff_dist = cutoff
 
-    if use_big_timestep:
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 3.0 * gram / mole
-    elif use_bigger_timestep:
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 4.0 * gram / mole
-    else:
-        constraint_type = ff.HBonds
-        hydrogen_mass = None
+    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
+        use_big_timestep, use_bigger_timestep)
 
     s = parm_object.createSystem(
         nonbondedMethod=cutoff_type, nonbondedCutoff=cutoff_dist,
@@ -436,6 +451,10 @@ def _create_openmm_system_explicit(parm_object, cutoff,
 
     baro = None
     if pcouple_params.enable:
+        logger.info('Enabling pressure coupling')
+        logger.info('Pressure is {}'.format(pcouple_params.pressure))
+        logger.info(
+            'Volume moves attempted every {} steps'.format(pcouple_params.steps))
         baro = MonteCarloBarostat(pcouple_params.pressure,
                                   pcouple_params.temperature,
                                   pcouple_params.steps)
@@ -446,10 +465,13 @@ def _create_openmm_system_explicit(parm_object, cutoff,
 
 def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
     if use_big_timestep:
+        logger.info('Creating integrator with 3.5 fs timestep')
         timestep = 3.5 * femtosecond
     elif use_bigger_timestep:
+        logger.info('Creating integrator with 4.5 fs timestep')
         timestep = 4.5 * femtosecond
     else:
+        logger.info('Creating integrator with 2.0 fs timestep')
         timestep = 2.0 * femtosecond
     return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
 
