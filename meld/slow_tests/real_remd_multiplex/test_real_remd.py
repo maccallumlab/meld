@@ -44,6 +44,17 @@ def setup_system():
                                                                           contents=secondary)
     s.restraints.add_selectively_active_collection(secondary_restraints, len(secondary_restraints))
 
+    # create a com restraints
+    com = s.restraints.create_restraint('com', rest_scaler, ramp=None,
+                                        group1=[(1, 'CA')],
+                                        group2=[(3, 'CA')],
+                                        weights1=None,
+                                        weights2=None,
+                                        dims='xyz',
+                                        force_const=100.,
+                                        distance=0.5)
+    s.restraints.add_as_always_active(com)
+
     # create the options
     options = system.RunOptions()
 

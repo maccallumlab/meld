@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+import numpy as np
 import unittest
 import mock
 
@@ -901,3 +902,97 @@ class TestLinearPositioner(unittest.TestCase):
 
     def test_returns_mid_value_at_half_way(self):
         self.assertAlmostEqual(self.positioner(0.5), 50.0)
+
+
+class TestCOMRestraint(unittest.TestCase):
+    def setUp(self):
+        p = system.ProteinMoleculeFromSequence(
+            'GLY GLY GLY GLY')
+        b = system.SystemBuilder()
+        self.system = b.build_system_from_molecules([p])
+        self.scaler = restraints.ConstantScaler()
+        self.ramp = restraints.ConstantRamp()
+
+    def test_should_raise_when_dims_has_non_xyz(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=None,
+                weights2=None,
+                dims='a',
+                force_const=1,
+                distance=1)
+
+    def test_should_raise_on_repeated_dim(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=None,
+                weights2=None,
+                dims='xx',
+                force_const=1,
+                distance=1)
+
+    def test_should_raise_on_negative_k(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=None,
+                weights2=None,
+                dims='x',
+                force_const=-1,
+                distance=1)
+
+    def test_should_raise_on_negative_distance(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=None,
+                weights2=None,
+                dims='x',
+                force_const=1,
+                distance=-1)
+
+    def test_should_raise_on_group1_size_mismatch(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=np.array([1.0, 1.0]), # wrong length
+                weights2=None,
+                dims='x',
+                force_const=1,
+                distance=1)
+
+    def test_should_raise_on_group1_size_mismatch(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA')],
+                group2=[(2, 'CA')],
+                weights1=None,
+                weights2=np.array([1.0, 1.0]), # wrong length
+                dims='x',
+                force_const=1,
+                distance=1)
