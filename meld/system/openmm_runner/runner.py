@@ -17,7 +17,6 @@ from meld.system.restraints import (
     TorsProfileRestraint, CartesianRestraint, YZCartesianRestraint,
     COMRestraint, AbsoluteCOMRestraint, RdcRestraint,
     HyperbolicDistanceRestraint)
-from . import softcore
 from meld.system.openmm_runner import cmap
 import logging
 from meld.util import log_timing
@@ -69,39 +68,13 @@ class OpenMMRunner(object):
         self._initialized = False
         self._alpha = 0.
         self._temperature = None
-        self._sc_lambda_coulomb = 1.0
-        self._sc_lambda_lj = 1.0
         self._force_dict = {}
 
     def set_alpha_and_timestep(self, alpha, timestep):
         self._alpha = alpha
         self._timestep = timestep
         self._temperature = self.temperature_scaler(alpha)
-        self._update_softcore()
         self._initialize_simulation()
-
-    def _update_softcore(self):
-        alpha = self._alpha
-        a1 = self._options.sc_alpha_min
-        a2 = self._options.sc_alpha_max_coulomb
-        a3 = self._options.sc_alpha_max_lennard_jones
-
-        if self._options.softcore:
-            self._sc_lambda_coulomb = alpha
-            self._sc_lambda_lj = alpha
-            # logger.info('updating softcore')
-            # if alpha <= a1:
-            #     self._sc_lambda_coulomb = 1.0
-            #     self._sc_lambda_lj = 1.0
-            # elif alpha >= a3:
-            #     self._sc_lambda_coulomb = 0.0
-            #     self._sc_lambda_lj = 0.0
-            # elif alpha < a2:
-            #     self._sc_lambda_lj = 1.0
-            #     self._sc_lambda_coulomb = 1.0 - (alpha - a1) / (a2 - a1)
-            # else:
-            #     self._sc_lambda_coulomb = 0.0
-            #     self._sc_lambda_lj = 1.0 - (alpha - a2) / (a3 - a2)
 
     @log_timing(logger)
     def minimize_then_run(self, state):
@@ -142,19 +115,6 @@ class OpenMMRunner(object):
                     self._barostat.Temperature(),
                     self._temperature)
 
-            # update softcore parameters
-            if self._options.softcore:
-                self._simulation.context.setParameter(
-                    'qq_lambda', self._sc_lambda_coulomb)
-                self._simulation.context.setParameter(
-                    'lj_lambda', self._sc_lambda_lj)
-                self._simulation.context.setParameter(
-                    'sc_lambda', self._sc_lambda_lj)
-                logger.debug('set sc %d %f %f %f', self._rank,
-                             self._sc_lambda_coulomb,
-                             self._sc_lambda_lj,
-                             self._sc_lambda_lj)
-
             # update meld parameters
             meld_rests = _update_always_active_restraints(
                 self._always_on_restraints, self._alpha,
@@ -194,9 +154,6 @@ class OpenMMRunner(object):
                 self._temperature)
             self._barostat = barostat
 
-            if self._options.softcore:
-                sys = softcore.add_soft_core(sys)
-
             if self._options.use_amap:
                 adder = cmap.CMAPAdder(
                     self._parm_string, self._options.amap_alpha_bias,
@@ -221,18 +178,6 @@ class OpenMMRunner(object):
 
             self._simulation = _create_openmm_simulation(
                 prmtop.topology, sys, self._integrator, platform, properties)
-
-            if self._options.softcore:
-                self._simulation.context.setParameter(
-                    'qq_lambda', self._sc_lambda_coulomb)
-                self._simulation.context.setParameter(
-                    'lj_lambda', self._sc_lambda_lj)
-                self._simulation.context.setParameter(
-                    'sc_lambda', self._sc_lambda_lj)
-                logger.debug('set sc %d %f %f %f', self._rank,
-                             self._sc_lambda_coulomb,
-                             self._sc_lambda_lj,
-                             self._sc_lambda_lj)
 
     def _run_min_mc(self, state):
         if self._options.min_mc is not None:
