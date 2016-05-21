@@ -319,9 +319,7 @@ class RunOptions(object):
         # all others will raise an error, which catches
         # typos
         allowed_attributes = [
-            'remove_com', 'softcore', 'sc_alpha_min',
-            'sc_alpha_max_coulomb', 'sc_alpha_max_lennard_jones',
-            'runner', 'timesteps', 'minimize_steps',
+            'remove_com', 'runner', 'timesteps', 'minimize_steps',
             'implicit_solvent_model', 'cutoff', 'use_big_timestep',
             'use_bigger_timestep', 'use_amap', 'amap_alpha_bias',
             'amap_beta_bias', 'min_mc', 'run_mc', 'ccap', 'ncap',
@@ -359,10 +357,6 @@ class RunOptions(object):
         self._use_amap = False
         self._amap_alpha_bias = 1.0
         self._amap_beta_bias = 1.0
-        self._softcore = False
-        self._sc_alpha_min = 0.0
-        self._sc_alpha_max_coulomb = 0.3
-        self._sc_alpha_max_lennard_jones = 1.0
         self._min_mc = None
         self._run_mc = None
         self._ccap = False
@@ -463,42 +457,6 @@ class RunOptions(object):
     @remove_com.setter
     def remove_com(self, new_value):
         self._remove_com = bool(new_value)
-
-    @property
-    def softcore(self):
-        return self._softcore
-
-    @softcore.setter
-    def softcore(self, new_value):
-        self._softcore = bool(new_value)
-        self._check_sc()
-
-    @property
-    def sc_alpha_min(self):
-        return self._sc_alpha_min
-
-    @sc_alpha_min.setter
-    def sc_alpha_min(self, new_value):
-        self._sc_alpha_min = float(new_value)
-        self._check_sc()
-
-    @property
-    def sc_alpha_max_coulomb(self):
-        return self._sc_alpha_max_coulomb
-
-    @sc_alpha_max_coulomb.setter
-    def sc_alpha_max_coulomb(self, new_value):
-        self._sc_alpha_max_coulomb = float(new_value)
-        self._check_sc()
-
-    @property
-    def sc_alpha_max_lennard_jones(self):
-        return self._sc_alpha_max_lennard_jones
-
-    @sc_alpha_max_lennard_jones.setter
-    def sc_alpha_max_lennard_jones(self, new_value):
-        self._sc_alpha_max_lennard_jones = float(new_value)
-        self._check_sc()
 
     @property
     def runner(self):
@@ -632,12 +590,3 @@ class RunOptions(object):
                 raise ValueError(
                     'implicit_solvent_model != "vacuum" for explicit '
                     'solvation simulation')
-        self._check_sc()
-
-    def _check_sc(self):
-        if self._softcore:
-            assert self._sc_alpha_min >= 0.0
-            assert self._sc_alpha_max_coulomb > self._sc_alpha_min
-            assert (self._sc_alpha_max_lennard_jones >=
-                    self._sc_alpha_max_coulomb)
-            assert self._sc_alpha_max_lennard_jones <= 1.0

@@ -61,14 +61,6 @@ def get_runner(store, full_energy):
         options.implicit_solvent_model = 'vacuum'
         options.remove_com = False
 
-    # add softcore information for old versions
-    if not hasattr(options, '_sc_alpha_min'):
-        options._sc_alpha_min = 0.0
-        options._sc_alpha_max_coulomb = 1.0
-        options._sc_alpha_max_lennard_jones = 1.0
-        options._softcore = False
-
-
     runner = omm_runner.OpenMMRunner(system, options)
     runner.set_alpha_and_timestep(0.0, 0)
     forces = runner._simulation.system.getForces()
