@@ -6,6 +6,7 @@
 from __future__ import print_function
 from six import with_metaclass
 import math
+import numpy as np
 
 
 class RestraintRegistry(type):
@@ -410,6 +411,107 @@ class YZCartesianRestraint(NonSelectableRestraint):
             raise ValueError('force_const must be non-negative')
 
 
+class AbsoluteCOMRestraint(NonSelectableRestraint):
+    ''' Restraint on the distance between a group and a point in space
+
+    This class implements a restraint on the distance between the
+    center of a group and a point in space.
+
+    The weights used to calculate the center can be specified as
+    `weights`. If `None`, then the masses of the atoms will be used.
+
+    The `dims` parameter controls which dimensions are used to compute the
+    distance. For example if `dims='xyz', then the distance will be the
+    normal distance in all three dimensions. If `dims=x`, then only the
+    x-component will be considered.
+    `
+    Parameters
+    ----------
+    system: meld.system.System
+            system object used for indexing
+    scaler: Scaler or None
+            scaler for force constant
+    ramp: Ramp or None
+          ramp for force constant
+    group: list of tuple
+            [(res_index, atom_name), (res_index, atom_name)...]
+    weights: array_like
+              weights to use when calculating the COM
+    dims: string
+          combination of x, y, z that determines which dimensions
+          are used when calculating the distance
+    force_const: float
+                 force constant in kJ/mol/nm^2
+    point: vector
+           location in space to restrain to
+
+    Attributes
+    ----------
+    scaler: Scaler
+            scaler for the force constant
+    ramp: Ramp
+          ramp for the force
+    indices: list
+             index of atoms in group
+    weights: array_like
+             weights used in COM calculation
+    dims: string
+          combination of xyz dimensions used for distance calculation
+    force_const: float
+                 force constant
+    position: array_like
+              point in space that group is restrained to
+
+    '''
+
+    _restraint_key_ = 'abs_com'
+
+    def __init__(self, system, scaler, ramp, group, weights, dims,
+                 force_const, position):
+        self.scaler = scaler
+        self.ramp = ramp
+
+        self.dims = dims
+        self._check_dims()
+
+        self.force_const = force_const
+        if self.force_const < 0:
+            raise ValueError('force_const cannot be negative')
+
+        self.position = np.array(position, dtype=float)
+        if len(self.position) != 3:
+            raise ValueError(
+                'position should be an array of [x, y, z]')
+
+        self.weights = weights
+        self.indices = self._get_indices(system, group)
+        self._check_weights()
+
+    def _check_weights(self):
+        if self.weights is not None:
+            if len(self.indices) != len(self.weights):
+                raise ValueError(
+                    'weights and group have different lengths')
+            for w in self.weights:
+                if w < 0:
+                    raise ValueError(
+                    'weights must be > 0')
+
+    def _check_dims(self):
+        for c in self.dims:
+            if c not in 'xyz':
+                raise ValueError(
+                    'dims must be a combination of "xyz", found {}'.format(c))
+        for c in 'xyz':
+            if self.dims.count(c) > 1:
+                raise ValueError(
+                    '{} occurs more than once in dims'.format(c))
+
+    def _get_indices(self, system, group):
+        return [system.index_of_atom(res_ind, atom_name)
+                for (res_ind, atom_name) in group]
+
+
 class COMRestraint(NonSelectableRestraint):
     ''' Restraint on the distance between two groups along selected axes
 
@@ -484,16 +586,24 @@ class COMRestraint(NonSelectableRestraint):
         self.indices2 = self._get_indices(system, group2)
 
         # setup the weights
-        if weights1 is not None:
-            if len(self.indices1) != weights1:
+        self.weights1 = weights1
+        if self.weights1 is not None:
+            if len(self.indices1) != len(self.weights1):
                 raise ValueError(
                     'len(indices1) != len(weights1)')
-        self.weights1 = weights1
+            for w in self.weights1:
+                if w < 0:
+                    raise ValueError(
+                        'weights1 must be > 0')
+        self.weights2 = weights2
         if weights2 is not None:
-            if len(self.indices2) != weights2:
+            if len(self.indices2) != len(weights2):
                 raise ValueError(
                     'len(indices2) != len(weights2)')
-        self.weights2 = weights2
+            for w in self.weights2:
+                if w < 0:
+                    raise ValueError(
+                        'weights2 must be > 0')
 
         # setup the dimensions
         self.dims = dims

@@ -15,7 +15,8 @@ from meld.system.restraints import (
     SelectableRestraint, NonSelectableRestraint, DistanceRestraint,
     TorsionRestraint, ConfinementRestraint, DistProfileRestraint,
     TorsProfileRestraint, CartesianRestraint, YZCartesianRestraint,
-    COMRestraint, RdcRestraint, HyperbolicDistanceRestraint)
+    COMRestraint, AbsoluteCOMRestraint, RdcRestraint,
+    HyperbolicDistanceRestraint)
 from . import softcore
 from meld.system.openmm_runner import cmap
 import logging
@@ -507,9 +508,12 @@ def _add_always_active_restraints(system, restraint_list, alpha,
     nonselectable_restraints = (
         _add_com_restraints(system, nonselectable_restraints,
                             alpha, timestep, force_dict))
+    nonselectable_restraints = (
+        _add_absolute_com_restraints(system, nonselectable_restraints,
+                                     alpha, timestep, force_dict))
     if nonselectable_restraints:
         raise NotImplementedError(
-            'Non-meld restraints are not implemented yet')
+            'some restraints were not handled')
     return selectable_restraints
 
 
@@ -532,9 +536,12 @@ def _update_always_active_restraints(restraint_list, alpha, timestep,
     nonselectable_restraints = (
         _update_com_restraints(nonselectable_restraints, alpha,
                                timestep, force_dict))
+    nonselectable_restraints = (
+        _update_absolute_com_restraints(nonselectable_restraints, alpha,
+                                        timestep, force_dict))
     if nonselectable_restraints:
         raise NotImplementedError(
-            'Non-meld restraints are not implemented yet')
+            'some restraints were not handled')
     return selectable_restraints
 
 
@@ -747,7 +754,7 @@ def _update_yzcartesian_restraints(restraint_list, alpha, timestep,
 
 
 def _add_com_restraints(system, restraint_list, alpha, timestep, force_dict):
-    # split restraints into confinement and others
+    # split restraints into com and others
     my_restraints = [
         r for r in restraint_list if isinstance(r, COMRestraint)]
     other_restraints = [
@@ -800,7 +807,7 @@ def _add_com_restraints(system, restraint_list, alpha, timestep, force_dict):
 
 
 def _update_com_restraints(restraint_list, alpha, timestep, force_dict):
-    # split restraints into confinement and others
+    # split restraints into com and others
     my_restraints = [
         r for r in restraint_list if isinstance(r, COMRestraint)]
     other_restraints = [
@@ -815,6 +822,82 @@ def _update_com_restraints(restraint_list, alpha, timestep, force_dict):
         force.setBondParameters(0, groups, [weight, position])
     elif len(my_restraints) > 1:
         raise RuntimeError('Cannot have more than one COMRestraint')
+
+    return other_restraints
+
+
+def _add_absolute_com_restraints(system, restraint_list, alpha,
+                                 timestep, force_dict):
+    # split restraints into abs_com and others
+    my_restraints = [
+        r for r in restraint_list if isinstance(r, AbsoluteCOMRestraint)]
+    other_restraints = [
+        r for r in restraint_list if not isinstance(r, AbsoluteCOMRestraint)]
+
+    if len(my_restraints) == 1:
+        rest = my_restraints[0]
+        # convert indices from 1-based to 0-based
+        indices = [r - 1 for r in rest.indices]
+
+        # create the expression for the energy
+        components = []
+        if 'x' in rest.dims:
+            components.append('(x1-abscom_x)*(x1-abscom_x)')
+        if 'y' in rest.dims:
+            components.append('(y1-abscom_y)*(y1-abscom_y)')
+        if 'z' in rest.dims:
+            components.append('(z1-abscom_z)*(z1-abscom_z)')
+        dist_expr = 'dist2={};'.format(' + '.join(components))
+        energy_expr = '0.5 * com_k * dist2;'
+        expr = '\n'.join([energy_expr, dist_expr])
+
+        # create the force
+        force = CustomCentroidBondForce(1, expr)
+        force.addPerBondParameter('com_k')
+        force.addPerBondParameter('abscom_x')
+        force.addPerBondParameter('abscom_y')
+        force.addPerBondParameter('abscom_z')
+
+        # create the restraint with parameters
+        if rest.weights:
+            g1 = force.addGroup(indices, rest.weights)
+        else:
+            g1 = force.addGroup(indices)
+        force_const = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
+        pos_x = rest.position[0]
+        pos_y = rest.position[1]
+        pos_z = rest.position[2]
+        force.addBond([g1], [force_const, pos_x, pos_y, pos_z])
+
+        system.addForce(force)
+        force_dict['abscom'] = force
+    elif len(my_restraints) == 0:
+        force_dict['abscom'] = None
+    else:
+        raise RuntimeError('Cannot have more than one AbsoluteCOMRestraint')
+
+    return other_restraints
+
+
+def _update_absolute_com_restraints(restraint_list, alpha,
+                                    timestep, force_dict):
+    # split restraints into abs_com and others
+    my_restraints = [
+        r for r in restraint_list if isinstance(r, AbsoluteCOMRestraint)]
+    other_restraints = [
+        r for r in restraint_list if not isinstance(r, AbsoluteCOMRestraint)]
+
+    if len(my_restraints) == 1:
+        force = force_dict['abscom']
+        rest = my_restraints[0]
+        weight = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
+        pos_x = rest.position[0]
+        pos_y = rest.position[1]
+        pos_z = rest.position[2]
+        groups, _ = force.getBondParameters(0)
+        force.setBondParameters(0, groups, [weight, pos_x, pos_y, pos_z])
+    elif len(my_restraints) > 1:
+        raise RuntimeError('Cannot have more than one AbsoluteCOMRestraint')
 
     return other_restraints
 
