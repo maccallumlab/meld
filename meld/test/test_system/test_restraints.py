@@ -996,3 +996,113 @@ class TestCOMRestraint(unittest.TestCase):
                 dims='x',
                 force_const=1,
                 distance=1)
+
+    def test_should_raise_on_negative_weights1(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA'), (2, 'CA')],
+                group2=[(3, 'CA'), (4, 'CA')],
+                weights1=[1., -1.],
+                weights2=None,
+                dims='x',
+                force_const=1,
+                distance=1)
+
+    def test_should_raise_on_negative_weights2(self):
+        with self.assertRaises(ValueError):
+            restraints.COMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group1=[(1, 'CA'), (2, 'CA')],
+                group2=[(3, 'CA'), (4, 'CA')],
+                weights1=None,
+                weights2=[1., -1.],
+                dims='x',
+                force_const=1,
+                distance=1)
+
+
+class TestAbsoluteCOMRestraint(unittest.TestCase):
+    def setUp(self):
+        p = system.ProteinMoleculeFromSequence(
+            'GLY GLY GLY GLY')
+        b = system.SystemBuilder()
+        self.system = b.build_system_from_molecules([p])
+        self.scaler = restraints.ConstantScaler()
+        self.ramp = restraints.ConstantRamp()
+
+    def test_should_raise_when_dims_has_non_xyz(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA')],
+                weights=None,
+                dims='a',  # not xyz
+                force_const=1,
+                position=[0., 0., 0.])
+
+    def test_should_raise_on_repeated_dim(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA')],
+                weights=None,
+                dims='xx',  # repeated
+                force_const=1,
+                position=[0., 0., 0.])
+
+    def test_should_raise_on_negative_k(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA')],
+                weights=None,
+                dims='xyz',
+                force_const=-1,  # negative force const
+                position=[0., 0., 0.])
+
+    def test_should_raise_on_position_wrong_shape(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA')],
+                weights=None,
+                dims='xyz',
+                force_const=1,
+                position=[0., 0., 0., 0.])  # too many positions
+
+    def test_should_raise_on_size_mismatch(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA')],
+                weights=[1., 1.],  # too many weights
+                dims='xyz',
+                force_const=1,
+                position=[0., 0., 0.])
+
+    def test_should_raise_on_negative_weight(self):
+        with self.assertRaises(ValueError):
+            restraints.AbsoluteCOMRestraint(
+                system=self.system,
+                scaler=self.scaler,
+                ramp=self.ramp,
+                group=[(1, 'CA'), (2, 'CA')],
+                weights=[1., -1.],
+                dims='xyz',
+                force_const=1,
+                position=[0., 0., 0.])

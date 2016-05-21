@@ -44,7 +44,7 @@ def setup_system():
                                                                           contents=secondary)
     s.restraints.add_selectively_active_collection(secondary_restraints, len(secondary_restraints))
 
-    # create a com restraints
+    # create com restraint
     com = s.restraints.create_restraint('com', rest_scaler, ramp=None,
                                         group1=[(1, 'CA')],
                                         group2=[(3, 'CA')],
@@ -53,6 +53,15 @@ def setup_system():
                                         dims='xyz',
                                         force_const=100.,
                                         distance=0.5)
+    s.restraints.add_as_always_active(com)
+
+    # create absolute com restraint
+    com = s.restraints.create_restraint('abs_com', rest_scaler, ramp=None,
+                                        group=[(1, 'CA')],
+                                        weights=None,
+                                        dims='xyz',
+                                        force_const=1.,
+                                        position=[0., 0., 0.])
     s.restraints.add_as_always_active(com)
 
     # create the options
