@@ -7,7 +7,7 @@ from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import (
     LangevinIntegrator, Platform, CustomExternalForce,
-    MonteCarloBarostat)
+    CustomCentroidBondForce, MonteCarloBarostat)
 from simtk.unit import (
     Quantity, kelvin, picosecond, femtosecond, angstrom,
     kilojoule, mole, gram, nanometer, atmosphere)
@@ -15,7 +15,7 @@ from meld.system.restraints import (
     SelectableRestraint, NonSelectableRestraint, DistanceRestraint,
     TorsionRestraint, ConfinementRestraint, DistProfileRestraint,
     TorsProfileRestraint, CartesianRestraint, YZCartesianRestraint,
-    XAxisCOMRestraint, RdcRestraint, HyperbolicDistanceRestraint)
+    COMRestraint, RdcRestraint, HyperbolicDistanceRestraint)
 from . import softcore
 from meld.system.openmm_runner import cmap
 import logging
@@ -33,14 +33,6 @@ except ImportError:
         'Could not import meldplugin. '
         'Are you sure it is installed correctly?\n'
         'Attempts to use meld restraints will fail.')
-
-try:
-    from onedimcomplugin import OneDimComForce
-except ImportError:
-    logger.warning(
-        'Could not import onedimcomplugin. '
-        'Are you sure it is installed correctly?\n'
-        'Attempts to use center of mass restraints will fail.')
 
 
 GAS_CONSTANT = 8.314e-3
@@ -513,8 +505,8 @@ def _add_always_active_restraints(system, restraint_list, alpha,
         _add_yzcartesian_restraints(system, nonselectable_restraints,
                                     alpha, timestep, force_dict))
     nonselectable_restraints = (
-        _add_xcom_restraints(system, nonselectable_restraints,
-                             alpha, timestep, force_dict))
+        _add_com_restraints(system, nonselectable_restraints,
+                            alpha, timestep, force_dict))
     if nonselectable_restraints:
         raise NotImplementedError(
             'Non-meld restraints are not implemented yet')
@@ -538,8 +530,8 @@ def _update_always_active_restraints(restraint_list, alpha, timestep,
         _update_yzcartesian_restraints(nonselectable_restraints, alpha,
                                        timestep, force_dict))
     nonselectable_restraints = (
-        _update_xcom_restraints(nonselectable_restraints, alpha,
-                                timestep, force_dict))
+        _update_com_restraints(nonselectable_restraints, alpha,
+                               timestep, force_dict))
     if nonselectable_restraints:
         raise NotImplementedError(
             'Non-meld restraints are not implemented yet')
@@ -754,49 +746,76 @@ def _update_yzcartesian_restraints(restraint_list, alpha, timestep,
     return other_restraints
 
 
-def _add_xcom_restraints(system, restraint_list, alpha, timestep, force_dict):
+def _add_com_restraints(system, restraint_list, alpha, timestep, force_dict):
     # split restraints into confinement and others
     my_restraints = [
-        r for r in restraint_list if isinstance(r, XAxisCOMRestraint)]
+        r for r in restraint_list if isinstance(r, COMRestraint)]
     other_restraints = [
-        r for r in restraint_list if not isinstance(r, XAxisCOMRestraint)]
+        r for r in restraint_list if not isinstance(r, COMRestraint)]
 
     if len(my_restraints) == 1:
         rest = my_restraints[0]
         # convert indices from 1-based to 0-based
         rest_indices1 = [r - 1 for r in rest.indices1]
         rest_indices2 = [r - 1 for r in rest.indices2]
-        force = OneDimComForce(rest_indices1,
-                               rest_indices2,
-                               rest.weights1,
-                               rest.weights2,
-                               rest.force_const,
-                               rest.positioner(alpha))
+
+        # create the expression for the energy
+        components = []
+        if 'x' in rest.dims:
+            components.append('(x1-x2)*(x1-x2)')
+        if 'y' in rest.dims:
+            components.append('(y1-y2)*(y1-y2)')
+        if 'z' in rest.dims:
+            components.append('(z1-z2)*(z1-z2)')
+        dist_expr = 'dist = sqrt({});'.format(' + '.join(components))
+        energy_expr = '0.5 * com_k * (dist - com_ref_dist)*(dist-com_ref_dist);'
+        expr = '\n'.join([energy_expr, dist_expr])
+
+        # create the force
+        force = CustomCentroidBondForce(2, expr)
+        force.addPerBondParameter('com_k')
+        force.addPerBondParameter('com_ref_dist')
+
+        # create the restraint with parameters
+        if rest.weights1:
+            g1 = force.addGroup(rest_indices1, rest.weights1)
+        else:
+            g1 = force.addGroup(rest_indices1)
+        if rest.weights2:
+            g2 = force.addGroup(rest_indices2, rest.weights2)
+        else:
+            g2 = force.addGroup(rest_indices2)
+        force_const = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
+        pos = rest.positioner(alpha)
+        force.addBond([g1, g2], [force_const, pos])
 
         system.addForce(force)
-        force_dict['xcom'] = force
+        force_dict['com'] = force
     elif len(my_restraints) == 0:
-        force_dict['xcom'] = None
+        force_dict['com'] = None
     else:
-        raise RuntimeError('Cannot have more than one XAxisCOMRestraint')
+        raise RuntimeError('Cannot have more than one COMRestraint')
 
     return other_restraints
 
 
-def _update_xcom_restraints(restraint_list, alpha, timestep, force_dict):
+def _update_com_restraints(restraint_list, alpha, timestep, force_dict):
     # split restraints into confinement and others
     my_restraints = [
-        r for r in restraint_list if isinstance(r, XAxisCOMRestraint)]
+        r for r in restraint_list if isinstance(r, COMRestraint)]
     other_restraints = [
-        r for r in restraint_list if not isinstance(r, XAxisCOMRestraint)]
+        r for r in restraint_list if not isinstance(r, COMRestraint)]
 
-    if my_restraints:
-        force = force_dict['xcom']
+    if len(my_restraints) == 1:
+        force = force_dict['com']
         rest = my_restraints[0]
         weight = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
         position = rest.positioner(alpha)
-        force.setForceConst(weight)
-        force.setR0(position)
+        groups, _ = force.getBondParameters(0)
+        force.setBondParameters(0, groups, [weight, position])
+    elif len(my_restraints) > 1:
+        raise RuntimeError('Cannot have more than one COMRestraint')
+
     return other_restraints
 
 

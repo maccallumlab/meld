@@ -410,22 +410,72 @@ class YZCartesianRestraint(NonSelectableRestraint):
             raise ValueError('force_const must be non-negative')
 
 
-class XAxisCOMRestraint(NonSelectableRestraint):
-    '''
-    Restraint on the displacement between two groups along the x-axis.
+class COMRestraint(NonSelectableRestraint):
+    ''' Restraint on the distance between two groups along selected axes
 
-    group1: [(res_index, atom_name), (res_index, atom_name)...]
-    group2: [(res_index, atom_name), (res_index, atom_name)...]
-    weights1:  A list of positive floats, or None, which will use masses
-    weights2:  A list of positive floats, or None, which will use masses
-    force_const: a force constant in kJ/mol/nm^2
-    position: a float or a Positioner
+    This class implements a restraint on the distance between the
+    center of two groups.
+
+    The weights used to calculate the center can be specified as
+    `weights1` and `weights2`. If these are `None`, then the masses of the
+    atoms will be used.
+
+    The `dims` parameter controls which dimensions are used to compute the
+    distance. For example if `dims='xyz', then the distance will be the
+    normal distance in all three dimensions. If `dims=x`, then only the
+    x-component will be considered.
+    `
+    Parameters
+    ----------
+    system: meld.system.System
+            system object used for indexing
+    scaler: Scaler or None
+            scaler for force constant
+    ramp: Ramp or None
+          ramp for force constant
+    group1: list of tuple
+            [(res_index, atom_name), (res_index, atom_name)...]
+    group2: list of tuple
+            [(res_index, atom_name), (res_index, atom_name)...]
+    weights1: array_like
+              weights to use when calculating the COM
+    weights2: array_like
+              weights to use when calculating the COM
+    dims: string
+          combination of x, y, z that determines which dimensions
+          are used when calculating the distance
+    force_const: float
+                 force constant in kJ/mol/nm^2
+    distance: float or Positioner
+              distance between groups
+
+    Attributes
+    ----------
+    scaler: Scaler
+            scaler for the force constant
+    ramp: Ramp
+          ramp for the force
+    indices1: list
+              index of atoms in group 1
+    indices2: list
+              index of atoms in group 2
+    weights1: array_like
+              weights used in COM calculation
+    weights2: array_like
+              weights used in COM calculation
+    dims: string
+          combination of xyz dimensions used for distance calculation
+    force_const: float
+                 force constant
+    positioner: Positioner
+                controls the distance between groups
+
     '''
 
-    _restraint_key_ = 'xcomrestraint'
+    _restraint_key_ = 'com'
 
     def __init__(self, system, scaler, ramp, group1, group2, weights1,
-                 weights2, force_const, position):
+                 weights2, dims, force_const, distance):
         # setup indices
         self.scaler = scaler
         self.ramp = ramp
@@ -434,46 +484,50 @@ class XAxisCOMRestraint(NonSelectableRestraint):
         self.indices2 = self._get_indices(system, group2)
 
         # setup the weights
-        if weights1 is None:
-            self.weights1 = self._get_mass_weights(system, self.indices1)
-        else:
-            self.weights1 = [float(x) for x in weights1]
-            if any([w < 0 for w in self.weights1]):
-                raise ValueError('weights1 contained a value < 0')
-            norm = sum(self.weights1)
-            self.weights1 = [x / norm for x in self.weights1]
+        if weights1 is not None:
+            if len(self.indices1) != weights1:
+                raise ValueError(
+                    'len(indices1) != len(weights1)')
+        self.weights1 = weights1
+        if weights2 is not None:
+            if len(self.indices2) != weights2:
+                raise ValueError(
+                    'len(indices2) != len(weights2)')
+        self.weights2 = weights2
 
-        if weights2 is None:
-            self.weights2 = self._get_mass_weights(system, self.indices2)
-        else:
-            self.weights2 = [float(x) for x in weights2]
-            if any([w < 0 for w in self.weights2]):
-                raise ValueError('weights2 contained a value < 0')
-            norm = sum(self.weights2)
-            self.weights2 = [x / norm for x in self.weights2]
+        # setup the dimensions
+        self.dims = dims
+        self._check_dims()
 
-        assert len(self.indices1) == len(self.weights1), \
-            'length of group1 and weights1 do not match'
-        assert len(self.indices2) == len(self.weights2), \
-            'length of group2 and weights2 do not match'
-
+        # setup the force constant and positioner
         self.force_const = force_const
-
-        if isinstance(position, Positioner):
-            self.positioner = position
+        if self.force_const < 0:
+            raise ValueError(
+                'force constant cannot be negative')
+        if isinstance(distance, Positioner):
+            self.positioner = distance
         else:
-            self.positioner = ConstantPositioner(position)
+            if distance < 0.:
+                raise ValueError(
+                    'distance cannot be negative')
+
+            self.positioner = ConstantPositioner(distance)
 
     def _get_indices(self, system, group):
         return [system.index_of_atom(res_ind, atom_name)
                 for (res_ind, atom_name) in group]
 
-    def _get_mass_weights(self, system, indices):
-        print('Warning! This uses uniform weights, rather than mass weights.')
-        print('I need to include the masses in the topology objects.')
-        masses = [1.0 for i in indices]
-        norm = sum(masses)
-        return [m / norm for m in masses]
+    def _check_dims(self):
+        # check for non 'xyz'
+        for c in self.dims:
+            if c not in 'xyz':
+                raise ValueError(
+                    'dims must be a combination of "xyz", found {}'.format(c))
+        for dim in 'xyz':
+            count = self.dims.count(dim)
+            if count > 1:
+                raise ValueError(
+                    '{} occurs more than once in dims'.format(dim))
 
 
 class AlwaysActiveCollection(object):
