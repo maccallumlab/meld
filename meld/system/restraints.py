@@ -424,7 +424,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
     distance. For example if `dims='xyz', then the distance will be the
     normal distance in all three dimensions. If `dims=x`, then only the
     x-component will be considered.
-    `
+
     Parameters
     ----------
     system: meld.system.System
@@ -526,7 +526,7 @@ class COMRestraint(NonSelectableRestraint):
     distance. For example if `dims='xyz', then the distance will be the
     normal distance in all three dimensions. If `dims=x`, then only the
     x-component will be considered.
-    `
+
     Parameters
     ----------
     system: meld.system.System
