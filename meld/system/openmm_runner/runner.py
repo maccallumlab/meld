@@ -121,11 +121,20 @@ class OpenMMRunner(object):
     def get_energy(self, state):
         # set the coordinates
         coordinates = Quantity(state.positions, angstrom)
+
+        # set the box vectors
         self._simulation.context.setPositions(coordinates)
+        if self._options.solvation == 'explicit':
+            box_vector = state.box_vector / 10.  # Angstrom to nm
+            self._simulation.context.setPeriodicBoxVectors(
+                [box_vector[0], 0., 0.],
+                [0., box_vector[1], 0.],
+                [0., 0., box_vector[2]])
 
         # get the energy
         snapshot = self._simulation.context.getState(
             getPositions=True, getVelocities=True, getEnergy=True)
+        snapshot = self._simulation.context.getState(getEnergy=True)
         e_potential = snapshot.getPotentialEnergy()
         e_potential = (e_potential.value_in_unit(kilojoule / mole) /
                        GAS_CONSTANT / self._temperature)
@@ -253,9 +262,7 @@ class OpenMMRunner(object):
         return state
 
     def _run(self, state, minimize):
-        assert abs(state.alpha - self._alpha) < 1e-6
-
-        # run Monte Carlo
+        assert abs(state.alpha - self._alpha) < 1e-6 # run Monte Carlo
         if minimize:
             state = self._run_min_mc(state)
         else:

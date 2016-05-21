@@ -390,10 +390,6 @@ class RunOptions(object):
             if self._solvation == 'implicit':
                 raise ValueError(
                     'Tried to set enable_pme=True with implicit solvation')
-        else:
-            if self._solvation == 'explicit':
-                raise ValueError(
-                    'Tried to set enable_pme=False with explicit solvation')
         self._enable_pme = new_value
 
     @property
@@ -420,11 +416,6 @@ class RunOptions(object):
                 raise ValueError(
                     'Tried to set enable_pressure_coupling=True with '
                     'implicit solvation')
-        else:
-            if self._solvation == 'explicit':
-                raise ValueError(
-                    'Tried to set enable_pressure_coupling=False with'
-                    'explicit solvation')
         self._enable_pressure_coupling = new_value
 
     @property
@@ -637,15 +628,6 @@ class RunOptions(object):
                     'solvation simulation')
 
         if self._solvation == 'explicit':
-            if not self._enable_pme:
-                raise ValueError(
-                    'enable_pme == False for explicit solvation simulation')
-
-            if not self._enable_pressure_coupling:
-                raise ValueError(
-                    'enable_pressure_coupling == False for explicit'
-                    'solvation simulation')
-
             if not self._implicit_solvent_model == 'vacuum':
                 raise ValueError(
                     'implicit_solvent_model != "vacuum" for explicit '
