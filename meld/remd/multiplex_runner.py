@@ -82,8 +82,8 @@ class MultiplexReplicaExchangeRunner(object):
 
             for state_index in range(self._n_replicas):
                 states[state_index].alpha = self._alphas[state_index]
-                system_runner.set_alpha_and_timestep(
-                    self._alphas[state_index], self._step)
+                system_runner.prepare_for_timestep(self._alphas[state_index],
+                                                   self._step)
 
                 if self._step == 1:
                     logger.info('First step, minimizing and then running.')
@@ -96,7 +96,7 @@ class MultiplexReplicaExchangeRunner(object):
 
             energies = []
             for state_index in range(self._n_replicas):
-                system_runner.set_alpha_and_timestep(
+                system_runner.prepare_for_timestep(
                     self._alphas[state_index], self._step)
                 # compute our energy for each state
                 my_energies = self._compute_energies(states, system_runner)

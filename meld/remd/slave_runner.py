@@ -56,7 +56,7 @@ class SlaveReplicaExchangeRunner(object):
             state = communicator.receive_state_from_master()
 
             my_alpha = new_alpha
-            system_runner.set_alpha_and_timestep(my_alpha, self._step)
+            system_runner.prepare_for_timestep(my_alpha, self._step)
             state.alpha = my_alpha
 
             # do one round of simulation
