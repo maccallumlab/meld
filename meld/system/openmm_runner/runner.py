@@ -169,7 +169,6 @@ class OpenMMRunner(object):
                     print('\t', r)
                 raise RuntimeError('Not all selectable restraints were handled.')
 
-            assert len(self._selectable_collections) == 0
             sys = self._transformers_add_interactions(sys, prmtop.topology)
             self._transformers_finalize(sys, prmtop.topology)
 
@@ -187,6 +186,8 @@ class OpenMMRunner(object):
             self._simulation = _create_openmm_simulation(
                 prmtop.topology, sys, self._integrator, platform, properties)
 
+            self._transformers_update()
+
     def _transformers_setup(self):
         trans_types = [
             transform.ConfinementRestraintTransformer,
@@ -195,12 +196,14 @@ class OpenMMRunner(object):
             transform.YZCartesianTransformer,
             transform.COMRestraintTransformer,
             transform.AbsoluteCOMRestraintTransformer,
-            transform.MeldRestraintTransformer]
+            transform.MeldRestraintTransformer,
+            transform.REST2Transformer]
 
         for tt in trans_types:
-            tt(self._options,
-               self._always_on_restraints,
-               self._selectable_collections)
+            trans = tt(self._options,
+                       self._always_on_restraints,
+                       self._selectable_collections)
+            self._transformers.append(trans)
 
     def _transformers_add_interactions(self, sys, topol):
         for t in self._transformers:
