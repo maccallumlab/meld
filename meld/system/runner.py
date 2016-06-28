@@ -19,7 +19,7 @@ class ReplicaRunner(object):
     def get_energy(self, state):
         pass
 
-    def set_alpha_and_timestep(self, state, timestep):
+    def prepare_for_timestep(self, alpha, timestep, state):
         pass
 
 

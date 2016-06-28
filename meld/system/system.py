@@ -115,6 +115,33 @@ class GeometricTemperatureScaler(object):
             return self._temperature_max
 
 
+class REST2Scaler(object):
+    def __init__(self, reference_temperature, temperature_scaler):
+        '''
+        Scaler for REST2
+
+        Parameters
+        ----------
+        reference_temperature: float
+            this should be set to the temperature of the simulation, usually 300K
+        temperature_scaler: float
+            the psuedo temperature to adjust nonbonded and torsion parameters
+            of REST2
+
+        When performing REST2 simulations, typically the system temperature is kept
+        fixed at 300K. Then the psuedo-temperature of non-solvent nonbonded and
+        torsion interactions is adjusted based on the `temperature_scaler` parameter
+        according to:
+            scale = reference_temperature / temperature_scaler(alpha)
+
+        '''
+        self.reference_temperature = reference_temperature
+        self.scaler = temperature_scaler
+
+    def __call__(self, alpha):
+        return self.reference_temperature / self.scaler(alpha)
+
+
 class System(object):
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
@@ -325,7 +352,7 @@ class RunOptions(object):
             'amap_beta_bias', 'min_mc', 'run_mc', 'ccap', 'ncap',
             'solvation', 'enable_pme', 'enable_pressure_coupling',
             'pressure', 'pressure_coupling_update_steps',
-            'pme_tolerance']
+            'pme_tolerance', 'use_rest2', 'rest2_scaler']
         allowed_attributes += ['_{}'.format(item) for
                                item in allowed_attributes]
         if name not in allowed_attributes:
@@ -365,6 +392,8 @@ class RunOptions(object):
         self._pressure = 1.0 * atmosphere
         self._pressure_coupling_update_steps = 25
         self._pme_tolerance = 0.0005
+        self._use_rest2 = False
+        self._rest2_scaler = None
 
     # solvation is a read-only property that must be set
     # when the options are created
@@ -433,6 +462,22 @@ class RunOptions(object):
             raise ValueError(
                 'pressure_coupling_update_steps must be > 0')
         self._pressure_coupling_update_steps = new_value
+
+    @property
+    def use_rest2(self):
+        return self._use_rest2
+
+    @use_rest2.setter
+    def use_rest2(self, new_value):
+        self._use_rest2 = new_value
+
+    @property
+    def rest2_scaler(self):
+        return self._rest2_scaler
+
+    @rest2_scaler.setter
+    def rest2_scaler(self, new_value):
+        self._rest2_scaler = new_value
 
     @property
     def min_mc(self):

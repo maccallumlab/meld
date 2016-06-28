@@ -81,7 +81,7 @@ class TestSlaveSingle(unittest.TestCase):
         "should set alpha on the replica runner"
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
-        self.mock_system_runner.set_alpha_and_timestep.assert_called_once_with(sentinel.ALPHA, 1)
+        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(sentinel.ALPHA, 1)
 
     def test_calls_receive_state(self):
         "should receive state from master"

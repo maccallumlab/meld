@@ -100,7 +100,7 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         # the master is always alphas = 0.
-        self.mock_system_runner.set_alpha_and_timestep.assert_called_once_with(0., 1)
+        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(0., 1)
 
     def test_should_broadcast_alphas(self):
         "calling run should broadcast all of the alpha values"
@@ -258,7 +258,7 @@ class TestFiveSteps(unittest.TestCase):
         "set_alphas should only be called once"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.assertEqual(self.mock_system_runner.set_alpha_and_timestep.call_count, 5)
+        self.assertEqual(self.mock_system_runner.prepare_for_timestep.call_count, 5)
 
     def test_minimize_then_run_is_called_once(self):
         "minimize_then_run should only be called once"

@@ -8,11 +8,15 @@ from .system import System
 import subprocess
 
 
-def load_amber_system(top_filename, crd_filename):
+def load_amber_system(top_filename, crd_filename, patchers=[]):
     with open(top_filename, 'rt') as topfile:
         top = topfile.read()
     with open(crd_filename) as crdfile:
         crd = crdfile.read()
+
+    for patcher in patchers:
+        top, crd = patcher.patch(top, crd)
+
     return System(top, crd)
 
 
@@ -23,7 +27,7 @@ class SystemBuilder(object):
         self._gb_radii = None
         self._set_gb_radii(gb_radii)
 
-    def build_system_from_molecules(self, molecules):
+    def build_system_from_molecules(self, molecules, patchers=[]):
         with util.in_temp_dir():
             leap_cmds = []
             mol_ids = []
@@ -38,7 +42,8 @@ class SystemBuilder(object):
                 tleap_string = '\n'.join(leap_cmds)
                 tleap_file.write(tleap_string)
             subprocess.check_call('tleap -f tleap.in > tleap.out', shell=True)
-            return load_amber_system('system.top', 'system.mdcrd')
+
+            return load_amber_system('system.top', 'system.mdcrd', patchers)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {'ff12sb': 'leaprc.ff12SB',

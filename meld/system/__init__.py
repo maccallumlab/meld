@@ -6,7 +6,7 @@
 from .protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
 from .builder import SystemBuilder
 from .system import System, ConstantTemperatureScaler, LinearTemperatureScaler, FixedTemperatureScaler
-from .system import GeometricTemperatureScaler, RunOptions
+from .system import GeometricTemperatureScaler, REST2Scaler, RunOptions
 from .runner import get_runner
 from .openmm_runner import OpenMMRunner
 from .state import SystemState

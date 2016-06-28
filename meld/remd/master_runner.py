@@ -93,13 +93,15 @@ class MasterReplicaExchangeRunner(object):
         while self._step <= self._max_steps:
             logger.info('Running replica exchange step %d of %d.',
                         self._step, self._max_steps)
+
+            my_state = communicator.broadcast_states_to_slaves(states)
+
             # update alphas
-            system_runner.set_alpha_and_timestep(0., self._step)
+            system_runner.prepare_for_timestep(0., self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_slaves(self._alphas)
 
             # do one step
-            my_state = communicator.broadcast_states_to_slaves(states)
             if minimize:
                 logger.info('First step, minimizing and then running.')
                 my_state = system_runner.minimize_then_run(my_state)
