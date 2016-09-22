@@ -65,12 +65,17 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
     sequence = ''.join(lines)
 
     output = []
+    counter = 0
     for aa in sequence:
         try:
             four_letter = aa_map[aa]
             output.append(four_letter)
         except KeyError:
             raise RuntimeError('Unknown amino acid "{}".'.format(aa))
+        if counter % 200 == 0 and counter != 0: # then the sequence is getting long
+          output.append('\n') # append a newline to keep it from getting too long
+          
+        counter += 1
 
     # append terminal qualifiers
     if not capped:
