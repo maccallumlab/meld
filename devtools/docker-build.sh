@@ -32,13 +32,13 @@ cd /
 
 # build the meld conda package
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    conda-build-all --upload maccallumlab -- /io/devtools/conda/dev
+    /io/devtools/conda-build-all --upload maccallumlab -- /io/devtools/conda/dev
 elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    conda-build-all --upload maccallumlab -- /io/devtools/conda/master
+    /io/devtools/conda-build-all --upload maccallumlab -- /io/devtools/conda/master
 elif [[ "${TRAVIS_PULL_REQUEST}" == "true" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    conda-build-all --upload " " -- /io/devtools/conda/dev
+    /io/devtools/conda-build-all --upload " " -- /io/devtools/conda/dev
 elif [[ "${TRAVIS_PULL_REQUEST}" == "true" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    conda-build-all --upload " " -- /io/devtools/conda/master
+    /io/devtools/conda-build-all --upload " " -- /io/devtools/conda/master
 fi
 
 # upload docs to S3
