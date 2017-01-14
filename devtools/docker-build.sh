@@ -14,7 +14,7 @@ bash Miniconda3-latest-Linux-x86_64.sh -b -p /anaconda
 PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/anaconda/bin:$PATH
 conda config --add channels omnia
 conda config --add channels maccallum_lab;
-conda install -yq conda-build jinja2 anaconda-client
+conda install -yq conda-build jinja2 anaconda-client conda-build-all
 
 # install aws
 pip install awscli
@@ -32,16 +32,13 @@ cd /
 
 # build the meld conda package
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    conda-build --no-binstar-upload --python 2.7 --python 3.4 --python 3.5 /io/devtools/conda/dev
-else
-    conda-build --no-binstar-upload --python 2.7 --python 3.4 --python 3.5 /io/devtools/conda/master
-fi
-
-# upload to anaconda.org
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/linux-64/meld*.bz2
-elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    anaconda --token "$ANACONDA_TOKEN" upload --user maccallum_lab /anaconda/conda-bld/linux-64/meld*.bz2
+    conda-build-all --upload maccallumlab -- /io/devtools/conda/dev
+elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
+    conda-build-all --upload maccallumlab -- /io/devtools/conda/master
+elif [[ "${TRAVIS_PULL_REQUEST}" == "true" && "${TRAVIS_BRANCH}" == "dev" ]]; then
+    conda-build-all --upload " " -- /io/devtools/conda/dev
+elif [[ "${TRAVIS_PULL_REQUEST}" == "true" && "${TRAVIS_BRANCH}" == "master" ]]; then
+    conda-build-all --upload " " -- /io/devtools/conda/master
 fi
 
 # upload docs to S3
