@@ -14,7 +14,7 @@ bash Miniconda3-latest-Linux-x86_64.sh -b -p /anaconda
 PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/anaconda/bin:$PATH
 conda config --add channels omnia
 conda config --add channels maccallum_lab;
-conda install -yq conda-build jinja2 anaconda-client conda-build-all
+conda install -yq conda-build jinja2 anaconda-client
 
 # install aws
 pip install awscli
