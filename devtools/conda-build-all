@@ -9,6 +9,7 @@ import time
 import tarfile
 import os.path
 import argparse
+import traceback
 from subprocess import call, check_call, CalledProcessError
 from functools import reduce
 from collections import defaultdict
@@ -24,7 +25,7 @@ STANDARD_LABELS = ('main',
 
 try:
     from conda.utils import memoized
-    import conda_build.build as conda_build_build
+    import conda_build.api as conda_build_api
     import conda.api
     import conda_build.index as conda_build_index
     from conda.config import subdir as platform
@@ -36,6 +37,8 @@ try:
     CondaBuildConfig = _CondaBuildConfig()
     BUILD_DIRECTORY = CondaBuildConfig.build_prefix
 except ImportError as e:
+    traceback.print_exc()
+    print()
     print('ImportError encountered:')
     print(str(e))
     print('')
@@ -225,7 +228,7 @@ def get_bldpkg_path(m, python, numpy):
     # need to re-parse jinja2 in light of changing config vars.
     # (esp. for skip() to work)
     m.parse_again()
-    return conda_build_build.bldpkg_path(m, cfg)
+    return conda_build_api.get_output_file_path(m, config=cfg)
 
 
 def list_package_contents(m, python, numpy):

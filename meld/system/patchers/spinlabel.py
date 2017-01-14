@@ -139,7 +139,6 @@ class VirtualSpinLabel(object):
             selection_string = '(:{residue_mask})&(@{atom_name})'.format(
                 residue_mask=','.join(str(i) for i in indices),
                 atom_name=t)
-            print topol.LJ_radius
             action = pmd.tools.addLJType(
                 topol,
                 selection_string,
@@ -147,7 +146,6 @@ class VirtualSpinLabel(object):
                 epsilon=self.lj_params[t][1].value_in_unit(u.kilocalorie_per_mole)
             )
             action.execute()
-            print topol.LJ_radius
 
     def _find_radius_and_screen(self, topol):
         for atom in topol.atoms:
