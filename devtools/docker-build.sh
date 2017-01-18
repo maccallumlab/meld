@@ -32,18 +32,18 @@ cd /
 
 # decide if we should upload to anaconda cloud
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    UPLOAD=maccallumlab
+    UPLOAD="--upload maccallumlab"
 elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    UPLOAD=maccallumlab
+    UPLOAD="--upload maccallumlab"
 else
-    UPLOAD=" "
+    UPLOAD=""
 fi
 
 # build the meld conda package
 if [[ "${TRAVIS_BRANCH}" == "master" ]]; then
-    /io/devtools/conda-build-all --upload $UPLOAD -- /io/devtools/conda/master
+    /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/master
 else
-    /io/devtools/conda-build-all --upload $UPLOAD -- /io/devtools/conda/dev
+    /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/dev
 fi
 
 # upload docs to S3
