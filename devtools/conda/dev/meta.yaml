@@ -13,7 +13,7 @@ requirements:
     - numpy
     - scipy
     - netcdf4
-    - openmm-dev
+    - openmm
     - meld-plugin-test
     - sphinx
     - mock
@@ -23,7 +23,7 @@ requirements:
   run:
     - ambermini
     - python
-    - openmm-dev
+    - openmm
     - meld-plugin-dev-test
     - numpy
     - scipy
