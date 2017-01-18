@@ -31,9 +31,9 @@ cd /
 
 # decide if we should upload to anaconda cloud
 if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    UPLOAD="--upload maccallumlab"
+    UPLOAD="--upload maccallum_lab"
 elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    UPLOAD="--upload maccallumlab"
+    UPLOAD="--upload maccallum_lab"
 else
     UPLOAD=""
 fi
@@ -43,10 +43,4 @@ if [[ "${TRAVIS_BRANCH}" == "master" ]]; then
     /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/master
 else
     /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/dev
-fi
-
-# upload docs to S3
-
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
-    aws s3 sync --region us-west-2 --delete /anaconda/conda-bld/work/build/meld-api-c++/ s3://plugin-api.meldmd.org/
 fi
