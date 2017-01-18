@@ -21,7 +21,7 @@ def load_amber_system(top_filename, crd_filename, patchers=[]):
 
 
 class SystemBuilder(object):
-    def __init__(self, forcefield='ff12sb', gb_radii='mbondi3'):
+    def __init__(self, forcefield='ff14sb', gb_radii='mbondi3'):
         self._forcefield = None
         self._set_forcefield(forcefield)
         self._gb_radii = None
