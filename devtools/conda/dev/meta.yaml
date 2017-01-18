@@ -11,7 +11,7 @@ requirements:
     - cmake
     - doxygen #[not osx]
     - python
-    - swig ==3.0.7
+    - swig
     - openmm
     - eigen3
 
