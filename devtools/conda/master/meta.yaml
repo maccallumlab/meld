@@ -12,6 +12,7 @@ requirements:
     - python
     - numpy
     - scipy
+    - hdf4
     - netcdf4
     - openmm
     - meld-plugin-test
@@ -27,6 +28,7 @@ requirements:
     - meld-plugin-test
     - numpy
     - scipy
+    - hdf4
     - netcdf4
     - mock
     - six

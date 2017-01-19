@@ -12,9 +12,10 @@ requirements:
     - python
     - numpy
     - scipy
+    - hdf4
     - netcdf4
-    - openmm-dev
-    - meld-plugin-test
+    - openmm
+    - meld-plugin-dev-test
     - sphinx
     - mock
     - six
@@ -23,10 +24,11 @@ requirements:
   run:
     - ambermini
     - python
-    - openmm-dev
+    - openmm
     - meld-plugin-dev-test
     - numpy
     - scipy
+    - hdf4
     - netcdf4
     - mock
     - six

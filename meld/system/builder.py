@@ -21,7 +21,7 @@ def load_amber_system(top_filename, crd_filename, patchers=[]):
 
 
 class SystemBuilder(object):
-    def __init__(self, forcefield='ff12sb', gb_radii='mbondi3'):
+    def __init__(self, forcefield='ff14sbside', gb_radii='mbondi3'):
         self._forcefield = None
         self._set_forcefield(forcefield)
         self._gb_radii = None
@@ -47,8 +47,8 @@ class SystemBuilder(object):
 
     def _set_forcefield(self, forcefield):
         ff_dict = {'ff12sb': 'leaprc.ff12SB',
-                   'ff14sb': 'leaprc.ff14SB',
-                   'ff14sbside':  'leaprc.ff14SBonlysc'}
+                   'ff14sb': 'leaprc.protein.ff14SB',
+                   'ff14sbside':  'leaprc.protein.ff14SBonlysc'}
         try:
             self._forcefield = ff_dict[forcefield]
         except KeyError:

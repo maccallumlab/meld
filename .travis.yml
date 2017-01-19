@@ -4,6 +4,8 @@ os:
 
 language: c
 
+osx_image: xcode6.4
+
 sudo: required
 
 services:
@@ -11,20 +13,19 @@ services:
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        docker pull jchodera/omnia-build-box;
+        docker pull jchodera/omnia-build-box:cuda${CUDA_SHORT_VERSION}-amd30-clang38;
     fi
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker run
-            -e ANACONDA_TOKEN
-            -e CONDA_BUILD
+            -e BINSTAR_TOKEN
             -e AWS_ACCESS_KEY_ID
             -e AWS_SECRET_ACCESS_KEY
             -e TRAVIS_PULL_REQUEST
             -e TRAVIS_BRANCH
             -t -i --rm -v
-            `pwd`:/io jchodera/omnia-build-box:latest
+            `pwd`:/io jchodera/omnia-build-box:cuda${CUDA_SHORT_VERSION}-amd30-clang38
             bash /io/devtools/docker-build.sh;
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         bash devtools/osx-build.sh;
@@ -33,8 +34,10 @@ script:
 env:
   global:
     # ANACONDA_TOKEN
-    - secure: "zzzzleqKZdSCuMinlB3ng37Up/nop47e9JePXthiJ5Slk/HsFMTT24VqX7Mas+AFYQIwNygl+WCIWMh1hIz3pQTsu7D3aN71Q6rO0//gLZgojECsiFZ+a+AODTVhjyt9eJBuiJE8ggO9WS85HDnubFX/LZfIKIuouTDz8VF0qEHmhiwqNmih4mhPk9DjxnRZAAdH0z3/Gs1tod2Qcuk6RXA7DznkEzA1Nk0vhuzalHvTiFqaNMIEz6dYk/8cT7RFnw+MaqYtL+7kWdnLcP59JHnT8YfDC15yd0SVx08vepBKBAsE9dHUjyRbPGqJiwfk6KBYNkMk6SYNsTjKS8JZzlkkbezyWvPVX7plnEDyXFUhBZoCStzHx5z3TXT5ZSmhxWqHNOO+nOfXNNV5gd5svxxUI56H+806wTDPusKM92hDjiXeRWjCqx26WwJmaneCOq5idvkE85uB/zt8BxBW19juY4dyuQlOwNbiMOFKDvsgGfCAFmJyfH8umfbZZMdcWfolO0CDn+Jm5FIvj5btCgfuBoe/y9XG40Qls/YKopXKUDwEPxTLA4Tkmh1quH2hUjNsqwLfTKfuYS0Jl3L8d9NiFugUhXJCeQ/erCyzLWFVh8xYBhxlZYB/Jb8LvzBSlNMxFHUGKJHWn5XjNrJ9tatwv2XVprBvl2PNdfkQdBo="
+    - secure: "GnxkiYARAVXvDYnc+0b6EG35Xym8vjUIl+ckIlXqh+jPZ/gcIQYSlpoeEEbJUZDzQpUyYsxKNqnnVV4Ouchs9osOWlqB7DuSDG/gBcCw6um2EaNpQOK5LooKglL8cmd+G6w81kALFor8wL+xdhFXcrnEbaNxsHSgI+8blFjb9whjTxIUl9noWlHace4tLeQ8YdZ6Bp1FIveSHknBxwH27GpTOY5YnkdALPcG/pBYIQGiiHD6cBp42p8+wsIUHNUf8Rie/5kF/O87SHCZfFNu757gQLIhyzL+TqNIeQ+4rUjwHIARsmh1cJT6qj+zwFCc/ZqsRMP+q0dCw/QdwMijNtdFIcHNRTlaP2NimwOAhghtwromUuzHAYsvS8YcuN9H8wisrqa2a53s7QGnSShKEbsWNferfY1KkrPToZg+3+dqToFJmN92WSjlviR6uNdmehlpU0x+4NlBcwwgFW/OiqD+EUTOIRCdQGkCDNUkGOXtD/cKf0OfVVCaRXhVv2e08w4YziGbmU79Jb55Hj2g4tx4tzVNL34LWrxOY4JXkBoRV171KL4gdOly5uygViYimArDpXIf3XejmXR8nPKRbNb8jRve9fyqrXbozyuR6YpC/clmZ5CKDTtzMbYyxuC32CrPcI1wn1rFBzWGmnRUmIPeZaO20yb1S5GMzjJDbQU="
     # AWS_ACCESS_KEY_ID
     - secure: "HIBbQsDyh0NF7JgC0QIMxKhDclDuWCOlDV+BpLZdykpE92SvVllkG43SLUtaENj+oZhDGc2Qd5kW4je31eyjbFhC6AlHzRstGoPiEUArwNEbEM+YL7IWW39JCxQAuSL7X7VLOQ4dWABcWmfVxLDYWApnVncAg7F8U6Oz0Hr/qxR0VKwvS0pzTSBDC5/uO4Wm7XLpiyZB5JHqHn6vXfZ474Gzh1yusRPZzSGWqQagCVFKrFvqD94mluZ2uQIMPOPepxBjmqX+2ZJQ0hOCWuDwv8O3/8EtNnaW0Gp9Oklmr1fcSZOb0mdv8qnaTWMYaC6TXGgF8/2cZc4AsKBg2cVrFsGBtDemLZdujW1t/QBwv1WkzNipaANNTUZLpZc1UzVhVQXzcbwJFIZ8PCeaQR6AJp+IPWBOzDoj1VBgl3OfjsWTwX2O6l4792tzp0y8oehmCpESSxwIxsvE5EkeX7pH8EJfQG4cvKZMZkFFvLd9m5ewVSIx1dZe7iXlRLNDJlATNRsbuedHK/ASfJLRBcCCVDQu8Bh2bzspURnZl+No0jEkLgv3dlnMwcfrw+pZX6suytsVQNo87UBgkkCjCTttOz9LD59NJjD/t7a6YrQcd2WqE/sEN/SfNMqXLlV8XWdgHgo9AVuoKOTI/xtHmTzhEuGKLXwqXkMbb87Zq2F+bf8="
     # AWS_SECRET_ACCESS_KEY
     - secure: "zWeDVb0AvC0lvM/kFm9zXuKFyCECqSPxiOYu0YyViuUpMHR9TC5cUqRLOGwL0tdN7ub8PWRS5E+oHj9fmRB9gezYQcduS3jiWFZVFsIVA4YwQxJuF8lRXhb2S5gBU/P563MZHAynpLJiVN37aDDU6e74/Ua5/gk7sq8vDi2/9XN1sRVHoHQ63aUNeo3mlEDno2BorrNMeRlBvFlMvpZh37XRgIFOSc+Uyq5afpvRawEDvZohPgQSllEqyT043EOwYHcotQAX8K17eyYfpPqjZz0m+KLJelr3JFV7H8QwVgTUr4QjqRZPTFOQrjXFC2NWSHASBjJi7pZZhSDChiUnIL9OJHSmem8tQMks3B+Mgb0t0bPUq7YtQRn/NPFnhqUDSUaa2CoCsnf5rbrSJslQeAf74LTPQckc7gDPiQK86HCJwMZBrzJ4bSpuYsymJxgl/6oDyBu7za4CFCr4eylTgNfradfSBB9vRViv96V6x1F6o6MR920MqMW2U7pBvFUfecJ5IEOwyKF2o8hQLfdmR7AnIvXgkDSVuSB5jjpfbaNYyS2GaTOssIQTA5+1weZbOfSMPcleiKJ6nmZR6dvbjfqB81y5bodHQM8wlEmeCLTu3fIkmZeJ7+Sq4xOkrMr9DE3mvRHSHTmovu3nB0K1Suker2fvx/G46u+2l6aWzEo="
+    - CUDA_VERSION: "7.5"
+    - CUDA_SHORT_VERSION: "75"
