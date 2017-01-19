@@ -42,5 +42,4 @@ make -j$CPU_COUNT install PythonInstall
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 make -j$CPU_COUNT DoxygenApiDocs
-aws s3 sync --region us-west-2 --delete ./meld-api-c++/ s3://plugin-api.meldmd.org/
 fi
