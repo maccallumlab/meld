@@ -25,9 +25,10 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     CMAKE_FLAGS+=" -DCUDA_SDK_ROOT_DIR=/Developer/NVIDIA/CUDA-7.5"
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=/Developer/NVIDIA/CUDA-7.5"
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk"
+    CMAKE_FLAGS+=" -DOPENMM_DIR=$PREFIX"
 
-    export EIGEN3_INCLUDE_DIR="/Users/travis/anaconda/envs/_build/include/eigen3/"
-    export OPENMM_DIR="/Users/travis/anaconda/envs/_build"
+    export EIGEN3_INCLUDE_DIR=$PREFIX/include/eigen3/
+    export OPENMM_DIR=$PREFIX
     export OPENMM_INCLUDE_PATH=$OPENMM_DIR/include
     export OPENMM_LIB_PATH=$OPENMM_DIR/lib
     export LD_LIBRARY_PATH=$OPENMM_DIR/lib:$LD_LIBRARY_PATH

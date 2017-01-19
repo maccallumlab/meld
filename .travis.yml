@@ -4,6 +4,8 @@ os:
 
 language: c
 
+osx_image: xcode6.4
+
 sudo: required
 
 services:
