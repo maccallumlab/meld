@@ -25,7 +25,7 @@ STANDARD_LABELS = ('main',
 
 try:
     from conda.utils import memoized
-    import conda_build.api as conda_build_api
+    from conda_build.api import get_output_file_path
     import conda.api
     import conda_build.index as conda_build_index
     from conda.config import subdir as platform
@@ -37,8 +37,6 @@ try:
     CondaBuildConfig = _CondaBuildConfig()
     BUILD_DIRECTORY = CondaBuildConfig.build_prefix
 except ImportError as e:
-    traceback.print_exc()
-    print()
     print('ImportError encountered:')
     print(str(e))
     print('')
@@ -228,8 +226,7 @@ def get_bldpkg_path(m, python, numpy):
     # need to re-parse jinja2 in light of changing config vars.
     # (esp. for skip() to work)
     m.parse_again()
-    return conda_build_api.get_output_file_path(m, config=cfg)
-
+    return get_output_file_path(m, cfg)
 
 def list_package_contents(m, python, numpy):
     filename = get_bldpkg_path(m, python, numpy)
@@ -257,6 +254,8 @@ def upload_to_binstar(m, python, numpy, username, max_retries=5,
         cmd.extend(['-t', BINSTAR_TOKEN])
     cmd.extend(['upload', '--no-progress', '-u', username, filename])
     if force:
+        cmd.extend(['--force'])
+    elif m.get_section('extra') and ('force_upload' in m.get_section('extra')) and (m.get_section('extra')['force_upload']=='True'):
         cmd.extend(['--force'])
     if not pre_black_listed(m) and is_prerelease(m):
         cmd.extend(['--label', 'dev'])
@@ -311,7 +310,8 @@ def required_builds(metadatas, pythons, numpys, channel_urls, verbose,
         prepend=False)
     index_by_pkgname = defaultdict(dict)
     for k, v in index.items():
-        channel, pkgname = k.split('::')
+        channel = k.channel
+        pkgname = k.to_filename()
         index_by_pkgname[pkgname][channel] = v
 
     for m in metadatas:
@@ -320,12 +320,22 @@ def required_builds(metadatas, pythons, numpys, channel_urls, verbose,
         for python in VersionIter('python', m, pythons):
             for numpy in VersionIter('numpy', m, numpys):
                 bldpkg_path = get_bldpkg_path(m, python, numpy)
+                base_bldpkg_path = os.path.basename(bldpkg_path)
+
+                # Allow package recipe to force rebuild and upload in recipe.
+                if m.get_section('extra') and ('force_upload' in m.get_section('extra')) and (m.get_section('extra')['force_upload']=='True'):
+                    if verbose > 1:
+                        print('Scheduling package due to force_upload=%s: %s' % (str(m.get_section('extra')['force_upload']), m.name()))
+                        print('  full_name: %s' % base_bldpkg_path)
+                        print('  python: %s' % python)
+                        print('  numpy: %s' % numpy)
+
+                    yield m, python, numpy, base_bldpkg_path
 
                 if verbose > 2:
                     print('')
                     print('Evaluating whether to build package %s' % bldpkg_path)
 
-                base_bldpkg_path = os.path.basename(bldpkg_path)
                 if base_bldpkg_path == last_base_bldpkg_path:
                     if verbose > 1:
                         print('base_bldpkg_path == last_base_bldpkg_path for %s' % bldpkg_path)
