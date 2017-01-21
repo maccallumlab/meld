@@ -39,7 +39,7 @@ else
 fi
 
 # build the meld conda package
-elif [[ "${TRAVIS_BRANCH}" == "dev" ]]l; then
+if [[ "${TRAVIS_BRANCH}" == "dev" ]]; then
     /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/dev
 else
     /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/master
