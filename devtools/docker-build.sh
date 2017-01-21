@@ -13,7 +13,6 @@ curl -s -O https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p /anaconda
 PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/anaconda/bin:$PATH
 conda config --add channels omnia
-conda config --add channels maccallum_lab
 conda install -yq conda-build jinja2 anaconda-client
 
 # install aws
@@ -40,10 +39,10 @@ else
 fi
 
 # build the meld conda package
-if [[ "${TRAVIS_BRANCH}" == "master" ]]; then
-    /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/master
+elif [[ "${TRAVIS_BRANCH}" == "dev" ]]l; then
+    /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/dev
 else
-    /io/devtools/conda-build-all $UPLOAD -- /io/devtools/conda/dev
+    /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/master
 fi
 
 # upload docs to S3

@@ -9,13 +9,16 @@ source:
 
 requirements:
   build:
+    - cmake
+    - doxygen #[not osx]
+    - swig
+    - eigen3
     - python
     - numpy
     - scipy
     - hdf4
     - netcdf4
     - openmm
-    - meld-plugin-test
     - sphinx
     - mock
     - six
@@ -25,7 +28,6 @@ requirements:
     - ambermini
     - python
     - openmm
-    - meld-plugin-test
     - numpy
     - scipy
     - hdf4
@@ -36,6 +38,7 @@ requirements:
 test:
   imports:
     - meld
+    - meldplugin
   commands:
     - python -m unittest discover meld.test
 

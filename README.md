@@ -30,7 +30,6 @@ MELD requires a CUDA compatible GPU.
 * netcdf4
 * mpi4py
 * [openmm](https://github.com/pandegroup/openmm)
-* [meld-plugin](https://github.com/maccallumlab/meld)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
 
 To install:
