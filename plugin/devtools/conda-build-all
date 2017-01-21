@@ -1,0 +1,460 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import re
+import sys
+import operator
+import glob
+import os
+import time
+import tarfile
+import os.path
+import argparse
+import traceback
+from subprocess import call, check_call, CalledProcessError
+from functools import reduce
+from collections import defaultdict
+from distutils.spawn import find_executable
+
+BINSTAR_TOKEN = os.environ.pop('BINSTAR_TOKEN', None)
+
+# these labels will be checked by default for existent packages.
+STANDARD_LABELS = ('main',
+                   'dev',
+                   'rc',
+                   )
+
+try:
+    from conda.utils import memoized
+    from conda_build.api import get_output_file_path
+    import conda.api
+    import conda_build.index as conda_build_index
+    from conda.config import subdir as platform
+    assert platform in ('osx-64', 'linux-32', 'linux-64', 'win-32', 'win-64')
+    from conda_build.metadata import MetaData
+    from conda_build.config import Config as _CondaBuildConfig
+    from conda.utils import url_path
+    # default config instance
+    CondaBuildConfig = _CondaBuildConfig()
+    BUILD_DIRECTORY = CondaBuildConfig.build_prefix
+except ImportError as e:
+    print('ImportError encountered:')
+    print(str(e))
+    print('')
+    print('''This script requires conda-build and anaconda-client and
+must run in the root conda environment.
+
+  $ source deactivate
+  $ conda install conda-build anaconda-client''', file=sys.stderr)
+    exit(1)
+
+
+def main():
+    p = argparse.ArgumentParser(
+        'Build conda packages',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument(
+        'recipe',
+        action="store",
+        metavar='RECIPE_PATH',
+        nargs='+',
+        help="path to recipe directory"
+    )
+    p.add_argument(
+        '--check-against',
+        nargs="+",
+        metavar='ANACONDA_USER/label/$name',
+        default=['omnia/label/%s' % label for label in STANDARD_LABELS],
+    )
+    p.add_argument(
+        '--dry-run',
+        action='store_true',
+        help=('Do not perform any builds. The exit status indicates the '
+              'number of build to-be-performed'),
+    )
+    p.add_argument('--upload',
+        help='Automatically upload to binstar under this username',
+    )
+    p.add_argument('--force',
+        action='store_true',
+        dest='force',
+        help='Force a package upload regardless of errors',
+    )
+    p.add_argument('--dev',
+       action='store_true',
+       dest='dev',
+       help=('Push package to the dev label. This requires '
+             '--force to be enabled.'),
+    )
+    p.add_argument(
+        '--no-test',
+        action='store_true',
+        dest='notest',
+        help="do not test the package"
+    )
+    p.add_argument(
+        '--python',
+        help="Set the Python version used by conda build",
+        metavar="PYTHON_VER",
+        default='27,34,35',
+    )
+    p.add_argument(
+        '--numpy',
+        help="Set the NumPy version used by conda build",
+        metavar="NUMPY_VER",
+        default='1.10,1.11',
+    )
+    p.add_argument(
+        '-v', '--verbose',
+        help='Give more output. Option is additive, and can be used up to 3 times.',
+        dest='verbose',
+        action='count',
+    )
+    args = p.parse_args()
+    if args.verbose is None:
+        args.verbose = 0
+
+    if args.verbose > 2:
+        print('command-line arguments:')
+        print(args)
+
+    return execute(args, p)
+
+
+def toposort(data):
+    """Topological sort.
+
+    The expected input is a dictionary whose keys are items, and whose
+    values are a set of the dependent items.
+
+    The output is a genenerator over the items in topological order.
+    """
+    # http://code.activestate.com/recipes/578272-topological-sort/
+
+    # Ignore self dependencies.
+    for k, v in data.items():
+        v.discard(k)
+    # Find all items that don't depend on anything.
+    extra_items_in_deps = reduce(
+        set.union, data.values(), set()) - set(data.keys())
+    # Add empty dependences where needed
+    data.update({item: set() for item in extra_items_in_deps})
+    while True:
+        ordered = set(item for item, dep in data.items() if not dep)
+        if not ordered:
+            break
+        for item in ordered:
+            yield item
+        data = {item: (dep - ordered) for item, dep in data.items()
+                if item not in ordered}
+    if data:
+        raise ValueError(
+            "Cyclic dependencies exist among these items"
+            ":\n%s" % '\n'.join(repr(x) for x in data.items()))
+
+
+def sort_recipes(recipe_paths):
+    name2m = {}
+    metadatas = []
+    for r in recipe_paths:
+        try:
+            if os.path.isdir(r):
+                # Skip if no meta.yaml
+                meta_yaml_filename = os.path.join(r, 'meta.yaml')
+                if not os.path.exists(meta_yaml_filename):
+                    print("Skipping '%s' because no meta.yaml file found..." % r)
+                    continue
+
+                try:
+                    m = MetaData(r)
+                except (RuntimeError, IOError):
+                    print('Failed to load %s' % r)
+                    raise
+                metadatas.append(m)
+                name2m[m.get_value('package/name')] = m
+        except SystemExit as e:
+            # Log the error
+            print("ERROR: Recipe '%s' has a fatal error that prevents processing" % r)
+            print(str(e))
+            # Keep going
+            pass
+
+    names = set(name2m.keys())
+
+    graph = {}
+    for m in metadatas:
+        all_requirements = set(m.get_value('requirements/build', []))
+        all_requirements.update(m.get_value('requirements/run', []))
+        all_requirements.update(m.get_value('test/requires', []))
+
+        our_requirements = set()
+        for r in all_requirements:
+            # remove any version specified in the requirements
+            # (e.g. numpy >= 1.6) or something -- we just want the "numpy"
+            if ' ' in r:
+                r = r.split()[0]
+            if r in names:
+                our_requirements.add(r)
+
+        graph[m.get_value('package/name')] = our_requirements
+
+    return [name2m[name] for name in toposort(graph)]
+
+
+@memoized
+def conda_build_cmd():
+    ROOTDIR = os.path.dirname(sys.executable)
+    if sys.platform == 'win32':
+        # find conda-build associated with the current python  interpreter
+        conda_build = find_executable('conda-build', path=ROOTDIR + ';' + ROOTDIR + '\Scripts')
+        assert conda_build is not None
+    else:
+        conda_build = find_executable('conda-build', path=ROOTDIR)
+        assert conda_build is not None
+    return conda_build
+
+
+def get_bldpkg_path(m, python, numpy):
+    cfg = _CondaBuildConfig()
+    cfg.CONDA_PY = int(python.replace('.', ''))
+    cfg.CONDA_NPY = int(numpy.replace('.', ''))
+
+    m.config = cfg
+    if m.info_index()['subdir'] == 'noarch':
+        cfg.noarch = True
+    else:
+        cfg.noarch = False
+    # need to re-parse jinja2 in light of changing config vars.
+    # (esp. for skip() to work)
+    m.parse_again()
+    return get_output_file_path(m, cfg)
+
+def list_package_contents(m, python, numpy):
+    filename = get_bldpkg_path(m, python, numpy)
+    if not os.path.exists(filename):
+        print('ERROR: File does not exist: %s' % filename)
+        return
+
+    tarf = tarfile.open(filename, 'r:bz2')
+    print('Package contents:')
+    for i, name in enumerate(tarf.getnames()):
+        print('  %s' % name)
+        if i > 20:
+            print('...')
+            break
+
+def upload_to_binstar(m, python, numpy, username, max_retries=5,
+                      force=False, dev=False):
+    filename = get_bldpkg_path(m, python, numpy)
+    if not os.path.exists(filename):
+        print('ERROR: File does not exist: %s' % filename)
+        return
+
+    cmd = ['anaconda']
+    if BINSTAR_TOKEN is not None:
+        cmd.extend(['-t', BINSTAR_TOKEN])
+    cmd.extend(['upload', '--no-progress', '-u', username, filename])
+    if force:
+        cmd.extend(['--force'])
+    elif m.get_section('extra') and ('force_upload' in m.get_section('extra')) and (m.get_section('extra')['force_upload']=='True'):
+        cmd.extend(['--force'])
+    if not pre_black_listed(m) and is_prerelease(m):
+        cmd.extend(['--label', 'dev'])
+    elif dev:
+        assert force, "Dev packages require forced uploads."
+        cmd.extend(['--label', 'dev'])
+    elif m.get_section('extra') and 'upload' in m.get_section('extra'):
+        label = m.get_section('extra')['upload']
+        cmd.extend(['--label', label])
+    else:
+        cmd.extend(['--label', 'main'])
+
+    err = None
+    for i in range(max_retries):
+        try:
+            print("Uploading package '%s' to anaconda user '%s'..." % (filename, username))
+            check_call(cmd)
+            return
+        except CalledProcessError as e:
+            err = e
+            err.cmd = '[not shown]'
+            print("Retrying after %s seconds..." % (i+1))
+            time.sleep(i+1)
+
+    # final raise error to client
+    raise err
+
+
+class VersionIter(object):
+    def __init__(self, pkg, metadata, versions):
+        self.versions = versions
+        self.metadata = metadata
+        self.pkg = pkg
+
+    def __iter__(self):
+        reqs = self.metadata.get_value('requirements/build')
+        reqs = [r.split(' ')[0] if ' ' in r else r for r in reqs]
+        if self.pkg in reqs:
+            for v in self.versions:
+                yield v
+        else:
+            yield self.versions[0]
+
+
+def required_builds(metadatas, pythons, numpys, channel_urls, verbose,
+                    force=False):
+    if not os.path.isdir(CondaBuildConfig.bldpkgs_dir):
+        os.makedirs(CondaBuildConfig.bldpkgs_dir)
+    conda_build_index.update_index(CondaBuildConfig.bldpkgs_dir, CondaBuildConfig)
+    index = conda.api.get_index(
+        channel_urls=[url_path(CondaBuildConfig.croot)] + list(channel_urls),
+        prepend=False)
+    index_by_pkgname = defaultdict(dict)
+    for k, v in index.items():
+        channel = k.channel
+        pkgname = k.to_filename()
+        index_by_pkgname[pkgname][channel] = v
+
+    for m in metadatas:
+
+        last_base_bldpkg_path = None
+        for python in VersionIter('python', m, pythons):
+            for numpy in VersionIter('numpy', m, numpys):
+                bldpkg_path = get_bldpkg_path(m, python, numpy)
+                base_bldpkg_path = os.path.basename(bldpkg_path)
+
+                # Allow package recipe to force rebuild and upload in recipe.
+                if m.get_section('extra') and ('force_upload' in m.get_section('extra')) and (m.get_section('extra')['force_upload']=='True'):
+                    if verbose > 1:
+                        print('Scheduling package due to force_upload=%s: %s' % (str(m.get_section('extra')['force_upload']), m.name()))
+                        print('  full_name: %s' % base_bldpkg_path)
+                        print('  python: %s' % python)
+                        print('  numpy: %s' % numpy)
+
+                    yield m, python, numpy, base_bldpkg_path
+
+                if verbose > 2:
+                    print('')
+                    print('Evaluating whether to build package %s' % bldpkg_path)
+
+                if base_bldpkg_path == last_base_bldpkg_path:
+                    if verbose > 1:
+                        print('base_bldpkg_path == last_base_bldpkg_path for %s' % bldpkg_path)
+                    continue
+                last_base_bldpkg_path = base_bldpkg_path
+
+                if os.path.isfile(bldpkg_path):
+                    if verbose > 1:
+                        print('Package exists locally: %s' % base_bldpkg_path)
+                    continue
+
+                if m.skip():
+                    if verbose > 1:
+                        print('Skipping %s' % bldpkg_path)
+                    continue
+
+                if (base_bldpkg_path in index_by_pkgname) and not force:
+                    if verbose > 2:
+                        print('Package exists on anaconda.org: %s' % m.name())
+                        print('  full_name: %s' % base_bldpkg_path)
+                        print('  channel:   %s' % tuple(index_by_pkgname[base_bldpkg_path].keys()))
+                        print('  md5:       %s' % tuple([v['md5'] for v in index_by_pkgname[base_bldpkg_path].values()]))
+                    continue
+
+                if verbose > 1:
+                    print('Scheduling package: %s' % m.name())
+                    print('  full_name: %s' % base_bldpkg_path)
+                    print('  python: %s' % python)
+                    print('  numpy: %s' % numpy)
+
+                yield m, python, numpy, base_bldpkg_path
+
+
+def build_package(m, python, numpy, args):
+    cmd = [conda_build_cmd(), '-q', '--python', python, '--numpy', numpy, '--quiet']
+    if args.notest:
+        cmd.append('--no-test')
+    cmd.append(m.path)
+    retcode = call(cmd)
+    list_package_contents(m, python, numpy)
+
+    if args.upload is not None:
+        if (retcode == 0):
+            upload_to_binstar(m, python, numpy, username=args.upload,
+                              force=args.force, dev=args.dev)
+        else:
+            print('Package failed to build (return code %s); will not upload.' % str(retcode))
+    sys.stdout.flush()
+    return retcode
+
+
+def is_prerelease(pkg_meta):
+    from pkg_resources._vendor.packaging import version
+    parsed = version.parse(pkg_meta.version())
+    return parsed.is_prerelease
+
+
+def pre_black_listed(pkg_meta):
+    filename = '.pre_black_listed'
+    if os.path.exists(filename):
+        with open(filename) as f:
+            for line in f:
+                if not line.startswith('#') and pkg_meta.name() in line:
+                    return True
+    return False
+
+def execute(args, p):
+    pythons = re.split(',\s*|\s+', args.python)
+    numpys = re.split(',\s*|\s+', args.numpy)
+    channel_urls = tuple(args.check_against) if args.check_against else ()
+
+    if args.verbose > 0:
+        print('EXECUTE:')
+        print('verbose: %s' % str(args.verbose))
+        print('pythons: %s' % str(pythons))
+        print('numpys: %s' % str(numpys))
+        print('channel_urls: %s' % str(channel_urls)) # DEBUG
+
+    args_recipe = reduce(operator.add, (glob.glob(e) for e in args.recipe))
+
+    if args.verbose > 0:
+        print('Recipes provided (in random order):')
+        print(args_recipe)
+
+    metadatas = sort_recipes(args_recipe)
+    if args.verbose > 0:
+        print('Considering recipes in the following order:')
+        print(', '.join([os.path.basename(m.path) for m in metadatas]))
+        print()
+    sys.stdout.flush()
+
+    to_build = list(required_builds(metadatas, pythons, numpys, channel_urls, verbose=args.verbose, force=args.force))
+
+    if len(to_build) > 0:
+        print('[conda-build-all] Scheduling the following builds (%s):' % platform)
+    for m, python, numpy, base_bldpkg_path in to_build:
+        print('  %s' % base_bldpkg_path)
+    sys.stdout.flush()
+
+    if args.dry_run:
+        sys.exit(len(to_build))
+
+    print()
+
+    failed_builds = []
+    for m, python, numpy, base_bldpkg_path in to_build:
+        code = build_package(m, python, numpy, args)
+        if code != 0:
+            failed_builds.append(base_bldpkg_path)
+
+    if len(failed_builds) > 0:
+        print(('[conda-build-all] Error: one or more packages '
+               'failed to build (%s)') % platform, file=sys.stderr)
+        for b in  failed_builds:
+            print('  %s' % b, file=sys.stderr)
+        sys.stderr.flush()
+
+    return len(failed_builds)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

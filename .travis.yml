@@ -19,14 +19,15 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker run
-            -e BINSTAR_TOKEN
-            -e AWS_ACCESS_KEY_ID
-            -e AWS_SECRET_ACCESS_KEY
-            -e TRAVIS_PULL_REQUEST
-            -e TRAVIS_BRANCH
-            -t -i --rm -v
-            `pwd`:/io jchodera/omnia-build-box:cuda${CUDA_SHORT_VERSION}-amd30-clang38
-            bash /io/devtools/docker-build.sh;
+        -e BINSTAR_TOKEN
+        -e AWS_ACCESS_KEY_ID
+        -e AWS_SECRET_ACCESS_KEY
+        -e TRAVIS_PULL_REQUEST
+        -e TRAVIS_BRANCH
+        -e CUDA_VERSION
+        -t -i --rm -v
+        `pwd`:/io jchodera/omnia-build-box:cuda${CUDA_SHORT_VERSION}-amd30-clang38
+        bash /io/devtools/docker-build.sh;
     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         bash devtools/osx-build.sh;
     fi

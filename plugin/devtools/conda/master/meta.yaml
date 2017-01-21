@@ -1,0 +1,28 @@
+package:
+  name: meld-plugin-test
+  version: {{ environ['VERSTRING'] }}
+
+source:
+  path: /io #[linux]
+  path: /Users/travis/build/maccallumlab/meld-openmm-plugin #[osx]
+
+requirements:
+  build:
+    - cmake
+    - doxygen #[not osx]
+    - python
+    - swig
+    - openmm
+    - eigen3
+
+  run:
+    - python
+    - openmm
+
+test:
+  imports:
+    - meldplugin
+
+about:
+    home: https://github.com/maccallumlab/meld-openmm-plugin
+    
