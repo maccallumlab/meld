@@ -134,7 +134,7 @@ def get_secondary_structure_restraints(system, scaler,
                                        torsion_force_constant=2.48,
                                        distance_force_constant=2.48,
                                        quadratic_cut=2.0,
-                                       offset=0,
+                                       first_residue=1,
                                        min_secondary_match=4,
                                        filename=None,
                                        contents=None,
@@ -151,7 +151,7 @@ def get_secondary_structure_restraints(system, scaler,
     :param quadratic_cut: switch from quadratic to linear beyond this
                           distance, Angstrom
     :param min_secondary_match: minimum number of elements to match in secondary structure,                      
-    :param offset: residue offset to delineate peptide vs. protein,                      
+    :param first_residue: residue at which to delineate peptide vs. protein,                      
     :param filename: string of filename to open
     :param contents: string of contents to process
     :param file: file-like object to read from
@@ -162,7 +162,7 @@ def get_secondary_structure_restraints(system, scaler,
     if ramp is None:
         ramp = ConstantRamp()
     
-    if min_secondary_match < 5.0:
+    if min_secondary_match <= 5.0:
         print('Minimum number of elements to match in secondary structure must be less than 5. Using default of 4.')
         min_secondary_match = 4
 
@@ -176,7 +176,7 @@ def get_secondary_structure_restraints(system, scaler,
     helices = _extract_secondary_runs(contents, 'H', 5, min_secondary_match)
     for helix in helices:
         rests = []
-        for index in range(helix.start + offset + 1, helix.end - 1):
+        for index in range(helix.start + first_residue, helix.end - 1):
             phi = TorsionRestraint(system, scaler, ramp, index, 'C', index+1,
                                    'N', index+1, 'CA', index+1, 'C',
                                    -62.5, 17.5, torsion_force_constant)
@@ -185,13 +185,13 @@ def get_secondary_structure_restraints(system, scaler,
                                    -42.5, 17.5, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, ramp, helix.start+ offset+ 1, 'CA',
+        d1 = DistanceRestraint(system, scaler, ramp, helix.start+ first_residue, 'CA',
                                helix.start+4, 'CA', 0, 0.485, 0.561,
                                0.561 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, ramp, helix.start + offset +2, 'CA',
+        d2 = DistanceRestraint(system, scaler, ramp, helix.start + first_residue +1, 'CA',
                                helix.start+5, 'CA', 0, 0.485, 0.561,
                                0.561 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, ramp, helix.start + offset +1, 'CA',
+        d3 = DistanceRestraint(system, scaler, ramp, helix.start + first_residue, 'CA',
                                helix.start+5, 'CA', 0, 0.581, 0.684,
                                0.684 + quadratic_cut, distance_force_constant)
         rests.append(d1)
@@ -203,7 +203,7 @@ def get_secondary_structure_restraints(system, scaler,
     extended = _extract_secondary_runs(contents, 'E', 5, min_secondary_match)
     for ext in extended:
         rests = []
-        for index in range(ext.start + offset + 1, ext.end - 1):
+        for index in range(ext.start + first_residue, ext.end - 1):
             phi = TorsionRestraint(system, scaler, ramp, index, 'C', index+1,
                                    'N', index+1, 'CA', index+1, 'C',
                                    -117.5, 27.5, torsion_force_constant)
@@ -212,13 +212,13 @@ def get_secondary_structure_restraints(system, scaler,
                                    145, 25.0, torsion_force_constant)
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, ramp, ext.start+ offset +1, 'CA',
+        d1 = DistanceRestraint(system, scaler, ramp, ext.start+ first_residue, 'CA',
                                ext.start+4, 'CA', 0, 0.785, 1.063,
                                1.063 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, ramp, ext.start+ offset +2, 'CA',
+        d2 = DistanceRestraint(system, scaler, ramp, ext.start+ first_residue +1, 'CA',
                                ext.start+5, 'CA', 0, 0.785, 1.063,
                                1.063 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, ramp, ext.start+ offset +1, 'CA',
+        d3 = DistanceRestraint(system, scaler, ramp, ext.start+ first_residue, 'CA',
                                ext.start+5, 'CA', 0, 1.086, 1.394,
                                1.394 + quadratic_cut, distance_force_constant)
         rests.append(d1)
