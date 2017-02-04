@@ -304,7 +304,7 @@ class VersionIter(object):
 def required_builds(metadatas, pythons, numpys, channel_urls, verbose,
                     force=False):
     index = conda.api.get_index(
-        channel_urls=[url_path(CondaBuildConfig.croot)] + list(channel_urls),
+        channel_urls=list(channel_urls),
         prepend=False)
     index_by_pkgname = defaultdict(dict)
     for k, v in index.items():
