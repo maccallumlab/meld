@@ -303,9 +303,6 @@ class VersionIter(object):
 
 def required_builds(metadatas, pythons, numpys, channel_urls, verbose,
                     force=False):
-    if not os.path.isdir(CondaBuildConfig.bldpkgs_dir):
-        os.makedirs(CondaBuildConfig.bldpkgs_dir)
-    conda_build_index.update_index(CondaBuildConfig.bldpkgs_dir, CondaBuildConfig)
     index = conda.api.get_index(
         channel_urls=[url_path(CondaBuildConfig.croot)] + list(channel_urls),
         prepend=False)
