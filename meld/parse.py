@@ -3,6 +3,11 @@
 # All rights reserved
 #
 
+"""
+Docstring describing whole file
+
+"""
+
 from collections import namedtuple
 from meld.system.restraints import RestraintGroup, TorsionRestraint
 from meld.system.restraints import DistanceRestraint, RdcRestraint
@@ -44,20 +49,40 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
                           capped=False, nter=None, cter=None):
     """
     Get the sequence from a list of 1-letter amino acid codes.
-
-    :param filename: string of filename to open
-    :param contents: string containing contents
-    :param file: a file-like object to read from
-    :return: a string that can be used to initialize a system
-    :raise: RuntimeError on bad input
-    :capped: will know that there are caps. Specify which in nter and cter
-    :nter: Specify capping residue at the N terminus if not specified
+    
+    Parameters
+    ----------
+    filename : string
+        Filename to open
+    contents : string
+        Contents
+    file : file-like
+        Object to read from
+    capped 
+        Will know that there are caps. Specify which in nter and cter
+    nter 
+        Specify capping residue at the N terminus if not specified
            in sequence
-    :cter: Specify capping residue at the C terminus if not specified
+    cter 
+        Specify capping residue at the C terminus if not specified
            in sequence
 
-    Note: specify exactly one of filename, contents, file
-    Note: will have to set options in setup script to skip cmap assignment
+    Returns
+    -------
+    string
+        Used to initialize a system
+
+    Raises
+    ------
+    RuntimeError
+        Error raised on bad input
+ 
+    Notes
+    -----
+    Specify exactly one of filename, contents, file
+
+    Will have to set options in setup script to skip cmap assignment
+
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
@@ -90,19 +115,37 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None,
     """
     Get the sequence from a list of 3-letter amino acid codes.
 
-    :param filename: string of filename to open
-    :param contents: string containing contents
-    :param file: a file-like object to read from
-    :return: a string that can be used to initialize a system
-    :raise: RuntimeError on bad input
-    :capped: will know that there are caps. Either read from sequence or
-             specified in nter and cter
-    :nter: Specify capping residue at the N terminus if not specified
+    Parameters
+    ----------
+    filename : string
+        Filename to open
+    contents : string
+        Contains contents
+    file : file-like object
+        Object to read from 
+    capped 
+        Will know that there are caps. Specify which in nter and cter
+    nter
+        Specify capping residue at the N terminus if not specified
            in sequence
-    :cter: Specify capping residue at the C terminus if not specified
+    cter 
+        Specify capping residue at the C terminus if not specified
            in sequence
 
-    Note: specify exactly one of filename, contents, file
+    Returns
+    -------
+    string
+        Used to initialize a system
+    
+    Raises
+    ------
+    RuntimeError 
+        Error on based input
+ 
+    Notes
+    -----
+    Specify exactly one of filename, contents, file
+    
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
@@ -142,29 +185,49 @@ def get_secondary_structure_restraints(system, scaler,
     """
     Get a list of secondary structure restraints.
 
-    :param system: a System object
-    :param scaler: a force scaler
-    :param torsion_force_constant: force constant for torsions,
-                                   in kJ/mol/(10 degree)^2
-    :param distance_force_constant: force constant for distances,
-                                    in kJ/mol/Angstrom^2
-    :param quadratic_cut: switch from quadratic to linear beyond this
-                          distance, Angstrom
-    :param min_secondary_match: minimum number of elements to match in secondary structure,                      
-    :param first_residue: residue at which to delineate peptide vs. protein,                      
-    :param filename: string of filename to open
-    :param contents: string of contents to process
-    :param file: file-like object to read from
-    :return: a list of RestraintGroups
+    Parameters
+    ----------
+    system : a System object
+        The system
+    scaler : a force scaler
+        The force
+    ramp:
+        The ramp, default is ConstantRamp
+    torsion_force_constant : float
+        Force constant for torsions, in kJ/mol/(10 degree)^2
+    distance_force_constant : float
+        Force constant for distances, in kJ/mol/Angstrom^2
+    quadratic_cut : float
+        Switch from quadratic to linear beyond this distance, Angstrom
+    min_secondary_match : int
+        Minimum number of elements to match in secondary structure,                 
+    first_residue : int
+        Residue at which to delineate peptide vs. protein,                      
+    filename : string
+        Filename to open
+    contents : string
+        Contents to process
+    file : file-like object
+        Object to read from
 
-    Note: specify exactly one of filename, contents, file.
+    Returns
+    -------
+    groups : list
+        A list of RestraintGroups
+
+    Notes
+    -----
+    Specify exactly one of filename, contents, file.
+    
     """
     if ramp is None:
         ramp = ConstantRamp()
     
     if min_secondary_match <= 5.0:
-        print('Minimum number of elements to match in secondary structure must be less than 5. Using default of 4.')
+        print('Minimum number of elements to match in secondary structure 
+                must be less than 5. Using default of 4.')
         min_secondary_match = 4
+    min_secondary_match = int(min_secondary_match)
 
     contents = _get_secondary_sequence(filename, contents, file)
     torsion_force_constant /= 100.
@@ -280,6 +343,30 @@ def _handle_arguments(filename, contents, file):
 
 def get_rdc_restraints(system, scaler, ramp=None, filename=None,
                        contents=None, file=None):
+    """
+    Reads restraints from file and returns as RdcRestraint object.
+
+    Parameters
+    ----------
+    system : a system object
+        The system
+    scaler : a force scaler
+        The force
+    ramp : 
+        Ramp, default is ConstantRamp()
+    filename : string
+        Filename to open
+    contents : string
+        Contents to process
+    file : a file_like object
+        Object to read from
+
+    Returns
+    -------
+    restraints: RdcREstraint object
+        Restraints from file
+
+    """
     if ramp is None:
         ramp = ConstantRamp()
 
