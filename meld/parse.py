@@ -223,10 +223,9 @@ def get_secondary_structure_restraints(system, scaler,
     if ramp is None:
         ramp = ConstantRamp()
     
-    if min_secondary_match <= 5.0:
-        print('Minimum number of elements to match in secondary structure 
-                must be less than 5. Using default of 4.')
-        min_secondary_match = 4
+    if min_secondary_match > 5:
+        raise RuntimeError('Minimum number of elements to match in secondary structure '
+                           'must be less than or equal to 5.')
     min_secondary_match = int(min_secondary_match)
 
     contents = _get_secondary_sequence(filename, contents, file)
