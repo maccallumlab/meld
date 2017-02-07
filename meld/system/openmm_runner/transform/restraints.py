@@ -419,10 +419,12 @@ class MeldRestraintTransformer(TransformerBase):
                                                     dist_index, hyper_index,
                                                     tors_index, dist_prof_index,
                                                     tors_prof_index))
+            self.force.updateParametersInContext(simulation.context)
 
 
 def _add_meld_restraint(rest, meld_force, alpha, timestep):
     scale = rest.scaler(alpha) * rest.ramp(timestep)
+
     if isinstance(rest, restraints.DistanceRestraint):
         rest_index = meld_force.addDistanceRestraint(
             rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1, rest.r2,
@@ -438,12 +440,14 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
             rest.atom_index_1 - 1, rest.atom_index_2 - 1,
             rest.atom_index_3 - 1, rest.atom_index_4 - 1,
             rest.phi, rest.delta_phi, rest.k * scale)
+
     elif isinstance(rest, restraints.DistProfileRestraint):
         rest_index = meld_force.addDistProfileRestraint(
             rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r_min,
             rest.r_max, rest.n_bins, rest.spline_params[:, 0],
             rest.spline_params[:, 1], rest.spline_params[:, 2],
             rest.spline_params[:, 3], rest.scale_factor * scale)
+
     elif isinstance(rest, restraints.TorsProfileRestraint):
         rest_index = meld_force.addTorsProfileRestraint(
             rest.atom_index_1 - 1, rest.atom_index_2 - 1,
@@ -460,9 +464,11 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
             rest.spline_params[:, 12], rest.spline_params[:, 13],
             rest.spline_params[:, 14], rest.spline_params[:, 15],
             rest.scale_factor * scale)
+
     else:
         raise RuntimeError(
             'Do not know how to handle restraint {}'.format(rest))
+
     return rest_index
 
 
@@ -470,22 +476,26 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
                            hyper_index, tors_index, dist_prof_index,
                            tors_prof_index):
     scale = rest.scaler(alpha) * rest.ramp(timestep)
+
     if isinstance(rest, restraints.DistanceRestraint):
         meld_force.modifyDistanceRestraint(
             dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
             rest.r2, rest.r3, rest.r4, rest.k * scale)
         dist_index += 1
+
     elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
         meld_force.modifyHyperbolicDistanceRestraint(
             hyper_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
             rest.r2, rest.r3, rest.r4, rest.k * scale, rest.asymptote * scale)
         hyper_index += 1
+
     elif isinstance(rest, restraints.TorsionRestraint):
         meld_force.modifyTorsionRestraint(
             tors_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
             rest.atom_index_3 - 1, rest.atom_index_4 - 1, rest.phi,
             rest.delta_phi, rest.k * scale)
         tors_index += 1
+
     elif isinstance(rest, restraints.DistProfileRestraint):
         meld_force.modifyDistProfileRestraint(
             dist_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
@@ -494,6 +504,7 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
             rest.spline_params[:, 2], rest.spline_params[:, 3],
             rest.scale_factor * scale)
         dist_prof_index += 1
+
     elif isinstance(rest, restraints.TorsProfileRestraint):
         meld_force.modifyTorsProfileRestraint(
             tors_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
@@ -511,9 +522,11 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
             rest.spline_params[:, 14], rest.spline_params[:, 15],
             rest.scale_factor * scale)
         tors_prof_index += 1
+
     else:
         raise RuntimeError(
             'Do not know how to handle restraint {}'.format(rest))
+
     return (dist_index, hyper_index, tors_index,
             dist_prof_index, tors_prof_index)
 
