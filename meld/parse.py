@@ -348,11 +348,11 @@ def get_rdc_restraints(system, scaler, ramp=None, filename=None,
 
     Parameters
     ----------
-    system : a system object
-        The system
-    scaler : a force scaler
-        The force
-    ramp : 
+    system : meld.system.System
+        The system object for the restraints to be added to.
+    scaler : meld.system.restraints.RestraintScaler
+        Object to scale the force constant.
+    ramp : meld.system.restraints.TimeRamp
         Ramp, default is ConstantRamp()
     filename : string
         Filename to open
