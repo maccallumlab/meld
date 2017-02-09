@@ -96,7 +96,7 @@ class VirtualSpinLabel(object):
             # create the particle
             atom = pmd.Atom(None, 8, 'OND', 'OND', 0.0, 16.00)
             if not self.explicit:
-                atom.radii = radius
+                atom.solvent_radius = radius
                 atom.screen = screen
 
             # add to system
@@ -150,4 +150,4 @@ class VirtualSpinLabel(object):
     def _find_radius_and_screen(self, topol):
         for atom in topol.atoms:
             if atom.atomic_number == 8:
-                return atom.radii, atom.screen
+                return atom.solvent_radius, atom.screen

@@ -65,6 +65,7 @@ class SystemBuilder(object):
         leap_cmds = []
         leap_cmds.append('set default PBradii {}'.format(self._gb_radii))
         leap_cmds.append('source {}'.format(self._forcefield))
+        leap_cmds.append('loadAmberParams frcmod.ionslm_1264_tip3p')
         return leap_cmds
 
     def _generate_leap_footer(self, mol_ids):

@@ -125,7 +125,8 @@ class CMAPAdder(object):
         residues = OrderedDict(new_res)
         # now turn the ordered dict into a list of CMAPResidues
         residues = [self._to_cmap_residue(num, name) for
-                    (num, name) in residues.items()]
+                    (num, name) in residues.items()
+                    if name in self._map_index.keys()]
 
         # is each residue i connected to it's predecessor, i-1?
         connected = self._compute_connected(residues)
