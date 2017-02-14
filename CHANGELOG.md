@@ -1,3 +1,15 @@
+# 0.3.3
+
+## Enhancements
+
+TranslationMover for translational Monte Carlo moves
+
+# 0.3.2
+
+## Enhancements
+
+Support for reading in secondary structure from multiple chains
+
 # 0.3.1
 
 ## Bug Fixes
