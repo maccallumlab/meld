@@ -14,8 +14,10 @@ class MonteCarloScheduler(object):
     """
     def __init__(self, movers_with_weights, update_trials):
         """
-        :param movers_with_weights: a list of (mover, weight) tuples;
-                                    weights do not need to be normalized
+        Parameters
+        ----------
+        movers_with_weights : [(mover, weight)]
+            List of (mover, weight) tuples. Weights do not need to be normalized.
         """
         self.update_trials = update_trials
         self._movers_with_weights = movers_with_weights
@@ -26,10 +28,20 @@ class MonteCarloScheduler(object):
     def update(self, starting_state, runner):
         """
         Perform a series of Monte Carlo moves
-        :param starting_state: initial `SystemState`
-        :param runner: an `OpenMMRunner` to evaluate energies
-        :param n_trials: int number of trials
-        :return: new `SystemState` object
+
+        Parameters
+        ----------
+        starting_state : SystemState
+            Initial state of system
+        runner : OpenMMRunner
+            Runner to evaluate energies
+        n_trials : int
+            Number of trials to run
+
+        Returns
+        -------
+        SystemState
+            The system state after Monte Carlo trials
         """
         current_state = starting_state
 
@@ -62,9 +74,14 @@ class RandomTorsionMover(object):
     """
     def __init__(self, index1, index2, atom_indices):
         """
-        :param index1: index of atom to rotate around
-        :param index2: index of second atom defining rotation vector
-        :param atom_indices: list of atom indices that should be rotated
+        Parameters
+        ----------
+        index1 : int
+            Index of atom to rotate around
+        index2 : int
+            Index of second atom to rotate around
+        atom_indices : [int]
+            List of atom indices that should be rotated
         """
         self.index1 = index1
         self.index2 = index2
@@ -73,9 +90,18 @@ class RandomTorsionMover(object):
     def trial(self, state, runner):
         """
         Perform a Metropolis trial
-        :param state: initial `SystemState`
-        :param runner: `OpenMMRunner` to evaluate the energies
-        :return: updated `SystemState`
+
+        Parameters
+        ----------
+        state: SystemState
+            Initial state of the system
+        runner: OpenMMRunner
+            Runner to evaluate the energies
+
+        Returns
+        -------
+        SystemState, boolean
+            System state after trial and indiciator if trial was accepted
         """
         starting_positions = state.positions.copy()
         starting_energy = state.energy
@@ -103,6 +129,16 @@ class RandomTorsionMover(object):
 class DoubleTorsionMover(object):
     def __init__(self, index1a, index1b, atom_indices1, index2a,
                  index2b, atom_indices2):
+        """
+        Parameters
+        ----------
+        index1a : int
+        index1b : int
+        atom_indices1 : [int]
+        index2a : int
+        index2b : int
+        atom_indices2 : [int]
+        """
         self.index1a = index1a
         self.index1b = index1b
         self.atom_indices1 = atom_indices1
@@ -113,9 +149,18 @@ class DoubleTorsionMover(object):
     def trial(self, state, runner):
         """
         Perform a Metropolis trial
-        :param state: initial `SystemState`
-        :param runner: `OpenMMRunner` to evaluate the energies
-        :return: updated `SystemState`
+
+        Parameters
+        ----------
+        state : SystemState
+            Initial state of the system
+        runner: OpenMMRunner
+            Runner to evaluate the energies
+
+        Returns
+        -------
+        SystemState, boolean
+            System state after trial and indiciator if trial was accepted
         """
         starting_positions = state.positions.copy()
         starting_energy = state.energy
@@ -147,13 +192,67 @@ class DoubleTorsionMover(object):
         return state, accepted
 
 
+class TranslationMover(object):
+    """
+    Translate a chain
+    """
+    def __init__(self, atom_indices, move_size=0.1):
+        """
+        Parameters
+        ----------
+        atom_indices: [int]
+            List of atoms to translate
+        move_size: float
+            Standard deviation of random move in nanometers
+        """
+        self.atom_indices = atom_indices
+        self.move_size = move_size
+
+    def trial(self, state, runner):
+        """
+        Perform a metropolis trial
+
+        :param state: initial `SystemState`
+        :param runner: `OpenMMRunner` to evaluate the energies
+        :return: updated `SystemState`
+        """
+        starting_positions = state.positions.copy()
+        starting_energy = state.energy
+
+        trial_positions = starting_positions.copy()
+        random_vector = np.random.normal(loc=0.0, scale=self.move_size, size=3)
+        trial_positions[self.atom_indices, :] += random_vector
+        state.positions = trial_positions
+        trial_energy = runner.get_energy(state)
+
+        accepted = metropolis(starting_energy, trial_energy, bias=0.0)
+        if accepted:
+            state.energy = trial_energy
+            state.positions = trial_positions
+        else:
+            state.energy = starting_energy
+            state.positions = starting_positions
+
+        return state, accepted
+
+
 def rotate_around_vector(p1, p2, angle, points):
     """
-    :param p1: first point on axis to rotate around
-    :param p2: second point on axis to rotate around
-    :param angle: angle in degrees
-    :param points: numpy array of shape (n_atoms, 3)
-    :return: rotated numpy array of shape (n_atoms, 3)
+    Parameters
+    ----------
+    p1 : ndarray
+        First point on axis to rotate around
+    p2 : ndarray
+        Second point on axis to rotate around
+    angle : float
+        Angle in degrees
+    points : ndarray
+        Numpy array of shape (n_atoms, 3)
+
+    Returns
+    -------
+    ndarray
+        Rotate array of shape (n_atoms, 3)
     """
     direction = p2 - p1
     angle = angle / 180. * math.pi
@@ -166,11 +265,19 @@ def metropolis(current_energy, trial_energy, bias):
     """
     Perform a Metropolis accept/reject step.
 
-    :param current_energy: current energy in units of kT
-    :param trial_energy: energy of trial in units of kT
-    :param bias: negative log of ratio of forward and reverse
-                 move probabilities
-    :return: boolean indicating to accept or reject the step
+    Parameters
+    ----------
+    current_energy : float
+        Current energy in units of kT
+    trial_energy : float
+        Energy of trial in units of kT
+    bias : float
+        Negative log of ratio of forward and reverse move probabilities
+
+    Returns
+    -------
+    boolean
+        Indicates if step should be accepted
     """
     total_trial = trial_energy + bias
     delta = total_trial - current_energy
@@ -188,7 +295,9 @@ def metropolis(current_energy, trial_energy, bias):
 def generate_uniform_angle():
     """
     Generate a uniform angle in (0, 360]
-    :return: float angle
+    Returns
+    -------
+    float
     """
     return 360. * random.random()
 
