@@ -1,24 +1,27 @@
-# 0.3.3
+## 0.3.4
 
-## Enhancements
+### Enhancments
+- Added ability to specify arbitrary leap commands in header
 
-TranslationMover for translational Monte Carlo moves
+## 0.3.3
 
-# 0.3.2
+### Enhancements
+- TranslationMover for translational Monte Carlo moves
 
-## Enhancements
+## 0.3.2
 
-Support for reading in secondary structure from multiple chains
+### Enhancements
+- Support for reading in secondary structure from multiple chains
 
-# 0.3.1
+## 0.3.1
 
-## Bug Fixes
+### Bug Fixes
 - *(CRITICAL)* Fixed critical bug where MELD forces were not
   being updated on GPU.
   
-# 0.3.0
+## 0.3.0
 
-## Enhancements
+### Enhancements
 - This is the first version where we are tracking changes.
 - The plugin has been merged into the main MELD repository.
 - We now build a single anaconda package (meld-test) on each commit.

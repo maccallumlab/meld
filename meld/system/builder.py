@@ -6,6 +6,7 @@
 from meld import util
 from .system import System
 import subprocess
+from six import string_types
 
 
 def load_amber_system(top_filename, crd_filename, patchers=[]):
@@ -27,11 +28,20 @@ class SystemBuilder(object):
         self._gb_radii = None
         self._set_gb_radii(gb_radii)
 
-    def build_system_from_molecules(self, molecules, patchers=[]):
+    def build_system_from_molecules(self, molecules, patchers=None,
+                                    leap_header_cmds=None):
+        if patchers is None:
+            patchers = []
+        if leap_header_cmds is None:
+            leap_header_cmds = []
+        if isinstance(leap_header_cmds, string_types):
+            leap_header_cmds = [leap_header_cmds]
+
         with util.in_temp_dir():
             leap_cmds = []
             mol_ids = []
             leap_cmds.extend(self._generate_leap_header())
+            leap_cmds.extend(leap_header_cmds)
             for index, mol in enumerate(molecules):
                 mol_id = 'mol_{}'.format(index)
                 mol_ids.append(mol_id)
@@ -65,7 +75,6 @@ class SystemBuilder(object):
         leap_cmds = []
         leap_cmds.append('set default PBradii {}'.format(self._gb_radii))
         leap_cmds.append('source {}'.format(self._forcefield))
-        leap_cmds.append('loadAmberParams frcmod.ionslm_1264_tip3p')
         return leap_cmds
 
     def _generate_leap_footer(self, mol_ids):
