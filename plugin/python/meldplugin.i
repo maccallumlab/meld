@@ -36,7 +36,7 @@ import simtk.openmm as mm
 
 /* include version information */
 %pythoncode %{
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 %}
 
 /*
