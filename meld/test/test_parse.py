@@ -112,7 +112,9 @@ class TestExtractSecondaryRuns(unittest.TestCase):
     def test_can_handle_single_run(self):
         content = 'HHHHH'
 
-        results = parse._extract_secondary_runs(content, ss_type='H', run_length=5, at_least=5)
+        results = parse._extract_secondary_runs(content, ss_type='H',
+                                                run_length=5, at_least=5,
+                                                first_residue=0)
 
         self.assertEqual(len(results), 1)
         result = results[0]
@@ -123,7 +125,9 @@ class TestExtractSecondaryRuns(unittest.TestCase):
     def test_can_handle_single_run_plus_other(self):
         content = '...HHHHHEEE'
 
-        results = parse._extract_secondary_runs(content, ss_type='H', run_length=5, at_least=5)
+        results = parse._extract_secondary_runs(content, ss_type='H',
+                                                run_length=5, at_least=5,
+                                                first_residue=0)
 
         self.assertEqual(len(results), 1)
         result = results[0]
@@ -133,7 +137,9 @@ class TestExtractSecondaryRuns(unittest.TestCase):
     def test_can_handle_multiple_runs(self):
         content = '...HHHHH...HHHHH...'
 
-        results = parse._extract_secondary_runs(content, ss_type='H', run_length=5, at_least=5)
+        results = parse._extract_secondary_runs(content, ss_type='H',
+                                                run_length=5, at_least=5,
+                                                first_residue=0)
 
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].start, 3)
@@ -144,7 +150,9 @@ class TestExtractSecondaryRuns(unittest.TestCase):
     def test_can_handle_at_least(self):
         content = '...HHHHH...'
 
-        results = parse._extract_secondary_runs(content, ss_type='H', run_length=5, at_least=4)
+        results = parse._extract_secondary_runs(content, ss_type='H',
+                                                run_length=5, at_least=4,
+                                                first_residue=0)
 
         self.assertEqual(len(results), 3)
         self.assertEqual(results[0].start, 2)

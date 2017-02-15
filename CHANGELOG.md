@@ -1,3 +1,10 @@
+## 0.3.5
+
+### Bug Fixes
+
+- *(Critical)* Fixed bug in secondary structure handling that was
+   introduced in 0.3.2.
+
 ## 0.3.4
 
 ### Enhancments
