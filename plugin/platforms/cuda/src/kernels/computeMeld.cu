@@ -863,7 +863,7 @@ extern "C" __global__ void applyGroups(
 
 extern "C" __global__ void applyDistRest(
                                 unsigned long long * __restrict__ force,
-                                real* __restrict__ energyBuffer,
+                                mixed* __restrict__ energyBuffer,
                                 const int2* __restrict__ atomIndices,
                                 const int* __restrict__ globalIndices,
                                 const float3* __restrict__ restForces,
@@ -896,7 +896,7 @@ extern "C" __global__ void applyDistRest(
 
 extern "C" __global__ void applyHyperbolicDistRest(
                                 unsigned long long * __restrict__ force,
-                                real* __restrict__ energyBuffer,
+                                mixed* __restrict__ energyBuffer,
                                 const int2* __restrict__ atomIndices,
                                 const int* __restrict__ globalIndices,
                                 const float3* __restrict__ restForces,
@@ -929,7 +929,7 @@ extern "C" __global__ void applyHyperbolicDistRest(
 
 extern "C" __global__ void applyTorsionRest(
                                 unsigned long long * __restrict__ force,
-                                real* __restrict__ energyBuffer,
+                                mixed* __restrict__ energyBuffer,
                                 const int4* __restrict__ atomIndices,
                                 const int* __restrict__ globalIndices,
                                 const float3* __restrict__ restForces,
@@ -977,7 +977,7 @@ extern "C" __global__ void applyTorsionRest(
 
 extern "C" __global__ void applyDistProfileRest(
                                 unsigned long long * __restrict__ force,
-                                real* __restrict__ energyBuffer,
+                                mixed* __restrict__ energyBuffer,
                                 const int2* __restrict__ atomIndices,
                                 const int* __restrict__ globalIndices,
                                 const float3* __restrict__ restForces,
@@ -1010,7 +1010,7 @@ extern "C" __global__ void applyDistProfileRest(
 
 extern "C" __global__ void applyTorsProfileRest(
                                 unsigned long long * __restrict__ force,
-                                real* __restrict__ energyBuffer,
+                                mixed* __restrict__ energyBuffer,
                                 const int4* __restrict__ atomIndices0,
                                 const int4* __restrict__ atomIndices1,
                                 const int* __restrict__ globalIndices,
