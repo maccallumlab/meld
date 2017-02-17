@@ -1,8 +1,15 @@
+## 0.3.6
+
+### Bug Fixes
+
+- *(CRITICAL)* Fixed bug in mixed precision introduced in a727279.
+  The energies reported in previous versions were undefined.
+
 ## 0.3.5
 
 ### Bug Fixes
 
-- *(Critical)* Fixed bug in secondary structure handling that was
+- *(CRITICAL)* Fixed bug in secondary structure handling that was
    introduced in 0.3.2.
 
 ## 0.3.4
