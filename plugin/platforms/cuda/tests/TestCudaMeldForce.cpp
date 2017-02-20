@@ -531,7 +531,7 @@ void testCollectionSelectsCorrectly() {
 }
 
 
-void testMultipleGroups() {
+void testSingleGroup() {
     // setup system
     const int numParticles = 3;
     System system;
@@ -589,6 +589,71 @@ void testMultipleGroups() {
     ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[1], 1e-5);
     ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[2], 1e-5);
 }
+
+
+void testMultipleGroups() {
+    // setup system
+    const int numParticles = 3;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    // add restraints between particle 1 and both particles 1 and 2
+    int restIdx1 = force->addDistanceRestraint(0, 1, 0.0, 0.0, 0.0, 9999.0, 100.0);
+    int restIdx2 = force->addDistanceRestraint(0, 2, 0.0, 0.0, 0.0, 9999.0, 100.0);
+
+    // setup groups
+    std::vector<int> group1(1);
+    group1[0] = restIdx1;
+    int groupIdx1 = force->addGroup(group1, 1);
+    std::vector<int> group2(1);
+    group2[0] = restIdx2;
+    int groupIdx2 = force->addGroup(group2, 1);
+
+    // setup collection
+    std::vector<int> collection(2);
+    collection[0] = groupIdx1;
+    collection[1] = groupIdx2;
+    force->addCollection(collection, 2);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // set the positions
+    // the first spring is stretched by 1 nm
+    // the second is stretched by 2 nm
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    positions[2] = Vec3(2.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    // the expected energy is 0.5 * 100 (1**2 + 2**2) = 0
+    float expectedEnergy = 250.0;
+
+    // the force on atom 1 should be
+    // f = - 100 * 1 = -100
+    Vec3 expectedForce1 = Vec3(-100.0, 0.0, 0.0);
+    // the force on atom 2 should be
+    // f = -100 * 2 = -200
+    Vec3 expectedForce2 = Vec3(-200.0, 0.0, 0.0);
+    // the force on atom 0 should be equal and opposite
+    Vec3 expectedForce0 = -expectedForce1 - expectedForce2;
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce0, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[1], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[2], 1e-5);
+}
+
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
@@ -602,6 +667,7 @@ int main(int argc, char* argv[]) {
         testTorsProfileRest();
         testGroupSelectsCorrectly();
         testCollectionSelectsCorrectly();
+        testSingleGroup();
         testMultipleGroups();
     }
     catch(const std::exception& e) {
