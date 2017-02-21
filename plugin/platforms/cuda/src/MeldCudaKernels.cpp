@@ -103,7 +103,7 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     collectionBounds = NULL;
     collectionNumActive = NULL;
     collectionEnergies = NULL;
-    collectionEncounteredNaN = NULL;
+    collectionEncounteredError = NULL;
 }
 
 CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
@@ -152,7 +152,7 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
     delete collectionBounds;
     delete collectionNumActive;
     delete collectionEnergies;
-    delete collectionEncounteredNaN;
+    delete collectionEncounteredError;
 }
 
 
@@ -217,19 +217,19 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
         torsProfileRestForces      = CudaArray::create<float3> (cu, 8 * numTorsProfileRestraints, "torsProfileRestForces");
     }
 
-    restraintEnergies         = CudaArray::create<float>  ( cu, numRestraints,     "restraintEnergies");
-    restraintActive           = CudaArray::create<float>  ( cu, numRestraints,     "restraintActive");
-    groupRestraintIndices     = CudaArray::create<int>    ( cu, numRestraints,     "groupRestraintIndices");
-    groupRestraintIndicesTemp = CudaArray::create<int>    ( cu, numRestraints,     "groupRestraintIndicesTemp");
-    groupEnergies             = CudaArray::create<float>  ( cu, numGroups,         "groupEnergies");
-    groupActive               = CudaArray::create<float>  ( cu, numGroups,         "groupActive");
-    groupBounds               = CudaArray::create<int2>   ( cu, numGroups,         "groupBounds");
-    groupNumActive            = CudaArray::create<int>    ( cu, numGroups,         "groupNumActive");
-    collectionGroupIndices    = CudaArray::create<int>    ( cu, numGroups,         "collectionGroupIndices");
-    collectionBounds          = CudaArray::create<int2>   ( cu, numCollections,    "collectionBounds");
-    collectionNumActive       = CudaArray::create<int>    ( cu, numCollections,    "collectionNumActive");
-    collectionEnergies        = CudaArray::create<int>    ( cu, numCollections,    "collectionEnergies");
-    collectionEncounteredNaN  = CudaArray::create<int>    ( cu, 1,                 "collectionEncounteredNaN");
+    restraintEnergies          = CudaArray::create<float>  ( cu, numRestraints,     "restraintEnergies");
+    restraintActive            = CudaArray::create<float>  ( cu, numRestraints,     "restraintActive");
+    groupRestraintIndices      = CudaArray::create<int>    ( cu, numRestraints,     "groupRestraintIndices");
+    groupRestraintIndicesTemp  = CudaArray::create<int>    ( cu, numRestraints,     "groupRestraintIndicesTemp");
+    groupEnergies              = CudaArray::create<float>  ( cu, numGroups,         "groupEnergies");
+    groupActive                = CudaArray::create<float>  ( cu, numGroups,         "groupActive");
+    groupBounds                = CudaArray::create<int2>   ( cu, numGroups,         "groupBounds");
+    groupNumActive             = CudaArray::create<int>    ( cu, numGroups,         "groupNumActive");
+    collectionGroupIndices     = CudaArray::create<int>    ( cu, numGroups,         "collectionGroupIndices");
+    collectionBounds           = CudaArray::create<int2>   ( cu, numCollections,    "collectionBounds");
+    collectionNumActive        = CudaArray::create<int>    ( cu, numCollections,    "collectionNumActive");
+    collectionEnergies         = CudaArray::create<int>    ( cu, numCollections,    "collectionEnergies");
+    collectionEncounteredError = CudaArray::create<int>    ( cu, 1,                 "collectionEncounteredError");
 
     // setup host memory
     h_distanceRestRParams                 = std::vector<float4> (numDistRestraints, make_float4( 0, 0, 0, 0));
@@ -266,7 +266,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     h_collectionGroupIndices              = std::vector<int>    (numGroups, -1);
     h_collectionBounds                    = std::vector<int2>   (numCollections, make_int2( -1, -1));
     h_collectionNumActive                 = std::vector<int>    (numCollections, -1);
-    h_collectionEncounteredNaN            = std::vector<int>    (1, 0);
+    h_collectionEncounteredError          = std::vector<int>    (1, 0);
 }
 
 
@@ -839,8 +839,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
     int sharedSizeCollection = sharedSizeCollectionEnergies + sharedSizeCollectionMinMaxBuffer +
         sharedSizeCollectionBinCounts + sharedSizeCollectionBestBin;
     // set collectionsEncounteredNaN to zero and upload it
-    h_collectionEncounteredNaN[0] = 0;
-    collectionEncounteredNaN->upload(h_collectionEncounteredNaN);
+    h_collectionEncounteredError[0] = 0;
+    collectionEncounteredError->upload(h_collectionEncounteredError);
     // now evaluate and activate groups based on collections
     void* collArgs[] = {
         &numCollections,
@@ -849,12 +849,16 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
         &groupActive->getDevicePointer(),
-        &collectionEncounteredNaN->getDevicePointer()};
+        &collectionEncounteredError->getDevicePointer()};
     cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection, sharedSizeCollection);
     // check if we encountered NaN
-    collectionEncounteredNaN->download(h_collectionEncounteredNaN);
-    if (h_collectionEncounteredNaN[0]) {
+    collectionEncounteredError->download(h_collectionEncounteredError);
+    if (h_collectionEncounteredError[0] == 1) {
         throw OpenMMException("Encountered NaN when evaluating collections.");
+    } else if (h_collectionEncounteredError[0] == 2) {
+        throw OpenMMException("Could not find k'th highest element while evaluating collection.");
+    } else if (h_collectionEncounteredError[0]) {
+        throw OpenMMException("Unknown error occurred while handling collection.");
     }
 
     // Now set the restraints active based on if the groups are active
