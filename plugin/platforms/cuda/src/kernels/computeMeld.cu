@@ -647,7 +647,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         const int* __restrict__ indexArray,
         const float* __restrict__ energyArray,
         float* __restrict__ activeArray,
-        int * __restrict__ encounteredNaN)
+        int * __restrict__ encounteredError)
 {
     const float TOLERANCE = 1e-4;
     const int maxCollectionSize = MAXCOLLECTIONSIZE;
@@ -710,7 +710,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 // result in an infinite loop
                 if(tid==0) {
                     if (!isfinite(min) || !isfinite(max)) {
-                        *encounteredNaN = 1;
+                        *encounteredError = 1;
                     }
                 }
                 // zero out the buffers
@@ -719,9 +719,9 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 maxBuffer[tid] = 0.0;
                 __syncthreads();
 
-                // If we hit a NaN then abort early now that encounteredNaN is set.
+                // If we hit a NaN then abort early now that encounteredError is set.
                 // This will cause an exception on the C++ side
-                if (*encounteredNaN) {
+                if (*encounteredError) {
                     return;
                 }
 
@@ -791,14 +791,14 @@ extern "C" __global__ void evaluateAndActivateCollections(
                     // if we still have that invalid value, then we'll bail out below
                     if (tid==0) {
                         if(*bestBin==blockDim.x) {
-                            *encounteredNaN = 1;
+                            *encounteredError = 2;
                         }
                     }
                 }
                 __syncthreads();
 
                 // bail out if we still have an invalid value in bestBin
-                if(*encounteredNaN) {
+                if(*encounteredError) {
                     return;
                 }
 
