@@ -747,16 +747,23 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 // make sure all threads are done
                 __syncthreads();
 
-                // Now we do a cumulative sum. We should do this in parallel,
-                // but for now, a serial implementation is easier to get right.
-                if(tid==0) {
-                    int current = 0;
-                    for(int i=0; i<blockDim.x; ++i) {
-                        current += binCounts[i];
-                        binCounts[i] = current;
+                // Now we need to do a cumulative sum of the bin index. This is not
+                // a work efficient parallel algorithm, but it is easy to implement,
+                // and binCounts only has size 1024, so the performance difference
+                // compared to a work efficient algorithm should be negligible in
+                // the grand scheme of things
+                //
+                // NOTE:
+                // This is hard coded to assume an array size of 1024
+                //
+                int powerOfTwo = 1;
+                for(int i=0; i<10; i++) {
+                    if(threadIdx.x >= powerOfTwo) {
+                        binCounts[threadIdx.x] += binCounts[threadIdx.x - powerOfTwo];
                     }
+                    powerOfTwo *= 2;
+                    __syncthreads();
                 }
-                __syncthreads();
 
                 // now we need to find the bin containing the k'th highest value
                 // we use a single warp, where each thread looks at a block of 32 entries
