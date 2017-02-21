@@ -1,3 +1,11 @@
+## 0.3.7
+
+- *(CRITICAL)* Fixed a bug in collection handling introduced in
+   e71Daa0 that caused undefined behaviour. The previous version
+   gave correct results on test systems with GTX980 cards, but
+   incorrect results on Tesla m2070. The status on other
+   architectures is unknown.
+
 ## 0.3.6
 
 ### Bug Fixes
