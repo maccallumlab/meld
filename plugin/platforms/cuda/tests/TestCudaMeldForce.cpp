@@ -654,6 +654,57 @@ void testMultipleGroups() {
 }
 
 
+void testBigSystem() {
+    // setup system
+    const int numParticles = 2049;
+    System system;
+    vector<Vec3> positions(numParticles);
+    for(int i=0; i<numParticles; i++) {
+        system.addParticle(1.0);
+    }
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    std::vector<int> groups;
+    for(int i=1; i<numParticles; i++) {
+        int restIdx = force->addDistanceRestraint(0, i, 0.0, 0.0, 0.0, 999999., 100.0);
+        std::vector<int> group(1);
+        group[0] = restIdx;
+        int grpIdx = force->addGroup(group, 1);
+        groups.push_back(grpIdx);
+    }
+
+    // setup collection
+    force->addCollection(groups, numParticles / 2);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // set the positions
+    // each particle is 1 nm further along the x-axis
+    for(int i=0; i<numParticles; i++) {
+        positions[i] = Vec3(1.0 * i, 0.0, 0.0);
+    }
+    context.setPositions(positions);
+
+    float expectedEnergy = 17921920000.0;
+
+    // the force on the 1024th atom should be
+    // f = - 100 * 1024 = -102400
+    Vec3 expectedForce1024 = Vec3(-102400.0, 0.0, 0.0);
+    // the force on the 1025th atom should be zero
+    Vec3 expectedForce1025 = Vec3(0.0, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce1024, state.getForces()[1024], 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce1025, state.getForces()[1025], 1e-5);
+}
+
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
@@ -669,6 +720,7 @@ int main(int argc, char* argv[]) {
         testCollectionSelectsCorrectly();
         testSingleGroup();
         testMultipleGroups();
+        testBigSystem();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;
