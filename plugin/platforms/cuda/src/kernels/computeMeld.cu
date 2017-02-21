@@ -658,7 +658,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
     // shared memory:
     // energyBuffer: maxCollectionSize floats
     // min/max Buffer: gridDim.x floats
-    // binCounts: gridDim.x ints
+    // binCounts: blockDim.x ints
     extern __shared__ char collectionScratch[];
     float* energyBuffer = (float*)&collectionScratch[0];
     float* minBuffer = (float*)&collectionScratch[maxCollectionSize*sizeof(float)];
@@ -747,37 +747,14 @@ extern "C" __global__ void evaluateAndActivateCollections(
                 // make sure all threads are done
                 __syncthreads();
 
-                // now we need to do a cumulative sum, also known as an inclusive scan
-                // we will do this using a fast three-phase parallel algorithm
-                // this code assumes 1024 threads in 32 warps of 32 threads
-                // it will require modification to work with arbitrary sizes
-
-                // first, we do the cumulative sum within each warp
-                // this works because the threads are all implicity synchronized
-                if (lane >= 1) binCounts[tid] += binCounts[tid - 1];
-                if (lane >= 2) binCounts[tid] += binCounts[tid - 2];
-                if (lane >= 4) binCounts[tid] += binCounts[tid - 4];
-                if (lane >= 8) binCounts[tid] += binCounts[tid - 8];
-                if (lane >= 16) binCounts[tid] += binCounts[tid - 16];
-                __syncthreads();
-
-                // now we use a single thread to do a cumulative sum over the last elements of each
-                // of the 32 warps
-                if (warp == 0) {
-                    if (lane >= 1) binCounts[32 * tid + 31] += binCounts[32 * (tid - 1) + 31];
-                    if (lane >= 2) binCounts[32 * tid + 31] += binCounts[32 * (tid - 2) + 31];
-                    if (lane >= 4) binCounts[32 * tid + 31] += binCounts[32 * (tid - 4) + 31];
-                    if (lane >= 8) binCounts[32 * tid + 31] += binCounts[32 * (tid - 8) + 31];
-                    if (lane >= 16) binCounts[32 * tid + 31] += binCounts[32 * (tid - 16) + 31];
-                }
-                __syncthreads();
-
-                // new each warp adds the value of the 31st element of the previous warp
-                // there is nothing to add for warp0, so we skip it
-                // the last element of each warp already has this sum from the previous step,
-                // so we skip it
-                if (warp>0 && lane<31) {
-                    binCounts[tid] += binCounts[32 * warp - 1];
+                // Now we do a cumulative sum. We should do this in parallel,
+                // but for now, a serial implementation is easier to get right.
+                if(tid==0) {
+                    int current = 0;
+                    for(int i=0; i<blockDim.x; ++i) {
+                        current += binCounts[i];
+                        binCounts[i] = current;
+                    }
                 }
                 __syncthreads();
 
@@ -796,15 +773,27 @@ extern "C" __global__ void evaluateAndActivateCollections(
                         }
                     }
                     // now find the smallest bin that meets the criteria
+                    // start by setting bestBin to an invalid value
                     if (tid == 0) {
-                        *bestBin = 1025;
+                        *bestBin = blockDim.x;
                     }
                     // if we found a value >= numActive, then update the minimum value
                     if (flag) {
                         atomicMin(bestBin, 32 * tid + counter);
                     }
+                    // if we still have that invalid value, then we'll bail out below
+                    if (tid==0) {
+                        if(*bestBin==blockDim.x) {
+                            *encounteredNaN = 1;
+                        }
+                    }
                 }
                 __syncthreads();
+
+                // bail out if we still have an invalid value in bestBin
+                if(*encounteredNaN) {
+                    return;
+                }
 
                 const float binMin = minBuffer[*bestBin];
                 const float binMax = maxBuffer[*bestBin];
