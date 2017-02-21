@@ -8,4 +8,4 @@ import logging
 logger = logging.getLogger('meld')
 logger.addHandler(logging.NullHandler())
 
-__version__ = '0.3.6'
+__version__ = '0.3.7'
