@@ -1,4 +1,13 @@
+## 0.3.8
+
+### Enhancements
+
+- Added improved diagnostics to aid in future debugging of
+  collections.
+
 ## 0.3.7
+
+### Enhancements
 
 - *(CRITICAL)* Fixed a bug in collection handling introduced in
    e71Daa0 that caused undefined behaviour. The previous version
