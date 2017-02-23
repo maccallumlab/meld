@@ -1,5 +1,14 @@
 ## 0.3.8
 
+### Bug Fixes
+
+- *(CRITICAL)* The fix introduced in 0.3.7 was incorrect
+   and sometimes gave incorrect results due to a data race.
+   This version uses a work efficient, in place, parallel
+   algorithm. It passes several hundred iterations of the
+   plugin test-suite, whereas the previous version would
+   fail every few trials.
+   
 ### Enhancements
 
 - Added improved diagnostics to aid in future debugging of

@@ -597,7 +597,7 @@ extern "C" __global__ void evaluateAndActivate(
 }
 
 
-__device__ void findMinMax(int length, const float* energyArray, float* minBuffer, float* maxBuffer) {
+__device__ void findMinMax(int length, volatile float* energyArray, volatile float* minBuffer, volatile float* maxBuffer) {
     const int tid = threadIdx.x;
     float energy;
     float min = 9.9e99;
@@ -659,13 +659,13 @@ extern "C" __global__ void evaluateAndActivateCollections(
     // energyBuffer: maxCollectionSize floats
     // min/max Buffer: gridDim.x floats
     // binCounts: blockDim.x ints
-    extern __shared__ char collectionScratch[];
-    float* energyBuffer = (float*)&collectionScratch[0];
-    float* minBuffer = (float*)&collectionScratch[maxCollectionSize*sizeof(float)];
-    float* maxBuffer = (float*)&collectionScratch[(maxCollectionSize+blockDim.x)*sizeof(float)];
-    int* binCounts = (int*)&collectionScratch[(maxCollectionSize+2*blockDim.x)*sizeof(float)];
-    int* bestBin = (int*)&(collectionScratch[(maxCollectionSize + 2 * blockDim.x) * sizeof(float) +
-                                             blockDim.x * sizeof(int)]);
+    extern __shared__ volatile char collectionScratch[];
+    volatile float* energyBuffer = (float*)&collectionScratch[0];
+    volatile float* minBuffer = (float*)&collectionScratch[maxCollectionSize*sizeof(float)];
+    volatile float* maxBuffer = (float*)&collectionScratch[(maxCollectionSize+blockDim.x)*sizeof(float)];
+    volatile int* binCounts = (int*)&collectionScratch[(maxCollectionSize+2*blockDim.x)*sizeof(float)];
+    volatile int* bestBin = (int*)&(collectionScratch[(maxCollectionSize + 2 * blockDim.x) * sizeof(float) +
+                                                      blockDim.x * sizeof(int)]);
 
     for (int collIndex=blockIdx.x; collIndex<numCollections; collIndex+=gridDim.x) {
         // we need to find the value of the cutoff energy below, then we will
@@ -690,7 +690,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         float delta = max - min;
 
 
-        // All of the energies are the same, so they should all be active.
+        // If all of the energies are the same, they should all be active.
         // Note: we need to break out here in this case, as otherwise delta
         // will be zero and bad things will happen
         if (fabs(max-min) < TOLERANCE) {
@@ -735,64 +735,68 @@ extern "C" __global__ void evaluateAndActivateCollections(
                     if ( (index >= 0) && (index < blockDim.x) ) {
 
                         // increment the counter using atomic function
-                        atomicAdd(&binCounts[index], 1);
+                        atomicAdd(&((int *)binCounts)[index], 1);
                         // update the min and max bounds for the bin using atomic functions
                         // note we need to cast to an integer, but floating point values
                         // still compare correctly when represented as integers
                         // this assumes that all energies are >0
-                        atomicMin((unsigned int*)&minBuffer[index], __float_as_int(energy));
-                        atomicMax((unsigned int*)&maxBuffer[index], __float_as_int(energy));
+                        atomicMin((unsigned int*)&((float *)minBuffer)[index], __float_as_int(energy));
+                        atomicMax((unsigned int*)&((float *)maxBuffer)[index], __float_as_int(energy));
                     }
                 }
                 // make sure all threads are done
                 __syncthreads();
 
-                // Now we need to do a cumulative sum of the bin index. This is not
-                // a work efficient parallel algorithm, but it is easy to implement,
-                // and binCounts only has size 1024, so the performance difference
-                // compared to a work efficient algorithm should be negligible in
-                // the grand scheme of things
+                // Now we need to perform a cumulative sum, which is surprisingly
+                // hard to get both correct and fast. We use a two pass, in-place
+                // algorithm.
                 //
-                // NOTE:
-                // This is hard coded to assume an array size of 1024
-                //
-                int powerOfTwo = 1;
-                for(int i=0; i<10; i++) {
-                    if(threadIdx.x >= powerOfTwo) {
-                        binCounts[threadIdx.x] += binCounts[threadIdx.x - powerOfTwo];
+                // We use the algorihm given in:
+                // http://cuda.ac.upc.edu/sites/cuda.ac.upc.edu/files/lectures/patc_bsc_scan_2.pdf
+
+                // First, the upsweep.
+                int stride = 1;
+                while(stride < blockDim.x) {
+                    int index = (tid + 1) * stride * 2 - 1;
+                    if(index < blockDim.x) {
+                        binCounts[index] += binCounts[index - stride];
                     }
-                    powerOfTwo *= 2;
+
+                    stride = stride * 2;
                     __syncthreads();
                 }
+
+                // Now, the downsweep.
+                for(stride=blockDim.x / 4; stride>0; stride /= 2) {
+                    __syncthreads();
+
+                    int index = (tid + 1) * stride * 2 - 1;
+                    if(index + stride < blockDim.x) {
+                        binCounts[index + stride] += binCounts[index];
+                    }
+                }
+                __syncthreads();
+
 
                 // now we need to find the bin containing the k'th highest value
                 // we use a single warp, where each thread looks at a block of 32 entries
                 // to find the smallest index where the cumulative sum is >= numActive
                 // we set flag if we find one
                 // this section uses implicit synchronization between threads in a single warp
-                if (warp == 0) {
-                    int counter = 0;
-                    int flag = false;
-                    for (counter=0; counter<32; counter++) {
-                        if (binCounts[32 * tid + counter] >= numActive) {
-                            flag = true;
-                            break;
-                        }
-                    }
-                    // now find the smallest bin that meets the criteria
-                    // start by setting bestBin to an invalid value
-                    if (tid == 0) {
-                        *bestBin = blockDim.x;
-                    }
-                    // if we found a value >= numActive, then update the minimum value
-                    if (flag) {
-                        atomicMin(bestBin, 32 * tid + counter);
-                    }
-                    // if we still have that invalid value, then we'll bail out below
-                    if (tid==0) {
-                        if(*bestBin==blockDim.x) {
-                            *encounteredError = 2;
-                        }
+
+                if(tid == 0) {
+                    *bestBin = blockDim.x;
+                }
+                __syncthreads();
+
+                if(binCounts[tid] >= numActive) {
+                    atomicMin((int *)bestBin, tid);
+                }
+                __syncthreads();
+
+                if(tid==0) {
+                    if(*bestBin==blockDim.x) {
+                        *encounteredError = 2;
                     }
                 }
                 __syncthreads();
