@@ -11,6 +11,7 @@
 #include "internal/windowsExportMeld.h"
 #include <map>
 #include <vector>
+#include <set>
 
 namespace MeldPlugin {
 
@@ -38,6 +39,11 @@ public:
      * the Context.  The set of particles involved in a restraint cannot be changed, nor can new restraints be added.
      */
     void updateParametersInContext(OpenMM::Context& context);
+
+    /**
+     * @return A bool indicating if particle is involved in MELD force
+     */
+    bool containsParticle(int particle) const;
 
     /**
      * @return The number of distance restraints.
@@ -463,6 +469,8 @@ private:
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
+    std::set<int> meldParticleSet;
+    void updateMeldParticleSet();
 
     class DistanceRestraintInfo {
     public:

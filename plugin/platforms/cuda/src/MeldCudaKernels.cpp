@@ -10,6 +10,7 @@
 #include "MeldCudaKernels.h"
 #include "CudaMeldKernelSources.h"
 #include "openmm/internal/ContextImpl.h"
+#include "openmm/cuda/CudaForceInfo.h"
 
 #include <algorithm>
 #include <cmath>
@@ -33,6 +34,30 @@ using namespace std;
         m<<errorMessage<<": "<<cu.getErrorString(result)<<" ("<<result<<")"<<" at "<<__FILE__<<":"<<__LINE__; \
         throw OpenMMException(m.str());\
     }
+
+
+class CudaMeldForceInfo : public CudaForceInfo {
+public:
+    CudaMeldForceInfo(const MeldForce& force) : force(force) {
+    }
+
+    int getNumParticleGroups() {
+        return 0;
+    }
+
+    bool areParticlesIdentical(int particle1, int particle2) {
+      if(force.containsParticle(particle1) || force.containsParticle(particle2))
+          return false;
+      return true;
+    }
+
+  bool areGroupsIdentical(int group1, int group2) {
+    return false;
+  }
+
+private:
+    const MeldForce& force;
+};
 
 
 CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platform& platform, CudaContext& cu,
@@ -719,6 +744,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     applyTorsionRestKernel = cu.getKernel(module, "applyTorsionRest");
     applyDistProfileRestKernel = cu.getKernel(module, "applyDistProfileRest");
     applyTorsProfileRestKernel = cu.getKernel(module, "applyTorsProfileRest");
+    cu.addForce(new CudaMeldForceInfo(force));
 }
 
 

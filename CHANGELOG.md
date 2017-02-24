@@ -1,3 +1,14 @@
+## 0.3.9
+
+### Bug Fixes
+
+- Fixed a bug where OpenMM would re-order identical
+  chains involved in MELD forces. This could only
+  occur if identical molecules were involved in a 
+  MELD force. MELD now correctly specifies that any
+  molecules involved in a MELD force are unique and
+  should not be reordered.
+  
 ## 0.3.8
 
 ### Bug Fixes
