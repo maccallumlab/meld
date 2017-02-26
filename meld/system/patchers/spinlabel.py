@@ -124,8 +124,10 @@ class VirtualSpinLabel(object):
             n_pos = np.array((n.xx, n.xy, n.xz))
             cb_pos = np.array((cb.xx, cb.xy, cb.xz))
 
-            direction = np.linalg.norm(ca_pos - n_pos)
-            new_pos = cb_pos - self.bond_params[self.params[key]][1].value_in_unit(u.angstrom) * direction
+            direction = (ca_pos - cb_pos) / np.linalg.norm(ca_pos - cb_pos)
+            new_pos = (ca_pos -
+                       self.bond_params[self.params[key]][1].value_in_unit(u.angstrom) * direction +
+                       ca_pos - n_pos)
 
             atom.xx = new_pos[0]
             atom.xy = new_pos[1]
