@@ -367,20 +367,23 @@ def _create_openmm_system(parm_object, solvation_type,
 
 def _add_extras(system, bonds, angles, torsions):
     # add the extra bonds
-    f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
-    for bond in bonds:
-        f.addBond(bond.i-1, bond.j-1, bond.length, bond.force_constant)
+    if bonds:
+        f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
+        for bond in bonds:
+            f.addBond(bond.i-1, bond.j-1, bond.length, bond.force_constant)
 
     # add the extra angles
-    f = [f for f in system.getForces() if isinstance(f, HarmonicAngleForce)][0]
-    for angle in angles:
-        f.addAngle(angle.i-1, angle.j-1, angle.k-1, angle.angle, angle.force_constant)
+    if angles:
+        f = [f for f in system.getForces() if isinstance(f, HarmonicAngleForce)][0]
+        for angle in angles:
+            f.addAngle(angle.i-1, angle.j-1, angle.k-1, angle.angle, angle.force_constant)
 
     # add the extra torsions
-    f = [f for f in system.getForces() if isinstance(f, PeriodicTorsionForce)][0]
-    for tors in torsions:
-        f.addTorsion(tors.i-1, tors.j-1, tors.k-1, tors.l-1,
-                     tors.multiplicity, tors.phase, tors.energy)
+    if torsions:
+        f = [f for f in system.getForces() if isinstance(f, PeriodicTorsionForce)][0]
+        for tors in torsions:
+            f.addTorsion(tors.i-1, tors.j-1, tors.k-1, tors.l-1,
+                        tors.multiplicity, tors.phase, tors.energy)
 
 
 def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):

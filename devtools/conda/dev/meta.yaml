@@ -23,6 +23,7 @@ requirements:
     - mock
     - six
     - sphinx_rtd_theme ==0.1.9
+    - mpi4py
 
   run:
     - ambermini
@@ -34,6 +35,7 @@ requirements:
     - netcdf4
     - mock
     - six
+    - mpi4py
 
 test:
   imports:
