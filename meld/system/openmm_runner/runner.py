@@ -7,7 +7,8 @@ from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import (
     LangevinIntegrator, Platform, CustomExternalForce,
-    CustomCentroidBondForce, MonteCarloBarostat)
+    CustomCentroidBondForce, MonteCarloBarostat, HarmonicBondForce,
+    HarmonicAngleForce, PeriodicTorsionForce)
 from simtk.unit import (
     Quantity, kelvin, picosecond, femtosecond, angstrom,
     kilojoule, mole, gram, nanometer, atmosphere)
@@ -71,6 +72,9 @@ class OpenMMRunner(object):
         self._temperature = None
         self._force_dict = {}
         self._transformers = []
+        self._extra_bonds = system.extra_bonds
+        self._extra_angles = system.extra_angles
+        self._extra_torsions = system.extra_torsions
 
     def prepare_for_timestep(self, alpha, timestep):
         self._alpha = alpha
@@ -145,7 +149,11 @@ class OpenMMRunner(object):
                 pme_params,
                 pcouple_params,
                 self._options.remove_com,
-                self._temperature)
+                self._temperature,
+                self._extra_bonds,
+                self._extra_angles,
+                self._extra_torsions)
+
             self._barostat = barostat
 
             if self._options.use_amap:
@@ -333,16 +341,17 @@ def _create_openmm_system(parm_object, solvation_type,
                           cutoff, use_big_timestep, use_bigger_timestep,
                           implicit_solvent, pme_params,
                           pcouple_params, remove_com,
-                          temperature):
+                          temperature, extra_bonds, extra_angles,
+                          extra_torsions):
     if solvation_type == 'implicit':
         logger.info('Creating implicit solvent system')
-        return _create_openmm_system_implicit(
+        system, baro = _create_openmm_system_implicit(
             parm_object, cutoff,
             use_big_timestep, use_bigger_timestep,
             implicit_solvent, remove_com), None
     elif solvation_type == 'explicit':
         logger.info('Creating explicit solvent system')
-        return _create_openmm_system_explicit(
+        system, baro = _create_openmm_system_explicit(
             parm_object, cutoff,
             use_big_timestep, use_bigger_timestep,
             pme_params, pcouple_params,
@@ -350,6 +359,28 @@ def _create_openmm_system(parm_object, solvation_type,
     else:
         raise ValueError(
             'unknown value for solvation_type: {}'.format(solvation_type))
+
+    _add_extras(system, extra_bonds, extra_angles, extra_torsions)
+
+    return system, baro
+
+
+def _add_extras(system, bonds, angles, torsions):
+    # add the extra bonds
+    f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
+    for bond in bonds:
+        f.addBond(bond.i-1, bond.j-1, bond.length, bond.force_constant)
+
+    # add the extra angles
+    f = [f for f in system.getForces() if isinstance(f, HarmonicAngleForce)][0]
+    for angle in angles:
+        f.addAngle(angle.i-1, angle.j-1, angle.k-1, angle.angle, angle.force_constant)
+
+    # add the extra torsions
+    f = [f for f in system.getForces() if isinstance(f, PeriodicTorsionForce)][0]
+    for tors in torsions:
+        f.addTorsion(tors.i-1, tors.j-1, tors.k-1, tors.l-1,
+                     tors.multiplicity, tors.phase, tors.energy)
 
 
 def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):

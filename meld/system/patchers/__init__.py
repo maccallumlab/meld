@@ -1,1 +1,0 @@
-from .spinlabel import VirtualSpinLabel

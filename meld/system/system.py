@@ -6,6 +6,7 @@
 from __future__ import print_function
 import math
 import numpy as np
+from collections import namedtuple
 
 from .restraints import RestraintManager
 from ..pdb_writer import PDBWriter
@@ -142,6 +143,11 @@ class REST2Scaler(object):
         return self.reference_temperature / self.scaler(alpha)
 
 
+ExtraBondParam = namedtuple('ExtraBondParam', 'i j length force_constant')
+ExtraAngleParam = namedtuple('ExtraAngleParam', 'i j k angle force_constant')
+ExtraTorsParam = namedtuple('ExtraTorsParam', 'i j k l phase energy multiplicity')
+
+
 class System(object):
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
@@ -159,6 +165,10 @@ class System(object):
         self._residue_numbers = None
         self._atom_index = None
         self._setup_indexing()
+
+        self.extra_bonds = []
+        self.extra_angles = []
+        self.extra_torsions = []
 
     @property
     def top_string(self):
@@ -197,6 +207,21 @@ class System(object):
         return PDBWriter(range(1, len(self._atom_names) + 1),
                          self._atom_names, self._residue_numbers,
                          self._residue_names)
+
+    def add_extra_bond(self, i, j, length, force_constant):
+        self.extra_bonds.append(ExtraBondParam(i=i, j=j, length=length,
+                                                force_constant=force_constant))
+
+    def add_extra_angle(self, i, j, k, angle, force_constant):
+        self.extra_angles.append(ExtraAngleParam(i=i, j=j, k=k,
+                                                  angle=angle,
+                                                  force_constant=force_constant))
+
+    def add_extra_torsion(self, i, j, k, l, phase, energy, multiplicity):
+        self.extra_torsions.append(ExtraTorsParam(i=i, j=j, k=k, l=l,
+                                                  phase=phase,
+                                                  energy=energy,
+                                                  multiplicity=multiplicity))
 
     def _setup_indexing(self):
         reader = ParmTopReader(self._top_string)

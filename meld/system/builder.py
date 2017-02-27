@@ -9,7 +9,10 @@ import subprocess
 from six import string_types
 
 
-def load_amber_system(top_filename, crd_filename, patchers=[]):
+def load_amber_system(top_filename, crd_filename, patchers=None):
+    if patchers is None:
+        patchers = []
+
     with open(top_filename, 'rt') as topfile:
         top = topfile.read()
     with open(crd_filename) as crdfile:
@@ -18,7 +21,12 @@ def load_amber_system(top_filename, crd_filename, patchers=[]):
     for patcher in patchers:
         top, crd = patcher.patch(top, crd)
 
-    return System(top, crd)
+    system = System(top, crd)
+
+    for patcher in patchers:
+        patcher.finalize(system)
+
+    return system
 
 
 class SystemBuilder(object):

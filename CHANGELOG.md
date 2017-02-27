@@ -1,3 +1,9 @@
+## 0.3.10
+
+### Enhancements
+
+- Completed implementation of virtual spin label sites
+
 ## 0.3.9
 
 ### Bug Fixes
