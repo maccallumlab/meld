@@ -6,7 +6,7 @@ from distutils.extension import Extension
 import os
 import platform
 
-version = '0.3.9'
+version = '0.3.10'
 
 openmm_dir = '@OPENMM_DIR@'
 meldplugin_header_dir = '@MELDPLUGIN_HEADER_DIR@'
