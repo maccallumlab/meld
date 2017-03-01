@@ -67,7 +67,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             remove_com=False,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False, nonbondedMethod=ff.NoCutoff, nonbondedCutoff=999.,
@@ -85,7 +85,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             remove_com=False,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False, nonbondedMethod=ff.CutoffNonPeriodic,
@@ -104,7 +104,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             remove_com=False,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False, nonbondedMethod=ff.NoCutoff,
@@ -123,7 +123,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             remove_com=False,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False, nonbondedMethod=ff.NoCutoff,
@@ -142,7 +142,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             remove_com=False,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False, nonbondedMethod=ff.NoCutoff,
@@ -179,7 +179,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             remove_com=True,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -203,7 +203,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             remove_com=True,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -227,7 +227,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             remove_com=True,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -251,7 +251,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             remove_com=True,
             temperature=self.TEMP,
             extra_bonds=[],
-            extra_angles=[],
+            extra_restricted_angles=[],
             extra_torsions=[])
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -296,7 +296,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
                 remove_com=True,
                 temperature=self.TEMP,
                 extra_bonds=[],
-                extra_angles=[],
+                extra_restricted_angles=[],
                 extra_torsions=[])
 
             mock_baro.assert_called_with(PRESS, self.TEMP, STEPS)

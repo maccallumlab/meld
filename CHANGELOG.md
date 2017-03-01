@@ -1,3 +1,11 @@
+## 0.3.11
+
+### Enhancements
+
+- Virtual spin labels now use a restricted angle potential
+  that avoids 180 and 0 degree angles that can cause the
+  dihedral potential to blow up.
+  
 ## 0.3.10
 
 ### Enhancements

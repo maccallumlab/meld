@@ -167,7 +167,7 @@ class System(object):
         self._setup_indexing()
 
         self.extra_bonds = []
-        self.extra_angles = []
+        self.extra_restricted_angles = []
         self.extra_torsions = []
 
     @property
@@ -213,7 +213,7 @@ class System(object):
                                                 force_constant=force_constant))
 
     def add_extra_angle(self, i, j, k, angle, force_constant):
-        self.extra_angles.append(ExtraAngleParam(i=i, j=j, k=k,
+        self.extra_restricted_angles.append(ExtraAngleParam(i=i, j=j, k=k,
                                                   angle=angle,
                                                   force_constant=force_constant))
 

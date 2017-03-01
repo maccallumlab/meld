@@ -8,7 +8,7 @@ from simtk.openmm.app import forcefield as ff
 from simtk.openmm import (
     LangevinIntegrator, Platform, CustomExternalForce,
     CustomCentroidBondForce, MonteCarloBarostat, HarmonicBondForce,
-    HarmonicAngleForce, PeriodicTorsionForce)
+    HarmonicAngleForce, PeriodicTorsionForce, CustomAngleForce)
 from simtk.unit import (
     Quantity, kelvin, picosecond, femtosecond, angstrom,
     kilojoule, mole, gram, nanometer, atmosphere)
@@ -73,7 +73,7 @@ class OpenMMRunner(object):
         self._force_dict = {}
         self._transformers = []
         self._extra_bonds = system.extra_bonds
-        self._extra_angles = system.extra_angles
+        self._extra_restricted_angles = system.extra_restricted_angles
         self._extra_torsions = system.extra_torsions
 
     def prepare_for_timestep(self, alpha, timestep):
@@ -151,7 +151,7 @@ class OpenMMRunner(object):
                 self._options.remove_com,
                 self._temperature,
                 self._extra_bonds,
-                self._extra_angles,
+                self._extra_restricted_angles,
                 self._extra_torsions)
 
             self._barostat = barostat
@@ -341,7 +341,7 @@ def _create_openmm_system(parm_object, solvation_type,
                           cutoff, use_big_timestep, use_bigger_timestep,
                           implicit_solvent, pme_params,
                           pcouple_params, remove_com,
-                          temperature, extra_bonds, extra_angles,
+                          temperature, extra_bonds, extra_restricted_angles,
                           extra_torsions):
     if solvation_type == 'implicit':
         logger.info('Creating implicit solvent system')
@@ -360,23 +360,27 @@ def _create_openmm_system(parm_object, solvation_type,
         raise ValueError(
             'unknown value for solvation_type: {}'.format(solvation_type))
 
-    _add_extras(system, extra_bonds, extra_angles, extra_torsions)
+    _add_extras(system, extra_bonds, extra_restricted_angles, extra_torsions)
 
     return system, baro
 
 
-def _add_extras(system, bonds, angles, torsions):
+def _add_extras(system, bonds, restricted_angles, torsions):
     # add the extra bonds
     if bonds:
         f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
         for bond in bonds:
             f.addBond(bond.i-1, bond.j-1, bond.length, bond.force_constant)
 
-    # add the extra angles
-    if angles:
-        f = [f for f in system.getForces() if isinstance(f, HarmonicAngleForce)][0]
-        for angle in angles:
-            f.addAngle(angle.i-1, angle.j-1, angle.k-1, angle.angle, angle.force_constant)
+    # add the extra restricted_angles
+    if restricted_angles:
+        # create the new force for restricted angles
+        f = CustomAngleForce('0.5 * k_ra * (theta - theta0_ra)^2 / sin(theta * 3.1459 / 180)')
+        f.addPerAngleParameter('k_ra')
+        f.addPerAngleParameter('theta0_ra')
+        for angle in restricted_angles:
+            f.addAngle(angle.i-1, angle.j-1, angle.k-1, (angle.force_constant, angle.angle))
+        system.addForce(f)
 
     # add the extra torsions
     if torsions:
