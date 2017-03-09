@@ -221,6 +221,9 @@ def get_bldpkg_path(m, python, numpy):
     cfg.CONDA_NPY = int(numpy.replace('.', ''))
 
     m.config = cfg
+    print(type(cfg))
+    print(dir(cfg))
+
     if m.info_index()['subdir'] == 'noarch':
         cfg.noarch = True
     else:

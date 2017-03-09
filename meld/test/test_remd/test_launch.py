@@ -32,6 +32,7 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
         self.mock_comm.receive_logger_address_from_master.return_value = ('127.0.0.1', 32768)
+        self.mock_comm.rank = 0
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
@@ -99,6 +100,7 @@ class TestLaunchMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = True
+        self.mock_comm.rank = 0
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
