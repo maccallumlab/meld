@@ -2,7 +2,13 @@
 # OpenMM MELD Plugin
 #----------------------------------------------------
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+CMAKE_POLICY(SET CMP0042 OLD)
+CMAKE_POLICY(SET CMP0003 NEW)
+CMAKE_POLICY(SET CMP0005 NEW)
+CMAKE_POLICY(SET CMP0011 NEW)
+
+SET (CMAKE_CXX_STANDARD 11)
 
 # We need to know where OpenMM is installed so we can access the headers and libraries.
 SET(OPENMM_DIR "/usr/local/openmm" CACHE PATH "Where OpenMM is installed")

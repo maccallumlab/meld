@@ -197,6 +197,52 @@ void MeldForceProxy::serialize(const void* object, SerializationNode& node) cons
         }
     }
 
+    // serialize gmm restraints
+    SerializationNode& gmmRestraints = node.createChildNode("GMMRestraints");
+    for (int i = 0; i < force.getNumGMMRestraints(); i++) {
+        //
+        int nPairs, nComponents, globalIndex;
+        std::vector<int> atomIndices;
+        std::vector<double> weights, means, precOnDiag, precOffDiag;
+        force.getGMMRestraintParams(i, nPairs, nComponents, atomIndices, weights,
+                                    means, precOnDiag, precOffDiag, globalIndex);
+        SerializationNode& gr = gmmRestraints.createChildNode("GMMRestraint");
+        gr.setIntProperty("nPairs", nPairs);
+        gr.setIntProperty("nComponents", nComponents);
+
+        SerializationNode& a = gr.createChildNode("atomIndices");
+        for(const auto& atom : atomIndices) {
+            SerializationNode& ap = a.createChildNode("atomIndex");
+            ap.setIntProperty("index", atom);
+        }
+
+        SerializationNode& w = gr.createChildNode("weights");
+        for(const auto& weight : weights) {
+            SerializationNode& wp = w.createChildNode("weight");
+            wp.setDoubleProperty("weight", weight);
+        }
+
+        SerializationNode& m = gr.createChildNode("means");
+        for(const auto& mean : means) {
+            SerializationNode& mp = m.createChildNode("mean");
+            mp.setDoubleProperty("mean", mean);
+        }
+
+        SerializationNode& d = gr.createChildNode("precisionOnDiagonals");
+        for(const auto& diag : precOnDiag) {
+            SerializationNode& dp = d.createChildNode("precisionOnDiagonal");
+            dp.setDoubleProperty("prec", diag);
+        }
+
+        SerializationNode& o = gr.createChildNode("precisionOffDiagonals");
+        for(const auto& off : precOffDiag) {
+            SerializationNode& op = o.createChildNode("precisionOffDiagonal");
+            op.setDoubleProperty("prec", off);
+        }
+
+        gr.setIntProperty("globalIndex", globalIndex);
+    }
+
     // serialize groups
     SerializationNode& groups = node.createChildNode("Groups");
     for (int i = 0; i < force.getNumGroups(); i++) {
@@ -414,6 +460,42 @@ void* MeldForceProxy::deserialize(const SerializationNode& node) const {
                                            nBins, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
                                            scaleFactor);
         }
+
+        // deserialize GMM restraints
+        const SerializationNode& gmmRestraints = node.getChildNode("GMMRestraints");
+        for (const auto& r : gmmRestraints.getChildren()){
+            int nPairs = r.getIntProperty("nPairs");
+            int nComponents = r.getIntProperty("nComponents");
+            int globalIndex = r.getIntProperty("globalIndex");
+
+            std::vector<int> atomIndices;
+            for(const auto& x : r.getChildNode("atomIndices").getChildren()) {
+                atomIndices.push_back(x.getIntProperty("index"));
+            }
+
+            std::vector<double> weights;
+            for(const auto& x : r.getChildNode("weights").getChildren()) {
+                weights.push_back(x.getDoubleProperty("weight"));
+            }
+
+            std::vector<double> means;
+            for(const auto& x : r.getChildNode("means").getChildren()) {
+                means.push_back(x.getDoubleProperty("mean"));
+            }
+
+            std::vector<double> precOnDiag;
+            for(const auto& x : r.getChildNode("precisionOnDiagonals").getChildren()) {
+                precOnDiag.push_back(x.getDoubleProperty("prec"));
+            }
+
+            std::vector<double> precOffDiag;
+            for(const auto& x : r.getChildNode("precisionOffDiagonals").getChildren()) {
+                precOffDiag.push_back(x.getDoubleProperty("prec"));
+            }
+            force->addGMMRestraint(nPairs, nComponents, atomIndices, weights,
+                                   means, precOnDiag, precOffDiag);
+        }
+
 
         // deserialize groups
         const SerializationNode& groups = node.getChildNode("Groups");

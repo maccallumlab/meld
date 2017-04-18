@@ -413,6 +413,309 @@ void testTorsProfileRest() {
     ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
 }
 
+void testGMMRest1Pair1Component() {
+    // setup system
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int nPairs = 1;
+    int nComponents = 1;
+    std::vector<int> atomIndices = {0, 1};
+    std::vector<double> weights = {1.0};
+    std::vector<double> means = {1.0};
+    std::vector<double> precOnDiag = {1.0};
+    std::vector<double> precOffDiag = {};
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+                                         weights, means, precOnDiag, precOffDiag);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // Test at the maximum
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    // values from wolframalpha
+    // -2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]] /. {x->1}
+    // D[-2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]], {x, 1}] /. {x->1}
+    float expectedEnergy = 2.278967;
+    Vec3 expectedForce = Vec3(0.0, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-5);
+
+    // Test at 1-sigma away
+    // values from wolframalpha
+    // -2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]] /. {x->2}
+    // D[-2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]], {x, 1}] /. {x->2}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 3.518967;
+    expectedForce = Vec3(2.48, 0.0, 0.0);
+
+    state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-5);
+}
+
+void testGMMRest1Pair2Component() {
+    // setup system
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int nPairs = 1;
+    int nComponents = 2;
+    std::vector<int> atomIndices = {0, 1};
+    std::vector<double> weights = {0.75, 0.25};
+    std::vector<double> means = {1.0, 2.0};
+    std::vector<double> precOnDiag = {1.0, 2.0};
+    std::vector<double> precOffDiag = {};
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+                                         weights, means, precOnDiag, precOffDiag);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // -2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1.5, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1.5, a->1, b->2, c->1, d->2}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.5, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 2.43976;
+    Vec3 expectedForce = Vec3(0.147094, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-4);
+
+    // -2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1, a->1, b->2, c->1, d->2}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 2.59581;
+    expectedForce = Vec3(-0.73304, 0.0, 0.0);
+
+    state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-4);
+}
+
+
+void testGMMRest2Pair2Component() {
+    // setup system
+    const int numParticles = 3;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int nPairs = 2;
+    int nComponents = 2;
+    std::vector<int> atomIndices = {0, 1, 1, 2};
+    std::vector<double> weights = {0.5, 0.5};
+    std::vector<double> means = {1.0, 2.0, 3.0, 4.0};
+    std::vector<double> precOnDiag = {5.0, 6.0, 7.0, 8.0};
+    std::vector<double> precOffDiag = {0.25, 0.5};
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+                                         weights, means, precOnDiag, precOffDiag);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // -2.48 * Log[0.5 / Sqrt[(2*Pi)^2 pa] * Exp[-0.5 * (pa11 * (x - mua1)^2 + pa22 * (y - mua2)^2 + 2*pa12 * (x-mua1) * (y-mua2))] +
+    //             0.5 / Sqrt[(2* Pi)^2 pb] * Exp[-0.5 * (pb11 * (x - mub1)^2 + pb22 * (y - mub2)^2 + 2*pb12 * (x-mub1) * (y-mub2))]]
+    //  /. {x->1, y->1, mua1->1, mua2->2, mub1->3, mub2->4, pa11->5, pa22->6, pa12->0.25, pb11->7, pb22->8, pb12->0.5, pa->1/29.9375, pb->1/55.75}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    positions[2] = Vec3(2.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 9.50204;
+    Vec3 expectedForce1 = Vec3(-0.62, 0.0, 0.0);
+    Vec3 expectedForce2 = Vec3(-14.26, 0.0, 0.0);
+    Vec3 expectedForce3 = Vec3(14.88, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[1], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce3, state.getForces()[2], 1e-4);
+
+    // -2.48 * Log[0.5 / Sqrt[(2*Pi)^2 pa] * Exp[-0.5 * (pa11 * (x - mua1)^2 + pa22 * (y - mua2)^2 + 2*pa12 * (x-mua1) * (y-mua2))] +
+    //             0.5 / Sqrt[(2* Pi)^2 pb] * Exp[-0.5 * (pb11 * (x - mub1)^2 + pb22 * (y - mub2)^2 + 2*pb12 * (x-mub1) * (y-mub2))]]
+    //  /. {x->2, y->3, mua1->1, mua2->2, mub1->3, mub2->4, pa11->5, pa22->6, pa12->0.25, pb11->7, pb22->8, pb12->0.5, pa->1/29.9375, pb->1/55.75}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.0, 0.0, 0.0);
+    positions[2] = Vec3(5.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 15.9888;
+    expectedForce1 = Vec3(9.04395, 0.0, 0.0);
+    expectedForce2 = Vec3(1.85635, 0.0, 0.0);
+    expectedForce3 = Vec3(-10.9003, 0.0, 0.0);
+
+    state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce2, state.getForces()[1], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce3, state.getForces()[2], 1e-4);
+}
+
+
+void testGMMRest3Pair2Component() {
+    // setup system
+    const int numParticles = 4;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int nPairs = 3;
+    int nComponents = 2;
+    std::vector<int> atomIndices = {0, 1, 1, 2, 2, 3};
+    std::vector<double> weights = {0.5, 0.5};
+    std::vector<double> means = {1.0, 2.0, 3.0, 2.0, 2.0, 2.0};
+    std::vector<double> precOnDiag = {3.0, 4.0, 5.0, 5.0, 4.0, 3.0};
+    std::vector<double> precOffDiag = {0, 1, 0, 0, 2, 0};
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+                                         weights, means, precOnDiag, precOffDiag);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // pa = 1 / Det[{{3, 0, 1}, {0, 4, 0}, {1, 0, 5}}]
+    // pb =1 /  Det[{{5, 0, 2}, {0, 4, 0}, {2, 0, 3}}]
+
+    // -2.48 * Log[
+    // 0.5 / Sqrt[(2*Pi)^3 pa]*
+    //   Exp[-0.5*(
+    //     pa11*(x-mua1)^2 +
+    //     pa22*(y-mua2)^2 +
+    //     pa33*(z-mua3)^2 +
+    //     2*pa12*(x-mua1)*(y-mua2)+
+    //     2*pa13*(x-mua1)*(z-mua3)+
+    //     2*pa23*(y-mua2)*(z-mua3))] +
+    // 0.5 / Sqrt[(2*Pi)^3 pb]*
+    //   Exp[-0.5*(
+    //     pb11*(x-mub1)^2 +
+    //     pb22*(y-mub2)^2 +
+    //     pb33*(z-mub3)^2 +
+    //     2*pb12*(x-mub1)*(y-mub2)+
+    //     2*pb13*(x-mub1)*(z-mub3)+
+    //     2*pb23*(y-mub2)*(z-mub3))]] /.
+    // {x->1, y->2, z->3, mua1->1, mua2->2, mua3->3, mub1->2, mub2->2, mub3->2, pa11->3, pa22->4,
+    //  pa33->5, pb11->5, pb22->4, pb33->3, pa12->0, pa13->1, pa23->0, pb12->0, pb13->2, pb23->0}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    positions[2] = Vec3(3.0, 0.0, 0.0);
+    positions[3] = Vec3(6.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 3.2835;
+    Vec3 expectedForce1 = Vec3(-0.796917, 0.0, 0.0);
+    Vec3 expectedForce4 = Vec3(-0.265639, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce4, state.getForces()[3], 1e-4);
+
+
+    // -2.48 * Log[
+    // 0.5 / Sqrt[(2*Pi)^3 pa]*
+    //   Exp[-0.5*(
+    //     pa11*(x-mua1)^2 +
+    //     pa22*(y-mua2)^2 +
+    //     pa33*(z-mua3)^2 +
+    //     2*pa12*(x-mua1)*(y-mua2)+
+    //     2*pa13*(x-mua1)*(z-mua3)+
+    //     2*pa23*(y-mua2)*(z-mua3))] +
+    // 0.5 / Sqrt[(2*Pi)^3 pb]*
+    //   Exp[-0.5*(
+    //     pb11*(x-mub1)^2 +
+    //     pb22*(y-mub2)^2 +
+    //     pb33*(z-mub3)^2 +
+    //     2*pb12*(x-mub1)*(y-mub2)+
+    //     2*pb13*(x-mub1)*(z-mub3)+
+    //     2*pb23*(y-mub2)*(z-mub3))]] /.
+    // {x->2, y->4, z->6, mua1->1, mua2->2, mua3->3, mub1->2, mub2->2, mub3->2, pa11->3, pa22->4,
+    //  pa33->5, pb11->5, pb22->4, pb33->3, pa12->0, pa13->1, pa23->0, pb12->0, pb13->2, pb23->0}
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.0, 0.0, 0.0);
+    positions[2] = Vec3(6.0, 0.0, 0.0);
+    positions[3] = Vec3(12.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 83.088;
+    expectedForce1 = Vec3(19.5762, 0.0, 0.0);
+    expectedForce4 = Vec3(-30.2875, 0.0, 0.0);
+
+    state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce1, state.getForces()[0], 1e-4);
+    ASSERT_EQUAL_VEC(expectedForce4, state.getForces()[3], 1e-4);
+}
+
+
 void testGroupSelectsCorrectly() {
     // setup system
     const int numParticles = 3;
@@ -716,6 +1019,10 @@ int main(int argc, char* argv[]) {
         testTorsRest();
         testDistProfileRest();
         testTorsProfileRest();
+        testGMMRest1Pair1Component();
+        testGMMRest1Pair2Component();
+        testGMMRest2Pair2Component();
+        testGMMRest3Pair2Component();
         testGroupSelectsCorrectly();
         testCollectionSelectsCorrectly();
         testSingleGroup();

@@ -403,22 +403,23 @@ class MeldRestraintTransformer(TransformerBase):
             tors_index = 0
             dist_prof_index = 0
             tors_prof_index = 0
+            gmm_index = 0
             if self.always_on:
                 for rest in self.always_on:
                     (dist_index, hyper_index, tors_index,
-                    dist_prof_index, tors_prof_index) = (
+                     dist_prof_index, tors_prof_index, gmm_index) = (
                         _update_meld_restraint(rest, self.force, alpha, timestep,
                                                 dist_index, hyper_index, tors_index,
-                                                dist_prof_index, tors_prof_index))
+                                                dist_prof_index, tors_prof_index, gmm_index))
             for coll in self.selective_on:
                 for group in coll.groups:
                     for rest in group.restraints:
                         (dist_index, hyper_index, tors_index,
-                        dist_prof_index, tors_prof_index) = (
+                         dist_prof_index, tors_prof_index, gmm_index) = (
                             _update_meld_restraint(rest, self.force, alpha, timestep,
                                                     dist_index, hyper_index,
                                                     tors_index, dist_prof_index,
-                                                    tors_prof_index))
+                                                    tors_prof_index, gmm_index))
             self.force.updateParametersInContext(simulation.context)
 
 
@@ -465,6 +466,16 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
             rest.spline_params[:, 14], rest.spline_params[:, 15],
             rest.scale_factor * scale)
 
+    elif isinstance(rest, restraints.GMMDistanceRestraint):
+        nd = rest.n_distances
+        nc = rest.n_components
+        a = [a - 1 for a in rest.atoms]
+        w = rest.weights
+        m = list(rest.means.flatten())
+
+        d, o = _setup_precisions(rest.precisions, nd, nc, scale)
+        rest_index = meld_force.addGMMRestraint(nd, nc, a, w, m, d, o)
+
     else:
         raise RuntimeError(
             'Do not know how to handle restraint {}'.format(rest))
@@ -474,7 +485,7 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
 
 def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
                            hyper_index, tors_index, dist_prof_index,
-                           tors_prof_index):
+                           tors_prof_index, gmm_index):
     scale = rest.scaler(alpha) * rest.ramp(timestep)
 
     if isinstance(rest, restraints.DistanceRestraint):
@@ -523,12 +534,44 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
             rest.scale_factor * scale)
         tors_prof_index += 1
 
+    elif isinstance(rest, restraints.GMMDistanceRestraint):
+        nd = rest.n_distances
+        nc = rest.n_components
+        a = [a - 1 for a in rest.atoms]
+        w = rest.weights
+        m = list(rest.means.flatten())
+        d, o = _setup_precisions(rest.precisions, nd, nc, scale)
+        rest_index = meld_force.modifyGMMRestraint(gmm_index, nd, nc, a, w, m, d, o)
+        gmm_index += 1
+
     else:
         raise RuntimeError(
             'Do not know how to handle restraint {}'.format(rest))
 
     return (dist_index, hyper_index, tors_index,
-            dist_prof_index, tors_prof_index)
+            dist_prof_index, tors_prof_index, gmm_index)
+
+
+def _setup_precisions(precisions, n_distances, n_conditions, scale):
+    # The normalization of our GMMs will blow up
+    # due to division by zero if the precisions
+    # are zero, so we clamp this to a very
+    # small value.
+    if scale < 1e-6:
+        scale = 1e-6
+
+    diags = []
+    for i in range(n_conditions):
+        for j in range(n_distances):
+            diags.append(precisions[i, j, j,] * scale)
+
+    off_diags = []
+    for i in range(n_conditions):
+        for j in range(n_distances):
+            for k in range(j+1, n_distances):
+                off_diags.append(precisions[i, j, k] * scale)
+
+    return diags, off_diags
 
 
 def _delete_from_always_active(restraints, always_active):

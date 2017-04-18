@@ -8,6 +8,8 @@
 #include "openmm/Force.h"
 #include "openmm/OpenMMException.h"
 #include <vector>
+#include <cmath>
+
 
 using namespace MeldPlugin;
 using namespace OpenMM;
@@ -27,37 +29,42 @@ bool MeldForce::containsParticle(int particle) const {
 void MeldForce::updateMeldParticleSet() {
     meldParticleSet.clear();
 
-    for(std::vector<DistanceRestraintInfo>::iterator it=distanceRestraints.begin(); it!=distanceRestraints.end(); ++it) {
-        meldParticleSet.insert(it->particle1);
-        meldParticleSet.insert(it->particle2);
+    for(const auto& r : distanceRestraints) {
+        meldParticleSet.insert(r.particle1);
+        meldParticleSet.insert(r.particle2);
     }
 
-    for(std::vector<HyperbolicDistanceRestraintInfo>::iterator it=hyperbolicDistanceRestraints.begin(); it!=hyperbolicDistanceRestraints.end(); ++it) {
-        meldParticleSet.insert(it->particle1);
-        meldParticleSet.insert(it->particle2);
+    for(const auto& r : hyperbolicDistanceRestraints) {
+        meldParticleSet.insert(r.particle1);
+        meldParticleSet.insert(r.particle2);
     }
 
-    for(std::vector<DistProfileRestraintInfo>::iterator it=distProfileRestraints.begin(); it!=distProfileRestraints.end(); ++it) {
-        meldParticleSet.insert(it->atom1);
-        meldParticleSet.insert(it->atom2);
+    for(const auto& r : distProfileRestraints) {
+        meldParticleSet.insert(r.atom1);
+        meldParticleSet.insert(r.atom2);
     }
 
-    for(std::vector<TorsionRestraintInfo>::iterator it=torsions.begin(); it!=torsions.end(); ++it) {
-        meldParticleSet.insert(it->atom1);
-        meldParticleSet.insert(it->atom2);
-        meldParticleSet.insert(it->atom3);
-        meldParticleSet.insert(it->atom4);
+    for(const auto& r : torsions) {
+        meldParticleSet.insert(r.atom1);
+        meldParticleSet.insert(r.atom2);
+        meldParticleSet.insert(r.atom3);
+        meldParticleSet.insert(r.atom4);
     }
 
-    for(std::vector<TorsProfileRestraintInfo>::iterator it=torsProfileRestraints.begin(); it!=torsProfileRestraints.end(); ++it) {
-        meldParticleSet.insert(it->atom1);
-        meldParticleSet.insert(it->atom2);
-        meldParticleSet.insert(it->atom3);
-        meldParticleSet.insert(it->atom4);
-        meldParticleSet.insert(it->atom5);
-        meldParticleSet.insert(it->atom6);
-        meldParticleSet.insert(it->atom7);
-        meldParticleSet.insert(it->atom8);
+    for(const auto& r : torsProfileRestraints) {
+        meldParticleSet.insert(r.atom1);
+        meldParticleSet.insert(r.atom2);
+        meldParticleSet.insert(r.atom3);
+        meldParticleSet.insert(r.atom4);
+        meldParticleSet.insert(r.atom5);
+        meldParticleSet.insert(r.atom6);
+        meldParticleSet.insert(r.atom7);
+        meldParticleSet.insert(r.atom8);
+    }
+    for(const auto& r : gmmRestraints) {
+        for(const auto& atom : r.atomIndices) {
+            meldParticleSet.insert(atom);
+        }
     }
 }
 
@@ -103,10 +110,13 @@ int MeldForce::getNumTorsProfileRestParams() const {
     return total;
 }
 
+int MeldForce::getNumGMMRestraints() const {
+    return gmmRestraints.size();
+}
 
 int MeldForce::getNumTotalRestraints() const {
     return distanceRestraints.size() + hyperbolicDistanceRestraints.size() + torsions.size() +
-        distProfileRestraints.size() + torsProfileRestraints.size();
+           distProfileRestraints.size() + torsProfileRestraints.size() + gmmRestraints.size();
 }
 
 
@@ -145,6 +155,112 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
 
     if(updateParticles)
         updateMeldParticleSet();
+}
+
+int MeldForce::addGMMRestraint(int nPairs, int nComponents,
+                               std::vector<int> atomIndices,
+                               std::vector<double> weights,
+                               std::vector<double> means,
+                               std::vector<double> precisionOnDiagonal,
+                               std::vector<double> precisionOffDiagonal) {
+    // sanity checks
+    if(nPairs > 32) {
+        throw OpenMMException("nPairs must be <= 32.");
+    }
+    if(nComponents > 32) {
+        throw OpenMMException("nComponents must be <= 32.");
+    }
+    if(atomIndices.size() != 2 * nPairs) {
+        throw OpenMMException("atomIndices.size() must be 2*nPairs.");
+    }
+    if(weights.size() != nComponents) {
+        throw OpenMMException("weights.size() must be nComponents.");
+    }
+    if(means.size() != nComponents * nPairs) {
+        throw OpenMMException("means.size() must be nComponents*nPairs.");
+    }
+    if(precisionOnDiagonal.size() != nComponents * nPairs) {
+        throw OpenMMException("precisionOnDiagonal.size() must be nComponents*nPairs.");
+    }
+    if(precisionOffDiagonal.size() != nComponents * nPairs * (nPairs - 1) / 2) {
+        throw OpenMMException("precisionOffDiagonal.size() must be nComponents*nPairs*(nPairs-1)/2.");
+    }
+    float weightSum = 0.0;
+    for(auto& w : weights) {
+        weightSum += w;
+    }
+    if(fabs(weightSum - 1.0) > 1e-5) {
+        throw OpenMMException("weights must sum to 1.0");
+    }
+
+    // update the list of particles involved in this meld force
+    for(const auto& atom : atomIndices) {
+        meldParticleSet.insert(atom);
+    }
+
+    // store the parameters
+    gmmRestraints.push_back(GMMRestraintInfo(nPairs, nComponents, n_restraints,
+                                             atomIndices, weights, means,
+                                             precisionOnDiagonal, precisionOffDiagonal));
+    n_restraints++;
+    return n_restraints - 1;
+}
+
+void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents,
+                                   std::vector<int> atomIndices,
+                                   std::vector<double> weights,
+                                   std::vector<double> means,
+                                   std::vector<double> precisionOnDiagonal,
+                                   std::vector<double> precisionOffDiagonal) {
+    int oldGlobal = gmmRestraints[index].globalIndex;
+
+    bool updateParticles = false;
+    if(gmmRestraints[index].atomIndices != atomIndices) {
+        updateParticles = true;
+    }
+
+    // sanity checks
+    if(nPairs > 32) {
+        throw OpenMMException("nPairs must be <= 32.");
+    }
+    if(nComponents > 32) {
+        throw OpenMMException("nComponents must be <= 32.");
+    }
+    if(atomIndices.size() != 2 * nPairs) {
+        throw OpenMMException("atomIndices.size() must be 2*nPairs.");
+    }
+    if(weights.size() != nComponents) {
+        throw OpenMMException("weights.size() must be nComponents.");
+    }
+    if(means.size() != nComponents * nPairs) {
+        throw OpenMMException("means.size() must be nComponents*nPairs.");
+    }
+    if(precisionOnDiagonal.size() != nComponents * nPairs) {
+        throw OpenMMException("precisionOnDiagonal.size() must be nComponents*nPairs.");
+    }
+    if(precisionOffDiagonal.size() != nComponents * nPairs * (nPairs - 1) / 2) {
+        throw OpenMMException("precisionOffDiagonal.size() must be nComponents*nPairs*(nPairs-1)/2.");
+    }
+    float weightSum = 0.0;
+    for(auto& w : weights) {
+        weightSum += w;
+    }
+    if(fabs(weightSum - 1.0) > 1e-5) {
+        throw OpenMMException("weights must sum to 1.0");
+    }
+    if(gmmRestraints[index].nPairs != nPairs) {
+        throw OpenMMException("Cannot change nPairs after a gmm restraint is created.");
+    }
+    if(gmmRestraints[index].nComponents != nComponents) {
+        throw OpenMMException("Cannot change nComponents after a gmm restraint is created.");
+    }
+
+    gmmRestraints[index] = GMMRestraintInfo(nPairs, nComponents, oldGlobal,
+                                            atomIndices, weights, means,
+                                            precisionOnDiagonal, precisionOffDiagonal);
+    if(updateParticles) {
+        updateMeldParticleSet();
+    }
 }
 
 int MeldForce::addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2,
@@ -417,6 +533,25 @@ void MeldForce::getTorsProfileRestraintParams(int index, int& atom1, int& atom2,
     a14 = rest.a14;
     a15 = rest.a15;
     scaleFactor = rest.scaleFactor;
+    globalIndex = rest.globalIndex;
+}
+
+
+void MeldForce::getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+                           std::vector<int>& atomIndices,
+                           std::vector<double>& weights,
+                           std::vector<double>& means,
+                           std::vector<double>& precisionOnDiagonal,
+                           std::vector<double>& precisionOffDiagonal,
+                           int& globalIndex) const {
+    const GMMRestraintInfo& rest = gmmRestraints[index];
+    nPairs = rest.nPairs;
+    nComponents = rest.nComponents;
+    atomIndices = rest.atomIndices;
+    weights = rest.weights;
+    means = rest.means;
+    precisionOnDiagonal = rest.precisionOnDiagonal;
+    precisionOffDiagonal = rest.precisionOffDiagonal;
     globalIndex = rest.globalIndex;
 }
 

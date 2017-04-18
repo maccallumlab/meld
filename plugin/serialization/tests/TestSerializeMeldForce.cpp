@@ -214,7 +214,7 @@ void testTorsProfRestSerialization() {
         ASSERT_EQUAL(atom6A, atom6B);
         ASSERT_EQUAL(atom7A, atom7B);
         ASSERT_EQUAL(atom8A, atom8B);
-        
+
         for (int j = 0; j < a0A.size(); j++) {
             ASSERT_EQUAL(a0A[j], a0B[j])
         }
@@ -268,6 +268,78 @@ void testTorsProfRestSerialization() {
     }
 }
 
+void testGMMRestSerialization() {
+    // create MeldForce
+    MeldForce force;
+    int nPairs = 2;
+    int nComponents = 1;
+    std::vector<int> atomIndices = {0, 1, 2, 3};
+    std::vector<double> weights = {1.0};
+    std::vector<double> means = {1.0, 1.0};
+    std::vector<double> precisionOnDiagonals = {1.0, 1.0};
+    std::vector<double> precisionOffDiagonals = {0.5};
+
+    // create the restraint, group, and collection
+    int restIdx = force.addGMMRestraint(nPairs, nComponents, atomIndices,
+                                        weights, means,
+                                        precisionOnDiagonals,
+                                        precisionOffDiagonals);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force.addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force.addCollection(groupIndices, 1);
+
+
+    // Serialize and then deserialize it.
+    stringstream buffer;
+    XmlSerializer::serialize<MeldForce>(&force, "Force", buffer);
+    MeldForce* copy = XmlSerializer::deserialize<MeldForce>(buffer);
+
+    // Compare the two forces to see if they are identical.
+    MeldForce& force2 = *copy;
+    ASSERT_EQUAL(force.getNumGMMRestraints(), force2.getNumGMMRestraints());
+
+    for (int i = 0; i < force.getNumGMMRestraints(); i++) {
+        int nPairsA, nPairsB, nComponentsA, nComponentsB;
+        int globalIndexA, globalIndexB;
+        std::vector<int> atomIndicesA, atomIndicesB;
+        std::vector<double> weightsA, weightsB;
+        std::vector<double> meansA, meansB;
+        std::vector<double> precisionOnDiagonalsA, precisionOnDiagonalsB;
+        std::vector<double> precisionOffDiagonalsA, precisionOffDiagonalsB;
+
+        force.getGMMRestraintParams(i, nPairsA, nComponentsA,
+                                    atomIndicesA, weightsA, meansA,
+                                    precisionOnDiagonalsA,
+                                    precisionOffDiagonalsA,
+                                    globalIndexA);
+        force2.getGMMRestraintParams(i, nPairsB, nComponentsB,
+                                     atomIndicesB, weightsB, meansB,
+                                     precisionOnDiagonalsB,
+                                     precisionOffDiagonalsB,
+                                     globalIndexB);
+
+        ASSERT_EQUAL(nPairsA, nPairsB);
+        ASSERT_EQUAL(nComponentsA, nComponentsB);
+        for (int i=0; i<atomIndicesA.size(); ++i) {
+            ASSERT_EQUAL(atomIndicesA[i], atomIndicesB[i]);
+        }
+        for (int i=0; i<weightsA.size(); ++i) {
+            ASSERT_EQUAL(weightsA[i], weightsB[i]);
+        }
+        for (int i=0; i<meansA.size(); ++i) {
+            ASSERT_EQUAL(meansA[i], meansB[i]);
+        }
+        for (int i=0; i<precisionOnDiagonalsA.size(); ++i) {
+            ASSERT_EQUAL(precisionOnDiagonalsA[i], precisionOnDiagonalsB[i]);
+        }
+        for (int i=0; i<precisionOffDiagonalsA.size(); ++i) {
+            ASSERT_EQUAL(precisionOffDiagonalsA[i], precisionOffDiagonalsB[i]);
+        }
+        ASSERT_EQUAL(globalIndexA, globalIndexB);
+    }
+}
+
 int main() {
     try {
         registerMeldSerializationProxies();
@@ -275,6 +347,7 @@ int main() {
         testTorsRestSerialization();
         testDistProfRestSerialization();
         testTorsProfRestSerialization();
+        testGMMRestSerialization();
     }
     catch(const exception& e) {
         cout << "exception: " << e.what() << endl;

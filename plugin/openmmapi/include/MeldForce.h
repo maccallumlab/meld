@@ -81,6 +81,11 @@ public:
     int getNumTorsProfileRestParams() const;
 
     /**
+     * @return The number of GMM restraints
+     */
+    int getNumGMMRestraints() const;
+
+    /**
      * @return The total number of distance and torsion restraints.
      */
     int getNumTotalRestraints() const;
@@ -190,6 +195,28 @@ public:
             std::vector<double>&  a9, std::vector<double>& a10, std::vector<double>& a11,
             std::vector<double>& a12, std::vector<double>& a13, std::vector<double>& a14,
             std::vector<double>& a15, float& scaleFactor, int& globalIndex) const;
+
+    /**
+     * Get the parameters for a GMM restraint. See addGMMRestraint()
+     * for more details about the parameters.
+     *
+     * @param index        the index of the restraint
+     * @param nPairs       the number of atom pairs
+     * @param nComponents  the number of GMM components
+     * @param atomIndices  the vector of atom indices
+     * @param weights      the vector of weights
+     * @param means        the vector of means in nm
+     * @param precisionOnDiagonal    the diagonals of the precision matrix in nm^(-2)
+     * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
+     * @param globalIndex  the global index of the restraint
+     */
+    void getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+                               std::vector<int>& atomIndices,
+                               std::vector<double>& weights,
+                               std::vector<double>& means,
+                               std::vector<double>& precisionOnDiagonal,
+                               std::vector<double>& precisionOffDiagonal,
+                               int& globalIndex) const;
 
     /**
      * Get the parameters for a group of restraints.
@@ -433,6 +460,74 @@ public:
             std::vector<double> a15, float scaleFactor);
 
     /**
+     * Create a new GMM restraint.
+     *
+     * This is a Gaussian Mixture Model restraint involving a series of
+     * distances.
+     *
+     * The energy has the form:
+     *
+     * E = w1 N1 exp(-0.5 (r-u1)^T P1 (r-u1)) + w2 N2 exp(-0.5 (r-u2)^T P2 (r-u2)) + ...
+     *
+     * where:
+     *    w1, w2, ... are the nComponents weights,
+     *    N1, N2, ... are automatically calculated normalization factors
+     *    r is the vector of distances for the atom pairs in atomIndices
+     *    u1, u2, ... are the mean vectors for each component
+     *    P1, P2, ... are the precision (inverse covariance) matrices for each component
+     *
+     * The memory layout is as follows:
+     * atomIndices -> [pair1_atom_1, pair1_atom_2, pair2_atom_1, pair2_atom_2, ...]
+     * weights -> [wa, wb, ...]
+     * means -> [ma1, ma2, ..., mb1, mb2, ...]
+     * precisionOnDiagonal -> [Pa11, Pa22, ..., Pb11, Pb22, ...]
+     * precisionOffDiagonal -> [Pa12, Pa13, ...,  Pa23, ..., Pb12, Pb13, ..., Pb23, ...]
+     *
+     * where a, b, ... are the different components and 1, 2, ... are the different distances.
+     *
+     * atomIndices.size() must be 2 * nPairs
+     * weights.size() must be nComponents
+     * means.size() must be nPairs * nComponents
+     * precisionOnDiagonal.size() must be nPairs * nComponents
+     * precisionOffDiagonal.size() must be nPairs * nComponents * (nComponents - 1) / 2
+     *
+     * @param nPairs       the number of atom pairs
+     * @param nComponents  the number of GMM components
+     * @param atomIndices  the vector of atom indices
+     * @param weights      the vector of weights
+     * @param means        the vector of means in nm
+     * @param precisionOnDiagonal    the diagonals of the precision matrix in nm^(-2)
+     * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
+     * @return the index of the restraint that was created
+     */
+    int addGMMRestraint(int nPairs, int nComponents,
+                        std::vector<int> atomIndices,
+                        std::vector<double> weights,
+                        std::vector<double> means,
+                        std::vector<double> precisionOnDiagonal,
+                        std::vector<double> precisionOffDiagonal);
+
+    /**
+     * Modify an existing GMM restraint. See addGMMRestraint() for more
+     * details about the parameters.
+     *
+     * @param index  the index of the restraint
+     * @param nPairs       the number of atom pairs
+     * @param nComponents  the number of GMM components
+     * @param atomIndices  the vector of atom indices
+     * @param weights      the vector of weights
+     * @param means        the vector of means in nm
+     * @param precisionOnDiagonal    the diagonals of the precision matrix in nm^(-2)
+     * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
+     */
+    void modifyGMMRestraint(int index, int nPairs, int nComponents,
+                            std::vector<int> atomIndices,
+                            std::vector<double> weights,
+                            std::vector<double> means,
+                            std::vector<double> precisionOnDiagonal,
+                            std::vector<double> precisionOffDiagonal);
+
+    /**
      * Create a new group of restraints.
      *
      * @param restraint_indices  the indices of the restraints in the group
@@ -459,6 +554,7 @@ private:
     class HyperbolicDistanceRestraintInfo;
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
+    class GMMRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
     int n_restraints;
@@ -467,6 +563,7 @@ private:
     std::vector<TorsionRestraintInfo> torsions;
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
+    std::vector<GMMRestraintInfo> gmmRestraints;
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
     std::set<int> meldParticleSet;
@@ -610,6 +707,32 @@ private:
             group_indices(group_indices), n_active(n_active) {
         }
     };
+
+    class GMMRestraintInfo {
+    public:
+      int nPairs, nComponents, globalIndex;
+      std::vector<int> atomIndices;
+      std::vector<double> weights;
+      std::vector<double> means;
+      std::vector<double> precisionOnDiagonal;
+      std::vector<double> precisionOffDiagonal;
+
+      GMMRestraintInfo() {
+        nPairs = 0;
+        nComponents = 0;
+        globalIndex = -1;
+      }
+
+    GMMRestraintInfo(int nPairs, int nComponents, int globalIndex,
+                     std::vector<int> atomIndices,
+                     std::vector<double> weights, std::vector<double> means,
+                     std::vector<double> precisionOnDiagonal,
+                     std::vector<double> precisionOffDiagonal) :
+            nPairs(nPairs), nComponents(nComponents), globalIndex(globalIndex),
+            weights(weights), means(means), precisionOffDiagonal(precisionOffDiagonal),
+            precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
+    };
+
 };
 
 } // namespace MeldPlugin

@@ -487,6 +487,134 @@ extern "C" __global__ void computeTorsProfileRest(
 }
 
 
+extern "C" __global__ void computeGMMRest(
+                            const real4* __restrict__ posq,             // positions and charges
+                            const int numRestraints,                    // number of restraints
+                            const int3* __restrict__ params,            // nPairs, nComponents, globalIndices
+                            const int2* __restrict__ offsets,           // atomBlockOffset, dataBlockOffset
+                            const int* __restrict__ atomIndices,        // atom indices
+                            const float* __restrict__ data,             // weights, means, diags, offdiags
+                            float* __restrict__ energies,               // global array of restraint energies
+                            float3* __restrict__ forceBuffer) {         // temporary buffer to hold the force
+    extern __shared__ volatile char scratch[];
+
+
+    int tid = threadIdx.x;
+    int warp = tid / 32;
+    int lane = tid % 32;
+
+    float* distances = (float*)&scratch[0];
+    float* probabilities = (float*)&scratch[16*32*sizeof(float)];
+
+    distances[tid] = 0.0;
+    probabilities[tid] = 0.0;
+
+    for (int index=16*blockIdx.x + warp; index<numRestraints; index+=16*gridDim.x) {
+        int nPairs = params[index].x;
+        int nComponents = params[index].y;
+        int globalIndex = params[index].z;
+
+        int atomBlockOffset = offsets[index].x;
+        int dataBlockOffset = offsets[index].y;
+
+        // compute my distance
+        if (lane < nPairs) {
+            int atomIndex1 = atomIndices[atomBlockOffset + 2 * lane];
+            int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
+
+            real4 delta = posq[atomIndex1] - posq[atomIndex2];
+            real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
+            real r = SQRT(distSquared);
+            distances[tid] = r;
+        }
+        __syncthreads();
+
+
+        // compute my probability
+        const int blockSize = 1 + 2*nPairs + nPairs*(nPairs-1)/2;
+        if (lane < nComponents) {
+            // compute offsets into data array
+            const float weight = data[dataBlockOffset + lane*blockSize];
+            const float* means = &data[dataBlockOffset + lane*blockSize + 1];
+            const float* diags = &data[dataBlockOffset + lane*blockSize + nPairs + 1];
+            const float* offdiags = &data[dataBlockOffset + lane*blockSize + 2*nPairs + 1];
+            float sum = 0;
+
+            // do the diagonal part
+            for (int i=0; i<nPairs; i++) {
+                float mean = means[i];
+                float diag = diags[i];
+                float dist = distances[32 * warp + i];
+                sum += (mean - dist) * (mean - dist) * diag;
+            }
+            int count = 0;
+            for (int i=0; i<nPairs; i++) {
+                for (int j=i+1; j<nPairs; j++) {
+                    float meani = means[i];
+                    float meanj = means[j];
+                    float coeff = 2 * offdiags[count];
+                    float disti = distances[32 * warp + i];
+                    float distj = distances[32 * warp + j];
+                    sum += (disti - meani) * (distj - meanj) * coeff;
+                    count++;
+                }
+            }
+            probabilities[tid] = weight * exp(-0.5 * sum);
+        }
+        __syncthreads();
+
+        // compute and store forces
+        float totalProb = 0;
+        for (int i=0; i<nComponents; i++) {
+            totalProb += probabilities[32 * warp + i];
+        }
+
+        if (lane < nPairs) {
+            float dEdr = 0;
+
+            // compute diagonal part of force
+            for (int i=0; i<nComponents; i++) {
+                float distance = distances[32 * warp + lane];
+                float mean = data[dataBlockOffset + i*blockSize + lane + 1];
+                float diag = data[dataBlockOffset + i*blockSize + nPairs + lane + 1];
+                dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (distance - mean) * diag;
+            }
+
+            // compute off diagonal part of force
+            for (int i=0; i<nComponents; i++) {
+                for (int k=0; k<nPairs; k++) {
+                    if (k != lane) {
+                        float r = distances[32 * warp + k];
+                        float mu = data[dataBlockOffset + i*blockSize + k + 1];
+                        int coeffIndex = 0;
+                        if (k > lane) {
+                            coeffIndex = nPairs*(nPairs-1)/2 - (nPairs-lane)*((nPairs-lane)-1)/2 + k - lane - 1;
+                        } else {
+                            coeffIndex = nPairs*(nPairs-1)/2 - (nPairs-k)*((nPairs-k)-1)/2 + lane - k - 1;
+                        }
+                        float coeff = data[dataBlockOffset + i*blockSize + 1 + 2*nPairs + coeffIndex];
+                        dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (r - mu) * coeff;
+                    }
+                }
+            }
+            int atomIndex1 = atomIndices[atomBlockOffset + 2 * lane];
+            int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
+            real4 delta = posq[atomIndex1] - posq[atomIndex2];
+            float4 f = dEdr * delta / distances[32 * warp + lane];
+            forceBuffer[atomBlockOffset + lane].x = f.x;
+            forceBuffer[atomBlockOffset + lane].y = f.y;
+            forceBuffer[atomBlockOffset + lane].z = f.z;
+        }
+
+        // compute and store the energy
+        if (lane == 0) {
+            float energy = -2.48 * log(totalProb);
+            energies[globalIndex] = energy;
+        }
+    }
+}
+
+
 extern "C" __global__ void evaluateAndActivate(
         const int numGroups,
         const int* __restrict__ numActiveArray,
@@ -1087,3 +1215,68 @@ extern "C" __global__ void applyTorsProfileRest(
     energyBuffer[threadIndex] += energyAccum;
 }
 
+extern "C" __global__ void applyGMMRest(unsigned long long * __restrict__ force,
+                                        mixed* __restrict__ energyBuffer,
+                                        const int numRestraints,
+                                        const int3* __restrict params,
+                                        const float* __restrict__ globalEnergies,
+                                        const float* __restrict__ globalActive,
+                                        const int2* __restrict__ offsets,
+                                        const int* __restrict__ atomIndices,
+                                        const float3* __restrict__ restForces) {
+
+    int tid = threadIdx.x;
+    int warp = tid / 32;
+    int lane = tid % 32;
+
+    for (int index=16*blockIdx.x + warp; index<numRestraints; index+=16*gridDim.x) {
+        int nPairs = params[index].x;
+        int globalIndex = params[index].z;
+        int atomBlockOffset = offsets[index].x;
+
+        if (globalActive[globalIndex]) {
+            // add the forces
+            if (lane < nPairs) {
+                float3 f = restForces[atomBlockOffset + lane];
+                int atomIndex1 = atomIndices[atomBlockOffset + 2 * lane];
+                int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
+
+                atomicAdd(&force[atomIndex1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
+                atomicAdd(&force[atomIndex1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
+                atomicAdd(&force[atomIndex1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
+
+                atomicAdd(&force[atomIndex2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+                atomicAdd(&force[atomIndex2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+                atomicAdd(&force[atomIndex2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+            }
+
+            // add the energy
+            if (lane == 0) {
+                energyBuffer[tid] += globalEnergies[globalIndex];
+            }
+        }
+    }
+
+
+    // int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    // float energyAccum = 0.0;
+
+    // for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numDistRestraints; restraintIndex+=blockDim.x*gridDim.x) {
+    //     int globalIndex = globalIndices[restraintIndex];
+    //     if (globalActive[globalIndex]) {
+    //         int index1 = atomIndices[restraintIndex].x;
+    //         int index2 = atomIndices[restraintIndex].y;
+    //         energyAccum += globalEnergies[globalIndex];
+    //         float3 f = restForces[restraintIndex];
+
+    //         atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
+    //         atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
+    //         atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
+
+    //         atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+    //         atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+    //         atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+    //     }
+    // }
+    // energyBuffer[threadIndex] += energyAccum;
+}

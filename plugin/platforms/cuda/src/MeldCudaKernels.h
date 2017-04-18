@@ -12,16 +12,15 @@
 #include "openmm/cuda/CudaContext.h"
 #include "openmm/cuda/CudaArray.h"
 #include "openmm/cuda/CudaSort.h"
-#include <cufft.h>
 
 namespace MeldPlugin {
 
 class CudaCalcMeldForceKernel : public CalcMeldForceKernel {
 public:
     CudaCalcMeldForceKernel(std::string name,
-                                          const OpenMM::Platform& platform,
-                                          OpenMM::CudaContext& cu,
-                                          const OpenMM::System& system);
+                            const OpenMM::Platform& platform,
+                            OpenMM::CudaContext& cu,
+                            const OpenMM::System& system);
     ~CudaCalcMeldForceKernel();
 
     /**
@@ -53,6 +52,7 @@ private:
     int numDistProfileRestParams;
     int numTorsProfileRestraints;
     int numTorsProfileRestParams;
+    int numGMMRestraints;
     int numRestraints;
     int numGroups;
     int numCollections;
@@ -66,6 +66,7 @@ private:
     CUfunction computeTorsionRestKernel;
     CUfunction computeDistProfileRestKernel;
     CUfunction computeTorsProfileRestKernel;
+    CUfunction computeGMMRestKernel;
     CUfunction evaluateAndActivateKernel;
     CUfunction evaluateAndActivateCollectionsKernel;
     CUfunction applyGroupsKernel;
@@ -74,6 +75,7 @@ private:
     CUfunction applyTorsionRestKernel;
     CUfunction applyDistProfileRestKernel;
     CUfunction applyTorsProfileRestKernel;
+    CUfunction applyGMMRestKernel;
 
     /**
      * Arrays for distance restraints
@@ -158,7 +160,7 @@ private:
     /**
      * Arrays for TorsProfile restraints
      */
-    OpenMM::CudaArray* torsProfileRestAtomIndices0; // int4to hold i, j, k, l for torsion 0
+    OpenMM::CudaArray* torsProfileRestAtomIndices0; // int4 to hold i, j, k, l for torsion 0
     std::vector<int4> h_torsProfileRestAtomIndices0;
 
     OpenMM::CudaArray* torsProfileRestAtomIndices1; // int4to hold i, j, k, l for torsion 1
@@ -186,6 +188,23 @@ private:
     std::vector<int> h_torsProfileRestGlobalIndices;
 
     OpenMM::CudaArray* torsProfileRestForces;       // float3 * 8 to hold the forces on i, j, k, l, for this restraint
+
+    /**
+     * Arrays for GMM restraints
+     */
+    OpenMM::CudaArray* gmmParams;                   // int3 to hold nPairs (x), nComponents (y), and globalIndex (z) for each gmm restraint
+    std::vector<int3> h_gmmParams;
+
+    OpenMM::CudaArray* gmmOffsets;                  // int2 to hold offsets into atom index (x) and parameter (y) data blocks
+    std::vector<int2> h_gmmOffsets;
+
+    OpenMM::CudaArray* gmmAtomIndices;              // int array to hold atom indices
+    std::vector<int> h_gmmAtomIndices;
+
+    OpenMM::CudaArray* gmmData;                     // float array to hold gmm parameters
+    std::vector<float> h_gmmData;
+
+    OpenMM::CudaArray* gmmForces;                   // float array to hold the forces until application
 
     /**
      * Arrays for all restraints
@@ -240,9 +259,12 @@ private:
     void setupTorsionRestraints(const MeldForce& force);
     void setupDistProfileRestraints(const MeldForce& force);
     void setupTorsProfileRestraints(const MeldForce& force);
+    void setupGMMRestraints(const MeldForce& force);
     void setupGroups(const MeldForce& force);
     void setupCollections(const MeldForce& force);
     void validateAndUpload();
+    int calcSizeGMMAtomIndices(const MeldForce& force);
+    int calcSizeGMMData(const MeldForce& force);
 };
 
 

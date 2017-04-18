@@ -291,6 +291,114 @@ class DistanceRestraint(SelectableRestraint):
             raise RuntimeError('k must be >= 0. k={}.'.format(self.k))
 
 
+class GMMDistanceRestraint(SelectableRestraint):
+    """
+    Restrain multiple distances using Gaussian mixture models
+
+    The energy has the form:
+
+    E = w1 N1 exp(-0.5 (r-u1)^T P1 (r-u1)) + w2 N2 exp(-0.5 (r-u2)^T P2 (r-u2)) + ...
+
+    where:
+       w1, w2, ... are the weights
+       N1, N2, ... are automatically calculated normalization factors
+       r is the vector of distances for the atom pairs
+       u1, u2, ... are the mean vectors for each component
+       P1, P2, ... are the precision (inverse covariance) matrices for each component
+
+    Parameters
+    ----------
+    system : meld.system.System
+             system object that restraint belongs to
+    scaler : Scaler or None
+             A Scaler to vary the force constant with alpha.
+             If ``None``, then a constant 1.0 scaler will
+             be used.
+    n_distances : int
+                  number of distances involved in GMM; max 32
+    n_components : int
+                   number of mixture components; max 32
+    atoms : [(res_index, atom_name)]
+            a list of (res_index, atom_name) tuples of length 2*n_distances
+    weights : array-like, shape(n_components)
+              The weights for the mixture components
+    means : array-like, shape(n_components, n_distances)
+            The means of each mixture component
+    precisions : array-like, shape(n_components, n_distances, n_distances)
+                 The precision (i.e. inverse covariance) of each mixture component
+
+    Attributes
+    ----------
+    scaler : Scaler or None
+             A Scaler to vary the force constant with alpha.
+             If ``None``, then a constant 1.0 scaler will
+             be used.
+    ramp : Ramp or None
+           A ramp to vary the force constant with simulation time.
+           If ``None`` then a constant 1.0 ramp will be used.
+    n_distances : int
+                  number of distances involved in restraint
+    n_components : int
+                   number of mixture components
+    atoms : [int]
+                 a list of atom indices of length 2*n_distances
+    weights : array-like, shape(n_components)
+              The weights for the mixture components
+    means : array-like, shape(n_components, n_distances)
+            The means of each mixture component, in nm
+    precisions : array-like, shape(n_components, n_distances, n_distances)
+                 The precision (i.e. inverse covariance) of each mixture component, in nm^(-2)
+    """
+
+    _restraint_key_ = 'gmm'
+
+    def __init__(self, system, scaler, ramp, n_distances, n_components,
+                 atoms, weights, means, precisions):
+        self.scaler = scaler
+        self.ramp = ramp
+        self.n_distances = n_distances
+        self.n_components = n_components
+        self.weights = weights
+        self.means = means
+        self.precisions = precisions
+        self.atoms = None
+        self._setup_atoms(atoms, system)
+        self._check(system)
+
+    def _setup_atoms(self, pair_list, system):
+        self.atoms = []
+        for res_index, atom_name in pair_list:
+            self.atoms.append(system.index_of_atom(res_index, atom_name))
+
+    def _check(self, system):
+        if len(self.atoms) != 2 * self.n_distances:
+            raise RuntimeError(
+                'len(atoms) must be 2*n_distances')
+        if self.weights.shape[0] != self.n_components:
+            raise RuntimeError(
+                'weights must have shape (n_components,)')
+        if self.means.shape != (self.n_components, self.n_distances):
+            raise RuntimeError(
+                'means must have shape (n_components, n_distances)')
+        if self.precisions.shape != (self.n_components,
+                                     self.n_distances,
+                                     self.n_distances):
+            raise RuntimeError(
+                'precisions must have shape (n_components, n_distances, n_distances)')
+        for i in range(self.n_components):
+            if not np.allclose(self.precisions[i, :, :], self.precisions[i, :, :].T):
+                raise RuntimeError(
+                    'precision matrix must be symmetric')
+        for i in range(self.n_components):
+            # Perform a Cholesky decomposition on each precision matrix.
+            # This will fail if the matrix is not positive definite.
+            try:
+                np.linalg.cholesky(self.precisions[i, :, :])
+            except np.linalg.LinAlgError:
+                raise RuntimeError(
+                    'precision matrices must be positive definite')
+
+
 class HyperbolicDistanceRestraint(SelectableRestraint):
     _restraint_key_ = 'hyperbolic'
 

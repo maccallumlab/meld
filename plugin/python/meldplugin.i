@@ -99,6 +99,8 @@ namespace MeldPlugin {
 
         int getNumTorsProfileRestParams() const;
 
+        int getNumGMMRestraints() const;
+
         int getNumTotalRestraints() const;
 
         int getNumGroups() const;
@@ -232,6 +234,31 @@ namespace MeldPlugin {
         %clear float& scaleFactor;
         %clear int& globalIndex;
 
+
+        %apply int& OUTPUT {int& nPairs};
+        %apply int& OUTPUT {int& nComponents};
+        %apply std::vector<int>& OUTPUT {std::vector<int>& atomIndices};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& weights};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& means};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& precisionOnDiagonal};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& precisionOffDiagonal};
+        %apply int& OUTPUT {int& globalIndex};
+        void getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+                                   std::vector<int>& atomIndices,
+                                   std::vector<double>& weights,
+                                   std::vector<double>& means,
+                                   std::vector<double>& precisionOnDiagonal,
+                                   std::vector<double>& precisionOffDiagonal,
+                                   int& globalIndex) const;
+        %clear int& nPairs;
+        %clear int& nComponents;
+        %clear int& globalIndex;
+        %clear std::vector<int>& atomIndices;
+        %clear std::vector<double>& weights;
+        %clear std::vector<double>& means;
+        %clear std::vector<double>& precisionOnDiagonal;
+        %clear std::vector<double>& precisionOffDiagonal;
+
         %apply std::vector<int>& OUTPUT {std::vector<int>& indices};
         %apply int& OUTPUT {int& numActive};
         void getGroupParams(int index, std::vector<int>& indices, int& numActive) const;
@@ -285,6 +312,20 @@ namespace MeldPlugin {
                 std::vector<double>  a9, std::vector<double> a10, std::vector<double> a11,
                 std::vector<double> a12, std::vector<double> a13, std::vector<double> a14,
                 std::vector<double> a15, float scaleFactor);
+
+        int addGMMRestraint(int nPairs, int nComponents,
+                            std::vector<int> atomIndices,
+                            std::vector<double> weights,
+                            std::vector<double> means,
+                            std::vector<double> precisionOnDiagonal,
+                            std::vector<double> precisionOffDiagonal);
+
+        void modifyGMMRestraint(int index, int nPairs, int nComponents,
+                                std::vector<int> atomIndices,
+                                std::vector<double> weights,
+                                std::vector<double> means,
+                                std::vector<double> precisionOnDiagonal,
+                                std::vector<double> precisionOffDiagonal);
 
         int addGroup(std::vector<int> restraint_indices, int n_active);
 
