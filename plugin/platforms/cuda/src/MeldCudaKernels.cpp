@@ -255,7 +255,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     }
 
     if (numGMMRestraints > 0) {
-        gmmParams                  = CudaArray::create<int3>   (cu, numGMMRestraints,              "gmmParams");
+        gmmParams                  = CudaArray::create<int4>   (cu, numGMMRestraints,              "gmmParams");
         gmmOffsets                 = CudaArray::create<int2>   (cu, numGMMRestraints,              "gmmOffsets");
         gmmForces                  = CudaArray::create<float3> (cu, calcSizeGMMAtomIndices(force), "gmmForces");
         gmmAtomIndices             = CudaArray::create<float>  (cu, calcSizeGMMAtomIndices(force), "gmmAtomIndices");
@@ -305,7 +305,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     h_torsProfileRestParams3              = std::vector<float4> (numTorsProfileRestParams, make_float4(0, 0, 0, 0));
     h_torsProfileRestScaleFactor          = std::vector<float>  (numTorsProfileRestraints, 0);
     h_torsProfileRestGlobalIndices        = std::vector<int>    (numTorsProfileRestraints, -1);
-    h_gmmParams                           = std::vector<int3>   (numGMMRestraints, make_int3(0, 0, 0));
+    h_gmmParams                           = std::vector<int4>   (numGMMRestraints, make_int4(0, 0, 0, 0));
     h_gmmOffsets                          = std::vector<int2>   (numGMMRestraints, make_int2(0, 0));
     h_gmmAtomIndices                      = std::vector<int>    (calcSizeGMMAtomIndices(force), 0);
     h_gmmData                             = std::vector<float>  (calcSizeGMMData(force), 0);
@@ -613,17 +613,19 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
 
     for (int index=0; index<force.getNumGMMRestraints(); index++) {
         int nPairs, nComponents, globalIndex;
+        float scale;
         std::vector<int> atomIndices;
         std::vector<double> weights;
         std::vector<double> means;
         std::vector<double> diag;
         std::vector<double> offdiag;
-        force.getGMMRestraintParams(index, nPairs, nComponents,
-                                    atomIndices, weights, means,
-                                    diag, offdiag, globalIndex);
+        force.getGMMRestraintParams(index, nPairs, nComponents, scale, atomIndices,
+                                    weights, means, diag, offdiag, globalIndex);
         h_gmmParams[index].x = nPairs;
         h_gmmParams[index].y = nComponents;
         h_gmmParams[index].z = globalIndex;
+        h_gmmParams[index].w = (int) scale;  // cast this to an int so that we can store
+                                             //it inside of an int4
 
         h_gmmOffsets[index].x = atomBlockOffset;
         h_gmmOffsets[index].y = dataBlockOffset;
@@ -746,6 +748,7 @@ int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce& force) {
     int nPairs;
     int nComponents;
     int globalIndex;
+    float scale;
     std::vector<int> atomIndices;
     std::vector<double> weights;
     std::vector<double> means;
@@ -753,7 +756,7 @@ int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce& force) {
     std::vector<double> offdiags;
 
     for (int i=0; i<force.getNumGMMRestraints(); ++i) {
-        force.getGMMRestraintParams(i, nPairs, nComponents,
+        force.getGMMRestraintParams(i, nPairs, nComponents, scale,
                                     atomIndices, weights, means,
                                     diags, offdiags, globalIndex);
         total += 2 * nPairs;
@@ -767,6 +770,7 @@ int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce& force) {
     int nPairs;
     int nComponents;
     int globalIndex;
+    float scale;
     std::vector<int> atomIndices;
     std::vector<double> weights;
     std::vector<double> means;
@@ -774,7 +778,7 @@ int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce& force) {
     std::vector<double> offdiags;
 
     for (int i=0; i<force.getNumGMMRestraints(); ++i) {
-        force.getGMMRestraintParams(i, nPairs, nComponents,
+        force.getGMMRestraintParams(i, nPairs, nComponents, scale,
                                     atomIndices, weights, means,
                                     diags, offdiags, globalIndex);
         total +=

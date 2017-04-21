@@ -203,6 +203,7 @@ public:
      * @param index        the index of the restraint
      * @param nPairs       the number of atom pairs
      * @param nComponents  the number of GMM components
+     * @param scale        the overall scaling applied to the forces and energies
      * @param atomIndices  the vector of atom indices
      * @param weights      the vector of weights
      * @param means        the vector of means in nm
@@ -210,7 +211,7 @@ public:
      * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
      * @param globalIndex  the global index of the restraint
      */
-    void getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+    void getGMMRestraintParams(int index, int& nPairs, int& nComponents, float& scale,
                                std::vector<int>& atomIndices,
                                std::vector<double>& weights,
                                std::vector<double>& means,
@@ -493,6 +494,7 @@ public:
      *
      * @param nPairs       the number of atom pairs
      * @param nComponents  the number of GMM components
+     * @param scale        the overall scaling applied to the forces and energies
      * @param atomIndices  the vector of atom indices
      * @param weights      the vector of weights
      * @param means        the vector of means in nm
@@ -500,7 +502,7 @@ public:
      * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
      * @return the index of the restraint that was created
      */
-    int addGMMRestraint(int nPairs, int nComponents,
+    int addGMMRestraint(int nPairs, int nComponents, float scale,
                         std::vector<int> atomIndices,
                         std::vector<double> weights,
                         std::vector<double> means,
@@ -514,13 +516,14 @@ public:
      * @param index  the index of the restraint
      * @param nPairs       the number of atom pairs
      * @param nComponents  the number of GMM components
+     * @param scale        the overall scaling applied to the forces and energies
      * @param atomIndices  the vector of atom indices
      * @param weights      the vector of weights
      * @param means        the vector of means in nm
      * @param precisionOnDiagonal    the diagonals of the precision matrix in nm^(-2)
      * @param precisionOffDiagonal   the off-diagonals of the precision matrix in nm^(-2)
      */
-    void modifyGMMRestraint(int index, int nPairs, int nComponents,
+    void modifyGMMRestraint(int index, int nPairs, int nComponents, float scale,
                             std::vector<int> atomIndices,
                             std::vector<double> weights,
                             std::vector<double> means,
@@ -711,6 +714,7 @@ private:
     class GMMRestraintInfo {
     public:
       int nPairs, nComponents, globalIndex;
+      float scale;
       std::vector<int> atomIndices;
       std::vector<double> weights;
       std::vector<double> means;
@@ -721,16 +725,17 @@ private:
         nPairs = 0;
         nComponents = 0;
         globalIndex = -1;
+        scale = 1.0;
       }
 
-    GMMRestraintInfo(int nPairs, int nComponents, int globalIndex,
+    GMMRestraintInfo(int nPairs, int nComponents, int globalIndex, float scale,
                      std::vector<int> atomIndices,
                      std::vector<double> weights, std::vector<double> means,
                      std::vector<double> precisionOnDiagonal,
                      std::vector<double> precisionOffDiagonal) :
-            nPairs(nPairs), nComponents(nComponents), globalIndex(globalIndex),
-            weights(weights), means(means), precisionOffDiagonal(precisionOffDiagonal),
-            precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
+      nPairs(nPairs), nComponents(nComponents), globalIndex(globalIndex), scale(scale),
+      weights(weights), means(means), precisionOffDiagonal(precisionOffDiagonal),
+      precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
     };
 
 };

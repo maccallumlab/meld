@@ -243,7 +243,7 @@ namespace MeldPlugin {
         %apply std::vector<double>& OUTPUT {std::vector<double>& precisionOnDiagonal};
         %apply std::vector<double>& OUTPUT {std::vector<double>& precisionOffDiagonal};
         %apply int& OUTPUT {int& globalIndex};
-        void getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+        void getGMMRestraintParams(int index, int& nPairs, int& nComponents, float& scale,
                                    std::vector<int>& atomIndices,
                                    std::vector<double>& weights,
                                    std::vector<double>& means,
@@ -313,14 +313,14 @@ namespace MeldPlugin {
                 std::vector<double> a12, std::vector<double> a13, std::vector<double> a14,
                 std::vector<double> a15, float scaleFactor);
 
-        int addGMMRestraint(int nPairs, int nComponents,
+        int addGMMRestraint(int nPairs, int nComponents, float scale,
                             std::vector<int> atomIndices,
                             std::vector<double> weights,
                             std::vector<double> means,
                             std::vector<double> precisionOnDiagonal,
                             std::vector<double> precisionOffDiagonal);
 
-        void modifyGMMRestraint(int index, int nPairs, int nComponents,
+        void modifyGMMRestraint(int index, int nPairs, int nComponents, float scale,
                                 std::vector<int> atomIndices,
                                 std::vector<double> weights,
                                 std::vector<double> means,

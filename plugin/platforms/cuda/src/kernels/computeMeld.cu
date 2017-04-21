@@ -490,7 +490,7 @@ extern "C" __global__ void computeTorsProfileRest(
 extern "C" __global__ void computeGMMRest(
                             const real4* __restrict__ posq,             // positions and charges
                             const int numRestraints,                    // number of restraints
-                            const int3* __restrict__ params,            // nPairs, nComponents, globalIndices
+                            const int4* __restrict__ params,            // nPairs, nComponents, globalIndices
                             const int2* __restrict__ offsets,           // atomBlockOffset, dataBlockOffset
                             const int* __restrict__ atomIndices,        // atom indices
                             const float* __restrict__ data,             // weights, means, diags, offdiags
@@ -547,6 +547,8 @@ extern "C" __global__ void computeGMMRest(
                 float dist = distances[32 * warp + i];
                 sum += (mean - dist) * (mean - dist) * diag;
             }
+
+            // do the off diagonal part
             int count = 0;
             for (int i=0; i<nPairs; i++) {
                 for (int j=i+1; j<nPairs; j++) {
@@ -601,15 +603,15 @@ extern "C" __global__ void computeGMMRest(
             int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
             real4 delta = posq[atomIndex1] - posq[atomIndex2];
             float4 f = dEdr * delta / distances[32 * warp + lane];
-            forceBuffer[atomBlockOffset + lane].x = f.x;
-            forceBuffer[atomBlockOffset + lane].y = f.y;
-            forceBuffer[atomBlockOffset + lane].z = f.z;
+            forceBuffer[atomBlockOffset + lane].x = params[index].w * f.x;
+            forceBuffer[atomBlockOffset + lane].y = params[index].w * f.y;
+            forceBuffer[atomBlockOffset + lane].z = params[index].w * f.z;
         }
 
         // compute and store the energy
         if (lane == 0) {
             float energy = -2.48 * log(totalProb);
-            energies[globalIndex] = energy;
+            energies[globalIndex] = params[index].w * energy;
         }
     }
 }
@@ -1218,7 +1220,7 @@ extern "C" __global__ void applyTorsProfileRest(
 extern "C" __global__ void applyGMMRest(unsigned long long * __restrict__ force,
                                         mixed* __restrict__ energyBuffer,
                                         const int numRestraints,
-                                        const int3* __restrict params,
+                                        const int4* __restrict params,
                                         const float* __restrict__ globalEnergies,
                                         const float* __restrict__ globalActive,
                                         const int2* __restrict__ offsets,

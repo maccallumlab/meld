@@ -473,8 +473,8 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
         w = rest.weights
         m = list(rest.means.flatten())
 
-        d, o = _setup_precisions(rest.precisions, nd, nc, scale)
-        rest_index = meld_force.addGMMRestraint(nd, nc, a, w, m, d, o)
+        d, o = _setup_precisions(rest.precisions, nd, nc,)
+        rest_index = meld_force.addGMMRestraint(nd, nc, scale, a, w, m, d, o)
 
     else:
         raise RuntimeError(
@@ -540,8 +540,8 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
         a = [a - 1 for a in rest.atoms]
         w = rest.weights
         m = list(rest.means.flatten())
-        d, o = _setup_precisions(rest.precisions, nd, nc, scale)
-        rest_index = meld_force.modifyGMMRestraint(gmm_index, nd, nc, a, w, m, d, o)
+        d, o = _setup_precisions(rest.precisions, nd, nc)
+        rest_index = meld_force.modifyGMMRestraint(gmm_index, nd, nc, scale, a, w, m, d, o)
         gmm_index += 1
 
     else:
@@ -552,24 +552,21 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
             dist_prof_index, tors_prof_index, gmm_index)
 
 
-def _setup_precisions(precisions, n_distances, n_conditions, scale):
+def _setup_precisions(precisions, n_distances, n_conditions):
     # The normalization of our GMMs will blow up
     # due to division by zero if the precisions
     # are zero, so we clamp this to a very
     # small value.
-    if scale < 1e-6:
-        scale = 1e-6
-
     diags = []
     for i in range(n_conditions):
         for j in range(n_distances):
-            diags.append(precisions[i, j, j,] * scale)
+            diags.append(precisions[i, j, j,])
 
     off_diags = []
     for i in range(n_conditions):
         for j in range(n_distances):
             for k in range(j+1, n_distances):
-                off_diags.append(precisions[i, j, k] * scale)
+                off_diags.append(precisions[i, j, k])
 
     return diags, off_diags
 

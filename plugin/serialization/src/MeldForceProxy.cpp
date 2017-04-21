@@ -202,13 +202,15 @@ void MeldForceProxy::serialize(const void* object, SerializationNode& node) cons
     for (int i = 0; i < force.getNumGMMRestraints(); i++) {
         //
         int nPairs, nComponents, globalIndex;
+        float scale;
         std::vector<int> atomIndices;
         std::vector<double> weights, means, precOnDiag, precOffDiag;
-        force.getGMMRestraintParams(i, nPairs, nComponents, atomIndices, weights,
+        force.getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights,
                                     means, precOnDiag, precOffDiag, globalIndex);
         SerializationNode& gr = gmmRestraints.createChildNode("GMMRestraint");
         gr.setIntProperty("nPairs", nPairs);
         gr.setIntProperty("nComponents", nComponents);
+        gr.setDoubleProperty("scale", scale);
 
         SerializationNode& a = gr.createChildNode("atomIndices");
         for(const auto& atom : atomIndices) {
@@ -467,6 +469,7 @@ void* MeldForceProxy::deserialize(const SerializationNode& node) const {
             int nPairs = r.getIntProperty("nPairs");
             int nComponents = r.getIntProperty("nComponents");
             int globalIndex = r.getIntProperty("globalIndex");
+            float scale = r.getDoubleProperty("scale");
 
             std::vector<int> atomIndices;
             for(const auto& x : r.getChildNode("atomIndices").getChildren()) {
@@ -492,7 +495,7 @@ void* MeldForceProxy::deserialize(const SerializationNode& node) const {
             for(const auto& x : r.getChildNode("precisionOffDiagonals").getChildren()) {
                 precOffDiag.push_back(x.getDoubleProperty("prec"));
             }
-            force->addGMMRestraint(nPairs, nComponents, atomIndices, weights,
+            force->addGMMRestraint(nPairs, nComponents, scale, atomIndices, weights,
                                    means, precOnDiag, precOffDiag);
         }
 

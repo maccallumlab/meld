@@ -425,12 +425,13 @@ void testGMMRest1Pair1Component() {
     MeldForce* force = new MeldForce();
     int nPairs = 1;
     int nComponents = 1;
+    float scale = 1.0;
     std::vector<int> atomIndices = {0, 1};
     std::vector<double> weights = {1.0};
     std::vector<double> means = {1.0};
     std::vector<double> precOnDiag = {1.0};
     std::vector<double> precOffDiag = {};
-    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, scale, atomIndices,
                                          weights, means, precOnDiag, precOffDiag);
     std::vector<int> restIndices = {restIdx};
     int groupIdx = force->addGroup(restIndices, 1);
@@ -476,6 +477,64 @@ void testGMMRest1Pair1Component() {
     ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-5);
 }
 
+void testGMMRest1Pair1Component0Scale() {
+    // setup system
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int nPairs = 1;
+    int nComponents = 1;
+    float scale = 0.0;
+    std::vector<int> atomIndices = {0, 1};
+    std::vector<double> weights = {1.0};
+    std::vector<double> means = {1.0};
+    std::vector<double> precOnDiag = {1.0};
+    std::vector<double> precOffDiag = {};
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, scale, atomIndices,
+                                         weights, means, precOnDiag, precOffDiag);
+    std::vector<int> restIndices = {restIdx};
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices = {groupIdx};
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // Test at the maximum
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(1.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 0.0;
+    Vec3 expectedForce = Vec3(0.0, 0.0, 0.0);
+
+    State state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-5);
+
+    // Test at 1-sigma away
+    positions[0] = Vec3(0.0, 0.0, 0.0);
+    positions[1] = Vec3(2.0, 0.0, 0.0);
+    context.setPositions(positions);
+
+    expectedEnergy = 0.0;
+    expectedForce = Vec3(0.00, 0.0, 0.0);
+
+    state = context.getState(State::Energy | State::Forces);
+    ASSERT_EQUAL_TOL(expectedEnergy, state.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-5);
+}
+
 void testGMMRest1Pair2Component() {
     // setup system
     const int numParticles = 2;
@@ -488,12 +547,13 @@ void testGMMRest1Pair2Component() {
     MeldForce* force = new MeldForce();
     int nPairs = 1;
     int nComponents = 2;
+    float scale = 1.0;
     std::vector<int> atomIndices = {0, 1};
     std::vector<double> weights = {0.75, 0.25};
     std::vector<double> means = {1.0, 2.0};
     std::vector<double> precOnDiag = {1.0, 2.0};
     std::vector<double> precOffDiag = {};
-    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, scale, atomIndices,
                                          weights, means, precOnDiag, precOffDiag);
     std::vector<int> restIndices = {restIdx};
     int groupIdx = force->addGroup(restIndices, 1);
@@ -550,12 +610,13 @@ void testGMMRest2Pair2Component() {
     MeldForce* force = new MeldForce();
     int nPairs = 2;
     int nComponents = 2;
+    float scale = 1.0;
     std::vector<int> atomIndices = {0, 1, 1, 2};
     std::vector<double> weights = {0.5, 0.5};
     std::vector<double> means = {1.0, 2.0, 3.0, 4.0};
     std::vector<double> precOnDiag = {5.0, 6.0, 7.0, 8.0};
     std::vector<double> precOffDiag = {0.25, 0.5};
-    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, scale, atomIndices,
                                          weights, means, precOnDiag, precOffDiag);
     std::vector<int> restIndices = {restIdx};
     int groupIdx = force->addGroup(restIndices, 1);
@@ -623,12 +684,13 @@ void testGMMRest3Pair2Component() {
     MeldForce* force = new MeldForce();
     int nPairs = 3;
     int nComponents = 2;
+    float scale = 1.0;
     std::vector<int> atomIndices = {0, 1, 1, 2, 2, 3};
     std::vector<double> weights = {0.5, 0.5};
     std::vector<double> means = {1.0, 2.0, 3.0, 2.0, 2.0, 2.0};
     std::vector<double> precOnDiag = {3.0, 4.0, 5.0, 5.0, 4.0, 3.0};
     std::vector<double> precOffDiag = {0, 1, 0, 0, 2, 0};
-    int restIdx = force->addGMMRestraint(nPairs, nComponents, atomIndices,
+    int restIdx = force->addGMMRestraint(nPairs, nComponents, scale, atomIndices,
                                          weights, means, precOnDiag, precOffDiag);
     std::vector<int> restIndices = {restIdx};
     int groupIdx = force->addGroup(restIndices, 1);
@@ -1020,6 +1082,7 @@ int main(int argc, char* argv[]) {
         testDistProfileRest();
         testTorsProfileRest();
         testGMMRest1Pair1Component();
+        testGMMRest1Pair1Component0Scale();
         testGMMRest1Pair2Component();
         testGMMRest2Pair2Component();
         testGMMRest3Pair2Component();

@@ -193,7 +193,7 @@ private:
      * Arrays for GMM restraints
      */
     OpenMM::CudaArray* gmmParams;                   // int3 to hold nPairs (x), nComponents (y), and globalIndex (z) for each gmm restraint
-    std::vector<int3> h_gmmParams;
+    std::vector<int4> h_gmmParams;
 
     OpenMM::CudaArray* gmmOffsets;                  // int2 to hold offsets into atom index (x) and parameter (y) data blocks
     std::vector<int2> h_gmmOffsets;

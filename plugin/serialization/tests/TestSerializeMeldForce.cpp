@@ -273,6 +273,7 @@ void testGMMRestSerialization() {
     MeldForce force;
     int nPairs = 2;
     int nComponents = 1;
+    float scale = 1.0;
     std::vector<int> atomIndices = {0, 1, 2, 3};
     std::vector<double> weights = {1.0};
     std::vector<double> means = {1.0, 1.0};
@@ -280,8 +281,8 @@ void testGMMRestSerialization() {
     std::vector<double> precisionOffDiagonals = {0.5};
 
     // create the restraint, group, and collection
-    int restIdx = force.addGMMRestraint(nPairs, nComponents, atomIndices,
-                                        weights, means,
+    int restIdx = force.addGMMRestraint(nPairs, nComponents, scale,
+                                        atomIndices, weights, means,
                                         precisionOnDiagonals,
                                         precisionOffDiagonals);
     std::vector<int> restIndices = {restIdx};
@@ -302,18 +303,19 @@ void testGMMRestSerialization() {
     for (int i = 0; i < force.getNumGMMRestraints(); i++) {
         int nPairsA, nPairsB, nComponentsA, nComponentsB;
         int globalIndexA, globalIndexB;
+        float scaleA, scaleB;
         std::vector<int> atomIndicesA, atomIndicesB;
         std::vector<double> weightsA, weightsB;
         std::vector<double> meansA, meansB;
         std::vector<double> precisionOnDiagonalsA, precisionOnDiagonalsB;
         std::vector<double> precisionOffDiagonalsA, precisionOffDiagonalsB;
 
-        force.getGMMRestraintParams(i, nPairsA, nComponentsA,
+        force.getGMMRestraintParams(i, nPairsA, nComponentsA, scaleA,
                                     atomIndicesA, weightsA, meansA,
                                     precisionOnDiagonalsA,
                                     precisionOffDiagonalsA,
                                     globalIndexA);
-        force2.getGMMRestraintParams(i, nPairsB, nComponentsB,
+        force2.getGMMRestraintParams(i, nPairsB, nComponentsB, scaleB,
                                      atomIndicesB, weightsB, meansB,
                                      precisionOnDiagonalsB,
                                      precisionOffDiagonalsB,
@@ -321,6 +323,7 @@ void testGMMRestSerialization() {
 
         ASSERT_EQUAL(nPairsA, nPairsB);
         ASSERT_EQUAL(nComponentsA, nComponentsB);
+        ASSERT_EQUAL(scaleA, scaleB);
         for (int i=0; i<atomIndicesA.size(); ++i) {
             ASSERT_EQUAL(atomIndicesA[i], atomIndicesB[i]);
         }

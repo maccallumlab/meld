@@ -157,7 +157,7 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
         updateMeldParticleSet();
 }
 
-int MeldForce::addGMMRestraint(int nPairs, int nComponents,
+int MeldForce::addGMMRestraint(int nPairs, int nComponents, float scale,
                                std::vector<int> atomIndices,
                                std::vector<double> weights,
                                std::vector<double> means,
@@ -199,14 +199,14 @@ int MeldForce::addGMMRestraint(int nPairs, int nComponents,
     }
 
     // store the parameters
-    gmmRestraints.push_back(GMMRestraintInfo(nPairs, nComponents, n_restraints,
+    gmmRestraints.push_back(GMMRestraintInfo(nPairs, nComponents, n_restraints, scale,
                                              atomIndices, weights, means,
                                              precisionOnDiagonal, precisionOffDiagonal));
     n_restraints++;
     return n_restraints - 1;
 }
 
-void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents,
+void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents, float scale,
                                    std::vector<int> atomIndices,
                                    std::vector<double> weights,
                                    std::vector<double> means,
@@ -255,7 +255,7 @@ void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents,
         throw OpenMMException("Cannot change nComponents after a gmm restraint is created.");
     }
 
-    gmmRestraints[index] = GMMRestraintInfo(nPairs, nComponents, oldGlobal,
+    gmmRestraints[index] = GMMRestraintInfo(nPairs, nComponents, oldGlobal, scale,
                                             atomIndices, weights, means,
                                             precisionOnDiagonal, precisionOffDiagonal);
     if(updateParticles) {
@@ -537,7 +537,7 @@ void MeldForce::getTorsProfileRestraintParams(int index, int& atom1, int& atom2,
 }
 
 
-void MeldForce::getGMMRestraintParams(int index, int& nPairs, int& nComponents,
+void MeldForce::getGMMRestraintParams(int index, int& nPairs, int& nComponents, float& scale,
                            std::vector<int>& atomIndices,
                            std::vector<double>& weights,
                            std::vector<double>& means,
@@ -547,6 +547,7 @@ void MeldForce::getGMMRestraintParams(int index, int& nPairs, int& nComponents,
     const GMMRestraintInfo& rest = gmmRestraints[index];
     nPairs = rest.nPairs;
     nComponents = rest.nComponents;
+    scale = rest.scale;
     atomIndices = rest.atomIndices;
     weights = rest.weights;
     means = rest.means;
