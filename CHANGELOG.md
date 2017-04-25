@@ -1,3 +1,11 @@
+## 0.3.12
+
+### Enhancements
+
+- `meld.comm.MPICommunicator` objects now have a timeout.
+  The default is 600 seconds, or 10 minutes. This should
+  prevent hangs that were occasionally observed.
+
 ## 0.3.11
 
 ### Enhancements
