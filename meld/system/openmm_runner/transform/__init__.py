@@ -128,7 +128,7 @@ class TransformerBase(object):
         pass
 
 
-from .restraints import (
+from meld.system.openmm_runner.transform.restraints import (
     ConfinementRestraintTransformer,
     RDCRestraintTransformer,
     CartesianRestraintTransformer,
@@ -137,4 +137,4 @@ from .restraints import (
     AbsoluteCOMRestraintTransformer,
     MeldRestraintTransformer)
 
-from .rest2 import REST2Transformer
+from meld.system.openmm_runner.transform.rest2 import REST2Transformer

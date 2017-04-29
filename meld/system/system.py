@@ -8,8 +8,8 @@ import math
 import numpy as np
 from collections import namedtuple
 
-from .restraints import RestraintManager
-from ..pdb_writer import PDBWriter
+from meld.system.restraints import RestraintManager
+from meld.pdb_writer import PDBWriter
 from simtk.unit import atmosphere
 
 

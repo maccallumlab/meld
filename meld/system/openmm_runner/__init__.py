@@ -3,4 +3,4 @@
 # All rights reserved
 #
 
-from .runner import OpenMMRunner
+from meld.system.openmm_runner.runner import OpenMMRunner

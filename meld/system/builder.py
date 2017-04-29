@@ -4,7 +4,7 @@
 #
 
 from meld import util
-from .system import System
+from meld.system.system import System
 import subprocess
 from six import string_types
 

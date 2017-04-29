@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-from .openmm_runner import OpenMMRunner
+from meld.system.openmm_runner import OpenMMRunner
 
 
 class ReplicaRunner(object):

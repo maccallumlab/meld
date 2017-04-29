@@ -1,3 +1,8 @@
+## 0.3.13
+
+### Bug Fixes
+- Fixed an issue that could cause ImportErrors
+
 ## 0.3.12
 
 ### Enhancements

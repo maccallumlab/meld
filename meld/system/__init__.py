@@ -3,10 +3,10 @@
 # All rights reserved
 #
 
-from .protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
-from .builder import SystemBuilder
-from .system import System, ConstantTemperatureScaler, LinearTemperatureScaler, FixedTemperatureScaler
-from .system import GeometricTemperatureScaler, REST2Scaler, RunOptions
-from .runner import get_runner
-from .openmm_runner import OpenMMRunner
-from .state import SystemState
+from meld.system.protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
+from meld.system.builder import SystemBuilder
+from meld.system.system import System, ConstantTemperatureScaler, LinearTemperatureScaler, FixedTemperatureScaler
+from meld.system.system import GeometricTemperatureScaler, REST2Scaler, RunOptions
+from meld.system.runner import get_runner
+from meld.system.openmm_runner import OpenMMRunner
+from meld.system.state import SystemState
