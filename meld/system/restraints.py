@@ -138,6 +138,7 @@ from __future__ import print_function
 from six import with_metaclass
 import math
 import numpy as np
+from collections import namedtuple
 
 
 class _RestraintRegistry(type):
@@ -364,6 +365,14 @@ class GMMDistanceRestraint(SelectableRestraint):
         self.atoms = None
         self._setup_atoms(atoms, system)
         self._check(system)
+
+    @classmethod
+    def from_params(cls, system, scaler, ramp, params):
+        '''Create a GMMDistanceRestraint from a GMMParams object.'''
+        return cls(system, scaler, ramp,
+                   params.n_distances, params.n_components,
+                   params.atoms, params.weights,
+                   params.means, params.precisions)
 
     def _setup_atoms(self, pair_list, system):
         self.atoms = []
@@ -1571,3 +1580,7 @@ class LinearPositioner(Positioner):
             return delta * (self.pos_max - self.pos_min) + self.pos_min
         else:
             return self.pos_max
+
+
+GMMParams = namedtuple('GMMParams', ['n_components', 'n_distances', 'atoms',
+                                     'weights', 'means', 'precisions'])
