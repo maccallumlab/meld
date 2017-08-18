@@ -50,7 +50,7 @@ class MPICommunicator(object):
         self._n_replicas = n_replicas
         self._mpi_comm = None
         self._timeout = timeout
-        self._timeout_message = 'Call to {{func_name}} did not complete in {:d} seconds'.format(timeout)
+        self._timeout_message = 'Call to {{:s}} did not complete in {:d} seconds'.format(timeout)
 
     def __getstate__(self):
         # don't pickle _mpi_comm
