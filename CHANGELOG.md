@@ -1,3 +1,13 @@
+## 0.4.00
+
+### Enhancements
+
+- Added Gaussian Mixture Model (GMM) restraints
+
+### Bug Fixes
+
+- Fixed bug in timeout handling
+
 ## 0.3.13
 
 ### Bug Fixes
