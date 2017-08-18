@@ -8,7 +8,7 @@ bash Miniconda3-latest-MacOSX-x86_64.sh -b -p $HOME/anaconda;
 export PATH=$HOME/anaconda/bin:$PATH;
 conda config --add channels omnia;
 conda config --add channels maccallum_lab;
-conda install -yq conda-build jinja2 anaconda-client;
+conda install -yq conda-build=2.1.17 jinja2 anaconda-client;
 
 # install cuda
 curl -O -s http://developer.download.nvidia.com/compute/cuda/${CUDA_VERSION}/Prod/network_installers/mac/x86_64/cuda_mac_installer_tk.tar.gz
