@@ -1,3 +1,9 @@
+## 0.4.2
+
+### Bug Fixes
+
+- Enhanced numerical stability of GMM simulations
+
 ## 0.4.1
 
 ### Bug Fixes

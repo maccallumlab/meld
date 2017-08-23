@@ -513,7 +513,7 @@ extern "C" __global__ void computeGMMRest(
         int nPairs = params[index].x;
         int nComponents = params[index].y;
         int globalIndex = params[index].z;
-        float weight = params[index].w * 1e-6;
+        float scale = (float)(params[index].w) * 1e-6;
 
         int atomBlockOffset = offsets[index].x;
         int dataBlockOffset = offsets[index].y;
@@ -530,6 +530,8 @@ extern "C" __global__ void computeGMMRest(
         }
         __syncthreads();
 
+
+        float minsum = 9e99;
 
         // compute my probability
         const int blockSize = 1 + 2*nPairs + nPairs*(nPairs-1)/2;
@@ -562,9 +564,21 @@ extern "C" __global__ void computeGMMRest(
                     count++;
                 }
             }
-            probabilities[tid] = weight * exp(-0.5 * sum);
+            // probabilities[tid] = weight * exp(-0.5 * sum);
+            probabilities[tid] = sum;
+
+            __syncthreads();
+
+            for (int i=0; i<nComponents; i++) {
+                if(probabilities[32 * warp + i] < minsum) {
+                    minsum = probabilities[32 * warp + i];
+                }
+            }
+            __syncthreads();
+
+            probabilities[tid] = weight * exp(-0.5 * (sum - minsum));
+            __syncthreads();
         }
-        __syncthreads();
 
         // compute and store forces
         float totalProb = 0;
@@ -604,15 +618,15 @@ extern "C" __global__ void computeGMMRest(
             int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
             real4 delta = posq[atomIndex1] - posq[atomIndex2];
             float4 f = dEdr * delta / distances[32 * warp + lane];
-            forceBuffer[atomBlockOffset + lane].x = weight * f.x;
-            forceBuffer[atomBlockOffset + lane].y = weight * f.y;
-            forceBuffer[atomBlockOffset + lane].z = weight * f.z;
+            forceBuffer[atomBlockOffset + lane].x = scale * f.x;
+            forceBuffer[atomBlockOffset + lane].y = scale * f.y;
+            forceBuffer[atomBlockOffset + lane].z = scale * f.z;
         }
 
         // compute and store the energy
         if (lane == 0) {
-            float energy = -2.48 * log(totalProb);
-            energies[globalIndex] = weight * energy;
+            float energy = -2.48 * (log(totalProb) - 0.5 * minsum);
+            energies[globalIndex] = scale * energy;
         }
     }
 }
