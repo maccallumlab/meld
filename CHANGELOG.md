@@ -1,4 +1,12 @@
-## 0.4.00
+## 0.4.1
+
+### Bug Fixes
+
+- Change the way the scale factor for GMMs is passed
+  to the GPU. The previous version gave incorrect
+  results.
+  
+## 0.4.0
 
 ### Enhancements
 

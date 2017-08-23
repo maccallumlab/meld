@@ -624,8 +624,9 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
         h_gmmParams[index].x = nPairs;
         h_gmmParams[index].y = nComponents;
         h_gmmParams[index].z = globalIndex;
-        h_gmmParams[index].w = (int) scale;  // cast this to an int so that we can store
-                                             //it inside of an int4
+        h_gmmParams[index].w = (int)(scale * 1e6);   // multiple by a million to store in an int
+                                                     // divide by a million and convert back to float
+                                                     // on gpu
 
         h_gmmOffsets[index].x = atomBlockOffset;
         h_gmmOffsets[index].y = dataBlockOffset;

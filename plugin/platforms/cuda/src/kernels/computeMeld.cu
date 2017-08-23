@@ -513,6 +513,7 @@ extern "C" __global__ void computeGMMRest(
         int nPairs = params[index].x;
         int nComponents = params[index].y;
         int globalIndex = params[index].z;
+        float weight = params[index].w * 1e-6;
 
         int atomBlockOffset = offsets[index].x;
         int dataBlockOffset = offsets[index].y;
@@ -603,15 +604,15 @@ extern "C" __global__ void computeGMMRest(
             int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
             real4 delta = posq[atomIndex1] - posq[atomIndex2];
             float4 f = dEdr * delta / distances[32 * warp + lane];
-            forceBuffer[atomBlockOffset + lane].x = params[index].w * f.x;
-            forceBuffer[atomBlockOffset + lane].y = params[index].w * f.y;
-            forceBuffer[atomBlockOffset + lane].z = params[index].w * f.z;
+            forceBuffer[atomBlockOffset + lane].x = weight * f.x;
+            forceBuffer[atomBlockOffset + lane].y = weight * f.y;
+            forceBuffer[atomBlockOffset + lane].z = weight * f.z;
         }
 
         // compute and store the energy
         if (lane == 0) {
             float energy = -2.48 * log(totalProb);
-            energies[globalIndex] = params[index].w * energy;
+            energies[globalIndex] = weight * energy;
         }
     }
 }
