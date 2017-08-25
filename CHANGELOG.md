@@ -1,3 +1,9 @@
+## 0.4.3
+
+### Bug Fixes
+
+- Changed handling of GMM scaling factors
+
 ## 0.4.2
 
 ### Bug Fixes
