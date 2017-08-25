@@ -546,7 +546,7 @@ extern "C" __global__ void computeGMMRest(
             // do the diagonal part
             for (int i=0; i<nPairs; i++) {
                 float mean = means[i];
-                float diag = diags[i];
+                float diag = diags[i] * scale;
                 float dist = distances[32 * warp + i];
                 sum += (mean - dist) * (mean - dist) * diag;
             }
@@ -557,14 +557,13 @@ extern "C" __global__ void computeGMMRest(
                 for (int j=i+1; j<nPairs; j++) {
                     float meani = means[i];
                     float meanj = means[j];
-                    float coeff = 2 * offdiags[count];
+                    float coeff = 2 * offdiags[count] * scale;
                     float disti = distances[32 * warp + i];
                     float distj = distances[32 * warp + j];
                     sum += (disti - meani) * (distj - meanj) * coeff;
                     count++;
                 }
             }
-            // probabilities[tid] = weight * exp(-0.5 * sum);
             probabilities[tid] = sum;
 
             __syncthreads();
@@ -594,7 +593,7 @@ extern "C" __global__ void computeGMMRest(
                 float distance = distances[32 * warp + lane];
                 float mean = data[dataBlockOffset + i*blockSize + lane + 1];
                 float diag = data[dataBlockOffset + i*blockSize + nPairs + lane + 1];
-                dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (distance - mean) * diag;
+                dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (distance - mean) * diag * scale;
             }
 
             // compute off diagonal part of force
@@ -610,7 +609,7 @@ extern "C" __global__ void computeGMMRest(
                             coeffIndex = nPairs*(nPairs-1)/2 - (nPairs-k)*((nPairs-k)-1)/2 + lane - k - 1;
                         }
                         float coeff = data[dataBlockOffset + i*blockSize + 1 + 2*nPairs + coeffIndex];
-                        dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (r - mu) * coeff;
+                        dEdr += 2.48 * probabilities[32 * warp + i] / totalProb * (r - mu) * coeff * scale;
                     }
                 }
             }
@@ -618,15 +617,15 @@ extern "C" __global__ void computeGMMRest(
             int atomIndex2 = atomIndices[atomBlockOffset + 2 * lane + 1];
             real4 delta = posq[atomIndex1] - posq[atomIndex2];
             float4 f = dEdr * delta / distances[32 * warp + lane];
-            forceBuffer[atomBlockOffset + lane].x = scale * f.x;
-            forceBuffer[atomBlockOffset + lane].y = scale * f.y;
-            forceBuffer[atomBlockOffset + lane].z = scale * f.z;
+            forceBuffer[atomBlockOffset + lane].x = f.x;
+            forceBuffer[atomBlockOffset + lane].y = f.y;
+            forceBuffer[atomBlockOffset + lane].z = f.z;
         }
 
         // compute and store the energy
         if (lane == 0) {
             float energy = -2.48 * (log(totalProb) - 0.5 * minsum);
-            energies[globalIndex] = scale * energy;
+            energies[globalIndex] = energy;
         }
     }
 }

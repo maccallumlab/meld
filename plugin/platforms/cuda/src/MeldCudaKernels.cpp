@@ -662,10 +662,10 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
             }
 
             // compute determinant
-            float det = 1.0 / eigenvalues.prod();
+            float det = eigenvalues.prod();
 
             // compute normalization
-            float norm = weights[i] / sqrt( pow(2 * M_PI, nPairs) * det);
+            float norm = weights[i] * sqrt(det);
 
             // shove stuff in array
             h_gmmData[dataBlockOffset] = norm;
