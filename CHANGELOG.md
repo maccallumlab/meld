@@ -1,3 +1,9 @@
+## 0.4.4
+
+### Enhancements
+
+- Added support for positioners in distance restraints
+
 ## 0.4.3
 
 ### Bug Fixes

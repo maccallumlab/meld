@@ -221,15 +221,15 @@ class DistanceRestraint(SelectableRestraint):
                        residue index starting from 1
     atom_2_name : string
                   atom name
-    r1 : float
+    r1 : float or Positioner
          in nanometers
-    r2 : float
+    r2 : float or Positioner
          in nanometers
-    r3 : float
+    r3 : float or Positioner
          in nanometers
-    r4 : float
+    r4 : float or Positioner
          in nanometers
-    k : float
+    k : float or Positioner
         in :math:`kJ/mol/nm^2`
 
     Attributes
@@ -247,13 +247,13 @@ class DistanceRestraint(SelectableRestraint):
                    atom index starting from 1
     atom_index_2 : int
                    atom index starting from 1
-    r1 : float
+    r1 : Positioner
          in nanometers
-    r2 : float
+    r2 : Positioner
          in nanometers
-    r3 : float
+    r3 : Positioner
          in nanometers
-    r4 : float
+    r4 : Positioner
          in nanometers
     k : float
         in :math:`kJ/mol/nm^2`
@@ -265,29 +265,46 @@ class DistanceRestraint(SelectableRestraint):
                  atom_2_res_index, atom_2_name, r1, r2, r3, r4, k):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
-        self.r1 = r1
-        self.r2 = r2
-        self.r3 = r3
-        self.r4 = r4
+        if isinstance(r1, Positioner):
+            self.r1 = r1
+        else:
+            self.r1 = ConstantPositioner(r1)
+
+        if isinstance(r2, Positioner):
+            self.r2 = r2
+        else:
+            self.r2 = ConstantPositioner(r2)
+
+        if isinstance(r3, Positioner):
+            self.r3 = r3
+        else:
+            self.r3 = ConstantPositioner(r3)
+
+        if isinstance(r4, Positioner):
+            self.r4 = r4
+        else:
+            self.r4 = ConstantPositioner(r4)
+
         self.k = k
         self.scaler = scaler
         self.ramp = ramp
         self._check(system)
 
     def _check(self, system):
-        if self.r1 < 0 or self.r2 < 0 or self.r3 < 0 or self.r4 < 0:
-            raise RuntimeError(
-                'r1 to r4 must be > 0. r1={} r2={} r3={} r4={}.'.format(
-                    self.r1, self.r2, self.r3, self.r4))
-        if self.r2 < self.r1:
-            raise RuntimeError(
-                'r2 must be >= r1. r1={} r2={}.'.format(self.r1, self.r2))
-        if self.r3 < self.r2:
-            raise RuntimeError(
-                'r3 must be >= r2. r2={} r3={}.'.format(self.r2, self.r3))
-        if self.r4 < self.r3:
-            raise RuntimeError(
-                'r4 must be >= r3. r3={} r4={}.'.format(self.r3, self.r4))
+        for alpha in [0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+            if self.r1(alpha) < 0 or self.r2(alpha) < 0 or self.r3(alpha) < 0 or self.r4(alpha) < 0:
+                raise RuntimeError(
+                    'r1 to r4 must be > 0. r1={} r2={} r3={} r4={}.'.format(
+                        self.r1(alpha), self.r2(alpha), self.r3(alpha), self.r4(alpha)))
+            if self.r2 < self.r1:
+                raise RuntimeError(
+                    'r2 must be >= r1. r1={} r2={}.'.format(self.r1(alpha), self.r2(alpha)))
+            if self.r3 < self.r2:
+                raise RuntimeError(
+                    'r3 must be >= r2. r2={} r3={}.'.format(self.r2(alpha), self.r3(alpha)))
+            if self.r4 < self.r3:
+                raise RuntimeError(
+                    'r4 must be >= r3. r3={} r4={}.'.format(self.r3(alpha), self.r4(alpha)))
         if self.k < 0:
             raise RuntimeError('k must be >= 0. k={}.'.format(self.k))
 

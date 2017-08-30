@@ -428,8 +428,12 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
 
     if isinstance(rest, restraints.DistanceRestraint):
         rest_index = meld_force.addDistanceRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1, rest.r2,
-            rest.r3, rest.r4, rest.k * scale)
+            rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+            rest.r1(alpha),
+            rest.r2(alpha),
+            rest.r3(alpha),
+            rest.r4(alpha),
+            rest.k * scale)
 
     elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
         rest_index = meld_force.addHyperbolicDistanceRestraint(
@@ -490,8 +494,12 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
 
     if isinstance(rest, restraints.DistanceRestraint):
         meld_force.modifyDistanceRestraint(
-            dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
-            rest.r2, rest.r3, rest.r4, rest.k * scale)
+            dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+            rest.r1(alpha),
+            rest.r2(alpha),
+            rest.r3(alpha),
+            rest.r4(alpha),
+            rest.k * scale)
         dist_index += 1
 
     elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
