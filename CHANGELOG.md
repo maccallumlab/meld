@@ -1,3 +1,10 @@
+## 0.4.5
+
+### Bug Fixes
+
+- Fixed bug in positioners with distance restraints that caused runs to fail
+  immediately.
+  
 ## 0.4.4
 
 ### Enhancements
