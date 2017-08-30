@@ -296,13 +296,13 @@ class DistanceRestraint(SelectableRestraint):
                 raise RuntimeError(
                     'r1 to r4 must be > 0. r1={} r2={} r3={} r4={}.'.format(
                         self.r1(alpha), self.r2(alpha), self.r3(alpha), self.r4(alpha)))
-            if self.r2 < self.r1:
+            if self.r2(alpha) < self.r1(alpha):
                 raise RuntimeError(
                     'r2 must be >= r1. r1={} r2={}.'.format(self.r1(alpha), self.r2(alpha)))
-            if self.r3 < self.r2:
+            if self.r3(alpha) < self.r2(alpha):
                 raise RuntimeError(
                     'r3 must be >= r2. r2={} r3={}.'.format(self.r2(alpha), self.r3(alpha)))
-            if self.r4 < self.r3:
+            if self.r4(alpha) < self.r3(alpha):
                 raise RuntimeError(
                     'r4 must be >= r3. r3={} r4={}.'.format(self.r3(alpha), self.r4(alpha)))
         if self.k < 0:
