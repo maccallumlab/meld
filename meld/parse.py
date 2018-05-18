@@ -107,7 +107,11 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
         if cter:
             output.append(cter)
 
-    return ' '.join(output)
+    max_aa_per_line = 100
+    groups = [output[i:i+max_aa_per_line] for i in
+              range(0, len(groups), max_aa_per_line)]
+    lines = [' '.join(group) for group in groups]
+    return '\n'.join(lines)
 
 
 def get_sequence_from_AA3(filename=None, contents=None, file=None,
