@@ -25,6 +25,10 @@ sys_excepthook = sys.excepthook
 
 def mpi_excepthook(type, value, traceback):
     sys_excepthook(type, value, traceback)
+    node_name = '{}/{}'.format(get_mpi_comm_world().rank+1, get_mpi_comm_world().size)
+    logger.critical('MPI node {} raised exception.'.format(node_name))
+    sys.stdout.flush()
+    sys.stderr.flush()
     get_mpi_comm_world().Abort(1)
 
 
