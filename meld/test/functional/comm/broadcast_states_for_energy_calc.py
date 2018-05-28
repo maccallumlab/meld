@@ -16,8 +16,9 @@ def generate_state(index):
     vels = index * np.ones((N_ATOMS, 3))
     alpha = float(index) / 10.
     energy = float(index)
+    box_vectors = np.zeros(3)
 
-    return SystemState(coords, vels, alpha, energy)
+    return SystemState(coords, vels, alpha, energy, box_vectors)
 
 
 def check_state(state, index):
