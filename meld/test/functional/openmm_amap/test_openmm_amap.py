@@ -28,7 +28,8 @@ def main():
     vel = numpy.zeros_like(pos)
     alpha = 0.
     energy = 0.
-    state = system.SystemState(pos, vel, alpha, energy)
+    box_vectors = np.zeros(3)
+    state = system.SystemState(pos, vel, alpha, energy, box_vectors)
 
     state = runner.minimize_then_run(state)
     state = runner.run(state)

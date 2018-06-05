@@ -2,7 +2,11 @@
 # encoding: utf-8
 
 from meld import vault
-from itertools import izip
+try:
+    from itertools import izip as zip
+except ImportError:
+    # python3
+    pass
 import argparse
 import numpy
 import progressbar
@@ -222,7 +226,7 @@ def follow_structure(store, args):
 
     bar = get_progress_bar(end - start).start()
     with open(args.output_filename, 'w') as output_file:
-        for step, (positions, perm_vector) in enumerate(izip(store.iterate_positions(start, end),
+        for step, (positions, perm_vector) in enumerate(zip(store.iterate_positions(start, end),
                                                              store.iterate_permutation_vectors(start, end))):
             bar.update(step)
             replica_indices = replica_indices[perm_vector]
@@ -258,7 +262,7 @@ def follow_structure_dcd(store, args):
 
     bar = get_progress_bar(end - start).start()
     with mdtraj.formats.DCDTrajectoryFile(args.output_filename, 'w') as output_file:
-        for step, (positions, perm_vector) in enumerate(izip(store.iterate_positions(start, end),
+        for step, (positions, perm_vector) in enumerate(zip(store.iterate_positions(start, end),
                                                              store.iterate_permutation_vectors(start, end))):
             bar.update(step)
             replica_indices = replica_indices[perm_vector]

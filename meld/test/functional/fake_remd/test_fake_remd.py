@@ -24,7 +24,8 @@ def gen_state(index):
     vel = index * np.ones((N_ATOMS, 3))
     alpha = 0
     energy = 0
-    return state.SystemState(pos, vel, alpha, energy)
+    box_vectors = np.zeros(3)
+    return state.SystemState(pos, vel, alpha, energy, box_vectors)
 
 
 def setup_system():
