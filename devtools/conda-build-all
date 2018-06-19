@@ -10,7 +10,7 @@ import tarfile
 import os.path
 import argparse
 import traceback
-from subprocess import call, check_call, CalledProcessError
+from subprocess import call, check_call, check_output, STDOUT, CalledProcessError
 from functools import reduce
 from collections import defaultdict
 from distutils.spawn import find_executable
@@ -259,6 +259,8 @@ def upload_to_binstar(m, python, numpy, username, max_retries=5,
     cmd.extend(['upload', '--no-progress', '-u', username, filename])
     if force:
         cmd.extend(['--force'])
+    elif m.get_section('extra') and ('force_upload' in m.get_section('extra')) and (m.get_section('extra')['force_upload']=='True'):
+        cmd.extend(['--force'])
     if not pre_black_listed(m) and is_prerelease(m):
         cmd.extend(['--label', 'dev'])
     elif dev:
@@ -274,11 +276,12 @@ def upload_to_binstar(m, python, numpy, username, max_retries=5,
     for i in range(max_retries):
         try:
             print("Uploading package '%s' to anaconda user '%s'..." % (filename, username))
-            check_call(cmd)
+            check_output(cmd, stderr=STDOUT)
             return
         except CalledProcessError as e:
             err = e
             err.cmd = '[not shown]'
+            print(err.output)
             print("Retrying after %s seconds..." % (i+1))
             time.sleep(i+1)
 
