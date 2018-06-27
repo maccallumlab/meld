@@ -1,3 +1,15 @@
+## 0.4.6
+
+### Enhancements
+
+- Exceptions now flush buffers which fixes issue with some MPI implmentations dropping diagnostic information
+- Long amino acid sequences no longer crash `tleap`
+
+### Major Changes
+
+- Drop osx support
+  - There really isn't a compelling use case and most recent Macs don't have NVIDIA GPUs
+  
 ## 0.4.5
 
 ### Bug Fixes
