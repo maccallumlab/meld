@@ -12,10 +12,7 @@ Limitations
 -----------
 
 Currently, the REST2 implmentation in MELD has two limitations:
-1. All non-solvent torsions are scaled. This could be made more efficient
-   by not scaling torsions designed to keep groups planar, as these
-   torsions do not help with conformational sampling, but make
-   exchanges more difficult.
+1. MELD forces do not work with periodic boundary conditions
 2. Any CMAP / AMAP potentials are not scaled.
 
 
@@ -50,16 +47,12 @@ class REST2Transformer(TransformerBase):
                 raise ValueError('Cannot use REST2 without explicit solvent')
 
     def finalize(self, system, topology):
-        # TODO allow for some dihedrals to be excludes, e.g. impropers
-        # are intended to keep groups planar. Allowing these to be
-        # more flexible does not increase conformational sampling,
-        # but it does make exchanges more difficult
         if self.active:
             nonsolvent_atoms = self._find_nonsolvent_atoms(topology)
             self._find_nb_force(system)
             self._find_dihedral_force(system)
             self._gather_nonbonded_params(nonsolvent_atoms)
-            self._gather_dihedral_params(nonsolvent_atoms)
+            self._gather_dihedral_params(nonsolvent_atoms, topology)
 
     def update(self, simulation, alpha, timestep):
         if self.active:
@@ -86,14 +79,21 @@ class REST2Transformer(TransformerBase):
             if params[0] in nonsolvent_atoms and params[1] in nonsolvent_atoms:
                 self.protein_exception_params[param_index] = params
 
-    def _gather_dihedral_params(self, nonsolvent_atoms):
+    def _gather_dihedral_params(self, nonsolvent_atoms, topology):
+        bond_idxs = [sorted([i.index, j.index]) for i,j in topology.bonds()]
         for parm_index in range(self.dihedral_force.getNumTorsions()):
             params = self.dihedral_force.getTorsionParameters(parm_index)
+            i, j, k, l, mult, phi, fc = params
+
             # only modify dihedrals involving non-solvent atoms
-            if (params[0] in nonsolvent_atoms and
-                params[1] in nonsolvent_atoms and
-                params[2] in nonsolvent_atoms and
-                params[3] in nonsolvent_atoms):
+            # and those where sequential atoms are bonded (proper dihedrals)
+            if (i in nonsolvent_atoms and
+                j in nonsolvent_atoms and
+                k in nonsolvent_atoms and
+                l in nonsolvent_atoms and
+                sorted([i,j]) in bond_idxs and
+                sorted([j,k]) in bond_idxs and
+                sorted([k,l]) in bond_idxs):
                 self.protein_dihedrals[parm_index] = params
 
     def _find_nb_force(self, system):
