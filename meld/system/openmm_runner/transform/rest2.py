@@ -85,15 +85,18 @@ class REST2Transformer(TransformerBase):
             params = self.dihedral_force.getTorsionParameters(parm_index)
             i, j, k, l, mult, phi, fc = params
 
+            not_solvent = (i in nonsolvent_atoms and
+                           j in nonsolvent_atoms and
+                           k in nonsolvent_atoms and
+                           l in nonsolvent_atoms)
+
+            not_improper = (sorted([i,j]) in bond_idxs and
+                            sorted([j,k]) in bond_idxs and
+                            sorted([k,l]) in bond_idxs)
+
             # only modify dihedrals involving non-solvent atoms
             # and those where sequential atoms are bonded (proper dihedrals)
-            if (i in nonsolvent_atoms and
-                j in nonsolvent_atoms and
-                k in nonsolvent_atoms and
-                l in nonsolvent_atoms and
-                sorted([i,j]) in bond_idxs and
-                sorted([j,k]) in bond_idxs and
-                sorted([k,l]) in bond_idxs):
+            if not_solvent and not_improper:
                 self.protein_dihedrals[parm_index] = params
 
     def _find_nb_force(self, system):
