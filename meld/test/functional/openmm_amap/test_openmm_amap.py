@@ -8,34 +8,32 @@
 
 from meld import system
 import numpy
+import unittest
 
 
-def main():
-    p = system.ProteinMoleculeFromSequence('NALA ALA CALA')
-    b = system.SystemBuilder()
-    sys = b.build_system_from_molecules([p])
-    sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
+class TestOpenRunner(unittest.TestCase):
+    def test_runner(self):
+        p = system.ProteinMoleculeFromSequence('NALA ALA CALA')
+        b = system.SystemBuilder()
+        sys = b.build_system_from_molecules([p])
+        sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
-    options = system.RunOptions()
-    options.timesteps = 10000
-    options.use_amap = True
-    options.amap_beta_bias = 10
+        options = system.RunOptions()
+        options.timesteps = 10000
+        options.use_amap = True
+        options.amap_beta_bias = 10
 
-    runner = system.OpenMMRunner(sys, options)
-    runner.set_alpha_and_timestep(0., 0)
+        runner = system.OpenMMRunner(sys, options)
+        runner.set_alpha_and_timestep(0., 0)
 
-    pos = sys._coordinates.copy()
-    vel = numpy.zeros_like(pos)
-    alpha = 0.
-    energy = 0.
-    box_vectors = np.zeros(3)
-    state = system.SystemState(pos, vel, alpha, energy, box_vectors)
+        pos = sys._coordinates.copy()
+        vel = numpy.zeros_like(pos)
+        alpha = 0.
+        energy = 0.
+        box_vectors = np.zeros(3)
+        state = system.SystemState(pos, vel, alpha, energy, box_vectors)
 
-    state = runner.minimize_then_run(state)
-    state = runner.run(state)
+        state = runner.minimize_then_run(state)
+        state = runner.run(state)
 
-    assert state
-
-
-if __name__ == '__main__':
-    main()
+        assert state
