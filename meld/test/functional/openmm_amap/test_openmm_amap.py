@@ -7,7 +7,7 @@
 #
 
 from meld import system
-import numpy
+import numpy as np
 import unittest
 
 
@@ -23,11 +23,11 @@ class TestOpenRunner(unittest.TestCase):
         options.use_amap = True
         options.amap_beta_bias = 10
 
-        runner = system.OpenMMRunner(sys, options)
-        runner.set_alpha_and_timestep(0., 0)
+        runner = system.OpenMMRunner(sys, options, test=True)
+        runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
-        vel = numpy.zeros_like(pos)
+        vel = np.zeros_like(pos)
         alpha = 0.
         energy = 0.
         box_vectors = np.zeros(3)
