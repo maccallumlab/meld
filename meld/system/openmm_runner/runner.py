@@ -46,7 +46,7 @@ PMEParams = namedtuple('PMEParams', ['enable', 'tolerance'])
 
 
 class OpenMMRunner(object):
-    def __init__(self, system, options, communicator=None):
+    def __init__(self, system, options, communicator=None, test=False):
         if communicator:
             self._device_id = communicator.negotiate_device_id()
             self._rank = communicator.rank
@@ -63,6 +63,7 @@ class OpenMMRunner(object):
         self._selectable_collections = (
             system.restraints.selectively_active_collections)
         self._options = options
+        self._test = test
         self._simulation = None
         self._integrator = None
         self._barostat = None
@@ -185,10 +186,14 @@ class OpenMMRunner(object):
                 self._temperature, self._options.use_big_timestep,
                 self._options.use_bigger_timestep)
 
-            # setup the platform
-            platform = Platform.getPlatformByName('CUDA')
-            properties = {'CudaDeviceIndex': str(self._device_id),
-                          'CudaPrecision': 'mixed'}
+            # setup the platform, CUDA by default and Reference for testing
+            if self._test:
+                platform = Platform.getPlatformByName('Reference')
+                properties = {}
+            else:
+                platform = Platform.getPlatformByName('CUDA')
+                properties = {'CudaDeviceIndex': str(self._device_id),
+                              'CudaPrecision': 'mixed'}
 
             # create the simulation object
             self._simulation = _create_openmm_simulation(
