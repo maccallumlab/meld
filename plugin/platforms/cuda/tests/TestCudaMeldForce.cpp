@@ -7,6 +7,9 @@
 #include "MeldForce.h"
 #include "openmm/internal/AssertionUtilities.h"
 #include "openmm/Context.h"
+//Cong added
+//#include "openmm/cuda/CudaContext.h"
+//Cong added end
 #include "openmm/Platform.h"
 #include "openmm/System.h"
 #include "openmm/VerletIntegrator.h"
@@ -20,6 +23,111 @@ using namespace std;
 
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
+// Cong added test
+void testPeriodic() {
+
+// setup system
+Vec3 vx(10,0,0);
+Vec3 vy(0,10,0);
+Vec3 vz(0,0,10);
+const int numParticles = 2;
+double x0 = 5, y0 = 5, z0 = 5;
+vector<Vec3> positions(numParticles);
+System system;
+system.addParticle(1.0);
+system.addParticle(1.0);
+system.setDefaultPeriodicBoxVectors(vx, vy, vz);
+// setup force
+MeldForce* force = new MeldForce();
+force->setUsesPeriodicBoundaryConditions(true);
+int k = 1.0;
+int restIdx = force->addDistanceRestraint(0,1,1.0,2.0,3.0,4.0,k);
+std::vector<int> restIndices(1);
+restIndices[0] = restIdx;
+int groupIdx = force->addGroup(restIndices,1);
+std::vector<int> groupIndices(1);
+groupIndices[0] = groupIdx;
+force->addCollection(groupIndices, 1);
+system.addForce(force);
+ASSERT(force->usesPeriodicBoundaryConditions());
+// setup context
+ASSERT(system.usesPeriodicBoundaryConditions());
+
+VerletIntegrator integrator(0.01);
+Platform& platform = Platform::getPlatformByName("CUDA");
+Context context(system,integrator, platform); //The real problem comes from here!!!!
+// five region and expected force and energy;
+// r1=10.5, force=(-1.0,0,0), energy=1.0, 
+// r2=11.5, force=(-0.5,0,0), energy=0.125, 
+// r3=12.5, force=(0.0,0,0), energy=0.0, 
+// r4=13.5, force=(0.5,0,0), energy=0.125, 
+// r5=14.5, force=(1.0,0,0), energy=1.0, 
+
+// test region I
+positions[0] = Vec3(x0,y0,z0);
+positions[1] = Vec3(10.5,5.0,5.0);
+context.setPositions(positions);
+float expectedEnergy = 1.0;
+Vec3 expectedForce = Vec3(-1.0,0.0,0.0);
+
+State stateI = context.getState(State::Positions | State::Energy | State::Forces);  // this line causes segmentation fault.
+ASSERT_EQUAL_VEC(expectedForce, stateI.getForces()[0],1e-5);
+ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(),1e-5);
+ASSERT_EQUAL_VEC(-expectedForce, stateI.getForces()[1],1e-5);
+std::cout << "Testing regionI:" << stateI.getPositions()[1] << "Success." << std::endl;
+
+// test region II
+positions[0] = Vec3(x0,y0,z0);
+positions[1] = Vec3(11.5,5.0,5.0);
+context.setPositions(positions);
+expectedEnergy = 0.125;
+expectedForce = Vec3(-0.5,0.0,0.0);
+
+State stateII = context.getState(State::Positions | State::Energy | State::Forces);  // this line causes segmentation fault.
+ASSERT_EQUAL_VEC(expectedForce, stateII.getForces()[0],1e-5);
+ASSERT_EQUAL_TOL(expectedEnergy, stateII.getPotentialEnergy(),1e-5);
+ASSERT_EQUAL_VEC(-expectedForce, stateII.getForces()[1],1e-5);
+std::cout << "Testing regionII:" << stateII.getPositions()[1] << "Success." << std::endl;
+
+// test region III
+positions[0] = Vec3(x0,y0,z0);
+positions[1] = Vec3(12.5,5.0,5.0);
+context.setPositions(positions);
+expectedEnergy = 0.0;
+expectedForce = Vec3(0.0,0.0,0.0);
+
+State stateIII = context.getState(State::Positions | State::Energy | State::Forces);  // this line causes segmentation fault.
+ASSERT_EQUAL_VEC(expectedForce, stateIII.getForces()[0],1e-5);
+ASSERT_EQUAL_TOL(expectedEnergy, stateIII.getPotentialEnergy(),1e-5);
+ASSERT_EQUAL_VEC(-expectedForce, stateIII.getForces()[1],1e-5);
+std::cout << "Testing regionIII:" << stateIII.getPositions()[1] << "Success." << std::endl;
+
+// test region VI
+positions[0] = Vec3(x0,y0,z0);
+positions[1] = Vec3(13.5,5.0,5.0);
+context.setPositions(positions);
+expectedEnergy = 0.125;
+expectedForce = Vec3(0.5,0.0,0.0);
+
+State stateIV = context.getState(State::Positions | State::Energy | State::Forces);  // this line causes segmentation fault.
+ASSERT_EQUAL_VEC(expectedForce, stateIV.getForces()[0],1e-5);
+ASSERT_EQUAL_TOL(expectedEnergy, stateIV.getPotentialEnergy(),1e-5);
+ASSERT_EQUAL_VEC(-expectedForce, stateIV.getForces()[1],1e-5);
+std::cout << "Testing regionIV:" << stateIV.getPositions()[1] << "Success." <<std::endl;
+
+// test region V
+positions[0] = Vec3(x0,y0,z0);
+positions[1] = Vec3(14.5,5.0,5.0);
+context.setPositions(positions);
+expectedEnergy = 1.0;
+expectedForce = Vec3(1.0,0.0,0.0);
+
+State stateV = context.getState(State::Positions | State::Energy | State::Forces);  // this line causes segmentation fault.
+ASSERT_EQUAL_VEC(expectedForce, stateV.getForces()[0],1e-5);
+ASSERT_EQUAL_TOL(expectedEnergy, stateV.getPotentialEnergy(),1e-5);
+ASSERT_EQUAL_VEC(-expectedForce, stateV.getForces()[1],1e-5);
+std::cout << "Testing regionV:" << stateV.getPositions()[1] << "Success." << std::endl;
+}
 
 void testDistRest() {
     // setup system
@@ -1071,10 +1179,13 @@ void testBigSystem() {
 
 
 int main(int argc, char* argv[]) {
+// The modified version can run continuiously.
+registerMeldCudaKernelFactories();
     try {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
+<<<<<<< HEAD
         testDistRest();
         testDistRestChangingParameters();
         testHyperbolicDistRest();
@@ -1091,6 +1202,20 @@ int main(int argc, char* argv[]) {
         testSingleGroup();
         testMultipleGroups();
         testBigSystem();
+=======
+      	testPeriodic();	
+      	testDistRest();
+        testDistRestChangingParameters();
+        testHyperbolicDistRest();
+        testTorsRest();
+        testDistProfileRest();
+        testTorsProfileRest();
+        testGroupSelectsCorrectly();
+        testCollectionSelectsCorrectly();
+        testSingleGroup();
+        testMultipleGroups();
+        testBigSystem();
+>>>>>>> implement_pbc_distance_restraint
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

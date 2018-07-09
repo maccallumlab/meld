@@ -569,3 +569,12 @@ void MeldForce::getCollectionParams(int index, std::vector<int>& indices, int& n
     indices = col.group_indices;
     numActive = col.n_active;
 }
+//Cong added
+void MeldForce::setUsesPeriodicBoundaryConditions(bool periodic) {
+  usePeriodic = periodic;
+}
+
+bool MeldForce::usesPeriodicBoundaryConditions() const {
+  return usePeriodic;
+}
+//Cong added end
