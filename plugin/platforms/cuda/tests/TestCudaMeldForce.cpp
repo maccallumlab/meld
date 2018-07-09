@@ -23,7 +23,7 @@ using namespace std;
 
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
-// Cong added tess
+// Cong added test
 void testPeriodic() {
 
 // setup system
@@ -816,30 +816,22 @@ void testBigSystem() {
 int main(int argc, char* argv[]) {
 // The modified version can run continuiously.
 registerMeldCudaKernelFactories();
-//if (argc > 1)
-//            Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
-//	    testPeriodic();
-//	    //testDistRest();
-//return 0;
-//}
     try {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
 	testPeriodic();	
-//	testDistRest();
-      //char* test=testDistRest();
-      //std::cout << test << std::endl;
-     // testDistRestChangingParameters();
-     // testHyperbolicDistRest();
-     // testTorsRest();
-     // testDistProfileRest();
-     // testTorsProfileRest();
-     // testGroupSelectsCorrectly();
-     // testCollectionSelectsCorrectly();
-     // testSingleGroup();
-     // testMultipleGroups();
-     // testBigSystem();
+	testDistRest();
+  testDistRestChangingParameters();
+  testHyperbolicDistRest();
+  testTorsRest();
+  testDistProfileRest();
+  testTorsProfileRest();
+  testGroupSelectsCorrectly();
+  testCollectionSelectsCorrectly();
+  testSingleGroup();
+  testMultipleGroups();
+  testBigSystem();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

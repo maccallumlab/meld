@@ -449,6 +449,20 @@ public:
      * @return the index of the collection that was created
      */
     int addCollection(std::vector<int> group_indices, int n_active);
+//Cong added
+/*
+ *Set whether this force should apply periodic boundary conditions when calculating displacements.
+ *Usually this is not appropriate for bonded forces, but there are situations when it can be useful.
+*/
+void setUsesPeriodicBoundaryConditions(bool periodic);
+/*
+  *Returns whether or not this force makes use of periodic boundary
+  *conditions.
+  * @returns true if force uses PBC and false otherwise
+*/
+bool usesPeriodicBoundaryConditions() const;
+
+//Cong added end.
 
 protected:
     OpenMM::ForceImpl* createImpl() const;
@@ -461,6 +475,9 @@ private:
     class TorsProfileRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
+// Cong added
+    bool usePeriodic;
+// Cong added end
     int n_restraints;
     std::vector<DistanceRestraintInfo> distanceRestraints;
     std::vector<HyperbolicDistanceRestraintInfo> hyperbolicDistanceRestraints;

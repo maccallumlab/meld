@@ -261,7 +261,7 @@ class DistanceRestraint(SelectableRestraint):
     _restraint_key_ = 'distance'
 
     def __init__(self, system, scaler, ramp, atom_1_res_index, atom_1_name,
-                 atom_2_res_index, atom_2_name, r1, r2, r3, r4, k):
+                 atom_2_res_index, atom_2_name, r1, r2, r3, r4, k,use_pbc): # Cong added.
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
         self.r1 = r1
@@ -272,6 +272,9 @@ class DistanceRestraint(SelectableRestraint):
         self.scaler = scaler
         self.ramp = ramp
         self._check(system)
+        # Cong added
+        self.use_pbc = use_pbc
+        # cong added end.
 
     def _check(self, system):
         if self.r1 < 0 or self.r2 < 0 or self.r3 < 0 or self.r4 < 0:
