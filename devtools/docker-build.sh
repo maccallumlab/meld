@@ -9,8 +9,6 @@ set -x
 # PATH=/opt/rh/devtoolset-2/root/usr/bin:/opt/rh/autotools-latest/root/usr/bin:/anaconda/bin:$PATH
 conda config --add channels omnia
 conda config --add channels conda-forge
-conda install -yq conda\<=4.3.34
-conda install -yq conda-build=2.1.17 jinja2 anaconda-client
 
 # get the git revision for the version string
 cd /io
