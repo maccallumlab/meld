@@ -18,7 +18,6 @@ requirements:
     - scipy
     - hdf4
     - netcdf4
-    - openmm
     - sphinx
     - mock
     - six
