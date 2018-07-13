@@ -2,18 +2,18 @@ package:
   name: meld-test
   version: {{ environ['VERSTRING'] }}
 
-
 source:
   path: /io # [linux]
   path: /Users/travis/build/maccallumlab/meld #[osx]
 
 requirements:
   build:
+    - openmm-cuda{{ CUDA_SHORT_VERSION }} ==7.2.2
     - cmake
-    - doxygen #[not osx]
+    - doxygen # [not osx]
+    - python
     - swig
     - eigen3
-    - python
     - numpy
     - scipy
     - hdf4
@@ -23,17 +23,20 @@ requirements:
     - mock
     - six
     - sphinx_rtd_theme ==0.1.9
+    - mpi4py
+    - clangdev ==6.0.0
 
   run:
-    - ambermini
     - python
-    - openmm
+    - openmm-cuda{{ CUDA_SHORT_VERSION }} ==7.2.2
+    - ambermini
     - numpy
     - scipy
     - hdf4
     - netcdf4
     - mock
     - six
+    - mpi4py
     - scikit-learn >=0.18.0
 
 test:
