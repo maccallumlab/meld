@@ -31,9 +31,9 @@ fi
 
 # build the meld conda package
 if [[ "${TRAVIS_BRANCH}" == "dev" ]]; then
-    /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/dev
+    /io/devtools/conda-build-all --force $UPLOAD --python $PYVER -- /io/devtools/conda/dev
 else
-    /io/devtools/conda-build-all --force $UPLOAD -- /io/devtools/conda/master
+    /io/devtools/conda-build-all --force $UPLOAD --python $PYVER -- /io/devtools/conda/master
 fi
 
 # upload docs to S3
