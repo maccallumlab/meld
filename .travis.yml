@@ -13,7 +13,7 @@ install:
 - docker pull jchodera/omnia-linux-anvil:texlive-amd30-cuda${CUDA_SHORT_VERSION};
 script:
 - docker run -e BINSTAR_TOKEN -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e TRAVIS_PULL_REQUEST
-  -e TRAVIS_BRANCH -e CUDA_VERSION -e CUDA_SHORT_VERSION -t -i --rm -v `pwd`:/io jchodera/omnia-linux-anvil:texlive-amd30-cuda${CUDA_SHORT_VERSION}
+  -e TRAVIS_BRANCH -e CUDA_VERSION -e CUDA_SHORT_VERSION -e PYVER -t -i --rm -v `pwd`:/io jchodera/omnia-linux-anvil:texlive-amd30-cuda${CUDA_SHORT_VERSION}
   bash /io/devtools/docker-build.sh;
 env:
   global:
@@ -22,6 +22,7 @@ env:
   - secure: zWeDVb0AvC0lvM/kFm9zXuKFyCECqSPxiOYu0YyViuUpMHR9TC5cUqRLOGwL0tdN7ub8PWRS5E+oHj9fmRB9gezYQcduS3jiWFZVFsIVA4YwQxJuF8lRXhb2S5gBU/P563MZHAynpLJiVN37aDDU6e74/Ua5/gk7sq8vDi2/9XN1sRVHoHQ63aUNeo3mlEDno2BorrNMeRlBvFlMvpZh37XRgIFOSc+Uyq5afpvRawEDvZohPgQSllEqyT043EOwYHcotQAX8K17eyYfpPqjZz0m+KLJelr3JFV7H8QwVgTUr4QjqRZPTFOQrjXFC2NWSHASBjJi7pZZhSDChiUnIL9OJHSmem8tQMks3B+Mgb0t0bPUq7YtQRn/NPFnhqUDSUaa2CoCsnf5rbrSJslQeAf74LTPQckc7gDPiQK86HCJwMZBrzJ4bSpuYsymJxgl/6oDyBu7za4CFCr4eylTgNfradfSBB9vRViv96V6x1F6o6MR920MqMW2U7pBvFUfecJ5IEOwyKF2o8hQLfdmR7AnIvXgkDSVuSB5jjpfbaNYyS2GaTOssIQTA5+1weZbOfSMPcleiKJ6nmZR6dvbjfqB81y5bodHQM8wlEmeCLTu3fIkmZeJ7+Sq4xOkrMr9DE3mvRHSHTmovu3nB0K1Suker2fvx/G46u+2l6aWzEo=
   - CUDA_VERSION: '9.0'
   - CUDA_SHORT_VERSION: '90'
+  - PYVER: '36'
 notifications:
   slack:
     secure: gh97MECKx4LFjlZyBq/qTNSiq+jWRg7wWfygEKjvSzQhV/HG9jBXINs2C7pTwRe84qnpzH8XDQf02eo+bkuevGCacnNoaSFiL6Yhaq5cPUleFNDKlxUnxif6nOcLUwB0OozVvTnad4zqi13SvgDeAu9nI2MSGDeShG1CPlODK6A80LL6sga2dAx68ieGXDu4Q+JOK0eC2GbLbPVi4AmRqx8HuzLeugbp8VnTiCZTpHoRxH1FiSzpvtsRDWq6OptGbhtF/weBNqbGCxh1xdmbdlLvPzRe0qfTXssP/tViHO8UrWFGvtjZ+IgnPwpRAELaN216uce+vXdgLZJcUu0PZ4NO7F1hzIU5eBynHC4ELf+99A4X9Xji8SDNwHwF9Fqr4wWpl1CYez2LqOLay+NeLaI/x2LP9s7ygKH/R8UODnDrVR+NSjWFCgbXNi0ICWdBYMuoUc+gYESjG6LLnj0y4HYbkZGHVBHnX5UwspyjjY6UpCo+h9lf3Ql7+Q0wN+PDfASI1g+vJ6R1uSpiVDz0MRDmS7OLOlWZHEoQcqR/ToY4oI0DdffXmZEII2zifgppsTEc2T6Eq9y5VowU09m0V2Sm/LYp0rOJofb1iOd5kJmiPRmTTRiM6Mgd/J3C7YYKzxsfuhs9OgbTB4BEkIiIV7+8oJXg+BCO+bLt32JeA98=
