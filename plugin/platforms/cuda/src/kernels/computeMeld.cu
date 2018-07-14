@@ -99,6 +99,8 @@ extern "C" __global__ void computeDistRest(
                             int* __restrict__ indexToGlobal,            // array of indices into global arrays
                             float* __restrict__ energies,               // global array of restraint energies
                             float3* __restrict__ forceBuffer,           // temporary buffer to hold the force
+                            real4 periodicBoxSize,                      // Cong added
+                            real4 invPeriodicBoxSize,                   // Cong added
                             const int numRestraints) {
     for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
         // get my global index
@@ -117,6 +119,11 @@ extern "C" __global__ void computeDistRest(
         int atomIndexA = atomIndices[index].x;
         int atomIndexB = atomIndices[index].y;
         real4 delta = posq[atomIndexA] - posq[atomIndexB];
+        //Cong added
+        #if APPLY_PERIODIC
+              APPLY_PERIODIC_TO_DELTA(delta)
+        #endif
+        //Cong added end
         real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
         real r = SQRT(distSquared);
 

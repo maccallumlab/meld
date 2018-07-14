@@ -885,6 +885,9 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
         throw OpenMMException("One of the groups is too large to fit into shared memory.");
     }
     replacements["GROUPSPERBLOCK"] = cu.intToString(groupsPerBlock);
+    // Cong added
+    replacements["APPLY_PERIODIC"] = (force.usesPeriodicBoundaryConditions() ? "1" : "0");
+    // Cong added end
 
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
@@ -935,6 +938,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &distanceRestGlobalIndices->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &distanceRestForces->getDevicePointer(),
+            cu.getPeriodicBoxSizePointer(), /* cong added*/
+            cu.getInvPeriodicBoxSizePointer(), /*Cong added*/
             &numDistRestraints};
         cu.executeKernel(computeDistRestKernel, distanceArgs, numDistRestraints);
     }
