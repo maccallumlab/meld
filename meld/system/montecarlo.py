@@ -8,7 +8,7 @@ import numpy as np
 import math
 
 
-class MonteCarloScheduler(object):
+class MonteCarloScheduler():
     """
     Weighted random selection of Monte Carlo moves
     """
@@ -69,7 +69,7 @@ class MonteCarloScheduler(object):
         assert False, "Should never get here"
 
 
-class RandomTorsionMover(object):
+class RandomTorsionMover():
     """
     Rotate a torsion to a random angle
     """
@@ -130,7 +130,7 @@ class RandomTorsionMover(object):
         return state, accepted
 
 
-class DoubleTorsionMover(object):
+class DoubleTorsionMover():
     def __init__(
         self, index1a, index1b, atom_indices1, index2a, index2b, atom_indices2
     ):
@@ -201,7 +201,7 @@ class DoubleTorsionMover(object):
         return state, accepted
 
 
-class TranslationMover(object):
+class TranslationMover():
     """
     Translate a chain
     """

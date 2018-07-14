@@ -73,7 +73,7 @@ PressureCouplingParams = namedtuple(
 PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
 
 
-class OpenMMRunner(object):
+class OpenMMRunner():
     def __init__(self, system, options, communicator=None, test=False):
         if communicator:
             self._device_id = communicator.negotiate_device_id()

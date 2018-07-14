@@ -7,7 +7,7 @@ import numpy as np
 import math
 
 
-class ProteinBase(object):
+class ProteinBase():
     """
     Base class for other Protein classes.
 

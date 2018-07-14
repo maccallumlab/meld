@@ -13,7 +13,7 @@ import shutil
 from meld.system import state
 
 
-class DataStore(object):
+class DataStore():
     """
     Class to handle storing data from MELD runs.
 

@@ -9,7 +9,7 @@ from parmed import unit as u
 import numpy as np
 
 
-class PatcherBase(object):
+class PatcherBase():
     def patch(self, top_string, crd_string):
         """
         Called before `System` is created.

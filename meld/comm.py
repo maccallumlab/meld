@@ -34,7 +34,7 @@ def mpi_excepthook(type, value, traceback):
 sys.excepthook = mpi_excepthook
 
 
-class MPICommunicator(object):
+class MPICommunicator():
     """
     Class to handle communications between master and slaves using MPI.
 
@@ -470,7 +470,7 @@ class StateException(Exception):
     pass
 
 
-class Quota(object):
+class Quota():
     def __init__(self, seconds):
         if seconds <= 0:
             raise ValueError("Invalid timeout: %s" % seconds)

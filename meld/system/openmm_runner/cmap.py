@@ -34,7 +34,7 @@ capped = [
 ]
 
 
-class CMAPAdder(object):
+class CMAPAdder():
     _map_index = {
         "GLY": 0,
         "PRO": 1,

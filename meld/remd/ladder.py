@@ -11,7 +11,7 @@ from meld.util import log_timing
 logger = logging.getLogger(__name__)
 
 
-class NearestNeighborLadder(object):
+class NearestNeighborLadder():
     """
     Class to compute replica exchange swaps between neighboring replicas.
 
