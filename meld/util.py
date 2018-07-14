@@ -11,10 +11,10 @@ import time
 from functools import wraps
 import logging
 import logging.handlers
-from six.moves import socketserver
+import socketserver
 import struct
 import pickle
-from six.moves import queue
+import queue
 
 
 @contextlib.contextmanager
@@ -121,7 +121,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
 
         abort = 0
         while not abort:
-            rd, wr, ex = select.select([self.socket.fileno()], [], [], self.timeout)
+            rd, _, _ = select.select([self.socket.fileno()], [], [], self.timeout)
             if rd:
                 self.handle_request()
             # check the abort queue to see if we should terminate
