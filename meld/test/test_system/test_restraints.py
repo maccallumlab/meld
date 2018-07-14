@@ -742,7 +742,7 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         scaler = restraints.TimeRamp()
         self.mock_system.index_of_atom.side_effect = [0, 1]
         with self.assertRaises(ValueError):
-            rest = self.manager.create_restraint(
+            _rest = self.manager.create_restraint(
                 'distance',
                 scaler,
                 atom_1_res_index=1,
@@ -756,7 +756,7 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         ramp = restraints.ConstantScaler()
         self.mock_system.index_of_atom.side_effect = [0, 1]
         with self.assertRaises(ValueError):
-            rest = self.manager.create_restraint(
+            _rest = self.manager.create_restraint(
                 'distance',
                 scaler,
                 ramp=ramp,
@@ -983,7 +983,7 @@ class TestCOMRestraint(unittest.TestCase):
                 force_const=1,
                 distance=1)
 
-    def test_should_raise_on_group1_size_mismatch(self):
+    def test_should_raise_on_group2_size_mismatch(self):
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
