@@ -134,7 +134,6 @@ References
        112(38), pp. 11846--11851.
 
 """
-from __future__ import print_function
 import math
 import numpy as np
 from collections import namedtuple
