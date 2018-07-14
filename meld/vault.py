@@ -4,10 +4,9 @@
 #
 
 import contextlib
-import six
 import os
 import time
-from six.moves import cPickle as pickle
+import pickle
 import netCDF4 as cdf
 import numpy as np
 import shutil
@@ -85,7 +84,7 @@ class DataStore(object):
         # don't save some fields to disk
         excluded = ["_cdf_data_set"]
         return dict(
-            (k, v) for (k, v) in six.iteritems(self.__dict__) if k not in excluded
+            (k, v) for (k, v) in self.__dict__.items() if k not in excluded
         )
 
     def __setstate__(self, state):

@@ -135,7 +135,6 @@ References
 
 """
 from __future__ import print_function
-from six import with_metaclass
 import math
 import numpy as np
 from collections import namedtuple
@@ -182,7 +181,7 @@ class _RestraintRegistry(type):
             raise RuntimeError('Unknown restraint type "{}".'.format(key))
 
 
-class Restraint(with_metaclass(_RestraintRegistry, object)):
+class Restraint(metaclass=_RestraintRegistry):
     """Abstract class for all restraints."""
 
     pass
@@ -1308,10 +1307,12 @@ class ScalerRegistry(type):
             raise RuntimeError('Unknown scaler type "{}".'.format(key))
 
 
-class AlphaMapper(with_metaclass(ScalerRegistry, object)):
+class AlphaMapper(metaclass=ScalerRegistry):
     """Base class for all scalers."""
 
-    pass
+    def __init__(self):
+        self._alpha_min = 0.0
+        self._alpha_max = 1.0
 
     def _check_alpha_range(self, alpha):
         if alpha < 0 or alpha > 1:

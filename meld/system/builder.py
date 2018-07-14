@@ -6,7 +6,6 @@
 from meld import util
 from meld.system.system import System
 import subprocess
-from six import string_types
 
 
 def load_amber_system(top_filename, crd_filename, patchers=None):
@@ -43,7 +42,7 @@ class SystemBuilder(object):
             patchers = []
         if leap_header_cmds is None:
             leap_header_cmds = []
-        if isinstance(leap_header_cmds, string_types):
+        if isinstance(leap_header_cmds, str):
             leap_header_cmds = [leap_header_cmds]
 
         with util.in_temp_dir():
