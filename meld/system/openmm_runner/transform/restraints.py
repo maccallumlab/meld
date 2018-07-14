@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 from simtk.openmm import CustomExternalForce
 from meld.system import restraints
-from collections import OrderedDict
+from collections import OrderedDict, Callable
 from meld.system.openmm_runner.transform import TransformerBase
 from simtk import openmm as mm
 try:
-    from meldplugin import MeldForce
+    from meldplugin import MeldForce, RdcForce
 except ImportError:
     logger.warning(
         'Could not import meldplugin. '
@@ -86,7 +86,7 @@ class RDCRestraintTransformer(TransformerBase):
 
     def add_interactions(self, system, topology):
         if self.active:
-            rdc_force = restraints.RdcForce()
+            rdc_force = RdcForce()
             expt_dict = DefaultOrderedDict(list)
             # make a dictionary based on the experiment index
             for r in self.restraints:
@@ -558,7 +558,7 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
         w = rest.weights
         m = list(rest.means.flatten())
         d, o = _setup_precisions(rest.precisions, nd, nc)
-        rest_index = meld_force.modifyGMMRestraint(gmm_index, nd, nc, scale, a, w, m, d, o)
+        _ = meld_force.modifyGMMRestraint(gmm_index, nd, nc, scale, a, w, m, d, o)
         gmm_index += 1
 
     else:
@@ -633,5 +633,5 @@ class DefaultOrderedDict(OrderedDict):
                           copy.deepcopy(self.items()))
 
     def __repr__(self):
-        return 'OrderedDefaultDict(%s, %s)'.format(
+        return 'OrderedDefaultDict({}, {})'.format(
             self.default_factory, OrderedDict.__repr__(self))
