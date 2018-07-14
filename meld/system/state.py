@@ -14,6 +14,7 @@ class SystemState(object):
     :param energy: total potential energy, including restraints
 
     """
+
     def __init__(self, positions, velocities, alpha, energy, box_vector):
         self.positions = positions
         self.velocities = velocities
@@ -30,21 +31,19 @@ class SystemState(object):
     def _validate(self):
         # check positions
         if not len(self.positions.shape) == 2:
-            raise RuntimeError('positions should be a 2D array')
+            raise RuntimeError("positions should be a 2D array")
         if not self.positions.shape[1] == 3:
-            raise RuntimeError('positions should be (n_atoms, 3) array')
+            raise RuntimeError("positions should be (n_atoms, 3) array")
 
         # check velocities
         if not self.positions.shape == self.velocities.shape:
-            raise RuntimeError(
-                'velocities must have the same shape as positions')
+            raise RuntimeError("velocities must have the same shape as positions")
 
         # check box vectors
         if self.box_vector is not None:
             if not len(self.box_vector) == 3:
-                raise RuntimeError(
-                    'len(box_vectors) != 3')
+                raise RuntimeError("len(box_vectors) != 3")
 
         # check alpha
         if self.alpha < 0 or self.alpha > 1:
-            raise RuntimeError('alpha must be in [0,1]')
+            raise RuntimeError("alpha must be in [0,1]")

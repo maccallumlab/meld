@@ -10,7 +10,7 @@ import unittest
 
 class TestOpenRunner(unittest.TestCase):
     def test_implicit_runner(self):
-        p = system.ProteinMoleculeFromSequence('NALA ALA CALA')
+        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
         b = system.SystemBuilder()
         sys = b.build_system_from_molecules([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
@@ -34,7 +34,7 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_implicit_runner_amap(self):
-        p = system.ProteinMoleculeFromSequence('NALA ALA CALA')
+        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
         b = system.SystemBuilder()
         sys = b.build_system_from_molecules([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
@@ -61,7 +61,7 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner(self):
         # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system('system.top', 'system.mdcrd')
+        sys = system.builder.load_amber_system("system.top", "system.mdcrd")
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions(solvation="explicit")
@@ -84,7 +84,7 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner_scaler(self):
         # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system('system.top', 'system.mdcrd')
+        sys = system.builder.load_amber_system("system.top", "system.mdcrd")
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
         rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300., 350.)
 

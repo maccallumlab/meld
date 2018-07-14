@@ -20,6 +20,7 @@ class DataStorePickleTestCase(unittest.TestCase):
     """
     Test that we can read and write the items in the Data directory.
     """
+
     def setUp(self):
         self.N_ATOMS = 500
         self.N_REPLICAS = 4
@@ -30,12 +31,12 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
 
+            self.assertTrue(os.path.exists("Data"), "Data directory does not created")
             self.assertTrue(
-                os.path.exists('Data'), 'Data directory does not created')
-            self.assertTrue(
-                os.path.exists('Data/Backup'), 'Backup directory not created')
+                os.path.exists("Data/Backup"), "Backup directory not created"
+            )
 
     def test_init_mode_w_creates_results(self):
         "calling initialize should create the results.h5 file"
@@ -43,23 +44,24 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
 
             self.assertTrue(
-                os.path.exists('Data/Blocks/block_000000.nc'),
-                'results_000000.nc not created')
+                os.path.exists("Data/Blocks/block_000000.nc"),
+                "results_000000.nc not created",
+            )
 
     def test_init_mode_w_raises_when_dirs_exist(self):
         "calling initialize should raise RuntimeError when Data directories exist"
         with in_temp_dir():
-            os.mkdir('Data')
-            os.mkdir('Data/Backup')
+            os.mkdir("Data")
+            os.mkdir("Data/Backup")
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
 
             with self.assertRaises(RuntimeError):
-                store.initialize(mode='w')
+                store.initialize(mode="w")
 
     def test_save_and_load_data_store(self):
         "should be able to save and then reload the DataStore"
@@ -67,7 +69,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
 
             store.save_data_store()
             store2 = vault.DataStore.load_data_store()
@@ -75,7 +77,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             self.assertEqual(store.n_atoms, store2.n_atoms)
             self.assertEqual(store.n_replicas, store2.n_replicas)
             self.assertIsNone(store2._cdf_data_set)
-            self.assertTrue(os.path.exists('Data/data_store.dat'))
+            self.assertTrue(os.path.exists("Data/data_store.dat"))
 
     def test_save_and_load_communicator(self):
         "should be able to save and reload the communicator"
@@ -83,19 +85,19 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
             c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
             # set _mpi_comm to something
             # this should not be saved
-            c._mpi_comm = 'foo'
+            c._mpi_comm = "foo"
 
             store.save_communicator(c)
             c2 = store.load_communicator()
 
             self.assertEqual(c.n_atoms, c2.n_atoms)
             self.assertEqual(c.n_replicas, c2.n_replicas)
-            self.assertIsNone(c2._mpi_comm, '_mpi_comm should not be saved')
-            self.assertTrue(os.path.exists('Data/communicator.dat'))
+            self.assertIsNone(c2._mpi_comm, "_mpi_comm should not be saved")
+            self.assertTrue(os.path.exists("Data/communicator.dat"))
 
     def test_save_and_load_remd_runner(self):
         "should be able to save and reload an remd runner"
@@ -103,19 +105,21 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
             l = ladder.NearestNeighborLadder(n_trials=100)
             policy = adaptor.AdaptationPolicy(1.0, 50, 100)
             a = adaptor.EqualAcceptanceAdaptor(
-                n_replicas=self.N_REPLICAS, adaptation_policy=policy)
+                n_replicas=self.N_REPLICAS, adaptation_policy=policy
+            )
             runner = master_runner.MasterReplicaExchangeRunner(
-                self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
+                self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
+            )
 
             store.save_remd_runner(runner)
             runner2 = store.load_remd_runner()
 
             self.assertEqual(runner.n_replicas, runner2.n_replicas)
-            self.assertTrue(os.path.exists('Data/remd_runner.dat'))
+            self.assertTrue(os.path.exists("Data/remd_runner.dat"))
 
     def test_save_and_load_system(self):
         "should be able to save and load a System"
@@ -123,13 +127,13 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
             fake_system = object()
 
             store.save_system(fake_system)
             store.load_system()
 
-            self.assertTrue(os.path.exists('Data/system.dat'))
+            self.assertTrue(os.path.exists("Data/system.dat"))
 
     def test_save_and_load_run_options(self):
         "should be able to save and load run options"
@@ -137,19 +141,20 @@ class DataStorePickleTestCase(unittest.TestCase):
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-            store.initialize(mode='w')
+            store.initialize(mode="w")
             fake_run_options = system.RunOptions()
 
             store.save_run_options(fake_run_options)
             store.load_run_options()
 
-            self.assertTrue(os.path.exists('Data/run_options.dat'))
+            self.assertTrue(os.path.exists("Data/run_options.dat"))
 
 
 class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
     """
     Test that we can read and write the data that goes in the hd5 file.
     """
+
     def setUp(self):
         self.setUpTempDir()
 
@@ -159,8 +164,9 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         # dummy pdb writer; can't use a mock because they can't be pickled
         pdb_writer = object()
         self.store = vault.DataStore(
-            self.N_ATOMS, self.N_REPLICAS, pdb_writer, block_size=10)
-        self.store.initialize(mode='w')
+            self.N_ATOMS, self.N_REPLICAS, pdb_writer, block_size=10
+        )
+        self.store.initialize(mode="w")
 
     def tearDown(self):
         self.tearDownTempDir()
@@ -180,8 +186,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         for i in range(11):
             self.store.save_positions(test_pos, i)
 
-        self.assertTrue(os.path.exists('Data/Blocks/block_000000.nc'))
-        self.assertTrue(os.path.exists('Data/Blocks/block_000001.nc'))
+        self.assertTrue(os.path.exists("Data/Blocks/block_000000.nc"))
+        self.assertTrue(os.path.exists("Data/Blocks/block_000001.nc"))
 
     def test_can_save_and_load_positions(self):
         "should be able to save and load positions"
@@ -194,7 +200,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         test_pos2 = store2.load_positions(STAGE)
 
         np.testing.assert_equal(test_pos, test_pos2)
@@ -210,7 +216,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         test_vel2 = store2.load_velocities(STAGE)
 
         np.testing.assert_equal(test_vel, test_vel2)
@@ -226,7 +232,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         test_lambdas2 = store2.load_alphas(STAGE)
 
         np.testing.assert_equal(test_lambdas, test_lambdas2)
@@ -242,13 +248,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         test_energies2 = store2.load_energies(STAGE)
 
         np.testing.assert_equal(test_energies, test_energies2)
 
     def test_can_save_and_load_states(self):
         "should be able to save and load states"
+
         def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
@@ -263,13 +270,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         states2 = store2.load_states(STAGE)
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
 
     def test_can_save_and_load_two_states(self):
         "should be able to save and load states"
+
         def gen_state(index, n_atoms):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
@@ -285,7 +293,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         states2 = store2.load_states(STAGE)
 
         np.testing.assert_equal(states[-1].positions, states2[-1].positions)
@@ -299,7 +307,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.store.save_data_store()
         self.store.close()
         store2 = vault.DataStore.load_data_store()
-        store2.initialize(mode='a')
+        store2.initialize(mode="a")
         test_vec2 = store2.load_permutation_vector(STAGE)
 
         np.testing.assert_equal(test_vec, test_vec2)
@@ -309,6 +317,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
     """
     Test that backup files are created/copied correctly.
     """
+
     def setUp(self):
         self.setUpTempDir()
 
@@ -321,7 +330,8 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         l = ladder.NearestNeighborLadder(n_trials=100)
         policy = adaptor.AdaptationPolicy(1.0, 50, 100)
         a = adaptor.EqualAcceptanceAdaptor(
-            n_replicas=self.N_REPLICAS, adaptation_policy=policy)
+            n_replicas=self.N_REPLICAS, adaptation_policy=policy
+        )
 
         # make some states
         def gen_state(index, n_atoms):
@@ -333,12 +343,13 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = master_runner.MasterReplicaExchangeRunner(
-            self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
+            self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
+        )
 
         # dummy pdb writer; can't use a mock because they can't be pickled
         pdb_writer = object()
         self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
-        self.store.initialize(mode='w')
+        self.store.initialize(mode="w")
 
         # save some stuff
         self.store.save_data_store()
@@ -353,19 +364,19 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         "communicator.dat should be backed up"
         self.store.backup(stage=0)
 
-        self.assertTrue(os.path.exists('Data/Backup/communicator.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/communicator.dat"))
 
     def test_backup_copies_store(self):
         "data_store.dat should be backed up"
         self.store.backup(stage=0)
 
-        self.assertTrue(os.path.exists('Data/Backup/data_store.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/data_store.dat"))
 
     def test_backup_copies_remd_runner(self):
         "remd_runner.dat should be backed up"
         self.store.backup(stage=0)
 
-        self.assertTrue(os.path.exists('Data/Backup/remd_runner.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/remd_runner.dat"))
 
 
 class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
@@ -381,7 +392,8 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
         l = ladder.NearestNeighborLadder(n_trials=100)
         policy = adaptor.AdaptationPolicy(1.0, 50, 100)
         a = adaptor.EqualAcceptanceAdaptor(
-            n_replicas=self.N_REPLICAS, adaptation_policy=policy)
+            n_replicas=self.N_REPLICAS, adaptation_policy=policy
+        )
 
         # make some states
         def gen_state(index, n_atoms):
@@ -392,12 +404,14 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             return system.SystemState(pos, vel, lam, energy, np.zeros(3))
 
         runner = master_runner.MasterReplicaExchangeRunner(
-            self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a)
+            self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
+        )
 
         self.pdb_writer = object()
         store = vault.DataStore(
-            self.N_ATOMS, self.N_REPLICAS, self.pdb_writer, block_size=10)
-        store.initialize(mode='w')
+            self.N_ATOMS, self.N_REPLICAS, self.pdb_writer, block_size=10
+        )
+        store.initialize(mode="w")
 
         # save some stuff
         store.save_communicator(c)
@@ -405,14 +419,13 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
         store.save_system(object())
 
         for index in range(100):
-            states = [gen_state(index, self.N_ATOMS)
-                      for i in range(self.N_REPLICAS)]
+            states = [gen_state(index, self.N_ATOMS) for i in range(self.N_REPLICAS)]
             store.save_states(states, stage=index)
         store.close()
         store.save_data_store()
 
         self.store = vault.DataStore.load_data_store()
-        self.store.initialize(mode='r')
+        self.store.initialize(mode="r")
 
     def tearDown(self):
         self.tearDownTempDir()
@@ -447,33 +460,29 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
 class TestPDBWriter(unittest.TestCase):
     def setUp(self):
         self.atom_numbers = [1000, 1001]
-        self.atom_names = ['ABCD', 'A2']
+        self.atom_names = ["ABCD", "A2"]
         self.residue_numbers = [999, 1000]
-        self.residue_names = ['XYZ', 'R2']
+        self.residue_names = ["XYZ", "R2"]
         self.coords = np.zeros((2, 3))
         self.coords[0, :] = 1.0
         self.coords[1, :] = 2.0
         self.writer = PDBWriter(
-            self.atom_numbers, self.atom_names,
-            self.residue_numbers, self.residue_names)
+            self.atom_numbers, self.atom_names, self.residue_numbers, self.residue_names
+        )
 
     def test_should_raise_with_wrong_number_of_atom_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers, ['CA'],
-                      self.residue_numbers,
-                      self.residue_names)
+            PDBWriter(
+                self.atom_numbers, ["CA"], self.residue_numbers, self.residue_names
+            )
 
     def test_should_raise_with_wrong_number_of_residue_numbers(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers,
-                      self.atom_names, [1],
-                      self.residue_names)
+            PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
 
     def test_should_raise_with_wrong_number_of_residue_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers,
-                      self.atom_names,
-                      self.residue_numbers, ['R1'])
+            PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
 
     def test_should_raise_with_bad_coordinate_size(self):
         with self.assertRaises(AssertionError):
@@ -489,15 +498,15 @@ class TestPDBWriter(unittest.TestCase):
         result = self.writer.get_pdb_string(self.coords, 1)
         lines = result.splitlines()
 
-        self.assertIn('REMARK', lines[0])
-        self.assertIn('stage 1', lines[0])
+        self.assertIn("REMARK", lines[0])
+        self.assertIn("stage 1", lines[0])
 
     def test_atom_line_should_have_correct_format(self):
         result = self.writer.get_pdb_string(self.coords, 1)
         lines = result.splitlines()
 
         result = lines[1]
-        expected_result = 'ATOM   1000 ABCD XYZ   999       1.000   1.000   1.000'
+        expected_result = "ATOM   1000 ABCD XYZ   999       1.000   1.000   1.000"
         self.assertEqual(result, expected_result)
 
     def test_other_atom_line_should_have_correct_format(self):
@@ -505,7 +514,7 @@ class TestPDBWriter(unittest.TestCase):
         lines = result.splitlines()
 
         result = lines[2]
-        expected_result = 'ATOM   1001  A2   R2  1000       2.000   2.000   2.000'
+        expected_result = "ATOM   1001  A2   R2  1000       2.000   2.000   2.000"
         self.assertEqual(result, expected_result)
 
 
@@ -513,5 +522,5 @@ def main():
     unittest.main()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

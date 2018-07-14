@@ -13,13 +13,13 @@ import logging
 
 class TestLaunchNotMaster(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch('meld.remd.launch.vault')
+        self.patcher = mock.patch("meld.remd.launch.vault")
         self.mock_vault = self.patcher.start()
 
-        self.log_patcher = mock.patch('meld.remd.launch.logging')
+        self.log_patcher = mock.patch("meld.remd.launch.logging")
         self.log_patcher.start()
 
-        self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
+        self.get_runner_patcher = mock.patch("meld.remd.launch.get_runner")
         self.mock_get_runner = self.get_runner_patcher.start()
         self.mock_runner = mock.Mock(spec=OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
@@ -31,19 +31,26 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_master.return_value = False
-        self.mock_comm.receive_logger_address_from_master.return_value = ('127.0.0.1', 32768)
+        self.mock_comm.receive_logger_address_from_master.return_value = (
+            "127.0.0.1",
+            32768,
+        )
         self.mock_comm.rank = 0
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
-        self.mock_remd_slave = mock.Mock(spec_set=slave_runner.SlaveReplicaExchangeRunner)
+        self.mock_remd_master = mock.Mock(
+            spec_set=master_runner.MasterReplicaExchangeRunner
+        )
+        self.mock_remd_slave = mock.Mock(
+            spec_set=slave_runner.SlaveReplicaExchangeRunner
+        )
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
         self.mock_store.load_remd_runner.return_value = self.mock_remd_master
 
-        self.mock_store.load_run_options.return_value.runner = 'openmm'
+        self.mock_store.load_run_options.return_value.runner = "openmm"
 
         self.log_handler = logging.StreamHandler()
 
@@ -74,7 +81,9 @@ class TestLaunchNotMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch(self.log_handler)
 
-        self.mock_remd_slave.run.assert_called_once_with(self.mock_comm, self.mock_runner)
+        self.mock_remd_slave.run.assert_called_once_with(
+            self.mock_comm, self.mock_runner
+        )
 
     def test_should_not_init_store(self):
         "should not init store"
@@ -85,10 +94,10 @@ class TestLaunchNotMaster(unittest.TestCase):
 
 class TestLaunchMaster(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch('meld.remd.launch.vault')
+        self.patcher = mock.patch("meld.remd.launch.vault")
         self.mock_vault = self.patcher.start()
 
-        self.get_runner_patcher = mock.patch('meld.remd.launch.get_runner')
+        self.get_runner_patcher = mock.patch("meld.remd.launch.get_runner")
         self.mock_get_runner = self.get_runner_patcher.start()
         self.mock_runner = mock.Mock(spec=OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
@@ -106,12 +115,16 @@ class TestLaunchMaster(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_master = mock.Mock(spec_set=master_runner.MasterReplicaExchangeRunner)
-        self.mock_remd_slave = mock.Mock(spec_set=slave_runner.SlaveReplicaExchangeRunner)
+        self.mock_remd_master = mock.Mock(
+            spec_set=master_runner.MasterReplicaExchangeRunner
+        )
+        self.mock_remd_slave = mock.Mock(
+            spec_set=slave_runner.SlaveReplicaExchangeRunner
+        )
         self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
         self.mock_store.load_remd_runner.return_value = self.mock_remd_master
 
-        self.mock_store.load_run_options.return_value.runner = 'openmm'
+        self.mock_store.load_run_options.return_value.runner = "openmm"
 
         self.log_handler = logging.StreamHandler()
 
@@ -135,10 +148,12 @@ class TestLaunchMaster(unittest.TestCase):
         "should initialize the store"
         launch.launch(self.log_handler)
 
-        self.mock_store.initialize.assert_called_once_with(mode='a')
+        self.mock_store.initialize.assert_called_once_with(mode="a")
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
         launch.launch(self.log_handler)
 
-        self.mock_remd_master.run.assert_called_once_with(self.mock_comm, self.mock_runner, self.mock_store)
+        self.mock_remd_master.run.assert_called_once_with(
+            self.mock_comm, self.mock_runner, self.mock_store
+        )

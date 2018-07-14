@@ -25,8 +25,8 @@ sys_excepthook = sys.excepthook
 
 def mpi_excepthook(type, value, traceback):
     sys_excepthook(type, value, traceback)
-    node_name = '{}/{}'.format(get_mpi_comm_world().rank+1, get_mpi_comm_world().size)
-    logger.critical('MPI node {} raised exception.'.format(node_name))
+    node_name = "{}/{}".format(get_mpi_comm_world().rank + 1, get_mpi_comm_world().size)
+    logger.critical("MPI node {} raised exception.".format(node_name))
     sys.stdout.flush()
     sys.stderr.flush()
     get_mpi_comm_world().Abort(1)
@@ -54,12 +54,15 @@ class MPICommunicator(object):
         self._n_replicas = n_replicas
         self._mpi_comm = None
         self._timeout = timeout
-        self._timeout_message = 'Call to {{:s}} did not complete in {:d} seconds'.format(timeout)
+        self._timeout_message = "Call to {{:s}} did not complete in {:d} seconds".format(
+            timeout
+        )
 
     def __getstate__(self):
         # don't pickle _mpi_comm
-        return dict((k, v) for (k, v) in six.iteritems(self.__dict__)
-                    if not k == '_mpi_comm')
+        return dict(
+            (k, v) for (k, v) in six.iteritems(self.__dict__) if not k == "_mpi_comm"
+        )
 
     def __setstate__(self, state):
         # set _mpi_comm to None
@@ -88,8 +91,9 @@ class MPICommunicator(object):
 
     @log_timing(logger)
     def barrier(self):
-        with timeout(self._timeout,
-                     RuntimeError(self._timeout_message.format('barrier'))):
+        with timeout(
+            self._timeout, RuntimeError(self._timeout_message.format("barrier"))
+        ):
             self._mpi_comm.barrier()
 
     @log_timing(logger)
@@ -104,9 +108,10 @@ class MPICommunicator(object):
         :returns: :const:`None`
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('broadcast_alphas_to_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("broadcast_alphas_to_slaves")),
+        ):
             self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
@@ -117,9 +122,12 @@ class MPICommunicator(object):
         :param address: a tuple (hostname, port)
         :return: :const: `None`
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('broadcast_logger_address_to_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("broadcast_logger_address_to_slaves")
+            ),
+        ):
             self._mpi_comm.bcast(address, root=0)
 
     @log_timing(logger)
@@ -129,9 +137,12 @@ class MPICommunicator(object):
 
         :return: a (hostname, port) tuple
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('receive_logger_address_from_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("receive_logger_address_from_master")
+            ),
+        ):
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
@@ -143,9 +154,10 @@ class MPICommunicator(object):
         :returns: a floating point value for alpha in ``[0,1]``
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('receive_alpha_from_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("receive_alpha_from_master")),
+        ):
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
@@ -160,9 +172,10 @@ class MPICommunicator(object):
         :returns: the state to run on the master node
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('broadcast_states_to_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("broadcast_states_to_slaves")),
+        ):
             return self._mpi_comm.scatter(states, root=0)
 
     @log_timing(logger)
@@ -174,9 +187,10 @@ class MPICommunicator(object):
         :returns: the state to run for this step
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('receive_state_from_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("receive_state_from_master")),
+        ):
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
@@ -190,9 +204,10 @@ class MPICommunicator(object):
                   The returned states are the states after simulating.
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('gather_states_from_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("gather_states_from_slaves")),
+        ):
             return self._mpi_comm.gather(state_on_master, root=0)
 
     @log_timing(logger)
@@ -206,9 +221,10 @@ class MPICommunicator(object):
         :returns: :const:`None`
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('send_state_to_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("send_state_to_master")),
+        ):
             self._mpi_comm.gather(state, root=0)
 
     @log_timing(logger)
@@ -223,9 +239,14 @@ class MPICommunicator(object):
         :returns: :const:`None`
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('broadcast_states_for_energy_calc_to_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format(
+                    "broadcast_states_for_energy_calc_to_slaves"
+                )
+            ),
+        ):
             self._mpi_comm.bcast(states, root=0)
 
     @log_timing(logger)
@@ -238,9 +259,12 @@ class MPICommunicator(object):
         :returns: a list of states from all nodes
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('exchange_states_for_energy_calc'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("exchange_states_for_energy_calc")
+            ),
+        ):
             return self._mpi_comm.allgather(state)
 
     @log_timing(logger)
@@ -252,9 +276,14 @@ class MPICommunicator(object):
         :returns: a list of states to calculate the energy of
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('receive_states_for_energy_calc_from_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format(
+                    "receive_states_for_energy_calc_from_master"
+                )
+            ),
+        ):
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
@@ -268,9 +297,10 @@ class MPICommunicator(object):
                   for replica exchange
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('gather_energies_from_slaves'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("gather_energies_from_slaves")),
+        ):
             energies = self._mpi_comm.gather(energies_on_master, root=0)
             return np.array(energies)
 
@@ -284,41 +314,42 @@ class MPICommunicator(object):
         :returns: :const:`None`
 
         """
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('send_energies_to_master'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("send_energies_to_master")),
+        ):
             return self._mpi_comm.gather(energies, root=0)
 
     @log_timing(logger)
     def negotiate_device_id(self):
-        with timeout(self._timeout,
-                     RuntimeError(
-                         self._timeout_message.format('negotiate_device_id'))):
+        with timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("negotiate_device_id")),
+        ):
             hostname = platform.node()
             try:
-                visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
-                logger.info('%s found cuda devices: %s', hostname, visible_devices)
-                visible_devices = visible_devices.split(',')
+                visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
+                logger.info("%s found cuda devices: %s", hostname, visible_devices)
+                visible_devices = visible_devices.split(",")
                 if visible_devices:
                     visible_devices = [int(dev) for dev in visible_devices]
                 else:
-                    raise RuntimeError('No cuda devices available')
+                    raise RuntimeError("No cuda devices available")
             except KeyError:
-                logger.info('%s CUDA_VISIBLE_DEVICES is not set.', hostname)
+                logger.info("%s CUDA_VISIBLE_DEVICES is not set.", hostname)
                 visible_devices = None
 
-            hosts = self._mpi_comm.gather(
-                HostInfo(hostname, visible_devices), root=0)
+            hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
 
             # the master computes the device ids
             if self._my_rank == 0:
                 if hosts[0].devices is None:
                     # if CUDA_VISIBLE_DEVICES isn't set on the master, we assume it
                     # isn't set for any node
-                    logger.info('CUDA_VISIBLE_DEVICES is not set.')
-                    logger.info('Assuming each mpi process has access')
-                    logger.info('to a CUDA device, where the device')
-                    logger.info('numbering starts from 0.')
+                    logger.info("CUDA_VISIBLE_DEVICES is not set.")
+                    logger.info("Assuming each mpi process has access")
+                    logger.info("to a CUDA device, where the device")
+                    logger.info("numbering starts from 0.")
 
                     # create an empty default dict to count hosts
                     host_counts = defaultdict(int)
@@ -334,7 +365,7 @@ class MPICommunicator(object):
                 else:
                     # CUDA_VISIBLE_DEVICES is set on the master, so we
                     # assume it is set for all nodes
-                    logger.info('CUDA_VISIBLE_DEVICES is set.')
+                    logger.info("CUDA_VISIBLE_DEVICES is set.")
 
                     # create a dict to hold the device ids available on each host
                     available_devices = {}
@@ -342,8 +373,7 @@ class MPICommunicator(object):
                     for host in hosts:
                         if host.host_name in available_devices:
                             if host.devices != available_devices[host.host_name]:
-                                raise RuntimeError(
-                                    'GPU devices for host do not match')
+                                raise RuntimeError("GPU devices for host do not match")
                         else:
                             available_devices[host.host_name] = host.devices
 
@@ -358,8 +388,9 @@ class MPICommunicator(object):
                         min_device_id = min(available_devices[host.host_name])
                         if min_device_id != -1:
                             available_devices[host.host_name] = [
-                                device_id - min_device_id for device_id in
-                                available_devices[host.host_name]]
+                                device_id - min_device_id
+                                for device_id in available_devices[host.host_name]
+                            ]
 
                     # device ids for each node
                     device_ids = []
@@ -368,8 +399,8 @@ class MPICommunicator(object):
                             # pop off the first device_id for this host name
                             device_ids.append(available_devices[host.host_name].pop(0))
                         except IndexError:
-                            logger.error('More mpi processes than GPUs')
-                            raise RuntimeError('More mpi process than GPUs')
+                            logger.error("More mpi processes than GPUs")
+                            raise RuntimeError("More mpi process than GPUs")
 
             # receive device id from master
             else:
@@ -377,7 +408,7 @@ class MPICommunicator(object):
 
             # do the communication
             device_id = self._mpi_comm.scatter(device_ids, root=0)
-            logger.info('hostname: %s, device_id: %d', hostname, device_id)
+            logger.info("hostname: %s, device_id: %d", hostname, device_id)
             return device_id
 
     @property
@@ -404,7 +435,7 @@ def get_mpi_comm_world():
 
 
 # namedtuple to hold results for negotiate id
-HostInfo = namedtuple('HostInfo', 'host_name devices')
+HostInfo = namedtuple("HostInfo", "host_name devices")
 
 
 # Adapted from interrupting cow
@@ -443,14 +474,14 @@ class StateException(Exception):
 class Quota(object):
     def __init__(self, seconds):
         if seconds <= 0:
-            raise ValueError('Invalid timeout: %s' % seconds)
+            raise ValueError("Invalid timeout: %s" % seconds)
         else:
             self._timeleft = seconds
         self._depth = 0
         self._starttime = None
 
     def __str__(self):
-        return '<Quota remaining=%s>' % self.remaining()
+        return "<Quota remaining=%s>" % self.remaining()
 
     def _start(self):
         if self._depth is 0:
@@ -472,8 +503,9 @@ class Quota(object):
         else:
             return max(self._timeleft, 0)
 
+
 def _bootstrap():
-    Timer = namedtuple('Timer', 'expiration exception')
+    Timer = namedtuple("Timer", "expiration exception")
     timers = []
 
     def handler(*args):
@@ -492,14 +524,17 @@ def _bootstrap():
         if current == signal.SIG_DFL:
             signal.signal(signal.SIGALRM, handler)
         elif current != handler:
-            raise StateException('Your process alarm handler is already in '
-                                 'use! Interruptingcow cannot be used in '
-                                 'programs that use SIGALRM.')
+            raise StateException(
+                "Your process alarm handler is already in "
+                "use! Interruptingcow cannot be used in "
+                "programs that use SIGALRM."
+            )
 
     def timeout(seconds, exception):
-        if threading.currentThread().name != 'MainThread':
-            raise StateException('Interruptingcow can only be used from the '
-                                 'MainThread.')
+        if threading.currentThread().name != "MainThread":
+            raise StateException(
+                "Interruptingcow can only be used from the " "MainThread."
+            )
         if isinstance(seconds, Quota):
             quota = seconds
         else:
@@ -548,5 +583,6 @@ def _bootstrap():
         next(t)
 
     return timeout_context_manager
+
 
 timeout = _bootstrap()

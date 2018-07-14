@@ -13,66 +13,109 @@ from scipy import signal
 
 kBT = 8.314e-3 * 298.0
 
-DistArgs = namedtuple('DistArgs', 'r_min r_max n_bins smooth_width max_energy')
-TorsArgs = namedtuple('TorsArgs', 'n_bins smooth_width max_energy')
+DistArgs = namedtuple("DistArgs", "r_min r_max n_bins smooth_width max_energy")
+TorsArgs = namedtuple("TorsArgs", "n_bins smooth_width max_energy")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Process Roesetta fragment files.')
+    parser = argparse.ArgumentParser(description="Process Roesetta fragment files.")
 
-    subparsers = parser.add_subparsers(dest='command')
+    subparsers = parser.add_subparsers(dest="command")
 
-    process = subparsers.add_parser('process_fragments', help='process fragments from Rosetta files',
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    process.add_argument('--frag-3mer', help='fragment file for 3-mers')
-    process.add_argument('--frag-5mer', help='fragment file for 5-mers')
-    process.add_argument('--frag-9mer', help='fragment file for 9-mers')
-    process.add_argument('--output-dir', help='output directory', default='MeldFragments')
-    process.add_argument('--dist-n-bins', help='number of bins for distance distribution',
-                         type=int, default=20)
-    process.add_argument('--dist-r-min', help='minimum distance in distance distribution (Angstrom)',
-                         type=float, default=0.)
-    process.add_argument('--dist-r-max', help='maximum distance in distance distribution (Angstrom)',
-                         type=float, default=20.)
-    process.add_argument('--dist-smooth-width', help='smoothing width for distance distribution (Angstrom)',
-                         type=float, default=1.0)
-    process.add_argument('--dist-max-energy', help='maximum energy (in kT) in distance profiles',
-                         default=4.0, type=float)
-    process.add_argument('--rama-n-bins', help='number of bins for ramachandaran distribution',
-                         type=int, default=25)
-    process.add_argument('--rama-smooth-width', help='smoothing width for rama distribution (degrees)',
-                         type=float, default=15.)
-    process.add_argument('--rama-max-energy', help='maximum energy (in kT) in rama profiles',
-                         default=4.0, type=float)
+    process = subparsers.add_parser(
+        "process_fragments",
+        help="process fragments from Rosetta files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    process.add_argument("--frag-3mer", help="fragment file for 3-mers")
+    process.add_argument("--frag-5mer", help="fragment file for 5-mers")
+    process.add_argument("--frag-9mer", help="fragment file for 9-mers")
+    process.add_argument(
+        "--output-dir", help="output directory", default="MeldFragments"
+    )
+    process.add_argument(
+        "--dist-n-bins",
+        help="number of bins for distance distribution",
+        type=int,
+        default=20,
+    )
+    process.add_argument(
+        "--dist-r-min",
+        help="minimum distance in distance distribution (Angstrom)",
+        type=float,
+        default=0.,
+    )
+    process.add_argument(
+        "--dist-r-max",
+        help="maximum distance in distance distribution (Angstrom)",
+        type=float,
+        default=20.,
+    )
+    process.add_argument(
+        "--dist-smooth-width",
+        help="smoothing width for distance distribution (Angstrom)",
+        type=float,
+        default=1.0,
+    )
+    process.add_argument(
+        "--dist-max-energy",
+        help="maximum energy (in kT) in distance profiles",
+        default=4.0,
+        type=float,
+    )
+    process.add_argument(
+        "--rama-n-bins",
+        help="number of bins for ramachandaran distribution",
+        type=int,
+        default=25,
+    )
+    process.add_argument(
+        "--rama-smooth-width",
+        help="smoothing width for rama distribution (degrees)",
+        type=float,
+        default=15.,
+    )
+    process.add_argument(
+        "--rama-max-energy",
+        help="maximum energy (in kT) in rama profiles",
+        default=4.0,
+        type=float,
+    )
 
-    vis_dist_energy = subparsers.add_parser('vis_dist_energy', help='visualize distance energy from file')
-    vis_dist_energy.add_argument('dist_file', help='file to visualize')
+    vis_dist_energy = subparsers.add_parser(
+        "vis_dist_energy", help="visualize distance energy from file"
+    )
+    vis_dist_energy.add_argument("dist_file", help="file to visualize")
 
-    vis_dist_distribution = subparsers.add_parser('vis_dist_distribution',
-                                                  help='visualize distance distribution from file')
-    vis_dist_distribution.add_argument('dist_file', help='file to visualize')
+    vis_dist_distribution = subparsers.add_parser(
+        "vis_dist_distribution", help="visualize distance distribution from file"
+    )
+    vis_dist_distribution.add_argument("dist_file", help="file to visualize")
 
-    vis_rama_energy = subparsers.add_parser('vis_rama_energy',
-                                            help='visualize ramachandran energy distribution from file')
-    vis_rama_energy.add_argument('--max-energy', help='maximum energy to display', type=float, default=None)
-    vis_rama_energy.add_argument('rama_file', help='file to visualize')
+    vis_rama_energy = subparsers.add_parser(
+        "vis_rama_energy", help="visualize ramachandran energy distribution from file"
+    )
+    vis_rama_energy.add_argument(
+        "--max-energy", help="maximum energy to display", type=float, default=None
+    )
+    vis_rama_energy.add_argument("rama_file", help="file to visualize")
 
-    vis_rama_distribution = subparsers.add_parser('vis_rama_distribution',
-                                                  help='visualize ramachandran distribution from file')
-    vis_rama_distribution.add_argument('rama_file', help='file to visualize')
+    vis_rama_distribution = subparsers.add_parser(
+        "vis_rama_distribution", help="visualize ramachandran distribution from file"
+    )
+    vis_rama_distribution.add_argument("rama_file", help="file to visualize")
 
     args = parser.parse_args()
 
-    if args.command == 'process_fragments':
+    if args.command == "process_fragments":
         process_fragments(args)
-    elif args.command == 'vis_dist_energy':
+    elif args.command == "vis_dist_energy":
         visualize_distance_energy(args)
-    elif args.command == 'vis_dist_distribution':
+    elif args.command == "vis_dist_distribution":
         visualize_distance_distribution(args)
-    elif args.command == 'vis_rama_energy':
+    elif args.command == "vis_rama_energy":
         visualize_rama_energy(args)
-    elif args.command == 'vis_rama_distribution':
+    elif args.command == "vis_rama_distribution":
         visualize_rama_distribution(args)
 
 
@@ -150,10 +193,24 @@ def get_rama_energy(filename):
 
             c = coeffs[ci * bins + cj, :]
 
-            z = (c[0]         + c[1]  * v        + c[2]  * v**2        + c[3] * v**3 +
-                 c[4]  * u    + c[5]  * u * v    + c[6]  * u * v**2    + c[7] * u * v**3 +
-                 c[8]  * u**2 + c[9]  * u**2 * v + c[10] * u**2 * v**2 + c[11] * u**2 * v**3 +
-                 c[12] * u**3 + c[13] * u**3 * v + c[14] * u**3 * v**2 + c[15] * u**3 * v**3)
+            z = (
+                c[0]
+                + c[1] * v
+                + c[2] * v ** 2
+                + c[3] * v ** 3
+                + c[4] * u
+                + c[5] * u * v
+                + c[6] * u * v ** 2
+                + c[7] * u * v ** 3
+                + c[8] * u ** 2
+                + c[9] * u ** 2 * v
+                + c[10] * u ** 2 * v ** 2
+                + c[11] * u ** 2 * v ** 3
+                + c[12] * u ** 3
+                + c[13] * u ** 3 * v
+                + c[14] * u ** 3 * v ** 2
+                + c[15] * u ** 3 * v ** 3
+            )
 
             energies[i, j] = z
     return energies
@@ -166,8 +223,14 @@ def visualize_rama_energy(args):
         vmax = numpy.max(energies)
     else:
         vmax = args.max_energy
-    pyplot.imshow(energies.T, origin='bottom', interpolation='nearest', extent=(-180, 180, -180, 180),
-                  vmin=vmin, vmax=vmax)
+    pyplot.imshow(
+        energies.T,
+        origin="bottom",
+        interpolation="nearest",
+        extent=(-180, 180, -180, 180),
+        vmin=vmin,
+        vmax=vmax,
+    )
     pyplot.colorbar()
     pyplot.show()
 
@@ -175,7 +238,12 @@ def visualize_rama_energy(args):
 def visualize_rama_distribution(args):
     energies = get_rama_energy(args.rama_file)
     energies = numpy.exp(-energies / kBT)
-    pyplot.imshow(energies.T, origin='bottom', interpolation='nearest', extent=(-180, 180, -180, 180))
+    pyplot.imshow(
+        energies.T,
+        origin="bottom",
+        interpolation="nearest",
+        extent=(-180, 180, -180, 180),
+    )
     pyplot.colorbar()
     pyplot.show()
 
@@ -184,20 +252,43 @@ def process_fragments(args):
     create_output_dir(args.output_dir)
 
     distance_distributions = {}
-    dist_args = DistArgs(args.dist_r_min, args.dist_r_max, args.dist_n_bins,
-                         args.dist_smooth_width, args.dist_max_energy)
+    dist_args = DistArgs(
+        args.dist_r_min,
+        args.dist_r_max,
+        args.dist_n_bins,
+        args.dist_smooth_width,
+        args.dist_max_energy,
+    )
     tors_args = TorsArgs(args.rama_n_bins, args.rama_smooth_width, args.rama_max_energy)
 
     rama_distributions = {}
 
     if args.frag_3mer:
-        process_3mer(args.frag_3mer, distance_distributions, rama_distributions, dist_args, tors_args)
+        process_3mer(
+            args.frag_3mer,
+            distance_distributions,
+            rama_distributions,
+            dist_args,
+            tors_args,
+        )
 
     if args.frag_5mer:
-        process_5mer(args.frag_5mer, distance_distributions, rama_distributions, dist_args, tors_args)
+        process_5mer(
+            args.frag_5mer,
+            distance_distributions,
+            rama_distributions,
+            dist_args,
+            tors_args,
+        )
 
     if args.frag_9mer:
-        process_9mer(args.frag_9mer, distance_distributions, rama_distributions, dist_args, tors_args)
+        process_9mer(
+            args.frag_9mer,
+            distance_distributions,
+            rama_distributions,
+            dist_args,
+            tors_args,
+        )
 
     write_distance_distributions(distance_distributions, args.output_dir, dist_args)
     write_rama_distributions(rama_distributions, args.output_dir, tors_args)
@@ -205,12 +296,14 @@ def process_fragments(args):
 
 def create_output_dir(output_dir):
     if os.path.exists(output_dir):
-        raise RuntimeError('Directory {} already exists'.format(output_dir))
+        raise RuntimeError("Directory {} already exists".format(output_dir))
     os.mkdir(output_dir)
 
 
 def write_distance_distributions(distance_distributions, out_dir, dist_args):
-    flatten_factor = compute_flatten_factor_1d(dist_args.smooth_width / math.sqrt(2), dist_args.max_energy)
+    flatten_factor = compute_flatten_factor_1d(
+        dist_args.smooth_width / math.sqrt(2), dist_args.max_energy
+    )
     for res in distance_distributions:
         energy = distance_distributions[res]
         energy = energy / numpy.sum(energy)
@@ -222,9 +315,9 @@ def write_distance_distributions(distance_distributions, out_dir, dist_args):
         # convert into Catmull-Rom spline parameters
         spline_coeff = convert_to_spline_1d(energy)
 
-        filename = 'dist_distr_{0:03d}-{1:03d}.dat'.format(res, res + 4)
+        filename = "dist_distr_{0:03d}-{1:03d}.dat".format(res, res + 4)
         filename = os.path.join(out_dir, filename)
-        with open(filename, 'w') as outfile:
+        with open(filename, "w") as outfile:
             # divide by 10 for Angstrom -> nm
             print(dist_args.r_min / 10., file=outfile)
             print(dist_args.r_max / 10., file=outfile)
@@ -245,10 +338,10 @@ def write_rama_distributions(rama_distributions, out_dir, tors_args):
         # get the spline coefficients
         coeffs = convert_to_spline2d(energy, tors_args)
 
-        filename = 'rama_distr_{0:03d}.dat'.format(res)
+        filename = "rama_distr_{0:03d}.dat".format(res)
         filename = os.path.join(out_dir, filename)
-        with open(filename, 'w') as outfile:
-            print (tors_args.n_bins - 1, file=outfile)
+        with open(filename, "w") as outfile:
+            print(tors_args.n_bins - 1, file=outfile)
             numpy.savetxt(outfile, coeffs)
 
 
@@ -279,14 +372,22 @@ def smooth_rama(energies, tors_args):
     assert size == energies.shape[1]
     vals = numpy.linspace(-180., 180., size)
     x, y = numpy.meshgrid(vals, vals)
-    g = 1.0 / tors_args.smooth_width ** 2 / 2.0 / math.pi * numpy.exp(-0.5 * (1.0 / tors_args.smooth_width) ** 2 * (x ** 2 + y ** 2))
+    g = (
+        1.0
+        / tors_args.smooth_width ** 2
+        / 2.0
+        / math.pi
+        * numpy.exp(-0.5 * (1.0 / tors_args.smooth_width) ** 2 * (x ** 2 + y ** 2))
+    )
 
-    energies = signal.convolve2d(energies, g, mode='same', boundary='wrap')
+    energies = signal.convolve2d(energies, g, mode="same", boundary="wrap")
     return energies
 
 
 def convert_to_spline2d(energy, tors_args):
-    flatten_factor = compute_flatten_factor_2d(tors_args.smooth_width, tors_args.max_energy)
+    flatten_factor = compute_flatten_factor_2d(
+        tors_args.smooth_width, tors_args.max_energy
+    )
     n = tors_args.n_bins - 1
 
     # chop off the duplicate energy values
@@ -318,85 +419,144 @@ def convert_to_spline2d(energy, tors_args):
     my11 = numpy.roll(numpy.roll(my00, -1, axis=0), -1, axis=1)
 
     # compute the cross derivative
-    mxy00 = (numpy.roll(numpy.roll(energy, -1, axis=1), -1, axis=0) -
-             numpy.roll(numpy.roll(energy,  1, axis=1), -1, axis=0) -
-             numpy.roll(numpy.roll(energy, -1, axis=1),  1, axis=0) +
-             numpy.roll(numpy.roll(energy,  1, axis=1),  1, axis=0)) / 4.0
-    #mxy00 = numpy.zeros_like(mxy00)
+    mxy00 = (
+        numpy.roll(numpy.roll(energy, -1, axis=1), -1, axis=0)
+        - numpy.roll(numpy.roll(energy, 1, axis=1), -1, axis=0)
+        - numpy.roll(numpy.roll(energy, -1, axis=1), 1, axis=0)
+        + numpy.roll(numpy.roll(energy, 1, axis=1), 1, axis=0)
+    ) / 4.0
+    # mxy00 = numpy.zeros_like(mxy00)
     mxy10 = numpy.roll(mxy00, -1, axis=1)
     mxy01 = numpy.roll(mxy00, -1, axis=0)
     mxy11 = numpy.roll(numpy.roll(mxy00, -1, axis=0), -1, axis=1)
 
-    a_inv = numpy.array([
-        [ 1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-        [-3,  3,  0,  0, -2, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-        [ 2, -2,  0,  0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0],
-        [ 0,  0,  0,  0,  0,  0,  0,  0, -3,  3,  0,  0, -2, -1,  0,  0],
-        [ 0,  0,  0,  0,  0,  0,  0,  0,  2, -2,  0,  0,  1,  1,  0,  0],
-        [-3,  0,  3,  0,  0,  0,  0,  0, -2,  0, -1,  0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0, -3,  0,  3,  0,  0,  0,  0,  0, -2,  0, -1,  0],
-        [ 9, -9, -9,  9,  6,  3, -6, -3,  6, -6,  3, -3,  4,  2,  2,  1],
-        [-6,  6,  6, -6, -3, -3,  3,  3, -4,  4, -2,  2, -2, -2, -1, -1],
-        [ 2,  0, -2,  0,  0,  0,  0,  0,  1,  0,  1,  0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0,  2,  0, -2,  0,  0,  0,  0,  0,  1,  0,  1,  0],
-        [-6,  6,  6, -6, -4, -2,  4,  2, -3,  3, -3,  3, -2, -1, -2, -1],
-        [ 4, -4, -4,  4,  2,  2, -2, -2,  2, -2,  2, -2,  1,  1,  1,  1]])
+    a_inv = numpy.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [-3, 3, 0, 0, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, -2, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, -3, 3, 0, 0, -2, -1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 2, -2, 0, 0, 1, 1, 0, 0],
+            [-3, 0, 3, 0, 0, 0, 0, 0, -2, 0, -1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, -3, 0, 3, 0, 0, 0, 0, 0, -2, 0, -1, 0],
+            [9, -9, -9, 9, 6, 3, -6, -3, 6, -6, 3, -3, 4, 2, 2, 1],
+            [-6, 6, 6, -6, -3, -3, 3, 3, -4, 4, -2, 2, -2, -2, -1, -1],
+            [2, 0, -2, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 2, 0, -2, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+            [-6, 6, 6, -6, -4, -2, 4, 2, -3, 3, -3, 3, -2, -1, -2, -1],
+            [4, -4, -4, 4, 2, 2, -2, -2, 2, -2, 2, -2, 1, 1, 1, 1],
+        ]
+    )
 
     coeffs = []
     for i in range(n):
         for j in range(n):
             # now build x
-            x = numpy.array([e00[i, j], e10[i, j], e01[i, j], e11[i, j],
-                             mx00[i, j], mx10[i, j], mx01[i, j], mx11[i, j],
-                             my00[i, j], my10[i, j], my01[i, j], my11[i, j],
-                             mxy00[i, j], mxy10[i, j], mxy01[i, j], mxy11[i, j]])
+            x = numpy.array(
+                [
+                    e00[i, j],
+                    e10[i, j],
+                    e01[i, j],
+                    e11[i, j],
+                    mx00[i, j],
+                    mx10[i, j],
+                    mx01[i, j],
+                    mx11[i, j],
+                    my00[i, j],
+                    my10[i, j],
+                    my01[i, j],
+                    my11[i, j],
+                    mxy00[i, j],
+                    mxy10[i, j],
+                    mxy01[i, j],
+                    mxy11[i, j],
+                ]
+            )
             a = numpy.dot(a_inv, x)
             coeffs.append(a)
     return numpy.array(coeffs)
 
 
-def process_3mer(frag_filename, dist_distribution, rama_distribution, dist_args, tors_args):
+def process_3mer(
+    frag_filename, dist_distribution, rama_distribution, dist_args, tors_args
+):
     frag_dicts = get_fragment_dict(filename=frag_filename, fragment_length=3)
     for frag in frag_dicts:
         ramas = {}
-        ramas[frag + 1] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=1)
+        ramas[frag + 1] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=1
+        )
         combine_rama_distributions(ramas, rama_distribution, tors_args)
 
 
-def process_5mer(frag_filename, dist_distribution, rama_distribution, dist_args, tors_args):
+def process_5mer(
+    frag_filename, dist_distribution, rama_distribution, dist_args, tors_args
+):
     frag_dicts = get_fragment_dict(filename=frag_filename, fragment_length=5)
     for frag in frag_dicts:
         dists = {}
         ramas = {}
         dists[frag] = get_distance_distribution(frag_dicts[frag], dist_args)
         combine_dist_distributions(dists, dist_distribution, dist_args)
-        ramas[frag + 1] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=1)
-        ramas[frag + 2] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=2)
-        ramas[frag + 3] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=3)
+        ramas[frag + 1] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=1
+        )
+        ramas[frag + 2] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=2
+        )
+        ramas[frag + 3] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=3
+        )
         combine_rama_distributions(ramas, rama_distribution, tors_args)
 
 
-def process_9mer(frag_filename, dist_distribution, rama_distribution, dist_args, tors_args):
+def process_9mer(
+    frag_filename, dist_distribution, rama_distribution, dist_args, tors_args
+):
     frag_dicts = get_fragment_dict(filename=frag_filename, fragment_length=9)
     for frag in frag_dicts:
         dists = {}
         ramas = {}
-        dists[frag + 0] = get_distance_distribution(frag_dicts[frag], dist_args, offset=0)
-        dists[frag + 1] = get_distance_distribution(frag_dicts[frag], dist_args, offset=1)
-        dists[frag + 2] = get_distance_distribution(frag_dicts[frag], dist_args, offset=2)
-        dists[frag + 3] = get_distance_distribution(frag_dicts[frag], dist_args, offset=3)
-        dists[frag + 4] = get_distance_distribution(frag_dicts[frag], dist_args, offset=4)
+        dists[frag + 0] = get_distance_distribution(
+            frag_dicts[frag], dist_args, offset=0
+        )
+        dists[frag + 1] = get_distance_distribution(
+            frag_dicts[frag], dist_args, offset=1
+        )
+        dists[frag + 2] = get_distance_distribution(
+            frag_dicts[frag], dist_args, offset=2
+        )
+        dists[frag + 3] = get_distance_distribution(
+            frag_dicts[frag], dist_args, offset=3
+        )
+        dists[frag + 4] = get_distance_distribution(
+            frag_dicts[frag], dist_args, offset=4
+        )
         combine_dist_distributions(dists, dist_distribution, dist_args)
-        ramas[frag + 1] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=1)
-        ramas[frag + 2] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=2)
-        ramas[frag + 3] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=3)
-        ramas[frag + 4] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=4)
-        ramas[frag + 5] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=5)
-        ramas[frag + 6] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=6)
-        ramas[frag + 7] = get_rotamer_distribution(frag_dicts[frag], tors_args, offset=7)
+        ramas[frag + 1] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=1
+        )
+        ramas[frag + 2] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=2
+        )
+        ramas[frag + 3] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=3
+        )
+        ramas[frag + 4] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=4
+        )
+        ramas[frag + 5] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=5
+        )
+        ramas[frag + 6] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=6
+        )
+        ramas[frag + 7] = get_rotamer_distribution(
+            frag_dicts[frag], tors_args, offset=7
+        )
         combine_rama_distributions(ramas, rama_distribution, tors_args)
 
 
@@ -449,11 +609,13 @@ def combine_rama_distributions(new, old, tors_args):
     return old
 
 
-FragmentResidue = namedtuple('FragmentResidue', 'phi psi omega x y z ss')
+FragmentResidue = namedtuple("FragmentResidue", "phi psi omega x y z ss")
 
 
 def get_input_string(filename=None, input_file=None, input_string=None):
-    err_message = 'Exactly one of filename, input_file, or input_string must be specified'
+    err_message = (
+        "Exactly one of filename, input_file, or input_string must be specified"
+    )
     if not filename is None:
         if (not input_file is None) or (not input_string is None):
             raise ValueError(err_message)
@@ -471,9 +633,11 @@ def get_input_string(filename=None, input_file=None, input_string=None):
     return input_string
 
 
-def get_fragment_dict(filename=None, input_file=None, input_string=None, fragment_length=None):
+def get_fragment_dict(
+    filename=None, input_file=None, input_string=None, fragment_length=None
+):
     if fragment_length is None:
-        raise ValueError('fragment_length must be specified')
+        raise ValueError("fragment_length must be specified")
 
     input_lines = get_input_string(filename, input_file, input_string).splitlines()
     frag_blocks = get_frag_blocks(input_lines)
@@ -489,7 +653,7 @@ def get_fragment_dict(filename=None, input_file=None, input_string=None, fragmen
 def find_frag_start_lines(input_lines):
     frag_start_lines = []
     for index, line in enumerate(input_lines):
-        if line.startswith('position:'):
+        if line.startswith("position:"):
             frag_start_lines.append(index)
     return frag_start_lines
 
@@ -532,7 +696,9 @@ def get_1_5_distance(fragment):
     assert len(fragment) == 5
     res1 = fragment[0]
     res5 = fragment[4]
-    r = math.sqrt((res1.x - res5.x) ** 2 + (res1.y - res5.y) ** 2 + (res1.z - res5.z) ** 2)
+    r = math.sqrt(
+        (res1.x - res5.x) ** 2 + (res1.y - res5.y) ** 2 + (res1.z - res5.z) ** 2
+    )
     return r
 
 
@@ -540,12 +706,17 @@ def get_distance_distribution(fragment, dist_args, offset=0):
     x_vals = numpy.linspace(dist_args.r_min, dist_args.r_max, dist_args.n_bins)
     y_vals = numpy.zeros_like(x_vals)
 
-    dists = [get_1_5_distance(f[offset:offset + 5]) for f in fragment]
+    dists = [get_1_5_distance(f[offset : offset + 5]) for f in fragment]
     norm = 1.0 / len(dists)
 
     for d in dists:
-        y_vals += 1.0 * norm * numpy.exp(-(1.0 / dist_args.smooth_width) ** 2 * (x_vals - d) ** 2)
+        y_vals += (
+            1.0
+            * norm
+            * numpy.exp(-(1.0 / dist_args.smooth_width) ** 2 * (x_vals - d) ** 2)
+        )
     return y_vals
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

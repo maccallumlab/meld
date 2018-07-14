@@ -1,6 +1,6 @@
-'''
+"""
 Routines to build GMMDistanceRestraints from data.
-'''
+"""
 
 import numpy as np
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
@@ -10,9 +10,15 @@ from meld.system.restraints import GMMParams
 import math
 
 
-def fit_gmm(max_components, n_distances, atoms, distances,
-            regularization_type='bic', covariance_type='diag'):
-    '''
+def fit_gmm(
+    max_components,
+    n_distances,
+    atoms,
+    distances,
+    regularization_type="bic",
+    covariance_type="diag",
+):
+    """
     Fit a GMM to a set of distances.
 
     This routine will fit a Gaussian mixture model from a set
@@ -74,7 +80,7 @@ def fit_gmm(max_components, n_distances, atoms, distances,
     of the covariance matrix. This captures correlations between
     input distances, but has far more parameters and is potentially
     prone to over fitting.
-    '''
+    """
 
     #
     # Constants
@@ -89,43 +95,41 @@ def fit_gmm(max_components, n_distances, atoms, distances,
     # Check the inputs
     #
     if distances.shape[1] != n_distances:
-        raise ValueError(
-            'distances must have shape (n_samples, n_distances)')
+        raise ValueError("distances must have shape (n_samples, n_distances)")
 
     if len(atoms) != n_distances:
         raise ValueError(
-            'atoms must be a list of (ind1, name1, ind2, name2) of '
-            'length n_components')
+            "atoms must be a list of (ind1, name1, ind2, name2) of "
+            "length n_components"
+        )
 
-    if regularization_type not in ['bic', 'dirichlet']:
-        raise ValueError(
-            'regularization_type must be one of ["bic", "dirichlet"]')
+    if regularization_type not in ["bic", "dirichlet"]:
+        raise ValueError('regularization_type must be one of ["bic", "dirichlet"]')
 
-    if covariance_type not in ['diag', 'full']:
-        raise ValueError(
-            'covariance_type must be one of ["diag", "full"]')
+    if covariance_type not in ["diag", "full"]:
+        raise ValueError('covariance_type must be one of ["diag", "full"]')
 
     if max_components < 1:
-        raise ValueError(
-            'max_components must be >= 1')
+        raise ValueError("max_components must be >= 1")
     if max_components > 32:
-        raise ValueError(
-            'MELD supports a maximum of 32 GMM components')
+        raise ValueError("MELD supports a maximum of 32 GMM components")
 
     #
     # Create and fit the model
     #
-    if regularization_type == 'bic':
+    if regularization_type == "bic":
         # BIC fit
         # Search different values of n_components to find the minimal
         # BIC.
         models = []
-        for i in range(1, max_components+1):
-            g = GaussianMixture(n_components=i,
-                                n_init=N_INIT,
-                                max_iter=MAX_ITER,
-                                covariance_type=covariance_type,
-                                reg_covar=REG_COVAR)
+        for i in range(1, max_components + 1):
+            g = GaussianMixture(
+                n_components=i,
+                n_init=N_INIT,
+                max_iter=MAX_ITER,
+                covariance_type=covariance_type,
+                reg_covar=REG_COVAR,
+            )
             g.fit(distances)
             models.append((g.bic(distances), g))
 
@@ -135,23 +139,28 @@ def fit_gmm(max_components, n_distances, atoms, distances,
         # Dirichlet process fit
         # use RandomSearchCV to optimize hyperparameters
         params = {
-            'weight_concentration_prior': LogUniformSampler(1e-6, 10),
-            'mean_precision_prior': LogUniformSampler(1, 10)
+            "weight_concentration_prior": LogUniformSampler(1e-6, 10),
+            "mean_precision_prior": LogUniformSampler(1, 10),
         }
-        model = BayesianGaussianMixture(max_components,
-                                        n_init=N_INIT,
-                                        max_iter=MAX_ITER,
-                                        covariance_type=covariance_type,
-                                        reg_covar=REG_COVAR)
-        rs = RandomizedSearchCV(model, param_distributions=params,
-                                n_iter=RANDOMSEARCH_TRIALS,
-                                cv=KFold(n_splits=KFOLD_SPLITS, shuffle=True))
+        model = BayesianGaussianMixture(
+            max_components,
+            n_init=N_INIT,
+            max_iter=MAX_ITER,
+            covariance_type=covariance_type,
+            reg_covar=REG_COVAR,
+        )
+        rs = RandomizedSearchCV(
+            model,
+            param_distributions=params,
+            n_iter=RANDOMSEARCH_TRIALS,
+            cv=KFold(n_splits=KFOLD_SPLITS, shuffle=True),
+        )
         rs.fit(distances)
         gmm = rs.best_estimator_
 
     # turn the vector representation of the diagonal into a full
     # precision matrix
-    if covariance_type == 'diag':
+    if covariance_type == "diag":
         precisions = gmm.precisions_
         assert len(precisions.shape) == 2
         new_precisions = []
@@ -168,23 +177,27 @@ def fit_gmm(max_components, n_distances, atoms, distances,
         new_atoms.append((r2, n2))
 
     # Return the parameters for a GMM
-    return GMMParams(n_components=gmm.weights_.shape[0],
-                     n_distances=n_distances,
-                     atoms=new_atoms,
-                     weights=gmm.weights_,
-                     means=gmm.means_,
-                     precisions=precisions)
+    return GMMParams(
+        n_components=gmm.weights_.shape[0],
+        n_distances=n_distances,
+        atoms=new_atoms,
+        weights=gmm.weights_,
+        means=gmm.means_,
+        precisions=precisions,
+    )
 
 
 class LogUniformSampler(object):
-    '''Sample uniformly in log space'''
+    """Sample uniformly in log space"""
+
     def __init__(self, min_, max_):
         assert min_ > 0
         assert max_ > 0
         self.log_min = math.log(min_)
         self.log_max = math.log(max_)
         self.uniform = stats.uniform(
-            loc=self.log_min, scale=self.log_max-self.log_min)
+            loc=self.log_min, scale=self.log_max - self.log_min
+        )
 
     def rvs(self, random_state):
         return math.exp(self.uniform.rvs(random_state=random_state))

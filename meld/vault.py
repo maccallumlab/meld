@@ -34,37 +34,38 @@ class DataStore(object):
     Other data (positions, velocities, etc) is stored in the results.nc file.
 
     """
+
     #
     # data paths
     #
-    data_dir = 'Data'
-    backup_dir = os.path.join(data_dir, 'Backup')
-    blocks_dir = os.path.join(data_dir, 'Blocks')
+    data_dir = "Data"
+    backup_dir = os.path.join(data_dir, "Backup")
+    blocks_dir = os.path.join(data_dir, "Blocks")
 
-    data_store_filename = 'data_store.dat'
+    data_store_filename = "data_store.dat"
     data_store_path = os.path.join(data_dir, data_store_filename)
     data_store_backup_path = os.path.join(backup_dir, data_store_filename)
 
-    communicator_filename = 'communicator.dat'
+    communicator_filename = "communicator.dat"
     communicator_path = os.path.join(data_dir, communicator_filename)
     communicator_backup_path = os.path.join(backup_dir, communicator_filename)
 
-    remd_runner_filename = 'remd_runner.dat'
+    remd_runner_filename = "remd_runner.dat"
     remd_runner_path = os.path.join(data_dir, remd_runner_filename)
     remd_runner_backup_path = os.path.join(backup_dir, remd_runner_filename)
 
-    system_filename = 'system.dat'
+    system_filename = "system.dat"
     system_path = os.path.join(data_dir, system_filename)
     system_backup_path = os.path.join(backup_dir, system_filename)
 
-    run_options_filename = 'run_options.dat'
+    run_options_filename = "run_options.dat"
     run_options_path = os.path.join(data_dir, run_options_filename)
     run_options_backup_path = os.path.join(backup_dir, run_options_filename)
 
-    net_cdf_filename_template = 'block_{:06d}.nc'
+    net_cdf_filename_template = "block_{:06d}.nc"
     net_cdf_path_template = os.path.join(blocks_dir, net_cdf_filename_template)
 
-    traj_filename = 'trajectory.pdb'
+    traj_filename = "trajectory.pdb"
     traj_path = os.path.join(data_dir, traj_filename)
     traj_backup_path = os.path.join(backup_dir, traj_filename)
 
@@ -82,9 +83,10 @@ class DataStore(object):
 
     def __getstate__(self):
         # don't save some fields to disk
-        excluded = ['_cdf_data_set']
-        return dict((k, v) for (k, v) in six.iteritems(self.__dict__)
-                    if k not in excluded)
+        excluded = ["_cdf_data_set"]
+        return dict(
+            (k, v) for (k, v) in six.iteritems(self.__dict__) if k not in excluded
+        )
 
     def __setstate__(self, state):
         # set _cdf_data_set to None
@@ -95,6 +97,7 @@ class DataStore(object):
         # close the _cdf_data_set when we go out of scope
         if self._cdf_data_set:
             self._cdf_data_set.close()
+
     #
     # properties
     #
@@ -123,27 +126,27 @@ class DataStore(object):
         - 'r' -- open the file in read-only mode
 
         """
-        if mode == 'w':
+        if mode == "w":
             if os.path.exists(self.data_dir):
-                raise RuntimeError('Data directory already exists')
+                raise RuntimeError("Data directory already exists")
             os.mkdir(self.data_dir)
             os.mkdir(self.blocks_dir)
             os.mkdir(self.backup_dir)
             self._current_block = 0
             self._current_stage = 0
             self._create_cdf_file()
-        elif mode == 'a':
+        elif mode == "a":
             block_path = self.net_cdf_path_template.format(self._current_block)
             if os.path.exists(block_path):
-                self._cdf_data_set = cdf.Dataset(block_path, 'a')
+                self._cdf_data_set = cdf.Dataset(block_path, "a")
             else:
                 self._create_cdf_file()
-        elif mode == 'r':
+        elif mode == "r":
             self._current_block = 0
             self._readonly_mode = True
             self._load_cdf_file_readonly()
         else:
-            raise RuntimeError('Unknown value for mode={}'.format(mode))
+            raise RuntimeError("Unknown value for mode={}".format(mode))
 
     def close(self):
         """Close the DataStore"""
@@ -153,21 +156,20 @@ class DataStore(object):
 
     def save_data_store(self):
         """Save this object to disk."""
-        with open(self.data_store_path, 'wb') as store_file:
+        with open(self.data_store_path, "wb") as store_file:
             pickle.dump(self, store_file)
 
     @classmethod
     def load_data_store(cls, load_backup=False):
         """Load the DataStore object from disk."""
-        path = (cls.data_store_backup_path
-                if load_backup else cls.data_store_path)
-        with open(path, 'rb') as store_file:
+        path = cls.data_store_backup_path if load_backup else cls.data_store_path
+        with open(path, "rb") as store_file:
             return pickle.load(store_file)
 
     def save_communicator(self, comm):
         """Save the communicator to disk"""
         self._can_save()
-        with open(self.communicator_path, 'wb') as comm_file:
+        with open(self.communicator_path, "wb") as comm_file:
             pickle.dump(comm, comm_file)
 
     def load_communicator(self):
@@ -176,7 +178,7 @@ class DataStore(object):
             path = self.communicator_backup_path
         else:
             path = self.communicator_path
-        with open(path, 'rb') as comm_file:
+        with open(path, "rb") as comm_file:
             return pickle.load(comm_file)
 
     def save_positions(self, positions, stage):
@@ -189,7 +191,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['positions'][..., stage] = positions
+        self._cdf_data_set.variables["positions"][..., stage] = positions
 
     def load_positions(self, stage):
         """
@@ -199,7 +201,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['positions'][..., stage]
+        return self._cdf_data_set.variables["positions"][..., stage]
 
     def load_positions_random_access(self, stage):
         """
@@ -216,13 +218,13 @@ class DataStore(object):
 
         # if it's the current block, then just return the positions
         if block == self._current_block:
-            return self._cdf_data_set.variables['positions'][..., stage]
+            return self._cdf_data_set.variables["positions"][..., stage]
 
         # otherwise open the file, grab the positions, and then close it
         else:
             path = self.net_cdf_path_template.format(block)
-            with contextlib.closing(cdf.Dataset(path, 'r')) as dataset:
-                return dataset.variables['positions'][..., stage]
+            with contextlib.closing(cdf.Dataset(path, "r")) as dataset:
+                return dataset.variables["positions"][..., stage]
 
     def load_all_positions(self):
         """
@@ -232,8 +234,12 @@ class DataStore(object):
 
         """
         return np.concatenate(
-            [np.array(self.load_positions(i))[..., np.newaxis]
-             for i in range(self.max_safe_frame)], axis=-1)
+            [
+                np.array(self.load_positions(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def iterate_positions(self, start=None, end=None):
         """
@@ -258,7 +264,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['velocities'][..., stage] = velocities
+        self._cdf_data_set.variables["velocities"][..., stage] = velocities
 
     def load_velocities(self, stage):
         """
@@ -268,7 +274,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['velocities'][..., stage]
+        return self._cdf_data_set.variables["velocities"][..., stage]
 
     def load_all_velocities(self):
         """
@@ -278,8 +284,12 @@ class DataStore(object):
 
         """
         return np.concatenate(
-            [np.array(self.load_velocities(i))[..., np.newaxis]
-             for i in range(self.max_safe_frame)], axis=-1)
+            [
+                np.array(self.load_velocities(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def save_box_vectors(self, box_vectors, stage):
         """
@@ -291,7 +301,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['box_vectors'][..., stage] = box_vectors
+        self._cdf_data_set.variables["box_vectors"][..., stage] = box_vectors
 
     def load_box_vectors(self, stage):
         """
@@ -301,7 +311,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['box_vectors'][..., stage]
+        return self._cdf_data_set.variables["box_vectors"][..., stage]
 
     def save_states(self, states, stage):
         """
@@ -342,14 +352,14 @@ class DataStore(object):
         states = []
         for i in range(self._n_replicas):
             s = state.SystemState(
-                positions[i], velocities[i], alphas[i],
-                energies[i], box_vectors[i])
+                positions[i], velocities[i], alphas[i], energies[i], box_vectors[i]
+            )
             states.append(s)
         return states
 
     def append_traj(self, state, stage):
         pdb_string = self._pdb_writer.get_pdb_string(state.positions, stage)
-        with open(self.traj_path, 'a') as traj_file:
+        with open(self.traj_path, "a") as traj_file:
             traj_file.write(pdb_string)
 
     def save_alphas(self, alphas, stage):
@@ -362,7 +372,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['alphas'][..., stage] = alphas
+        self._cdf_data_set.variables["alphas"][..., stage] = alphas
 
     def load_alphas(self, stage):
         """
@@ -373,7 +383,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['alphas'][..., stage]
+        return self._cdf_data_set.variables["alphas"][..., stage]
 
     def load_all_alphas(self):
         """
@@ -382,8 +392,13 @@ class DataStore(object):
         Warning, this could use a lot of memory.
 
         """
-        return np.concatenate([np.array(self.load_alphas(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame)], axis=-1)
+        return np.concatenate(
+            [
+                np.array(self.load_alphas(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def save_energies(self, energies, stage):
         """
@@ -395,7 +410,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['energies'][..., stage] = energies
+        self._cdf_data_set.variables["energies"][..., stage] = energies
 
     def load_energies(self, stage):
         """
@@ -406,7 +421,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['energies'][..., stage]
+        return self._cdf_data_set.variables["energies"][..., stage]
 
     def load_all_energies(self):
         """
@@ -415,23 +430,31 @@ class DataStore(object):
         Warning, this could use a lot of memory
 
         """
-        return np.concatenate([np.array(self.load_energies(i))[..., np.newaxis]
-                               for i in range(self.max_safe_frame)], axis=-1)
+        return np.concatenate(
+            [
+                np.array(self.load_energies(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def save_energy_matrix(self, energy_matrix, stage):
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['energy_matrix'][..., stage] = (
-            energy_matrix)
+        self._cdf_data_set.variables["energy_matrix"][..., stage] = energy_matrix
 
     def load_energy_matrix(self, stage):
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['energy_matrix'][..., stage]
+        return self._cdf_data_set.variables["energy_matrix"][..., stage]
 
     def load_all_energy_matrices(self):
         return np.concatenate(
-            [np.array(self.load_energy_matrix(i))[..., np.newaxis]
-             for i in range(self.max_safe_frame)], axis=-1)
+            [
+                np.array(self.load_energy_matrix(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def save_permutation_vector(self, perm_vec, stage):
         """
@@ -443,8 +466,7 @@ class DataStore(object):
         """
         self._can_save()
         self._handle_save_stage(stage)
-        self._cdf_data_set.variables['permutation_vectors'][..., stage] = (
-            perm_vec)
+        self._cdf_data_set.variables["permutation_vectors"][..., stage] = perm_vec
 
     def load_permutation_vector(self, stage):
         """
@@ -456,7 +478,7 @@ class DataStore(object):
 
         """
         self._handle_load_stage(stage)
-        return self._cdf_data_set.variables['permutation_vectors'][..., stage]
+        return self._cdf_data_set.variables["permutation_vectors"][..., stage]
 
     def load_all_permutation_vectors(self):
         """
@@ -466,8 +488,12 @@ class DataStore(object):
 
         """
         return np.concatenate(
-            [np.array(self.load_permutation_vector(i))[..., np.newaxis]
-             for i in range(self.max_safe_frame)], axis=-1)
+            [
+                np.array(self.load_permutation_vector(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def iterate_permutation_vectors(self, start=None, end=None):
         """
@@ -493,7 +519,7 @@ class DataStore(object):
         self._can_save()
         self._handle_save_stage(stage)
         ds = self._cdf_data_set
-        ds.variables['acceptance_probabilities'][..., stage] = accept_probs
+        ds.variables["acceptance_probabilities"][..., stage] = accept_probs
 
     def load_acceptance_probabilities(self, stage):
         """
@@ -505,7 +531,7 @@ class DataStore(object):
         """
         self._handle_load_stage(stage)
         ds = self._cdf_data_set
-        return ds.variables['acceptance_probabilities'][..., stage]
+        return ds.variables["acceptance_probabilities"][..., stage]
 
     def load_all_acceptance_probabilities(self):
         """
@@ -515,43 +541,52 @@ class DataStore(object):
 
         """
         return np.concatenate(
-            [np.array(self.load_acceptance_probabilities(i))[..., np.newaxis]
-             for i in range(self.max_safe_frame)], axis=-1)
+            [
+                np.array(self.load_acceptance_probabilities(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
 
     def save_remd_runner(self, runner):
         """Save replica runner to disk"""
         self._can_save()
-        with open(self.remd_runner_path, 'wb') as runner_file:
+        with open(self.remd_runner_path, "wb") as runner_file:
             pickle.dump(runner, runner_file)
 
     def load_remd_runner(self):
         """Load replica runner from disk"""
-        path = (self.remd_runner_backup_path
-                if self._readonly_mode else self.remd_runner_path)
-        with open(path, 'rb') as runner_file:
+        path = (
+            self.remd_runner_backup_path
+            if self._readonly_mode
+            else self.remd_runner_path
+        )
+        with open(path, "rb") as runner_file:
             return pickle.load(runner_file)
 
     def save_system(self, system):
         self._can_save()
-        with open(self.system_path, 'wb') as system_file:
+        with open(self.system_path, "wb") as system_file:
             pickle.dump(system, system_file)
 
     def load_system(self):
-        path = (self.system_backup_path
-                if self._readonly_mode else self.system_path)
-        with open(path, 'rb') as system_file:
+        path = self.system_backup_path if self._readonly_mode else self.system_path
+        with open(path, "rb") as system_file:
             return pickle.load(system_file)
 
     def save_run_options(self, run_options):
         self._can_save()
         run_options.sanity_check()
-        with open(self.run_options_path, 'wb') as options_file:
+        with open(self.run_options_path, "wb") as options_file:
             pickle.dump(run_options, options_file)
 
     def load_run_options(self):
-        path = (self.run_options_backup_path
-                if self._readonly_mode else self.run_options_path)
-        with open(path, 'rb') as options_file:
+        path = (
+            self.run_options_backup_path
+            if self._readonly_mode
+            else self.run_options_path
+        )
+        with open(path, "rb") as options_file:
             options = pickle.load(options_file)
         options.sanity_check()
         return options
@@ -580,46 +615,88 @@ class DataStore(object):
     def _create_cdf_file(self):
         # create the file
         path = self.net_cdf_path_template.format(self._current_block)
-        ds = cdf.Dataset(path, 'w', format='NETCDF4')
+        ds = cdf.Dataset(path, "w", format="NETCDF4")
 
         # setup dimensions
-        ds.createDimension('n_replicas', self._n_replicas)
-        ds.createDimension('n_replica_pairs', self._n_replicas - 1)
-        ds.createDimension('n_atoms', self._n_atoms)
-        ds.createDimension('cartesian', 3)
-        ds.createDimension('timesteps', None)
+        ds.createDimension("n_replicas", self._n_replicas)
+        ds.createDimension("n_replica_pairs", self._n_replicas - 1)
+        ds.createDimension("n_atoms", self._n_atoms)
+        ds.createDimension("cartesian", 3)
+        ds.createDimension("timesteps", None)
 
         # setup variables
-        ds.createVariable('positions', float,
-                          ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('velocities', float,
-                          ['n_replicas', 'n_atoms', 'cartesian', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('box_vectors', float,
-                          ['n_replicas', 'cartesian', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('alphas', float, ['n_replicas', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('energies', float, ['n_replicas', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('permutation_vectors', int,
-                          ['n_replicas', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('energy_matrix', float,
-                          ['n_replicas', 'n_replicas', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
-        ds.createVariable('acceptance_probabilities', float,
-                          ['n_replica_pairs', 'timesteps'],
-                          zlib=True, fletcher32=True, shuffle=True,
-                          complevel=9)
+        ds.createVariable(
+            "positions",
+            float,
+            ["n_replicas", "n_atoms", "cartesian", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "velocities",
+            float,
+            ["n_replicas", "n_atoms", "cartesian", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "box_vectors",
+            float,
+            ["n_replicas", "cartesian", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "alphas",
+            float,
+            ["n_replicas", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "energies",
+            float,
+            ["n_replicas", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "permutation_vectors",
+            int,
+            ["n_replicas", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "energy_matrix",
+            float,
+            ["n_replicas", "n_replicas", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "acceptance_probabilities",
+            float,
+            ["n_replica_pairs", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
 
         self._cdf_data_set = ds
 
@@ -634,11 +711,11 @@ class DataStore(object):
 
     def _can_save(self):
         if self._readonly_mode:
-            raise RuntimeError('Cannot save in safe mode.')
+            raise RuntimeError("Cannot save in safe mode.")
 
     def _handle_save_stage(self, stage):
         if stage < self._current_stage:
-            raise RuntimeError('Cannot go back in time')
+            raise RuntimeError("Cannot go back in time")
         self._current_stage = stage
         block_index = self._block_for_stage(stage)
 
@@ -652,12 +729,13 @@ class DataStore(object):
         block_index = self._block_for_stage(stage)
         if self._readonly_mode:
             if block_index > self._max_safe_block:
-                raise RuntimeError('Tried to read an unsafe block')
+                raise RuntimeError("Tried to read an unsafe block")
         else:
             if block_index < self._current_block:
                 raise RuntimeError(
-                    'Tried to load from an index before the current block,'
-                    'which is not allowed.')
+                    "Tried to load from an index before the current block,"
+                    "which is not allowed."
+                )
 
         if block_index != self._current_block:
             self.close()
@@ -669,7 +747,7 @@ class DataStore(object):
 
     def _load_cdf_file_readonly(self):
         path = self.net_cdf_path_template.format(self._current_block)
-        self._cdf_data_set = cdf.Dataset(path, 'r')
+        self._cdf_data_set = cdf.Dataset(path, "r")
 
     @property
     def max_safe_frame(self):

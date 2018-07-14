@@ -10,9 +10,9 @@ from collections import namedtuple
 
 
 class AcceptanceCounter(object):
-    '''
+    """
     Class to keep track of acceptance rates.
-    '''
+    """
 
     def __init__(self, n_replicas):
         self.n_replicas = n_replicas
@@ -50,14 +50,14 @@ class NullAdaptor(AcceptanceCounter):
 
 
 class EqualAcceptanceAdaptor(AcceptanceCounter):
-    '''
+    """
     Adaptor based on making acceptance rates uniform.
 
     :param n_replicas: number of replicas
     :param min_acc_prob: all acceptence probabilities below this value will be
                          raised to this value
 
-    '''
+    """
 
     def __init__(self, n_replicas, adaptation_policy, min_acc_prob=0.1):
         AcceptanceCounter.__init__(self, n_replicas)
@@ -69,24 +69,24 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         self.reset()
 
     def update(self, i, accepted):
-        '''
+        """
         Update adaptor with exchange.
 
         :param i: index of first replica; second replica is i+1
         :param accepted: True if the exchange was accepted
 
-        '''
+        """
         AcceptanceCounter.update(self, i, accepted)
 
     def adapt(self, previous_lambdas, step):
-        '''
+        """
         Compute new optimal values of lambda.
 
         :param previous_lambdas: a list of the previous lambda values
         :param step: the current simulation step
         :return: a list of the new, optimized lambda values
 
-        '''
+        """
         should_adapt = self.adaptation_policy.should_adapt(step)
 
         if should_adapt.adapt_now:
@@ -114,12 +114,12 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         return new_lambdas
 
     def reset(self):
-        '''
+        """
         Forget about any previous updates.
 
         Resets all internal counters and statistics to zero.
 
-        '''
+        """
         AcceptanceCounter.reset(self)
         self.accept_probs = None
         self.t_lens = None
@@ -137,8 +137,7 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
 
     def _compute_t_len(self):
         # compute the t_len between adjacent pairs
-        delta_ts = [math.sqrt(-2.0 * math.log(acc))
-                    for acc in self.accept_probs]
+        delta_ts = [math.sqrt(-2.0 * math.log(acc)) for acc in self.accept_probs]
 
         # compute a running total
         t_lens = [0.]
@@ -153,8 +152,7 @@ class FluxAdaptor(AcceptanceCounter):
     def __init__(self, n_replicas, adaptation_policy, smooth_factor=0.5):
         AcceptanceCounter.__init__(self, n_replicas)
         self.adaptation_policy = adaptation_policy
-        assert smooth_factor > 0, \
-            'A small, positive smoothing factor is required.'
+        assert smooth_factor > 0, "A small, positive smoothing factor is required."
         self.smooth_factor = smooth_factor
 
         self.up_state = None
@@ -267,7 +265,7 @@ class SwitchingCompositeAdaptor(object):
 
 
 class AdaptationPolicy(object):
-    '''
+    """
     Repeat adaptation on a regular schedule with an optional burn-in and
     increasing adaptation times.
 
@@ -276,10 +274,10 @@ class AdaptationPolicy(object):
     :param burn_in: number of steps to ignore at the beginning
     :param adapt_every: how frequently to adapt (in picoseconds)
 
-    '''
+    """
+
     # named tuple to hold the results
-    AdaptationRequired = namedtuple('AdaptationRequired',
-                                    'adapt_now reset_now')
+    AdaptationRequired = namedtuple("AdaptationRequired", "adapt_now reset_now")
 
     def __init__(self, growth_factor, burn_in, adapt_every, stop_after=None):
         self.growth_factor = growth_factor
@@ -289,14 +287,14 @@ class AdaptationPolicy(object):
         self.stop_after = stop_after
 
     def should_adapt(self, step):
-        '''
+        """
         Is adaptation required?
 
         :param step: the current simulation step
         :return: an :class:`AdaptationPolicy.AdaptationRequired` object
                  indicating if adaptation or resetting is necessary
 
-        '''
+        """
         if self.stop_after is not None:
             if step > self.stop_after:
                 return self.AdaptationRequired(False, False)

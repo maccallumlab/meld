@@ -36,5 +36,5 @@ def main():
         c.send_energies_to_master(energies)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

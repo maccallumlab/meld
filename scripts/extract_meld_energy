@@ -7,14 +7,18 @@ import progressbar
 from meld import vault
 import meld.system.openmm_runner.runner as omm_runner
 import meld.system.restraints as restraints
-from simtk.openmm.openmm import (HarmonicBondForce, HarmonicAngleForce,
-                                 PeriodicTorsionForce, NonbondedForce)
+from simtk.openmm.openmm import (
+    HarmonicBondForce,
+    HarmonicAngleForce,
+    PeriodicTorsionForce,
+    NonbondedForce,
+)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--full-energy', default=False, action='store_true')
-    parser.add_argument('--rep', type=int, default=0)
+    parser.add_argument("--full-energy", default=False, action="store_true")
+    parser.add_argument("--rep", type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -23,18 +27,25 @@ def main():
     args = parse_args()
 
     store = vault.DataStore.load_data_store()
-    store.initialize('r')
+    store.initialize("r")
     runner = get_runner(store, args.full_energy)
     max_frame = store.max_safe_frame
 
-    widgets = ['meld energy: ', progressbar.Percentage(), ' ',
-               progressbar.Bar(), ' ', progressbar.ETA()]
+    widgets = [
+        "meld energy: ",
+        progressbar.Percentage(),
+        " ",
+        progressbar.Bar(),
+        " ",
+        progressbar.ETA(),
+    ]
     bar = progressbar.ProgressBar(maxval=max_frame, widgets=widgets)
 
-    filename = ('full_energy_{:03d}.dat' if args.full_energy
-                else 'meld_energy_{:03d}.dat')
+    filename = (
+        "full_energy_{:03d}.dat" if args.full_energy else "meld_energy_{:03d}.dat"
+    )
     filename = filename.format(args.rep)
-    with open(filename, 'w') as outfile:
+    with open(filename, "w") as outfile:
         for frame in range(1, max_frame):
             bar.update(frame)
             runner.set_alpha_and_timestep(0.0, frame)
@@ -58,7 +69,7 @@ def get_runner(store, full_energy):
     if not full_energy:
         options.use_amap = False
         options.cutoff = 0.1
-        options.implicit_solvent_model = 'vacuum'
+        options.implicit_solvent_model = "vacuum"
         options.remove_com = False
 
     runner = omm_runner.OpenMMRunner(system, options)
@@ -70,17 +81,18 @@ def get_runner(store, full_energy):
             HarmonicBondForce: fix_harmonic_bond_force,
             HarmonicAngleForce: fix_harmonic_angle_force,
             PeriodicTorsionForce: fix_periodic_torsion_force,
-            NonbondedForce: fix_nonbonded_force}
+            NonbondedForce: fix_nonbonded_force,
+        }
 
         for force in forces:
             try:
                 dispatch[type(force)](force)
             except KeyError:
-                print('Leaving', type(force), 'alone.')
+                print("Leaving", type(force), "alone.")
             try:
                 force.updateParametersInContext(runner._simulation.context)
             except AttributeError:
-                print('Could not update', type(force))
+                print("Could not update", type(force))
     return runner
 
 
@@ -130,15 +142,15 @@ def fix_nonbonded_force(force):
 
 def fix_ramps(system):
     for rest in system.restraints._always_active._restraints:
-        if not hasattr(rest, 'ramp'):
+        if not hasattr(rest, "ramp"):
             rest.ramp = restraints.ConstantRamp()
 
     for coll in system.restraints._selective_collections:
         for group in coll.groups:
             for rest in group.restraints:
-                if not hasattr(rest, 'ramp'):
+                if not hasattr(rest, "ramp"):
                     rest.ramp = restraints.ConstantRamp()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

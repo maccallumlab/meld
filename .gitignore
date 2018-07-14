@@ -48,3 +48,4 @@ meld/version.py
 
 
 .idea
+.vscode/settings.json

@@ -11,128 +11,138 @@ from meld import vault
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Prepare system for restart.')
-    parser.add_argument('--dry-run', default=False, help="Just print, don't do anything",
-                        action='store_const', const=True)
-    parser.add_argument('--prepare-run', default=False, help="Do it!", action='store_const', const=True)
+    parser = argparse.ArgumentParser(description="Prepare system for restart.")
+    parser.add_argument(
+        "--dry-run",
+        default=False,
+        help="Just print, don't do anything",
+        action="store_const",
+        const=True,
+    )
+    parser.add_argument(
+        "--prepare-run", default=False, help="Do it!", action="store_const", const=True
+    )
     args = parser.parse_args()
 
     if not (args.dry_run or args.prepare_run):
-        raise RuntimeError('You must specify either --dry-run or --prepare-run.')
+        raise RuntimeError("You must specify either --dry-run or --prepare-run.")
 
     process_restart(args.prepare_run)
 
 
 def process_restart(do_it):
-    print('Processing system for restart.')
+    print("Processing system for restart.")
     if do_it:
-        print('This is not a dry run. We WILL make changes.')
+        print("This is not a dry run. We WILL make changes.")
     else:
-        print('This is a dry run. We WILL NOT make changes.')
-    print('')
+        print("This is a dry run. We WILL NOT make changes.")
+    print("")
 
-    print('Initializing data store in read-only mode.')
+    print("Initializing data store in read-only mode.")
     store = vault.DataStore.load_data_store(load_backup=True)
-    store.initialize(mode='r')
-    print('Loading backup replica runner object.')
+    store.initialize(mode="r")
+    print("Loading backup replica runner object.")
     runner = store.load_remd_runner()
-    print('')
+    print("")
 
     last_safe_frame = store.max_safe_frame
     last_safe_block = store.max_safe_block
     current_stage = runner.step
-    print('Data store says last safe frame is {}.'.format(last_safe_frame))
-    print('Data store says last safe block is {}.'.format(last_safe_block))
-    print('Replica runner says current stage is {}.'.format(current_stage))
-    assert current_stage == last_safe_frame + 1, 'current_stage != last_safe_frame + 1. I cannot handle this case.'
-    print('')
-    print('Closing datastore.')
+    print("Data store says last safe frame is {}.".format(last_safe_frame))
+    print("Data store says last safe block is {}.".format(last_safe_block))
+    print("Replica runner says current stage is {}.".format(current_stage))
+    assert (
+        current_stage == last_safe_frame + 1
+    ), "current_stage != last_safe_frame + 1. I cannot handle this case."
+    print("")
+    print("Closing datastore.")
     store.close()
     del store
     del runner
-    print('')
+    print("")
 
     copy_store(do_it)
     copy_runner(do_it)
     remove_blocks(do_it, last_safe_block)
-    print('')
+    print("")
 
-    print('Loading data store')
+    print("Loading data store")
     store = vault.DataStore.load_data_store()
-    store.initialize(mode='a')
+    store.initialize(mode="a")
 
-    print('Setting current block on datastore to {}.'.format(last_safe_block))
+    print("Setting current block on datastore to {}.".format(last_safe_block))
     if not do_it:
-        print('    Skipped.')
+        print("    Skipped.")
     else:
         store._current_block = last_safe_block
         store.save_data_store()
-        print('    Done.')
+        print("    Done.")
 
-    print('Setting current stage to {}.'.format(current_stage - 1))
+    print("Setting current stage to {}.".format(current_stage - 1))
     if not do_it:
-        print('    Skipped.')
+        print("    Skipped.")
     else:
         runner = store.load_remd_runner()
         runner._step = current_stage - 1
         store.save_remd_runner(runner)
 
-    print('Closing data store.')
+    print("Closing data store.")
     store.close()
-    print('')
+    print("")
 
 
 def copy_store(do_it):
-    print('Copying data store.')
+    print("Copying data store.")
     if not do_it:
-        print('    Skipped.')
-        print('')
+        print("    Skipped.")
+        print("")
         return
     shutil.copy(vault.DataStore.data_store_backup_path, vault.DataStore.data_store_path)
-    print('    Done.')
-    print('')
+    print("    Done.")
+    print("")
 
 
 def copy_runner(do_it):
-    print('Copying replica runner.')
+    print("Copying replica runner.")
     if not do_it:
-        print('    Skipped.')
-        print('')
+        print("    Skipped.")
+        print("")
         return
-    shutil.copy(vault.DataStore.remd_runner_backup_path, vault.DataStore.remd_runner_path)
-    print('    Done.')
-    print('')
+    shutil.copy(
+        vault.DataStore.remd_runner_backup_path, vault.DataStore.remd_runner_path
+    )
+    print("    Done.")
+    print("")
 
 
 def get_all_blocks():
-    print('Getting a list of all blocks.')
-    blocks = glob(os.path.join(vault.DataStore.blocks_dir, 'block_*.nc'))
+    print("Getting a list of all blocks.")
+    blocks = glob(os.path.join(vault.DataStore.blocks_dir, "block_*.nc"))
     blocks = [os.path.basename(block) for block in blocks]
     blocks = [int(block[6:12]) for block in blocks]
-    print('    Found {} blocks.'.format(len(blocks)))
+    print("    Found {} blocks.".format(len(blocks)))
     return blocks
 
 
 def remove_blocks(do_it, max_block):
-    print('Removing incomplete blocks.')
+    print("Removing incomplete blocks.")
     blocks = get_all_blocks()
     bad_blocks = [block for block in blocks if block > max_block]
     if bad_blocks:
-        print('    Will remove {} block(s).'.format(len(bad_blocks)))
+        print("    Will remove {} block(s).".format(len(bad_blocks)))
     else:
-        print('    No blocks to remove.')
+        print("    No blocks to remove.")
         return
 
     for block in bad_blocks:
-        print('    Removing block {}.'.format(block))
+        print("    Removing block {}.".format(block))
         if not do_it:
-            print('        Skipped.')
+            print("        Skipped.")
             continue
         else:
-            block_name = 'block_{:06d}.nc'.format(block)
+            block_name = "block_{:06d}.nc".format(block)
             os.remove(os.path.join(vault.DataStore.blocks_dir, block_name))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

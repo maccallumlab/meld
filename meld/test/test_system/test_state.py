@@ -23,26 +23,30 @@ class TestInitState(unittest.TestCase):
         "should raise RuntimeError if coords is not 2d"
         bad_pos = np.zeros((75, 83, 52))
         with self.assertRaises(RuntimeError):
-            state.SystemState(bad_pos, self.vels, self.lam,
-                              self.energy, self.box_vectors)
+            state.SystemState(
+                bad_pos, self.vels, self.lam, self.energy, self.box_vectors
+            )
 
     def test_should_raise_with_coords_second_dim_not_3(self):
         "should raise RuntimeError if coords is not (n, 3)"
         bad_pos = np.zeros((75, 4))
         with self.assertRaises(RuntimeError):
-            state.SystemState(bad_pos, self.vels, self.lam,
-                              self.energy, self.box_vectors)
+            state.SystemState(
+                bad_pos, self.vels, self.lam, self.energy, self.box_vectors
+            )
 
     def test_should_raise_if_vels_not_match_coords(self):
         "should raise runtime error if vels is not the same shape as coords"
         bad_vels = np.zeros((42, 3))
         with self.assertRaises(RuntimeError):
-            state.SystemState(self.coords, bad_vels, self.lam,
-                              self.energy, self.box_vectors)
+            state.SystemState(
+                self.coords, bad_vels, self.lam, self.energy, self.box_vectors
+            )
 
     def test_lambda_must_be_between_zero_and_one(self):
         "should raise RuntimeError if lambda is outside of [0,1]"
         bad_lam = -2
         with self.assertRaises(RuntimeError):
-            state.SystemState(self.coords, self.vels, bad_lam,
-                              self.energy, self.box_vectors)
+            state.SystemState(
+                self.coords, self.vels, bad_lam, self.energy, self.box_vectors
+            )

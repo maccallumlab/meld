@@ -45,5 +45,5 @@ def main():
         c.send_state_to_master(state)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

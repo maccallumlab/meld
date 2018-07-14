@@ -3,4 +3,4 @@
 # All rights reserved
 #
 
-__author__ = 'jlmaccal'
+__author__ = "jlmaccal"

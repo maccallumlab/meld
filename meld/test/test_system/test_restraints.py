@@ -63,7 +63,9 @@ class TestSelectivelyActiveCollection(unittest.TestCase):
 
     def test_should_wrap_bare_restraint_in_group(self):
         rest = [restraints.SelectableRestraint()]
-        with mock.patch('meld.system.restraints.RestraintGroup.__init__', spec=True) as group_init:
+        with mock.patch(
+            "meld.system.restraints.RestraintGroup.__init__", spec=True
+        ) as group_init:
             group_init.return_value = None
             restraints.SelectivelyActiveCollection(rest, 1)
             self.assertEqual(group_init.call_count, 1)
@@ -71,7 +73,9 @@ class TestSelectivelyActiveCollection(unittest.TestCase):
     def test_should_not_wrap_a_group_in_a_group(self):
         rest = [restraints.SelectableRestraint()]
         grps = [restraints.RestraintGroup(rest, 1)]
-        with mock.patch('meld.system.restraints.RestraintGroup.__init__', spec=True) as group_init:
+        with mock.patch(
+            "meld.system.restraints.RestraintGroup.__init__", spec=True
+        ) as group_init:
             restraints.SelectivelyActiveCollection(grps, 1)
             self.assertEqual(group_init.call_count, 0)
 
@@ -130,13 +134,21 @@ class TestRestraintManager(unittest.TestCase):
 
     def test_creating_bad_restraint_raises_error(self):
         with self.assertRaises(RuntimeError):
-            self.rest_manager.create_restraint('blarg', x=42, y=99, z=-403)
+            self.rest_manager.create_restraint("blarg", x=42, y=99, z=-403)
 
     def test_can_create_distance_restraint(self):
         rest = self.rest_manager.create_restraint(
-            'distance', atom_1_res_index=1, atom_1_name='CA',
-            atom_2_res_index=2, atom_2_name='CA',
-            r1=0, r2=0, r3=0.3, r4=999., k=2500)
+            "distance",
+            atom_1_res_index=1,
+            atom_1_name="CA",
+            atom_2_res_index=2,
+            atom_2_name="CA",
+            r1=0,
+            r2=0,
+            r3=0.3,
+            r4=999.,
+            k=2500,
+        )
         self.assertTrue(isinstance(rest, restraints.DistanceRestraint))
 
     def test_can_add_seletively_active_collection(self):
@@ -157,37 +169,126 @@ class TestDistanceRestraint(unittest.TestCase):
         self.ramp = restraints.ConstantRamp()
 
     def test_should_find_two_indices(self):
-        restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0, 0, 0.3, 999., 1.0)
-        calls = [
-            mock.call(1, 'CA'),
-            mock.call(2, 'CA')]
+        restraints.DistanceRestraint(
+            self.mock_system,
+            self.scaler,
+            self.ramp,
+            1,
+            "CA",
+            2,
+            "CA",
+            0,
+            0,
+            0.3,
+            999.,
+            1.0,
+        )
+        calls = [mock.call(1, "CA"), mock.call(2, "CA")]
         self.mock_system.index_of_atom.assert_has_calls(calls)
 
     def test_should_raise_on_bad_index(self):
         self.mock_system.index_of_atom.side_effect = KeyError()
 
         with self.assertRaises(KeyError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'BAD', 2, 'CA', 0, 0, 0.3, 999., 1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "BAD",
+                2,
+                "CA",
+                0,
+                0,
+                0.3,
+                999.,
+                1.0,
+            )
 
     def test_should_raise_if_r2_less_than_r1(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 0., 10., 10., 1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                10.,
+                0.,
+                10.,
+                10.,
+                1.0,
+            )
 
     def test_should_raise_if_r3_less_than_r2(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 0., 10., 1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                10.,
+                10.,
+                0.,
+                10.,
+                1.0,
+            )
 
     def test_should_raise_if_r4_less_than_r3(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 10., 0., 1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                10.,
+                10.,
+                10.,
+                0.,
+                1.0,
+            )
 
     def test_should_raise_with_negative_r(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', -1., 10., 10., 10., 1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                -1.,
+                10.,
+                10.,
+                10.,
+                1.0,
+            )
 
     def test_should_raise_with_negative_k(self):
         with self.assertRaises(RuntimeError):
-            restraints.DistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 10., 10., 10., 10., -1.0)
+            restraints.DistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                10.,
+                10.,
+                10.,
+                10.,
+                -1.0,
+            )
 
 
 class TestHyperbolicDistanceRestraint(unittest.TestCase):
@@ -197,53 +298,169 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
         self.ramp = restraints.ConstantRamp()
 
     def test_should_find_two_indices(self):
-        restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp, 1, 'CA', 2, 'CA', 0.0, 0.0, 0.6, 0.7, 1.0, 1.0)
-        calls = [
-            mock.call(1, 'CA'),
-            mock.call(2, 'CA')]
+        restraints.HyperbolicDistanceRestraint(
+            self.mock_system,
+            self.scaler,
+            self.ramp,
+            1,
+            "CA",
+            2,
+            "CA",
+            0.0,
+            0.0,
+            0.6,
+            0.7,
+            1.0,
+            1.0,
+        )
+        calls = [mock.call(1, "CA"), mock.call(2, "CA")]
         self.mock_system.index_of_atom.assert_has_calls(calls)
 
     def test_should_raise_on_bad_index(self):
         self.mock_system.index_of_atom.side_effect = KeyError()
 
         with self.assertRaises(KeyError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'BAD', 2, 'CA', 0.0, 0.1, 0.2, 0.3, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "BAD",
+                2,
+                "CA",
+                0.0,
+                0.1,
+                0.2,
+                0.3,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_with_negative_r(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', -1., 1.0, 2.0, 3.0, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                -1.,
+                1.0,
+                2.0,
+                3.0,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_if_r2_less_than_r1(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 10.0, 0.0, 1.0, 2.0, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                10.0,
+                0.0,
+                1.0,
+                2.0,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_if_r3_less_than_r2(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 0.0, 2.0, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                0.0,
+                1.0,
+                0.0,
+                2.0,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_if_r4_less_than_r3(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 2.0, 0.0, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                0.0,
+                1.0,
+                2.0,
+                0.0,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_if_r4_equals_r3(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 0.0, 1.0, 2.0, 2.0, 1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                0.0,
+                1.0,
+                2.0,
+                2.0,
+                1.0,
+                1.0,
+            )
 
     def test_should_raise_with_negative_k(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 1., 2., 3., 4., -1.0, 1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                1.,
+                2.,
+                3.,
+                4.,
+                -1.0,
+                1.0,
+            )
 
     def test_should_raise_with_negative_asymptote(self):
         with self.assertRaises(RuntimeError):
-            restraints.HyperbolicDistanceRestraint(self.mock_system, self.scaler, self.ramp,
-                                                   1, 'CA', 2, 'CA', 1., 2., 3., 4., 1.0, -1.0)
+            restraints.HyperbolicDistanceRestraint(
+                self.mock_system,
+                self.scaler,
+                self.ramp,
+                1,
+                "CA",
+                2,
+                "CA",
+                1.,
+                2.,
+                3.,
+                4.,
+                1.0,
+                -1.0,
+            )
 
 
 class TestTorsionRestraint(unittest.TestCase):
@@ -258,17 +475,25 @@ class TestTorsionRestraint(unittest.TestCase):
             self.mock_system,
             self.scaler,
             self.ramp,
-            1, 'CA',
-            2, 'CA',
-            3, 'CA',
-            4, 'CA',
-            180., 0., 1.0)
+            1,
+            "CA",
+            2,
+            "CA",
+            3,
+            "CA",
+            4,
+            "CA",
+            180.,
+            0.,
+            1.0,
+        )
 
         calls = [
-            mock.call(1, 'CA'),
-            mock.call(2, 'CA'),
-            mock.call(3, 'CA'),
-            mock.call(4, 'CA')]
+            mock.call(1, "CA"),
+            mock.call(2, "CA"),
+            mock.call(3, "CA"),
+            mock.call(4, "CA"),
+        ]
         self.mock_system.index_of_atom.assert_has_calls(calls)
 
     def test_should_raise_with_non_unique_indices(self):
@@ -278,11 +503,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                1, 'CA',
-                3, 'CA',
-                4, 'CA',
-                180., 0., 1.0)
+                1,
+                "CA",
+                1,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                180.,
+                0.,
+                1.0,
+            )
 
     def test_should_fail_with_phi_below_minus_180(self):
         with self.assertRaises(RuntimeError):
@@ -290,11 +522,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                2, 'CA',
-                3, 'CA',
-                4, 'CA',
-                -270., 0., 1.0)
+                1,
+                "CA",
+                2,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                -270.,
+                0.,
+                1.0,
+            )
 
     def test_should_fail_with_phi_above_180(self):
         with self.assertRaises(RuntimeError):
@@ -302,11 +541,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                2, 'CA',
-                3, 'CA',
-                4, 'CA',
-                270., 0., 1.0)
+                1,
+                "CA",
+                2,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                270.,
+                0.,
+                1.0,
+            )
 
     def test_should_fail_with_delta_phi_above_180(self):
         with self.assertRaises(RuntimeError):
@@ -314,11 +560,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                2, 'CA',
-                3, 'CA',
-                4, 'CA',
-                0., 200., 1.0)
+                1,
+                "CA",
+                2,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                0.,
+                200.,
+                1.0,
+            )
 
     def test_should_fail_with_delta_phi_below_0(self):
         with self.assertRaises(RuntimeError):
@@ -326,11 +579,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                2, 'CA',
-                3, 'CA',
-                4, 'CA',
-                0., -90., 1.0)
+                1,
+                "CA",
+                2,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                0.,
+                -90.,
+                1.0,
+            )
 
     def test_should_fail_with_negative_k(self):
         with self.assertRaises(RuntimeError):
@@ -338,11 +598,18 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'CA',
-                2, 'CA',
-                3, 'CA',
-                4, 'CA',
-                0., 90., -1.0)
+                1,
+                "CA",
+                2,
+                "CA",
+                3,
+                "CA",
+                4,
+                "CA",
+                0.,
+                90.,
+                -1.0,
+            )
 
 
 class TestRdcRestraint(unittest.TestCase):
@@ -357,15 +624,19 @@ class TestRdcRestraint(unittest.TestCase):
             self.mock_system,
             self.scaler,
             self.ramp,
-            1, 'N',
-            1, 'H',
-            100., 10.,
-            10., 1.0,
-            1.0, 0)
+            1,
+            "N",
+            1,
+            "H",
+            100.,
+            10.,
+            10.,
+            1.0,
+            1.0,
+            0,
+        )
 
-        calls = [
-            mock.call(1, 'N'),
-            mock.call(1, 'H')]
+        calls = [mock.call(1, "N"), mock.call(1, "H")]
         self.mock_system.index_of_atom.assert_has_calls(calls)
 
     def test_should_raise_with_non_unique_indices(self):
@@ -375,11 +646,17 @@ class TestRdcRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'N',
-                1, 'N', # repeated index
-                100., 10.,
-                10., 1.0,
-                1.0, 0)
+                1,
+                "N",
+                1,
+                "N",  # repeated index
+                100.,
+                10.,
+                10.,
+                1.0,
+                1.0,
+                0,
+            )
 
     def test_should_raise_with_negative_tolerance(self):
         with self.assertRaises(ValueError):
@@ -387,11 +664,17 @@ class TestRdcRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'N',
-                1, 'H',
-                100., 10.,
-                -10., 1.0,
-                1.0, 0)
+                1,
+                "N",
+                1,
+                "H",
+                100.,
+                10.,
+                -10.,
+                1.0,
+                1.0,
+                0,
+            )
 
     def test_should_raise_with_negative_force_const(self):
         with self.assertRaises(ValueError):
@@ -399,11 +682,17 @@ class TestRdcRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'N',
-                1, 'H',
-                100., 10.,
-                10., -1.0,
-                1.0, 0)
+                1,
+                "N",
+                1,
+                "H",
+                100.,
+                10.,
+                10.,
+                -1.0,
+                1.0,
+                0,
+            )
 
     def test_should_raise_with_negative_weight(self):
         with self.assertRaises(ValueError):
@@ -411,11 +700,17 @@ class TestRdcRestraint(unittest.TestCase):
                 self.mock_system,
                 self.scaler,
                 self.ramp,
-                1, 'N',
-                1, 'H',
-                100., 10.,
-                10., 1.0,
-                -1.0, 0)
+                1,
+                "N",
+                1,
+                "H",
+                100.,
+                10.,
+                10.,
+                1.0,
+                -1.0,
+                0,
+            )
 
 
 class TestConstantScaler(unittest.TestCase):
@@ -436,6 +731,7 @@ class TestConstantScaler(unittest.TestCase):
         scaler = restraints.ConstantScaler()
         with self.assertRaises(RuntimeError):
             scaler(2.0)
+
 
 class TestLinearScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
@@ -480,60 +776,62 @@ class TestLinearScaler(unittest.TestCase):
         scaler = restraints.LinearScaler(0.0, 1.0)
         self.assertAlmostEqual(scaler(0.3), 0.7)
 
+
 class TestPlateauLinearScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauLinearScaler(-1,0,0.5, 1)
+            restraints.PlateauLinearScaler(-1, 0, 0.5, 1)
 
     def test_should_raise_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauLinearScaler(2,0,0.5, 1)
+            restraints.PlateauLinearScaler(2, 0, 0.5, 1)
 
     def test_should_raise_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauLinearScaler(1,0,0.5, -1)
+            restraints.PlateauLinearScaler(1, 0, 0.5, -1)
 
     def test_should_raise_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauLinearScaler(1,0,0.5, 2)
+            restraints.PlateauLinearScaler(1, 0, 0.5, 2)
 
     def test_should_raise_if_alpha_max_less_than_alpha_min(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauLinearScaler(0.7,0,0.5, 0.6)
+            restraints.PlateauLinearScaler(0.7, 0, 0.5, 0.6)
 
     def test_should_raise_if_alpha_is_below_zero(self):
-        scaler = restraints.PlateauLinearScaler(0.2,0.5,0.7,0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.5, 0.7, 0.8)
         with self.assertRaises(RuntimeError):
             scaler(-1)
 
     def test_should_raise_if_alpha_is_above_one(self):
-        scaler = restraints.PlateauLinearScaler(0.2,0.6,0.7, 0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.6, 0.7, 0.8)
         with self.assertRaises(RuntimeError):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauLinearScaler(0.2,0.4,0.6, 0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauLinearScaler(0.2, 0.4,0.6,0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_correct_value_between_alpha_one_alpha_two_down(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4,0.6,1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
         self.assertAlmostEqual(scaler(0.3), 0.75)
 
     def test_should_return_correct_value_between_alpha_one_alpha_two_down2(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4,0.6,1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
         self.assertAlmostEqual(scaler(0.1), 0.25)
 
     def test_should_return_correct_value_between_alpha_two_alpha_max_up(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4,0.6,1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
         self.assertAlmostEqual(scaler(0.7), 0.75)
 
     def test_should_return_correct_value_between_alpha_two_alpha_max_up2(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4,0.6,1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
         self.assertAlmostEqual(scaler(0.9), 0.25)
+
 
 class TestNonLinearScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
@@ -582,120 +880,122 @@ class TestNonLinearScaler(unittest.TestCase):
         scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
         self.assertAlmostEqual(scaler(0.5), 0.119202922)
 
+
 class TestPlateauNonLinearScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(-1,0.5,0.6,1, 4)
+            restraints.PlateauNonLinearScaler(-1, 0.5, 0.6, 1, 4)
 
     def test_should_raise_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(2,0.5,0.6,1, 4)
+            restraints.PlateauNonLinearScaler(2, 0.5, 0.6, 1, 4)
 
     def test_should_raise_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(1,0.5,0.6,-1, 4)
+            restraints.PlateauNonLinearScaler(1, 0.5, 0.6, -1, 4)
 
     def test_should_raise_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(1,0.5,0.6,2, 4)
+            restraints.PlateauNonLinearScaler(1, 0.5, 0.6, 2, 4)
 
     def test_should_raise_if_alpha_max_less_than_alpha_min(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(0.7,0.65,0.63, 0.6, 4)
+            restraints.PlateauNonLinearScaler(0.7, 0.65, 0.63, 0.6, 4)
 
     def test_should_raise_if_factor_below_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauNonLinearScaler(0.0,0.5,0.7, 1.0, 0.2)
+            restraints.PlateauNonLinearScaler(0.0, 0.5, 0.7, 1.0, 0.2)
 
     def test_should_raise_if_alpha_is_below_zero(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4,0.6,0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
         with self.assertRaises(RuntimeError):
             scaler(-1)
 
     def test_should_raise_if_alpha_is_above_one(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2,0.4,0.6, 0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
         with self.assertRaises(RuntimeError):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2,0.4,0.6, 0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4,0.6,0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_1_between_alpha_one_alpha_two(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4,0.6,0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
         self.assertAlmostEqual(scaler(0.5), 1.0)
 
     def test_midpoint_should_return_correct_value_scaling_up(self):
-        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8,0.9,1.0, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4)
         self.assertAlmostEqual(scaler(0.95), 0.119202922)
 
     def test_midpoint_should_return_correct_value_scaling_down(self):
-        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8,0.9,1.0, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4)
         self.assertAlmostEqual(scaler(0.75), 0.88079708)
 
 
 class TestPlateauSmoothScaler(unittest.TestCase):
     def test_should_raise_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauSmoothScaler(-1,0.5,0.6, 1)
+            restraints.PlateauSmoothScaler(-1, 0.5, 0.6, 1)
 
     def test_should_raise_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauSmoothScaler(2,0.5,0.6, 1)
+            restraints.PlateauSmoothScaler(2, 0.5, 0.6, 1)
 
     def test_should_raise_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauSmoothScaler(1,0.5,0.6,-1)
+            restraints.PlateauSmoothScaler(1, 0.5, 0.6, -1)
 
     def test_should_raise_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauSmoothScaler(1,0.5,0.6, 2)
+            restraints.PlateauSmoothScaler(1, 0.5, 0.6, 2)
 
     def test_should_raise_if_alpha_max_less_than_alpha_min(self):
         with self.assertRaises(RuntimeError):
-            restraints.PlateauSmoothScaler(0.7,0.5,0.6, 0.6)
+            restraints.PlateauSmoothScaler(0.7, 0.5, 0.6, 0.6)
 
     def test_should_raise_if_alpha_is_below_zero(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.5,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
         with self.assertRaises(RuntimeError):
             scaler(-1)
 
     def test_should_raise_if_alpha_is_above_one(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.5,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
         with self.assertRaises(RuntimeError):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.5,0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.5,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_1_between_alpha_one_alpha_two(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.4,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.5), 1.0)
 
     def test_should_return_correct_value_middle_up(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.4,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.75), 0.15625)
 
     def test_should_return_correct_value_middle_up2(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.4,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.65), 0.84375)
 
     def test_should_return_correct_value_middle_down(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.4,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.35), 0.84375)
 
     def test_should_return_correct_value_middle_down2(self):
-        scaler = restraints.PlateauSmoothScaler(0.2,0.4,0.6,0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
         self.assertAlmostEqual(scaler(0.25), 0.15625)
+
 
 class TestCreateRestraintsAndScalers(unittest.TestCase):
     def setUp(self):
@@ -703,39 +1003,51 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         self.manager = restraints.RestraintManager(self.mock_system)
 
     def test_can_create_constant_scaler(self):
-        scaler = self.manager.create_scaler('constant')
+        scaler = self.manager.create_scaler("constant")
         self.assertTrue(isinstance(scaler, restraints.ConstantScaler))
 
     def test_can_create_linear_scaler(self):
-        scaler = self.manager.create_scaler('linear', alpha_min=0.2, alpha_max=0.8)
+        scaler = self.manager.create_scaler("linear", alpha_min=0.2, alpha_max=0.8)
         self.assertTrue(isinstance(scaler, restraints.LinearScaler))
 
     def test_can_create_non_linear_scaler(self):
-        scaler = self.manager.create_scaler('nonlinear', alpha_min=0.2, alpha_max=0.8, factor=4)
+        scaler = self.manager.create_scaler(
+            "nonlinear", alpha_min=0.2, alpha_max=0.8, factor=4
+        )
         self.assertTrue(isinstance(scaler, restraints.NonLinearScaler))
 
     def test_creating_restraint_without_specifying_scaler_uses_constant(self):
         self.mock_system.index_of_atom.side_effect = [0, 1]
         rest = self.manager.create_restraint(
-            'distance',
+            "distance",
             atom_1_res_index=1,
-            atom_1_name='CA',
+            atom_1_name="CA",
             atom_2_res_index=2,
-            atom_2_name='CA',
-            r1=0, r2=1, r3=3, r4=4, k=1.0)
+            atom_2_name="CA",
+            r1=0,
+            r2=1,
+            r3=3,
+            r4=4,
+            k=1.0,
+        )
         self.assertTrue(isinstance(rest.scaler, restraints.ConstantScaler))
 
     def test_creating_restraint_with_scaler_should_use_it(self):
         self.mock_system.index_of_atom.side_effect = [0, 1]
         scaler = restraints.LinearScaler(0, 1)
         rest = self.manager.create_restraint(
-            'distance',
+            "distance",
             scaler,
             atom_1_res_index=1,
-            atom_1_name='CA',
+            atom_1_name="CA",
             atom_2_res_index=2,
-            atom_2_name='CA',
-            r1=0, r2=1, r3=3, r4=4, k=1.0)
+            atom_2_name="CA",
+            r1=0,
+            r2=1,
+            r3=3,
+            r4=4,
+            k=1.0,
+        )
         self.assertTrue(isinstance(rest.scaler, restraints.LinearScaler))
 
     def test_creating_restraint_should_raise_if_scaler_is_wrong_type(self):
@@ -743,13 +1055,18 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         self.mock_system.index_of_atom.side_effect = [0, 1]
         with self.assertRaises(ValueError):
             _rest = self.manager.create_restraint(
-                'distance',
+                "distance",
                 scaler,
                 atom_1_res_index=1,
-                atom_1_name='CA',
+                atom_1_name="CA",
                 atom_2_res_index=2,
-                atom_2_name='CA',
-                r1=0., r2=1., r3=3., r4=4., k=1.0)
+                atom_2_name="CA",
+                r1=0.,
+                r2=1.,
+                r3=3.,
+                r4=4.,
+                k=1.0,
+            )
 
     def test_creating_restraint_should_raise_if_ramp_is_wrong_type(self):
         scaler = restraints.ConstantScaler()
@@ -757,27 +1074,38 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         self.mock_system.index_of_atom.side_effect = [0, 1]
         with self.assertRaises(ValueError):
             _rest = self.manager.create_restraint(
-                'distance',
+                "distance",
                 scaler,
                 ramp=ramp,
                 atom_1_res_index=1,
-                atom_1_name='CA',
+                atom_1_name="CA",
                 atom_2_res_index=2,
-                atom_2_name='CA',
-                r1=0., r2=1., r3=3., r4=4., k=1.0)
+                atom_2_name="CA",
+                r1=0.,
+                r2=1.,
+                r3=3.,
+                r4=4.,
+                k=1.0,
+            )
 
     def test_create_restraint_without_specifying_ramp_should_use_constant_ramp(self):
         scaler = restraints.ConstantScaler()
         self.mock_system.index_of_atom.side_effect = [0, 1]
         rest = self.manager.create_restraint(
-            'distance',
+            "distance",
             scaler,
             atom_1_res_index=1,
-            atom_1_name='CA',
+            atom_1_name="CA",
             atom_2_res_index=2,
-            atom_2_name='CA',
-            r1=0., r2=1., r3=3., r4=4., k=1.0)
+            atom_2_name="CA",
+            r1=0.,
+            r2=1.,
+            r3=3.,
+            r4=4.,
+            k=1.0,
+        )
         self.assertTrue(isinstance(rest.ramp, restraints.ConstantRamp))
+
 
 class TestConstantRamp(unittest.TestCase):
     def setUp(self):
@@ -851,7 +1179,9 @@ class TestTimeRampSwitcher(unittest.TestCase):
     def setUp(self):
         self.first_ramp = mock.Mock()
         self.second_ramp = mock.Mock()
-        self.ramp_switch = restraints.TimeRampSwitcher(self.first_ramp, self.second_ramp, 500)
+        self.ramp_switch = restraints.TimeRampSwitcher(
+            self.first_ramp, self.second_ramp, 500
+        )
 
     def test_should_call_first_ramp_before_switching_time(self):
         self.ramp_switch(0)
@@ -906,8 +1236,7 @@ class TestLinearPositioner(unittest.TestCase):
 
 class TestCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence(
-            'GLY GLY GLY GLY')
+        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
         self.system = b.build_system_from_molecules([p])
         self.scaler = restraints.ConstantScaler()
@@ -919,13 +1248,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
                 weights1=None,
                 weights2=None,
-                dims='a',
+                dims="a",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_repeated_dim(self):
         with self.assertRaises(ValueError):
@@ -933,13 +1263,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
                 weights1=None,
                 weights2=None,
-                dims='xx',
+                dims="xx",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_negative_k(self):
         with self.assertRaises(ValueError):
@@ -947,13 +1278,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
                 weights1=None,
                 weights2=None,
-                dims='x',
+                dims="x",
                 force_const=-1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_negative_distance(self):
         with self.assertRaises(ValueError):
@@ -961,13 +1293,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
                 weights1=None,
                 weights2=None,
-                dims='x',
+                dims="x",
                 force_const=1,
-                distance=-1)
+                distance=-1,
+            )
 
     def test_should_raise_on_group1_size_mismatch(self):
         with self.assertRaises(ValueError):
@@ -975,13 +1308,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
-                weights1=np.array([1.0, 1.0]), # wrong length
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
+                weights1=np.array([1.0, 1.0]),  # wrong length
                 weights2=None,
-                dims='x',
+                dims="x",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_group2_size_mismatch(self):
         with self.assertRaises(ValueError):
@@ -989,13 +1323,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA')],
-                group2=[(2, 'CA')],
+                group1=[(1, "CA")],
+                group2=[(2, "CA")],
                 weights1=None,
-                weights2=np.array([1.0, 1.0]), # wrong length
-                dims='x',
+                weights2=np.array([1.0, 1.0]),  # wrong length
+                dims="x",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_negative_weights1(self):
         with self.assertRaises(ValueError):
@@ -1003,13 +1338,14 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA'), (2, 'CA')],
-                group2=[(3, 'CA'), (4, 'CA')],
+                group1=[(1, "CA"), (2, "CA")],
+                group2=[(3, "CA"), (4, "CA")],
                 weights1=[1., -1.],
                 weights2=None,
-                dims='x',
+                dims="x",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
     def test_should_raise_on_negative_weights2(self):
         with self.assertRaises(ValueError):
@@ -1017,19 +1353,19 @@ class TestCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group1=[(1, 'CA'), (2, 'CA')],
-                group2=[(3, 'CA'), (4, 'CA')],
+                group1=[(1, "CA"), (2, "CA")],
+                group2=[(3, "CA"), (4, "CA")],
                 weights1=None,
                 weights2=[1., -1.],
-                dims='x',
+                dims="x",
                 force_const=1,
-                distance=1)
+                distance=1,
+            )
 
 
 class TestAbsoluteCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence(
-            'GLY GLY GLY GLY')
+        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
         self.system = b.build_system_from_molecules([p])
         self.scaler = restraints.ConstantScaler()
@@ -1041,11 +1377,12 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA')],
+                group=[(1, "CA")],
                 weights=None,
-                dims='a',  # not xyz
+                dims="a",  # not xyz
                 force_const=1,
-                position=[0., 0., 0.])
+                position=[0., 0., 0.],
+            )
 
     def test_should_raise_on_repeated_dim(self):
         with self.assertRaises(ValueError):
@@ -1053,11 +1390,12 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA')],
+                group=[(1, "CA")],
                 weights=None,
-                dims='xx',  # repeated
+                dims="xx",  # repeated
                 force_const=1,
-                position=[0., 0., 0.])
+                position=[0., 0., 0.],
+            )
 
     def test_should_raise_on_negative_k(self):
         with self.assertRaises(ValueError):
@@ -1065,11 +1403,12 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA')],
+                group=[(1, "CA")],
                 weights=None,
-                dims='xyz',
+                dims="xyz",
                 force_const=-1,  # negative force const
-                position=[0., 0., 0.])
+                position=[0., 0., 0.],
+            )
 
     def test_should_raise_on_position_wrong_shape(self):
         with self.assertRaises(ValueError):
@@ -1077,11 +1416,12 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA')],
+                group=[(1, "CA")],
                 weights=None,
-                dims='xyz',
+                dims="xyz",
                 force_const=1,
-                position=[0., 0., 0., 0.])  # too many positions
+                position=[0., 0., 0., 0.],
+            )  # too many positions
 
     def test_should_raise_on_size_mismatch(self):
         with self.assertRaises(ValueError):
@@ -1089,11 +1429,12 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA')],
+                group=[(1, "CA")],
                 weights=[1., 1.],  # too many weights
-                dims='xyz',
+                dims="xyz",
                 force_const=1,
-                position=[0., 0., 0.])
+                position=[0., 0., 0.],
+            )
 
     def test_should_raise_on_negative_weight(self):
         with self.assertRaises(ValueError):
@@ -1101,8 +1442,9 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 system=self.system,
                 scaler=self.scaler,
                 ramp=self.ramp,
-                group=[(1, 'CA'), (2, 'CA')],
+                group=[(1, "CA"), (2, "CA")],
                 weights=[1., -1.],
-                dims='xyz',
+                dims="xyz",
                 force_const=1,
-                position=[0., 0., 0.])
+                position=[0., 0., 0.],
+            )

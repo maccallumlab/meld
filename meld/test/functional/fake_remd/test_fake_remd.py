@@ -30,18 +30,19 @@ def gen_state(index):
 
 def setup_system():
     # create a store
-    writer = pdb_writer.PDBWriter(range(N_ATOMS),
-                                  ['CA'] * N_ATOMS,
-                                  [1] * N_ATOMS,
-                                  ['ALA'] * N_ATOMS)
+    writer = pdb_writer.PDBWriter(
+        range(N_ATOMS), ["CA"] * N_ATOMS, [1] * N_ATOMS, ["ALA"] * N_ATOMS
+    )
     store = vault.DataStore(N_ATOMS, N_REPLICAS, writer, block_size=BACKUP_FREQ)
-    store.initialize(mode='w')
+    store.initialize(mode="w")
 
     # create and store the remd_runner
     l = ladder.NearestNeighborLadder(n_trials=100)
     policy = adaptor.AdaptationPolicy(1.0, 50, 100)
     a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
-    remd_runner = master_runner.MasterReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+    remd_runner = master_runner.MasterReplicaExchangeRunner(
+        N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a
+    )
     store.save_remd_runner(remd_runner)
 
     # create and store the communicator
@@ -55,7 +56,7 @@ def setup_system():
 
     # create and store the options
     o = RunOptions()
-    o.runner = 'fake_runner'
+    o.runner = "fake_runner"
     store.save_run_options(o)
 
     # create and save the initial states
@@ -73,20 +74,20 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         setup_system()
 
         # now run it
-        subprocess.check_call('mpirun -np 4 launch_remd', shell=True)
+        subprocess.check_call("mpirun -np 4 launch_remd", shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
 
     def test_data_dir_should_be_present(self):
-        self.assertTrue(os.path.exists('Data'))
+        self.assertTrue(os.path.exists("Data"))
 
     def test_files_should_have_been_backed_up(self):
-        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/system.dat"))
 
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
-        s.initialize(mode='a')
+        s.initialize(mode="a")
         pos = s.load_positions(N_STEPS)
 
         self.assertEqual(pos.shape[0], N_REPLICAS)

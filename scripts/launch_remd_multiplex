@@ -3,7 +3,8 @@
 
 
 import logging
-meld_logger = logging.getLogger('meld')
+
+meld_logger = logging.getLogger("meld")
 meld_logger.setLevel(logging.DEBUG)
 console = logging.StreamHandler()
 console.setLevel(logging.DEBUG)
@@ -14,13 +15,12 @@ from meld.remd import launch
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Launch replica exchange run.')
-    parser.add_argument('--debug', default=False, action='store_true')
+    parser = argparse.ArgumentParser(description="Launch replica exchange run.")
+    parser.add_argument("--debug", default=False, action="store_true")
     args = parser.parse_args()
 
     launch.launch_multiplex(console, args.debug)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
