@@ -6,7 +6,7 @@
 from meld.system.openmm_runner import OpenMMRunner
 
 
-class ReplicaRunner(object):
+class ReplicaRunner():
     def initialize(self):
         pass
 
@@ -23,7 +23,7 @@ class ReplicaRunner(object):
         pass
 
 
-class FakeSystemRunner(object):
+class FakeSystemRunner():
     """
     Fake runner for test purposes.
     """

@@ -187,7 +187,7 @@ def fit_gmm(
     )
 
 
-class LogUniformSampler(object):
+class LogUniformSampler():
     """Sample uniformly in log space"""
 
     def __init__(self, min_, max_):

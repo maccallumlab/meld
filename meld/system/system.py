@@ -13,7 +13,7 @@ from meld.pdb_writer import PDBWriter
 from simtk.unit import atmosphere
 
 
-class ConstantTemperatureScaler(object):
+class ConstantTemperatureScaler():
     def __init__(self, temperature):
         self._temperature = temperature
 
@@ -23,7 +23,7 @@ class ConstantTemperatureScaler(object):
         return self._temperature
 
 
-class LinearTemperatureScaler(object):
+class LinearTemperatureScaler():
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -53,7 +53,7 @@ class LinearTemperatureScaler(object):
             return self._temperature_max
 
 
-class FixedTemperatureScaler(object):
+class FixedTemperatureScaler():
     def __init__(self, alpha_min, alpha_max, temperatures):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -84,7 +84,7 @@ class FixedTemperatureScaler(object):
             return self._temperatures[-1]
 
 
-class GeometricTemperatureScaler(object):
+class GeometricTemperatureScaler():
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -114,7 +114,7 @@ class GeometricTemperatureScaler(object):
             return self._temperature_max
 
 
-class REST2Scaler(object):
+class REST2Scaler():
     def __init__(self, reference_temperature, temperature_scaler):
         """
         Scaler for REST2
@@ -146,7 +146,7 @@ ExtraAngleParam = namedtuple("ExtraAngleParam", "i j k angle force_constant")
 ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity")
 
 
-class System(object):
+class System():
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
@@ -254,7 +254,7 @@ class System(object):
         self._n_atoms = self._coordinates.shape[0]
 
 
-class CrdReader(object):
+class CrdReader():
     def __init__(self, crd_string):
         self.crd_string = crd_string
         self._coords = None
@@ -297,7 +297,7 @@ class CrdReader(object):
         self._box_vectors = box_vectors
 
 
-class ParmTopReader(object):
+class ParmTopReader():
     def __init__(self, top_string):
         self._top_string = top_string
 
@@ -377,7 +377,7 @@ class ParmTopReader(object):
         }
 
 
-class RunOptions(object):
+class RunOptions():
     def __setattr__(self, name, value):
         # open we only allow setting of these attributes
         # all others will raise an error, which catches

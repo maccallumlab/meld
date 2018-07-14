@@ -1117,7 +1117,7 @@ class COMRestraint(NonSelectableRestraint):
                 raise ValueError("{} occurs more than once in dims".format(dim))
 
 
-class AlwaysActiveCollection(object):
+class AlwaysActiveCollection():
     """
     """
 
@@ -1138,7 +1138,7 @@ class AlwaysActiveCollection(object):
         self._restraints.append(restraint)
 
 
-class SelectivelyActiveCollection(object):
+class SelectivelyActiveCollection():
     """
     """
 
@@ -1179,7 +1179,7 @@ class SelectivelyActiveCollection(object):
             self._groups.append(group)
 
 
-class RestraintGroup(object):
+class RestraintGroup():
     def __init__(self, rest_list, num_active):
         self._restraints = []
         if not rest_list:
@@ -1208,7 +1208,7 @@ class RestraintGroup(object):
         self._restraints.append(rest)
 
 
-class RestraintManager(object):
+class RestraintManager():
     """
     """
 
