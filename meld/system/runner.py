@@ -24,9 +24,10 @@ class ReplicaRunner(object):
 
 
 class FakeSystemRunner(object):
-    '''
+    """
     Fake runner for test purposes.
-    '''
+    """
+
     def __init__(self, system, options, communicator=None):
         self.temperature_scaler = system.temperature_scaler
 
@@ -47,9 +48,9 @@ class FakeSystemRunner(object):
 
 
 def get_runner(system, options, comm):
-    if options.runner == 'openmm':
+    if options.runner == "openmm":
         return OpenMMRunner(system, options, comm)
-    elif options.runner == 'fake_runner':
+    elif options.runner == "fake_runner":
         return FakeSystemRunner(system, options, comm)
     else:
-        raise RuntimeError('Unknown type of runner: {}'.format(options.runner))
+        raise RuntimeError("Unknown type of runner: {}".format(options.runner))

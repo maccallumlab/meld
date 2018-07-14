@@ -11,9 +11,12 @@ from meld.remd import adaptor
 
 class TestAdaptationUsesPolicy(unittest.TestCase):
     "tests to see if adaptor delegates decisions to adapt or reset to the adapation_policy"
+
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=self.mock_adapt_policy)
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(
+            n_replicas=3, adaptation_policy=self.mock_adapt_policy
+        )
 
     def test_calls_should_adapt(self):
         "the adaptor should ask the adaptation_policy if it should adapt this step"
@@ -27,7 +30,9 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
         "if the adaptation_policy says so, we should reset"
         STEP = 10
         # False, True => No adapt, but reset
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(False, True)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            False, True
+        )
         # set one success; this should be removed by the reset
         self.adaptor.update(0, True)
 
@@ -46,7 +51,9 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
             self.adaptor.update(0, False)
             self.adaptor.update(1, True)
         # adpatation_policy says not to adapt
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(False, False)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            False, False
+        )
 
         results = self.adaptor.adapt([0.0, 0.5, 1.0], step=STEP)
 
@@ -66,7 +73,9 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
             self.adaptor.update(0, False)
             self.adaptor.update(1, True)
         # adpatation_policy says to adapt
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            True, False
+        )
 
         results = self.adaptor.adapt([0.0, 0.5, 1.0], step=STEP)
 
@@ -79,8 +88,12 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
 class TestTwoReplicas(unittest.TestCase):
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
-        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=2, adaptation_policy=self.mock_adapt_policy)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            True, False
+        )
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(
+            n_replicas=2, adaptation_policy=self.mock_adapt_policy
+        )
 
     def test_update_should_fail_with_bad_i(self):
         "update should throw an assertion error if replica index i is out of range"
@@ -109,8 +122,12 @@ class TestTwoReplicas(unittest.TestCase):
 class TestThreeReplicas(unittest.TestCase):
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
-        self.adaptor = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=self.mock_adapt_policy)
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            True, False
+        )
+        self.adaptor = adaptor.EqualAcceptanceAdaptor(
+            n_replicas=3, adaptation_policy=self.mock_adapt_policy
+        )
 
     def test_should_be_even_with_no_data(self):
         "should give even spacing by default"
@@ -164,8 +181,12 @@ class TestMinimum(unittest.TestCase):
     def test_minimum(self):
         "the minimum value should work correctly"
         mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(True, False)
-        a = adaptor.EqualAcceptanceAdaptor(n_replicas=3, adaptation_policy=mock_adapt_policy, min_acc_prob=0.5)
+        mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+            True, False
+        )
+        a = adaptor.EqualAcceptanceAdaptor(
+            n_replicas=3, adaptation_policy=mock_adapt_policy, min_acc_prob=0.5
+        )
         # acc_0_1 = 0.3
         # acc_1_2 = 0.5
         a.update(0, False)

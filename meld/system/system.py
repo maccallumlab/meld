@@ -19,20 +19,20 @@ class ConstantTemperatureScaler(object):
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError('0 <= alpha <= 1. alpha={}'.format(alpha))
+            raise RuntimeError("0 <= alpha <= 1. alpha={}".format(alpha))
         return self._temperature
 
 
 class LinearTemperatureScaler(object):
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
-            raise RuntimeError('0 <= alpha_min <=1')
+            raise RuntimeError("0 <= alpha_min <=1")
         if alpha_max < 0 or alpha_max > 1:
-            raise RuntimeError('0 <= alpha_max <=1')
+            raise RuntimeError("0 <= alpha_max <=1")
         if alpha_min >= alpha_max:
-            raise RuntimeError('alpha_min must be < alpha_max')
+            raise RuntimeError("alpha_min must be < alpha_max")
         if temperature_min <= 0 or temperature_max <= 0:
-            raise RuntimeError('temperatures must be positive')
+            raise RuntimeError("temperatures must be positive")
 
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
@@ -43,7 +43,7 @@ class LinearTemperatureScaler(object):
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError('0 <= alpha <=1 1')
+            raise RuntimeError("0 <= alpha <=1 1")
         if alpha <= self._alpha_min:
             return self._temperature_min
         elif alpha <= self._alpha_max:
@@ -56,30 +56,29 @@ class LinearTemperatureScaler(object):
 class FixedTemperatureScaler(object):
     def __init__(self, alpha_min, alpha_max, temperatures):
         if alpha_min < 0 or alpha_min > 1:
-            raise RuntimeError('0 <= alpha_min <=1')
+            raise RuntimeError("0 <= alpha_min <=1")
         if alpha_max < 0 or alpha_max > 1:
-            raise RuntimeError('0 <= alpha_max <=1')
+            raise RuntimeError("0 <= alpha_max <=1")
         if alpha_min >= alpha_max:
-            raise RuntimeError('alpha_min must be < alpha_max')
+            raise RuntimeError("alpha_min must be < alpha_max")
         if float(temperatures[0]) <= 0 or float(temperatures[-1]) <= 0:
-            raise RuntimeError('temperatures must be positive')
+            raise RuntimeError("temperatures must be positive")
 
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
         self._temperatures = [float(t) for t in temperatures]
         self._delta_alpha = self._alpha_max - self._alpha_min
-        self._diff_alpha = (self._delta_alpha /
-                            float(len(self._temperatures) - 1))
+        self._diff_alpha = self._delta_alpha / float(len(self._temperatures) - 1)
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError('0 <= alpha <=1 1')
+            raise RuntimeError("0 <= alpha <=1 1")
         if alpha <= self._alpha_min:
             return self._temperatures[0]
         elif alpha <= self._alpha_max:
             # without the round there is floating point error where
             # int(1.0) = 0
-            index = int(round((alpha-self._alpha_min) / self._diff_alpha))
+            index = int(round((alpha - self._alpha_min) / self._diff_alpha))
             return self._temperatures[index]
         else:
             return self._temperatures[-1]
@@ -88,13 +87,13 @@ class FixedTemperatureScaler(object):
 class GeometricTemperatureScaler(object):
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
-            raise RuntimeError('0 <= alpha_min <=1')
+            raise RuntimeError("0 <= alpha_min <=1")
         if alpha_max < 0 or alpha_max > 1:
-            raise RuntimeError('0 <= alpha_max <=1')
+            raise RuntimeError("0 <= alpha_max <=1")
         if alpha_min >= alpha_max:
-            raise RuntimeError('alpha_min must be < alpha_max')
+            raise RuntimeError("alpha_min must be < alpha_max")
         if temperature_min <= 0 or temperature_max <= 0:
-            raise RuntimeError('temperatures must be positive')
+            raise RuntimeError("temperatures must be positive")
 
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
@@ -104,13 +103,12 @@ class GeometricTemperatureScaler(object):
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError('0 <= alpha <=1 1')
+            raise RuntimeError("0 <= alpha <=1 1")
         if alpha <= self._alpha_min:
             return self._temperature_min
         elif alpha <= self._alpha_max:
             frac = (alpha - self._alpha_min) / self._delta_alpha
-            delta = (math.log(self._temperature_max) -
-                     math.log(self._temperature_min))
+            delta = math.log(self._temperature_max) - math.log(self._temperature_min)
             return math.exp(delta * frac + math.log(self._temperature_min))
         else:
             return self._temperature_max
@@ -118,7 +116,7 @@ class GeometricTemperatureScaler(object):
 
 class REST2Scaler(object):
     def __init__(self, reference_temperature, temperature_scaler):
-        '''
+        """
         Scaler for REST2
 
         Parameters
@@ -135,7 +133,7 @@ class REST2Scaler(object):
         according to:
             scale = reference_temperature / temperature_scaler(alpha)
 
-        '''
+        """
         self.reference_temperature = reference_temperature
         self.scaler = temperature_scaler
 
@@ -143,9 +141,9 @@ class REST2Scaler(object):
         return self.reference_temperature / self.scaler(alpha)
 
 
-ExtraBondParam = namedtuple('ExtraBondParam', 'i j length force_constant')
-ExtraAngleParam = namedtuple('ExtraAngleParam', 'i j k angle force_constant')
-ExtraTorsParam = namedtuple('ExtraTorsParam', 'i j k l phase energy multiplicity')
+ExtraBondParam = namedtuple("ExtraBondParam", "i j length force_constant")
+ExtraAngleParam = namedtuple("ExtraAngleParam", "i j k angle force_constant")
+ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity")
 
 
 class System(object):
@@ -199,29 +197,41 @@ class System(object):
             return self._atom_index[(residue_number, atom_name)]
         except KeyError:
             print(
-                'Could not find atom index for residue_number={}'
-                'and atom name={}.'.format(residue_number, atom_name))
+                "Could not find atom index for residue_number={}"
+                "and atom name={}.".format(residue_number, atom_name)
+            )
             raise
 
     def get_pdb_writer(self):
-        return PDBWriter(range(1, len(self._atom_names) + 1),
-                         self._atom_names, self._residue_numbers,
-                         self._residue_names)
+        return PDBWriter(
+            range(1, len(self._atom_names) + 1),
+            self._atom_names,
+            self._residue_numbers,
+            self._residue_names,
+        )
 
     def add_extra_bond(self, i, j, length, force_constant):
-        self.extra_bonds.append(ExtraBondParam(i=i, j=j, length=length,
-                                                force_constant=force_constant))
+        self.extra_bonds.append(
+            ExtraBondParam(i=i, j=j, length=length, force_constant=force_constant)
+        )
 
     def add_extra_angle(self, i, j, k, angle, force_constant):
-        self.extra_restricted_angles.append(ExtraAngleParam(i=i, j=j, k=k,
-                                                  angle=angle,
-                                                  force_constant=force_constant))
+        self.extra_restricted_angles.append(
+            ExtraAngleParam(i=i, j=j, k=k, angle=angle, force_constant=force_constant)
+        )
 
     def add_extra_torsion(self, i, j, k, l, phase, energy, multiplicity):
-        self.extra_torsions.append(ExtraTorsParam(i=i, j=j, k=k, l=l,
-                                                  phase=phase,
-                                                  energy=energy,
-                                                  multiplicity=multiplicity))
+        self.extra_torsions.append(
+            ExtraTorsParam(
+                i=i,
+                j=j,
+                k=k,
+                l=l,
+                phase=phase,
+                energy=energy,
+                multiplicity=multiplicity,
+            )
+        )
 
     def _setup_indexing(self):
         reader = ParmTopReader(self._top_string)
@@ -259,7 +269,7 @@ class CrdReader(object):
 
     def _read(self):
         def split_len(seq, length):
-            return [seq[i:i+length] for i in range(0, len(seq), length)]
+            return [seq[i : i + length] for i in range(0, len(seq), length)]
 
         lines = self.crd_string.splitlines()
         n_atoms = int(lines[1].split()[0])
@@ -276,10 +286,10 @@ class CrdReader(object):
             coords, box_vectors = coords[:-6], coords[-6:]
             for bv in box_vectors[-3:]:
                 if not bv == 90.0:
-                    raise RuntimeError('box angle != 90.0 degrees')
+                    raise RuntimeError("box angle != 90.0 degrees")
             box_vectors = np.array(box_vectors[:-3])
         elif not len(coords) == 3 * n_atoms:
-            raise RuntimeError('len(coords) != 3 * n_atoms')
+            raise RuntimeError("len(coords) != 3 * n_atoms")
 
         coords = np.array(coords)
         coords = coords.reshape((n_atoms, 3))
@@ -292,24 +302,22 @@ class ParmTopReader(object):
         self._top_string = top_string
 
     def get_atom_names(self):
-        return self.get_parameter_block('%FLAG ATOM_NAME', chunksize=4)
+        return self.get_parameter_block("%FLAG ATOM_NAME", chunksize=4)
 
     def get_residue_names(self):
-        res_names = self.get_parameter_block('%FLAG RESIDUE_LABEL',
-                                             chunksize=4)
+        res_names = self.get_parameter_block("%FLAG RESIDUE_LABEL", chunksize=4)
         res_numbers = self.get_residue_numbers()
         return [res_names[i - 1] for i in res_numbers]
 
     def get_residue_numbers(self):
-        n_atoms = int(self.get_parameter_block('%FLAG POINTERS',
-                                               chunksize=8)[0])
-        res_pointers = self.get_parameter_block('%FLAG RESIDUE_POINTER',
-                                                chunksize=8)
+        n_atoms = int(self.get_parameter_block("%FLAG POINTERS", chunksize=8)[0])
+        res_pointers = self.get_parameter_block("%FLAG RESIDUE_POINTER", chunksize=8)
         res_pointers = [int(p) for p in res_pointers]
         res_pointers.append(n_atoms + 1)
         residue_numbers = []
-        for res_number, (start, end) in enumerate(zip(res_pointers[:-1],
-                                                      res_pointers[1:])):
+        for res_number, (start, end) in enumerate(
+            zip(res_pointers[:-1], res_pointers[1:])
+        ):
             residue_numbers.extend([res_number + 1] * (end - start))
         return residue_numbers
 
@@ -317,18 +325,21 @@ class ParmTopReader(object):
         lines = self._top_string.splitlines()
 
         # find the line with our flag
-        index_start = [i for (i, line) in enumerate(lines) if
-                       line.startswith(flag)][0] + 2
+        index_start = [i for (i, line) in enumerate(lines) if line.startswith(flag)][
+            0
+        ] + 2
 
         # find the index of the next flag
-        index_end = [i for (i, line) in enumerate(lines[index_start:]) if
-                     line and line[0] == '%'][0] + index_start
+        index_end = [
+            i for (i, line) in enumerate(lines[index_start:]) if line and line[0] == "%"
+        ][0] + index_start
 
         # do something useful with the data
         def chunks(l, n):
             """Yield successive n-sized chunks from l."""
             for i in range(0, len(l), n):
-                yield l[i:i+n]
+                yield l[i : i + n]
+
         data = []
         for line in lines[index_start:index_end]:
             for chunk in chunks(line, chunksize):
@@ -338,18 +349,17 @@ class ParmTopReader(object):
     def get_bonds(self):
         # the amber bonds section contains a triple of integers for each bond:
         # i, j, type_index. We need i, j, but will end up ignoring type_index
-        bond_items = self.get_parameter_block('%FLAG BONDS_WITHOUT_HYDROGEN',
-                                              chunksize=8)
-        bond_items += self.get_parameter_block('%FLAG BONDS_INC_HYDROGEN',
-                                               chunksize=8)
+        bond_items = self.get_parameter_block(
+            "%FLAG BONDS_WITHOUT_HYDROGEN", chunksize=8
+        )
+        bond_items += self.get_parameter_block("%FLAG BONDS_INC_HYDROGEN", chunksize=8)
         # the bonds section of the amber file is indexed by coordinate
         # to get the atom index we divide by three and add one
         bond_items = [int(item) / 3 + 1 for item in bond_items]
 
         bonds = set()
         # take the items 3 at a time, ignoring the type_index
-        for i, j, _ in zip(bond_items[::3], bond_items[1::3],
-                           bond_items[2::3]):
+        for i, j, _ in zip(bond_items[::3], bond_items[1::3], bond_items[2::3]):
             # add both orders to make life easy for callers
             bonds.add((i, j))
             bonds.add((j, i))
@@ -359,49 +369,65 @@ class ParmTopReader(object):
         residue_numbers = self.get_residue_numbers()
         atom_names = self.get_atom_names()
         atom_numbers = range(1, len(atom_names) + 1)
-        return {(res_num, atom_name): atom_index for
-                res_num, atom_name, atom_index in
-                zip(residue_numbers, atom_names, atom_numbers)}
+        return {
+            (res_num, atom_name): atom_index
+            for res_num, atom_name, atom_index in zip(
+                residue_numbers, atom_names, atom_numbers
+            )
+        }
 
 
 class RunOptions(object):
-
     def __setattr__(self, name, value):
         # open we only allow setting of these attributes
         # all others will raise an error, which catches
         # typos
         allowed_attributes = [
-            'remove_com', 'runner', 'timesteps', 'minimize_steps',
-            'implicit_solvent_model', 'cutoff', 'use_big_timestep',
-            'use_bigger_timestep', 'use_amap', 'amap_alpha_bias',
-            'amap_beta_bias', 'min_mc', 'run_mc', 'ccap', 'ncap',
-            'solvation', 'enable_pme', 'enable_pressure_coupling',
-            'pressure', 'pressure_coupling_update_steps',
-            'pme_tolerance', 'use_rest2', 'rest2_scaler']
-        allowed_attributes += ['_{}'.format(item) for
-                               item in allowed_attributes]
+            "remove_com",
+            "runner",
+            "timesteps",
+            "minimize_steps",
+            "implicit_solvent_model",
+            "cutoff",
+            "use_big_timestep",
+            "use_bigger_timestep",
+            "use_amap",
+            "amap_alpha_bias",
+            "amap_beta_bias",
+            "min_mc",
+            "run_mc",
+            "ccap",
+            "ncap",
+            "solvation",
+            "enable_pme",
+            "enable_pressure_coupling",
+            "pressure",
+            "pressure_coupling_update_steps",
+            "pme_tolerance",
+            "use_rest2",
+            "rest2_scaler",
+        ]
+        allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
-            raise ValueError(
-                'Attempted to set unknown attribute {}'.format(name))
+            raise ValueError("Attempted to set unknown attribute {}".format(name))
         else:
             object.__setattr__(self, name, value)
 
-    def __init__(self, solvation='implicit'):
+    def __init__(self, solvation="implicit"):
         self._solvation = solvation
-        if solvation == 'implicit':
-            self.implicit_solvent_model = 'gbNeck2'
+        if solvation == "implicit":
+            self.implicit_solvent_model = "gbNeck2"
             self.cutoff = None
             self.enable_pme = False
             self.enable_pressure_coupling = False
-        elif solvation == 'explicit':
-            self.implicit_solvent_model = 'vacuum'
+        elif solvation == "explicit":
+            self.implicit_solvent_model = "vacuum"
             self.cutoff = 0.9
             self.enable_pme = True
             self.enable_pressure_coupling = True
         else:
-            raise RuntimeError(
-                'Unknown value {} for solvation'.format(solvation))
-        self._runner = 'openmm'
+            raise RuntimeError("Unknown value {} for solvation".format(solvation))
+        self._runner = "openmm"
         self._timesteps = 5000
         self._minimize_steps = 1000
         self._use_big_timestep = False
@@ -433,11 +459,10 @@ class RunOptions(object):
     @enable_pme.setter
     def enable_pme(self, new_value):
         if new_value not in [True, False]:
-            raise ValueError('enable_pme must be True or False')
+            raise ValueError("enable_pme must be True or False")
         if new_value:
-            if self._solvation == 'implicit':
-                raise ValueError(
-                    'Tried to set enable_pme=True with implicit solvation')
+            if self._solvation == "implicit":
+                raise ValueError("Tried to set enable_pme=True with implicit solvation")
         self._enable_pme = new_value
 
     @property
@@ -447,8 +472,7 @@ class RunOptions(object):
     @pme_tolerance.setter
     def pme_tolerance(self, new_value):
         if new_value <= 0:
-            raise ValueError(
-                'pme_tolerance must be > 0')
+            raise ValueError("pme_tolerance must be > 0")
         self._pme_tolerance = new_value
 
     @property
@@ -458,12 +482,13 @@ class RunOptions(object):
     @enable_pressure_coupling.setter
     def enable_pressure_coupling(self, new_value):
         if new_value not in [True, False]:
-            raise ValueError('enable_pressure_coupling must be True or False')
+            raise ValueError("enable_pressure_coupling must be True or False")
         if new_value:
-            if self._solvation == 'implicit':
+            if self._solvation == "implicit":
                 raise ValueError(
-                    'Tried to set enable_pressure_coupling=True with '
-                    'implicit solvation')
+                    "Tried to set enable_pressure_coupling=True with "
+                    "implicit solvation"
+                )
         self._enable_pressure_coupling = new_value
 
     @property
@@ -473,8 +498,7 @@ class RunOptions(object):
     @pressure.setter
     def pressure(self, new_value):
         if new_value <= 0:
-            raise ValueError(
-                'pressure must be > 0')
+            raise ValueError("pressure must be > 0")
         self._pressure = new_value
 
     @property
@@ -484,8 +508,7 @@ class RunOptions(object):
     @pressure_coupling_update_steps.setter
     def pressure_coupling_update_steps(self, new_value):
         if new_value <= 0:
-            raise ValueError(
-                'pressure_coupling_update_steps must be > 0')
+            raise ValueError("pressure_coupling_update_steps must be > 0")
         self._pressure_coupling_update_steps = new_value
 
     @property
@@ -534,8 +557,8 @@ class RunOptions(object):
 
     @runner.setter
     def runner(self, value):
-        if value not in ['openmm', 'fake_runner']:
-            raise RuntimeError('unknown value for runner {}'.format(value))
+        if value not in ["openmm", "fake_runner"]:
+            raise RuntimeError("unknown value for runner {}".format(value))
         self._runner = value
 
     @property
@@ -546,7 +569,7 @@ class RunOptions(object):
     def timesteps(self, value):
         value = int(value)
         if value <= 0:
-            raise RuntimeError('timesteps must be > 0')
+            raise RuntimeError("timesteps must be > 0")
         self._timesteps = value
 
     @property
@@ -557,7 +580,7 @@ class RunOptions(object):
     def minimize_steps(self, value):
         value = int(value)
         if value <= 0:
-            raise RuntimeError('minimize_steps must be > 0')
+            raise RuntimeError("minimize_steps must be > 0")
         self._minimize_steps = value
 
     @property
@@ -566,9 +589,10 @@ class RunOptions(object):
 
     @implicit_solvent_model.setter
     def implicit_solvent_model(self, value):
-        if value not in [None, 'obc', 'gbNeck', 'gbNeck2', 'vacuum']:
+        if value not in [None, "obc", "gbNeck", "gbNeck2", "vacuum"]:
             raise RuntimeError(
-                'unknown value for implicit solvent model {}'.format(value))
+                "unknown value for implicit solvent model {}".format(value)
+            )
         self._implicit_solvent_model = value
 
     @property
@@ -582,7 +606,7 @@ class RunOptions(object):
         else:
             value = float(value)
             if value <= 0:
-                raise RuntimeError('cutoff must be > 0')
+                raise RuntimeError("cutoff must be > 0")
             self._cutoff = value
 
     @property
@@ -632,7 +656,7 @@ class RunOptions(object):
     @amap_alpha_bias.setter
     def amap_alpha_bias(self, value):
         if value < 0:
-            raise RuntimeError('amap_alpha_bias < 0')
+            raise RuntimeError("amap_alpha_bias < 0")
         self._amap_alpha_bias = value
 
     @property
@@ -642,21 +666,22 @@ class RunOptions(object):
     @amap_beta_bias.setter
     def amap_beta_bias(self, value):
         if value < 0:
-            raise RuntimeError('amap_beta_bias < 0')
+            raise RuntimeError("amap_beta_bias < 0")
         self._amap_beta_bias = value
 
     def sanity_check(self):
-        if self._solvation == 'implicit':
+        if self._solvation == "implicit":
             if self._enable_pme:
-                raise ValueError(
-                    'enable_pme == True for implicit solvation simulation')
+                raise ValueError("enable_pme == True for implicit solvation simulation")
             if self._enable_pressure_coupling:
                 raise ValueError(
-                    'enable_pressure_coupling == True for implicit'
-                    'solvation simulation')
+                    "enable_pressure_coupling == True for implicit"
+                    "solvation simulation"
+                )
 
-        if self._solvation == 'explicit':
-            if not self._implicit_solvent_model == 'vacuum':
+        if self._solvation == "explicit":
+            if not self._implicit_solvent_model == "vacuum":
                 raise ValueError(
                     'implicit_solvent_model != "vacuum" for explicit '
-                    'solvation simulation')
+                    "solvation simulation"
+                )

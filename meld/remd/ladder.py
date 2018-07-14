@@ -69,8 +69,7 @@ class NearestNeighborLadder(object):
 
     def _do_trial(self, i, j, permutation_vector, energies, adaptor):
         """Perform a replica exchange trial"""
-        delta = (energies[i, i] - energies[j, i] +
-                 energies[j, j] - energies[i, j])
+        delta = energies[i, i] - energies[j, i] + energies[j, j] - energies[i, j]
         accepted = False
 
         if delta >= 0:
@@ -92,7 +91,9 @@ class NearestNeighborLadder(object):
     def _swap_permutation(i, j, permutation_vector):
         """Swap two elements of the permutation matrix"""
         permutation_vector[i], permutation_vector[j] = (
-            permutation_vector[j], permutation_vector[i])
+            permutation_vector[j],
+            permutation_vector[i],
+        )
 
     @staticmethod
     def _swap_energies(i, j, energies):

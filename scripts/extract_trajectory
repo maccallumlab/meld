@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 from meld import vault
+
 try:
     from itertools import izip as zip
 except ImportError:
@@ -14,72 +15,103 @@ import mdtraj
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Extract frames from a trajectory.')
-    subparsers = parser.add_subparsers(dest='command')
+    parser = argparse.ArgumentParser(description="Extract frames from a trajectory.")
+    subparsers = parser.add_subparsers(dest="command")
 
     # extract trajectory
-    extract = subparsers.add_parser('extract_traj', help='extract a trajectory for one replica')
-    extract.add_argument('output_filename', help='filename of the output pdb file')
-    extract.add_argument('--start', type=int, default=None,
-                         help='first frame to extract (default: first')
-    extract.add_argument('--end', type=int, default=None,
-                         help='last frame to extract (default: last)')
-    extract.add_argument('--replica', type=int, default=0,
-                         help='replica to extract (default: 0)')
+    extract = subparsers.add_parser(
+        "extract_traj", help="extract a trajectory for one replica"
+    )
+    extract.add_argument("output_filename", help="filename of the output pdb file")
+    extract.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    extract.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    extract.add_argument(
+        "--replica", type=int, default=0, help="replica to extract (default: 0)"
+    )
     extract.set_defaults(func=extract_traj)
 
     # extract trajectory DCD
-    extract_dcd = subparsers.add_parser('extract_traj_dcd', help='extract a trajectory for one replica')
-    extract_dcd.add_argument('output_filename', help='filename of the output pdb file')
-    extract_dcd.add_argument('--start', type=int, default=None,
-                         help='first frame to extract (default: first')
-    extract_dcd.add_argument('--end', type=int, default=None,
-                         help='last frame to extract (default: last)')
-    extract_dcd.add_argument('--replica', type=int, default=0,
-                         help='replica to extract (default: 0)')
+    extract_dcd = subparsers.add_parser(
+        "extract_traj_dcd", help="extract a trajectory for one replica"
+    )
+    extract_dcd.add_argument("output_filename", help="filename of the output pdb file")
+    extract_dcd.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    extract_dcd.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    extract_dcd.add_argument(
+        "--replica", type=int, default=0, help="replica to extract (default: 0)"
+    )
     extract_dcd.set_defaults(func=extract_traj_dcd)
 
     # extract last
-    last = subparsers.add_parser('extract_last', help='extract the last frame for each replica from a trajectory')
-    last.add_argument('name', help='template filename of the output pdb file')
-    last.add_argument('--end', type=int, default=None,
-                      help='frame to extract (default: last)')
+    last = subparsers.add_parser(
+        "extract_last", help="extract the last frame for each replica from a trajectory"
+    )
+    last.add_argument("name", help="template filename of the output pdb file")
+    last.add_argument(
+        "--end", type=int, default=None, help="frame to extract (default: last)"
+    )
     last.set_defaults(func=extract_last)
 
     # exctract random
-    random = subparsers.add_parser('extract_random', help='extract random frames from a trajectory for reseeding')
-    random.add_argument('name', help='template filename of the output pdb file')
-    random.add_argument('--start', type=int, default=None,
-                        help='first frame to extract (default: first')
-    random.add_argument('--end', type=int, default=None,
-                        help='last frame to extract (default: last)')
-    random.add_argument('--replica', type=int, default=0,
-                        help='replica to extract (default: 0)')
-    random.add_argument('--n_frames', type=int, default=None,
-                        help='number of frames to extract (default: number of replicas)')
+    random = subparsers.add_parser(
+        "extract_random", help="extract random frames from a trajectory for reseeding"
+    )
+    random.add_argument("name", help="template filename of the output pdb file")
+    random.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    random.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    random.add_argument(
+        "--replica", type=int, default=0, help="replica to extract (default: 0)"
+    )
+    random.add_argument(
+        "--n_frames",
+        type=int,
+        default=None,
+        help="number of frames to extract (default: number of replicas)",
+    )
     random.set_defaults(func=extract_random)
 
     # follow
-    follow = subparsers.add_parser('follow_structure', help='follow a structure replica through the ladder')
-    follow.add_argument('output_filename', help='filename of the output pdb file')
-    follow.add_argument('--start', type=int, default=None,
-                        help='first frame to extract (default: first')
-    follow.add_argument('--end', type=int, default=None,
-                        help='last frame to extract (default: last)')
-    follow.add_argument('--replica', type=int, default=0,
-                        help='replica to extract (default: 0)')
+    follow = subparsers.add_parser(
+        "follow_structure", help="follow a structure replica through the ladder"
+    )
+    follow.add_argument("output_filename", help="filename of the output pdb file")
+    follow.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    follow.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    follow.add_argument(
+        "--replica", type=int, default=0, help="replica to extract (default: 0)"
+    )
     follow.set_defaults(func=follow_structure)
 
     # follow_dcd
-    follow_dcd = subparsers.add_parser('follow_dcd', help='follow a structure replica through the ladder')
-    follow_dcd.add_argument('output_filename', help='filename of the output dcd file')
-    follow_dcd.add_argument('--start', type=int, default=None,
-                            help='first frame to extract (default: first')
-    follow_dcd.add_argument('--end', type=int, default=None,
-                            help='last frame to extract (default: last)')
-    follow_dcd.add_argument('--replica', type=int, default=0,
-                            help='replica to extract (default: 0)')
+    follow_dcd = subparsers.add_parser(
+        "follow_dcd", help="follow a structure replica through the ladder"
+    )
+    follow_dcd.add_argument("output_filename", help="filename of the output dcd file")
+    follow_dcd.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    follow_dcd.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    follow_dcd.add_argument(
+        "--replica", type=int, default=0, help="replica to extract (default: 0)"
+    )
     follow_dcd.set_defaults(func=follow_structure_dcd)
 
     return parser.parse_args()
@@ -89,7 +121,7 @@ def main():
     args = parse_args()
 
     store = vault.DataStore.load_data_store()
-    store.initialize(mode='r')
+    store.initialize(mode="r")
 
     args.func(store, args)
 
@@ -102,28 +134,30 @@ def extract_traj(store, args):
 
     start = args.start
     if not start is None:
-        assert start > 0, 'start must be > 0'
-        assert start < max_step, 'start must be < {}'.format(max_step)
+        assert start > 0, "start must be > 0"
+        assert start < max_step, "start must be < {}".format(max_step)
     else:
         start = 1
 
     end = args.end
     if not end is None:
-        assert end > 0, 'end must be > 0'
-        assert end < max_step, 'end must be < {}'.format(max_step)
-        assert end > start, 'end must be > start'
+        assert end > 0, "end must be > 0"
+        assert end < max_step, "end must be < {}".format(max_step)
+        assert end > start, "end must be > start"
     else:
         end = max_step - 1
 
     replica_index = args.replica
-    assert replica_index >= 0, 'replica must be >= 0'
-    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
+    assert replica_index >= 0, "replica must be >= 0"
+    assert replica_index < n_replicas, "replica must be < {}".format(n_replicas)
 
     bar = get_progress_bar(end - start).start()
-    with open(args.output_filename, 'w') as output_file:
+    with open(args.output_filename, "w") as output_file:
         for step, positions in enumerate(store.iterate_positions(start, end)):
             bar.update(step)
-            pdb_string = pdb_writer.get_pdb_string(positions[replica_index, :, :], step + start)
+            pdb_string = pdb_writer.get_pdb_string(
+                positions[replica_index, :, :], step + start
+            )
             output_file.write(pdb_string)
     bar.finish()
 
@@ -134,29 +168,30 @@ def extract_traj_dcd(store, args):
 
     start = args.start
     if not start is None:
-        assert start > 0, 'start must be > 0'
-        assert start < max_step, 'start must be < {}'.format(max_step)
+        assert start > 0, "start must be > 0"
+        assert start < max_step, "start must be < {}".format(max_step)
     else:
         start = 1
 
     end = args.end
     if not end is None:
-        assert end > 0, 'end must be > 0'
-        assert end < max_step, 'end must be < {}'.format(max_step)
-        assert end > start, 'end must be > start'
+        assert end > 0, "end must be > 0"
+        assert end < max_step, "end must be < {}".format(max_step)
+        assert end > start, "end must be > start"
     else:
         end = max_step - 1
 
     replica_index = args.replica
-    assert replica_index >= 0, 'replica must be >= 0'
-    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
+    assert replica_index >= 0, "replica must be >= 0"
+    assert replica_index < n_replicas, "replica must be < {}".format(n_replicas)
 
     bar = get_progress_bar(end - start).start()
-    with mdtraj.formats.DCDTrajectoryFile(args.output_filename, 'w') as output_file:
+    with mdtraj.formats.DCDTrajectoryFile(args.output_filename, "w") as output_file:
         for step, positions in enumerate(store.iterate_positions(start, end)):
             bar.update(step)
             output_file.write(positions[replica_index, :, :])
     bar.finish()
+
 
 def extract_last(store, args):
     pdb_writer = get_pdb_writer(store)
@@ -168,7 +203,7 @@ def extract_last(store, args):
     positions = store.load_positions(end)
 
     for rep_index in range(store.n_replicas):
-        with open('{0}_{1:03d}.pdb'.format(args.name, rep_index), 'w') as outfile:
+        with open("{0}_{1:03d}.pdb".format(args.name, rep_index), "w") as outfile:
             pdb_string = pdb_writer.get_pdb_string(positions[rep_index, :, :], end)
             outfile.write(pdb_string)
 
@@ -183,7 +218,7 @@ def extract_random(store, args):
         start = args.start
         end = args.end
     else:
-        raise ValueError('Must specify both --start and --end or neither')
+        raise ValueError("Must specify both --start and --end or neither")
 
     if args.n_frames is None:
         n_frames = store.n_replicas
@@ -193,8 +228,10 @@ def extract_random(store, args):
     random_frames = numpy.random.randint(start, end, n_frames)
 
     for index, frame in enumerate(random_frames):
-        with open('{}_{}.pdb'.format(args.name, index), 'w') as outfile:
-            pdb_string = pdb_writer.get_pdb_string(store.load_positions(frame)[0, :, :], frame)
+        with open("{}_{}.pdb".format(args.name, index), "w") as outfile:
+            pdb_string = pdb_writer.get_pdb_string(
+                store.load_positions(frame)[0, :, :], frame
+            )
             outfile.write(pdb_string)
 
 
@@ -206,32 +243,38 @@ def follow_structure(store, args):
 
     start = args.start
     if not start is None:
-        assert start > 0, 'start must be > 0'
-        assert start < max_step, 'start must be < {}'.format(max_step)
+        assert start > 0, "start must be > 0"
+        assert start < max_step, "start must be < {}".format(max_step)
     else:
         start = 1
 
     end = args.end
     if not end is None:
-        assert end > 0, 'end must be > 0'
-        assert end < max_step, 'end must be < {}'.format(max_step)
-        assert end > start, 'end must be > start'
+        assert end > 0, "end must be > 0"
+        assert end < max_step, "end must be < {}".format(max_step)
+        assert end > start, "end must be > start"
     else:
         end = max_step - 1
 
     replica_index = args.replica
-    assert replica_index >= 0, 'replica must be >= 0'
-    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
+    assert replica_index >= 0, "replica must be >= 0"
+    assert replica_index < n_replicas, "replica must be < {}".format(n_replicas)
     replica_indices = numpy.array(list(range(n_replicas)), dtype=int)
 
     bar = get_progress_bar(end - start).start()
-    with open(args.output_filename, 'w') as output_file:
-        for step, (positions, perm_vector) in enumerate(zip(store.iterate_positions(start, end),
-                                                             store.iterate_permutation_vectors(start, end))):
+    with open(args.output_filename, "w") as output_file:
+        for step, (positions, perm_vector) in enumerate(
+            zip(
+                store.iterate_positions(start, end),
+                store.iterate_permutation_vectors(start, end),
+            )
+        ):
             bar.update(step)
             replica_indices = replica_indices[perm_vector]
             structure_index = numpy.where(replica_indices == replica_index)[0][0]
-            pdb_string = pdb_writer.get_pdb_string(positions[structure_index, :, :], step + start)
+            pdb_string = pdb_writer.get_pdb_string(
+                positions[structure_index, :, :], step + start
+            )
             output_file.write(pdb_string)
     bar.finish()
 
@@ -242,28 +285,32 @@ def follow_structure_dcd(store, args):
 
     start = args.start
     if not start is None:
-        assert start > 0, 'start must be > 0'
-        assert start < max_step, 'start must be < {}'.format(max_step)
+        assert start > 0, "start must be > 0"
+        assert start < max_step, "start must be < {}".format(max_step)
     else:
         start = 1
 
     end = args.end
     if not end is None:
-        assert end > 0, 'end must be > 0'
-        assert end < max_step, 'end must be < {}'.format(max_step)
-        assert end > start, 'end must be > start'
+        assert end > 0, "end must be > 0"
+        assert end < max_step, "end must be < {}".format(max_step)
+        assert end > start, "end must be > start"
     else:
         end = max_step - 1
 
     replica_index = args.replica
-    assert replica_index >= 0, 'replica must be >= 0'
-    assert replica_index < n_replicas, 'replica must be < {}'.format(n_replicas)
+    assert replica_index >= 0, "replica must be >= 0"
+    assert replica_index < n_replicas, "replica must be < {}".format(n_replicas)
     replica_indices = numpy.array(list(range(n_replicas)), dtype=int)
 
     bar = get_progress_bar(end - start).start()
-    with mdtraj.formats.DCDTrajectoryFile(args.output_filename, 'w') as output_file:
-        for step, (positions, perm_vector) in enumerate(zip(store.iterate_positions(start, end),
-                                                             store.iterate_permutation_vectors(start, end))):
+    with mdtraj.formats.DCDTrajectoryFile(args.output_filename, "w") as output_file:
+        for step, (positions, perm_vector) in enumerate(
+            zip(
+                store.iterate_positions(start, end),
+                store.iterate_permutation_vectors(start, end),
+            )
+        ):
             bar.update(step)
             replica_indices = replica_indices[perm_vector]
             structure_index = numpy.where(replica_indices == replica_index)[0][0]
@@ -278,11 +325,17 @@ def get_pdb_writer(store):
 
 
 def get_progress_bar(n_steps):
-    widgets = ['Progress: ', progressbar.Percentage(), ' ', progressbar.Bar(),
-               ' ', progressbar.ETA()]
+    widgets = [
+        "Progress: ",
+        progressbar.Percentage(),
+        " ",
+        progressbar.Bar(),
+        " ",
+        progressbar.ETA(),
+    ]
     bar = progressbar.ProgressBar(maxval=n_steps, widgets=widgets)
     return bar
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

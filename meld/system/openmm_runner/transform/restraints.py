@@ -2,12 +2,13 @@
 # All rights reserved
 #
 
-'''
+"""
 This module implements transformers that add restraint forces
 to the openmm system before simulation
-'''
+"""
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 from simtk.openmm import CustomExternalForce
@@ -15,24 +16,31 @@ from meld.system import restraints
 from collections import OrderedDict, Callable
 from meld.system.openmm_runner.transform import TransformerBase
 from simtk import openmm as mm
+
 try:
     from meldplugin import MeldForce, RdcForce
 except ImportError:
     logger.warning(
-        'Could not import meldplugin. '
-        'Are you sure it is installed correctly?\n'
-        'Attempts to use meld restraints will fail.')
+        "Could not import meldplugin. "
+        "Are you sure it is installed correctly?\n"
+        "Attempts to use meld restraints will fail."
+    )
 
 
 class ConfinementRestraintTransformer(TransformerBase):
-    '''
+    """
     Transformer to handle confinement restraints
 
-    '''
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.ConfinementRestraint)]
+    """
+
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.ConfinementRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if self.restraints:
@@ -46,16 +54,16 @@ class ConfinementRestraintTransformer(TransformerBase):
         if self.active:
             # create the confinement force
             confinement_force = CustomExternalForce(
-                'step(r - radius) * force_const * (radius - r)^2;'
-                'r=sqrt(x*x + y*y + z*z)')
-            confinement_force.addPerParticleParameter('radius')
-            confinement_force.addPerParticleParameter('force_const')
+                "step(r - radius) * force_const * (radius - r)^2;"
+                "r=sqrt(x*x + y*y + z*z)"
+            )
+            confinement_force.addPerParticleParameter("radius")
+            confinement_force.addPerParticleParameter("force_const")
 
             # add the atoms
             for r in self.restraints:
                 weight = r.force_const
-                confinement_force.addParticle(r.atom_index - 1,
-                                              [r.radius, weight])
+                confinement_force.addParticle(r.atom_index - 1, [r.radius, weight])
             system.addForce(confinement_force)
             self.force = confinement_force
 
@@ -66,15 +74,20 @@ class ConfinementRestraintTransformer(TransformerBase):
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
                 self.force.setParticleParameters(
-                    index, r.atom_index - 1, [r.radius, weight])
+                    index, r.atom_index - 1, [r.radius, weight]
+                )
             self.force.updateParametersInContext(simulation.context)
 
 
 class RDCRestraintTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.RdcRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.RdcRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if self.restraints:
@@ -100,8 +113,12 @@ class RDCRestraintTransformer(TransformerBase):
                     r_id = rdc_force.addRdcRestraint(
                         r.atom_index_1 - 1,
                         r.atom_index_2 - 1,
-                        r.kappa, r.d_obs, r.tolerance,
-                        r.force_const, r.weight)
+                        r.kappa,
+                        r.d_obs,
+                        r.tolerance,
+                        r.force_const,
+                        r.weight,
+                    )
                     rest_ids.append(r_id)
                 rdc_force.addExperiment(rest_ids)
 
@@ -126,17 +143,25 @@ class RDCRestraintTransformer(TransformerBase):
                         index,
                         r.atom_index_1 - 1,
                         r.atom_index_2 - 1,
-                        r.kappa, r.d_obs, r.tolerance,
-                        r.force_const * scale, r.weight)
+                        r.kappa,
+                        r.d_obs,
+                        r.tolerance,
+                        r.force_const * scale,
+                        r.weight,
+                    )
                     index = index + 1
             self.force.updateParametersInContext(simulation.context)
 
 
 class CartesianRestraintTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.CartesianRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.CartesianRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if self.restraints:
@@ -150,23 +175,25 @@ class CartesianRestraintTransformer(TransformerBase):
         if self.active:
             # create the confinement force
             cartesian_force = CustomExternalForce(
-                '0.5 * cart_force_const * r_eff^2;'
-                'r_eff = max(0.0, r - cart_delta);'
-                'r = sqrt(dx*dx + dy*dy + dz*dz);'
-                'dx = x - cart_x;'
-                'dy = y - cart_y;'
-                'dz = z - cart_z;')
-            cartesian_force.addPerParticleParameter('cart_x')
-            cartesian_force.addPerParticleParameter('cart_y')
-            cartesian_force.addPerParticleParameter('cart_z')
-            cartesian_force.addPerParticleParameter('cart_delta')
-            cartesian_force.addPerParticleParameter('cart_force_const')
+                "0.5 * cart_force_const * r_eff^2;"
+                "r_eff = max(0.0, r - cart_delta);"
+                "r = sqrt(dx*dx + dy*dy + dz*dz);"
+                "dx = x - cart_x;"
+                "dy = y - cart_y;"
+                "dz = z - cart_z;"
+            )
+            cartesian_force.addPerParticleParameter("cart_x")
+            cartesian_force.addPerParticleParameter("cart_y")
+            cartesian_force.addPerParticleParameter("cart_z")
+            cartesian_force.addPerParticleParameter("cart_delta")
+            cartesian_force.addPerParticleParameter("cart_force_const")
 
             # add the atoms
             for r in self.restraints:
                 weight = r.force_const
-                cartesian_force.addParticle(r.atom_index - 1,
-                                            [r.x, r.y, r.z, r.delta, weight])
+                cartesian_force.addParticle(
+                    r.atom_index - 1, [r.x, r.y, r.z, r.delta, weight]
+                )
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system
@@ -175,16 +202,21 @@ class CartesianRestraintTransformer(TransformerBase):
         if self.active:
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
-                self.force.setParticleParameters(index, r.atom_index - 1,
-                                                 [r.x, r.y, r.z, r.delta, weight])
+                self.force.setParticleParameters(
+                    index, r.atom_index - 1, [r.x, r.y, r.z, r.delta, weight]
+                )
             self.force.updateParametersInContext(simulation.context)
 
 
 class YZCartesianTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.YZCartesianRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.YZCartesianRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if self.restraints:
@@ -198,21 +230,23 @@ class YZCartesianTransformer(TransformerBase):
         if self.active:
             # create the confinement force
             cartesian_force = CustomExternalForce(
-                '0.5 * cart_force_const * r_eff2;'
-                'r_eff2 = max(0.0, r2 - cart_delta^2);'
-                'r2 = dy*dy + dz*dz;'
-                'dy = y - cart_y;'
-                'dz = z - cart_z;')
-            cartesian_force.addPerParticleParameter('cart_y')
-            cartesian_force.addPerParticleParameter('cart_z')
-            cartesian_force.addPerParticleParameter('cart_delta')
-            cartesian_force.addPerParticleParameter('cart_force_const')
+                "0.5 * cart_force_const * r_eff2;"
+                "r_eff2 = max(0.0, r2 - cart_delta^2);"
+                "r2 = dy*dy + dz*dz;"
+                "dy = y - cart_y;"
+                "dz = z - cart_z;"
+            )
+            cartesian_force.addPerParticleParameter("cart_y")
+            cartesian_force.addPerParticleParameter("cart_z")
+            cartesian_force.addPerParticleParameter("cart_delta")
+            cartesian_force.addPerParticleParameter("cart_force_const")
 
             # add the atoms
             for r in self.restraints:
                 weight = r.force_const
-                cartesian_force.addParticle(r.atom_index - 1,
-                                            [r.y, r.z, r.delta, weight])
+                cartesian_force.addParticle(
+                    r.atom_index - 1, [r.y, r.z, r.delta, weight]
+                )
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system
@@ -221,20 +255,25 @@ class YZCartesianTransformer(TransformerBase):
         if self.active:
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
-                self.force.setParticleParameters(index, r.atom_index - 1,
-                                                 [r.y, r.z, r.delta, weight])
+                self.force.setParticleParameters(
+                    index, r.atom_index - 1, [r.y, r.z, r.delta, weight]
+                )
             self.force.updateParametersInContext(simulation.context)
 
 
 class COMRestraintTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.COMRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.COMRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if len(self.restraints) > 1:
-            raise RuntimeError('Cannot have more than one COMRestraint')
+            raise RuntimeError("Cannot have more than one COMRestraint")
 
         if self.restraints:
             self.active = True
@@ -252,20 +291,20 @@ class COMRestraintTransformer(TransformerBase):
 
             # create the expression for the energy
             components = []
-            if 'x' in rest.dims:
-                components.append('(x1-x2)*(x1-x2)')
-            if 'y' in rest.dims:
-                components.append('(y1-y2)*(y1-y2)')
-            if 'z' in rest.dims:
-                components.append('(z1-z2)*(z1-z2)')
-            dist_expr = 'dist = sqrt({});'.format(' + '.join(components))
-            energy_expr = '0.5 * com_k * (dist - com_ref_dist)*(dist-com_ref_dist);'
-            expr = '\n'.join([energy_expr, dist_expr])
+            if "x" in rest.dims:
+                components.append("(x1-x2)*(x1-x2)")
+            if "y" in rest.dims:
+                components.append("(y1-y2)*(y1-y2)")
+            if "z" in rest.dims:
+                components.append("(z1-z2)*(z1-z2)")
+            dist_expr = "dist = sqrt({});".format(" + ".join(components))
+            energy_expr = "0.5 * com_k * (dist - com_ref_dist)*(dist-com_ref_dist);"
+            expr = "\n".join([energy_expr, dist_expr])
 
             # create the force
             force = mm.CustomCentroidBondForce(2, expr)
-            force.addPerBondParameter('com_k')
-            force.addPerBondParameter('com_ref_dist')
+            force.addPerBondParameter("com_k")
+            force.addPerBondParameter("com_ref_dist")
 
             # create the restraint with parameters
             if rest.weights1:
@@ -295,14 +334,18 @@ class COMRestraintTransformer(TransformerBase):
 
 
 class AbsoluteCOMRestraintTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.restraints = [r for r in always_active_restraints
-                           if isinstance(r, restraints.AbsoluteCOMRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.AbsoluteCOMRestraint)
+        ]
         _delete_from_always_active(self.restraints, always_active_restraints)
 
         if len(self.restraints) > 1:
-            raise RuntimeError('Cannot have more than one AbsoluteCOMRestraint')
+            raise RuntimeError("Cannot have more than one AbsoluteCOMRestraint")
 
         if self.restraints:
             self.active = True
@@ -319,22 +362,22 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
 
             # create the expression for the energy
             components = []
-            if 'x' in rest.dims:
-                components.append('(x1-abscom_x)*(x1-abscom_x)')
-            if 'y' in rest.dims:
-                components.append('(y1-abscom_y)*(y1-abscom_y)')
-            if 'z' in rest.dims:
-                components.append('(z1-abscom_z)*(z1-abscom_z)')
-            dist_expr = 'dist2={};'.format(' + '.join(components))
-            energy_expr = '0.5 * com_k * dist2;'
-            expr = '\n'.join([energy_expr, dist_expr])
+            if "x" in rest.dims:
+                components.append("(x1-abscom_x)*(x1-abscom_x)")
+            if "y" in rest.dims:
+                components.append("(y1-abscom_y)*(y1-abscom_y)")
+            if "z" in rest.dims:
+                components.append("(z1-abscom_z)*(z1-abscom_z)")
+            dist_expr = "dist2={};".format(" + ".join(components))
+            energy_expr = "0.5 * com_k * dist2;"
+            expr = "\n".join([energy_expr, dist_expr])
 
             # create the force
             force = mm.CustomCentroidBondForce(1, expr)
-            force.addPerBondParameter('com_k')
-            force.addPerBondParameter('abscom_x')
-            force.addPerBondParameter('abscom_y')
-            force.addPerBondParameter('abscom_z')
+            force.addPerBondParameter("com_k")
+            force.addPerBondParameter("abscom_x")
+            force.addPerBondParameter("abscom_y")
+            force.addPerBondParameter("abscom_z")
 
             # create the restraint with parameters
             if rest.weights:
@@ -364,10 +407,14 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
 
 
 class MeldRestraintTransformer(TransformerBase):
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        self.always_on = [r for r in always_active_restraints
-                          if isinstance(r, restraints.SelectableRestraint)]
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.always_on = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.SelectableRestraint)
+        ]
         _delete_from_always_active(self.always_on, always_active_restraints)
 
         self.selective_on = [r for r in selectively_active_restraints]
@@ -398,7 +445,9 @@ class MeldRestraintTransformer(TransformerBase):
                     for rest in group.restraints:
                         rest_index = _add_meld_restraint(rest, meld_force, 0, 0)
                         restraint_indices.append(rest_index)
-                    group_index = meld_force.addGroup(restraint_indices, group.num_active)
+                    group_index = meld_force.addGroup(
+                        restraint_indices, group.num_active
+                    )
                     group_indices.append(group_index)
                 meld_force.addCollection(group_indices, coll.num_active)
             system.addForce(meld_force)
@@ -415,20 +464,47 @@ class MeldRestraintTransformer(TransformerBase):
             gmm_index = 0
             if self.always_on:
                 for rest in self.always_on:
-                    (dist_index, hyper_index, tors_index,
-                     dist_prof_index, tors_prof_index, gmm_index) = (
-                        _update_meld_restraint(rest, self.force, alpha, timestep,
-                                                dist_index, hyper_index, tors_index,
-                                                dist_prof_index, tors_prof_index, gmm_index))
+                    (
+                        dist_index,
+                        hyper_index,
+                        tors_index,
+                        dist_prof_index,
+                        tors_prof_index,
+                        gmm_index,
+                    ) = _update_meld_restraint(
+                        rest,
+                        self.force,
+                        alpha,
+                        timestep,
+                        dist_index,
+                        hyper_index,
+                        tors_index,
+                        dist_prof_index,
+                        tors_prof_index,
+                        gmm_index,
+                    )
             for coll in self.selective_on:
                 for group in coll.groups:
                     for rest in group.restraints:
-                        (dist_index, hyper_index, tors_index,
-                         dist_prof_index, tors_prof_index, gmm_index) = (
-                            _update_meld_restraint(rest, self.force, alpha, timestep,
-                                                    dist_index, hyper_index,
-                                                    tors_index, dist_prof_index,
-                                                    tors_prof_index, gmm_index))
+                        (
+                            dist_index,
+                            hyper_index,
+                            tors_index,
+                            dist_prof_index,
+                            tors_prof_index,
+                            gmm_index,
+                        ) = _update_meld_restraint(
+                            rest,
+                            self.force,
+                            alpha,
+                            timestep,
+                            dist_index,
+                            hyper_index,
+                            tors_index,
+                            dist_prof_index,
+                            tors_prof_index,
+                            gmm_index,
+                        )
             self.force.updateParametersInContext(simulation.context)
 
 
@@ -437,47 +513,81 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
 
     if isinstance(rest, restraints.DistanceRestraint):
         rest_index = meld_force.addDistanceRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
             rest.r1(alpha),
             rest.r2(alpha),
             rest.r3(alpha),
             rest.r4(alpha),
-            rest.k * scale)
+            rest.k * scale,
+        )
 
     elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
         rest_index = meld_force.addHyperbolicDistanceRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1, rest.r2,
-            rest.r3, rest.r4, rest.k * scale, rest.asymptote * scale)
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.r1,
+            rest.r2,
+            rest.r3,
+            rest.r4,
+            rest.k * scale,
+            rest.asymptote * scale,
+        )
 
     elif isinstance(rest, restraints.TorsionRestraint):
         rest_index = meld_force.addTorsionRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1,
-            rest.atom_index_3 - 1, rest.atom_index_4 - 1,
-            rest.phi, rest.delta_phi, rest.k * scale)
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.atom_index_3 - 1,
+            rest.atom_index_4 - 1,
+            rest.phi,
+            rest.delta_phi,
+            rest.k * scale,
+        )
 
     elif isinstance(rest, restraints.DistProfileRestraint):
         rest_index = meld_force.addDistProfileRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r_min,
-            rest.r_max, rest.n_bins, rest.spline_params[:, 0],
-            rest.spline_params[:, 1], rest.spline_params[:, 2],
-            rest.spline_params[:, 3], rest.scale_factor * scale)
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.r_min,
+            rest.r_max,
+            rest.n_bins,
+            rest.spline_params[:, 0],
+            rest.spline_params[:, 1],
+            rest.spline_params[:, 2],
+            rest.spline_params[:, 3],
+            rest.scale_factor * scale,
+        )
 
     elif isinstance(rest, restraints.TorsProfileRestraint):
         rest_index = meld_force.addTorsProfileRestraint(
-            rest.atom_index_1 - 1, rest.atom_index_2 - 1,
-            rest.atom_index_3 - 1, rest.atom_index_4 - 1,
-            rest.atom_index_5 - 1, rest.atom_index_6 - 1,
-            rest.atom_index_7 - 1, rest.atom_index_8 - 1,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.atom_index_3 - 1,
+            rest.atom_index_4 - 1,
+            rest.atom_index_5 - 1,
+            rest.atom_index_6 - 1,
+            rest.atom_index_7 - 1,
+            rest.atom_index_8 - 1,
             rest.n_bins,
-            rest.spline_params[:, 0], rest.spline_params[:, 1],
-            rest.spline_params[:, 2], rest.spline_params[:, 3],
-            rest.spline_params[:, 4], rest.spline_params[:, 5],
-            rest.spline_params[:, 6], rest.spline_params[:, 7],
-            rest.spline_params[:, 8], rest.spline_params[:, 9],
-            rest.spline_params[:, 10], rest.spline_params[:, 11],
-            rest.spline_params[:, 12], rest.spline_params[:, 13],
-            rest.spline_params[:, 14], rest.spline_params[:, 15],
-            rest.scale_factor * scale)
+            rest.spline_params[:, 0],
+            rest.spline_params[:, 1],
+            rest.spline_params[:, 2],
+            rest.spline_params[:, 3],
+            rest.spline_params[:, 4],
+            rest.spline_params[:, 5],
+            rest.spline_params[:, 6],
+            rest.spline_params[:, 7],
+            rest.spline_params[:, 8],
+            rest.spline_params[:, 9],
+            rest.spline_params[:, 10],
+            rest.spline_params[:, 11],
+            rest.spline_params[:, 12],
+            rest.spline_params[:, 13],
+            rest.spline_params[:, 14],
+            rest.spline_params[:, 15],
+            rest.scale_factor * scale,
+        )
 
     elif isinstance(rest, restraints.GMMDistanceRestraint):
         nd = rest.n_distances
@@ -486,69 +596,115 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
         w = rest.weights
         m = list(rest.means.flatten())
 
-        d, o = _setup_precisions(rest.precisions, nd, nc,)
+        d, o = _setup_precisions(rest.precisions, nd, nc)
         rest_index = meld_force.addGMMRestraint(nd, nc, scale, a, w, m, d, o)
 
     else:
-        raise RuntimeError(
-            'Do not know how to handle restraint {}'.format(rest))
+        raise RuntimeError("Do not know how to handle restraint {}".format(rest))
 
     return rest_index
 
 
-def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
-                           hyper_index, tors_index, dist_prof_index,
-                           tors_prof_index, gmm_index):
+def _update_meld_restraint(
+    rest,
+    meld_force,
+    alpha,
+    timestep,
+    dist_index,
+    hyper_index,
+    tors_index,
+    dist_prof_index,
+    tors_prof_index,
+    gmm_index,
+):
     scale = rest.scaler(alpha) * rest.ramp(timestep)
 
     if isinstance(rest, restraints.DistanceRestraint):
         meld_force.modifyDistanceRestraint(
-            dist_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
+            dist_index,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
             rest.r1(alpha),
             rest.r2(alpha),
             rest.r3(alpha),
             rest.r4(alpha),
-            rest.k * scale)
+            rest.k * scale,
+        )
         dist_index += 1
 
     elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
         meld_force.modifyHyperbolicDistanceRestraint(
-            hyper_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1, rest.r1,
-            rest.r2, rest.r3, rest.r4, rest.k * scale, rest.asymptote * scale)
+            hyper_index,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.r1,
+            rest.r2,
+            rest.r3,
+            rest.r4,
+            rest.k * scale,
+            rest.asymptote * scale,
+        )
         hyper_index += 1
 
     elif isinstance(rest, restraints.TorsionRestraint):
         meld_force.modifyTorsionRestraint(
-            tors_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
-            rest.atom_index_3 - 1, rest.atom_index_4 - 1, rest.phi,
-            rest.delta_phi, rest.k * scale)
+            tors_index,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.atom_index_3 - 1,
+            rest.atom_index_4 - 1,
+            rest.phi,
+            rest.delta_phi,
+            rest.k * scale,
+        )
         tors_index += 1
 
     elif isinstance(rest, restraints.DistProfileRestraint):
         meld_force.modifyDistProfileRestraint(
-            dist_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
-            rest.r_min, rest.r_max, rest.n_bins,
-            rest.spline_params[:, 0], rest.spline_params[:, 1],
-            rest.spline_params[:, 2], rest.spline_params[:, 3],
-            rest.scale_factor * scale)
+            dist_prof_index,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.r_min,
+            rest.r_max,
+            rest.n_bins,
+            rest.spline_params[:, 0],
+            rest.spline_params[:, 1],
+            rest.spline_params[:, 2],
+            rest.spline_params[:, 3],
+            rest.scale_factor * scale,
+        )
         dist_prof_index += 1
 
     elif isinstance(rest, restraints.TorsProfileRestraint):
         meld_force.modifyTorsProfileRestraint(
-            tors_prof_index, rest.atom_index_1 - 1, rest.atom_index_2 - 1,
-            rest.atom_index_3 - 1, rest.atom_index_4 - 1,
-            rest.atom_index_5 - 1, rest.atom_index_6 - 1,
-            rest.atom_index_7 - 1, rest.atom_index_8 - 1,
+            tors_prof_index,
+            rest.atom_index_1 - 1,
+            rest.atom_index_2 - 1,
+            rest.atom_index_3 - 1,
+            rest.atom_index_4 - 1,
+            rest.atom_index_5 - 1,
+            rest.atom_index_6 - 1,
+            rest.atom_index_7 - 1,
+            rest.atom_index_8 - 1,
             rest.n_bins,
-            rest.spline_params[:, 0], rest.spline_params[:, 1],
-            rest.spline_params[:, 2], rest.spline_params[:, 3],
-            rest.spline_params[:, 4], rest.spline_params[:, 5],
-            rest.spline_params[:, 6], rest.spline_params[:, 7],
-            rest.spline_params[:, 8], rest.spline_params[:, 9],
-            rest.spline_params[:, 10], rest.spline_params[:, 11],
-            rest.spline_params[:, 12], rest.spline_params[:, 13],
-            rest.spline_params[:, 14], rest.spline_params[:, 15],
-            rest.scale_factor * scale)
+            rest.spline_params[:, 0],
+            rest.spline_params[:, 1],
+            rest.spline_params[:, 2],
+            rest.spline_params[:, 3],
+            rest.spline_params[:, 4],
+            rest.spline_params[:, 5],
+            rest.spline_params[:, 6],
+            rest.spline_params[:, 7],
+            rest.spline_params[:, 8],
+            rest.spline_params[:, 9],
+            rest.spline_params[:, 10],
+            rest.spline_params[:, 11],
+            rest.spline_params[:, 12],
+            rest.spline_params[:, 13],
+            rest.spline_params[:, 14],
+            rest.spline_params[:, 15],
+            rest.scale_factor * scale,
+        )
         tors_prof_index += 1
 
     elif isinstance(rest, restraints.GMMDistanceRestraint):
@@ -562,11 +718,16 @@ def _update_meld_restraint(rest, meld_force, alpha, timestep, dist_index,
         gmm_index += 1
 
     else:
-        raise RuntimeError(
-            'Do not know how to handle restraint {}'.format(rest))
+        raise RuntimeError("Do not know how to handle restraint {}".format(rest))
 
-    return (dist_index, hyper_index, tors_index,
-            dist_prof_index, tors_prof_index, gmm_index)
+    return (
+        dist_index,
+        hyper_index,
+        tors_index,
+        dist_prof_index,
+        tors_prof_index,
+        gmm_index,
+    )
 
 
 def _setup_precisions(precisions, n_distances, n_conditions):
@@ -577,12 +738,12 @@ def _setup_precisions(precisions, n_distances, n_conditions):
     diags = []
     for i in range(n_conditions):
         for j in range(n_distances):
-            diags.append(precisions[i, j, j,])
+            diags.append(precisions[i, j, j])
 
     off_diags = []
     for i in range(n_conditions):
         for j in range(n_distances):
-            for k in range(j+1, n_distances):
+            for k in range(j + 1, n_distances):
                 off_diags.append(precisions[i, j, k])
 
     return diags, off_diags
@@ -598,7 +759,7 @@ class DefaultOrderedDict(OrderedDict):
         isnone = default_factory is None
         callable = isinstance(default_factory, Callable)
         if not isnone and not callable:
-            raise TypeError('first argument must be callable')
+            raise TypeError("first argument must be callable")
         OrderedDict.__init__(self, *a, **kw)
         self.default_factory = default_factory
 
@@ -618,7 +779,7 @@ class DefaultOrderedDict(OrderedDict):
         if self.default_factory is None:
             args = tuple()
         else:
-            args = self.default_factory,
+            args = (self.default_factory,)
         return type(self), args, None, None, self.items()
 
     def copy(self):
@@ -629,9 +790,10 @@ class DefaultOrderedDict(OrderedDict):
 
     def __deepcopy__(self, memo):
         import copy
-        return type(self)(self.default_factory,
-                          copy.deepcopy(self.items()))
+
+        return type(self)(self.default_factory, copy.deepcopy(self.items()))
 
     def __repr__(self):
-        return 'OrderedDefaultDict({}, {})'.format(
-            self.default_factory, OrderedDict.__repr__(self))
+        return "OrderedDefaultDict({}, {})".format(
+            self.default_factory, OrderedDict.__repr__(self)
+        )

@@ -20,10 +20,9 @@ class TestSingleStep(unittest.TestCase):
         self.PERM_VECTOR = list(reversed(range(self.N_REPS)))
         self.mock_ladder.compute_exchanges.return_value = self.PERM_VECTOR
         self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
-        self.runner = master_runner.MasterReplicaExchangeRunner(self.N_REPS,
-                                                                self.MAX_STEPS,
-                                                                self.mock_ladder,
-                                                                self.mock_adaptor)
+        self.runner = master_runner.MasterReplicaExchangeRunner(
+            self.N_REPS, self.MAX_STEPS, self.mock_ladder, self.mock_adaptor
+        )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
         self.mock_comm.broadcast_states_to_slaves.return_value = sentinel.MY_STATE_INIT
@@ -47,19 +46,38 @@ class TestSingleStep(unittest.TestCase):
         self.mock_state_6.positions = sentinel.pos6
         self.mock_state_6.velocities = 1.0
         self.fake_states_after_run = [
-            self.mock_state_1, self.mock_state_2, self.mock_state_3,
-            self.mock_state_4, self.mock_state_5, self.mock_state_6]
+            self.mock_state_1,
+            self.mock_state_2,
+            self.mock_state_3,
+            self.mock_state_4,
+            self.mock_state_5,
+            self.mock_state_6,
+        ]
 
-        self.mock_comm.gather_states_from_slaves.return_value = self.fake_states_after_run
+        self.mock_comm.gather_states_from_slaves.return_value = (
+            self.fake_states_after_run
+        )
         self.mock_energy_matrix = mock.MagicMock()
-        self.mock_comm.gather_energies_from_slaves.return_value = self.mock_energy_matrix
-        self.mock_comm.exchange_states_for_energy_calc.return_value = self.fake_states_after_run
+        self.mock_comm.gather_energies_from_slaves.return_value = (
+            self.mock_energy_matrix
+        )
+        self.mock_comm.exchange_states_for_energy_calc.return_value = (
+            self.fake_states_after_run
+        )
 
         self.mock_system_runner = mock.Mock(spec=runner.ReplicaRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
-            sentinel.E1, sentinel.E2, sentinel.E3, sentinel.E4, sentinel.E5, sentinel.E6]
-        self.mock_system_runner.get_energy.side_effect = self.FAKE_ENERGIES_AFTER_GET_ENERGY
+            sentinel.E1,
+            sentinel.E2,
+            sentinel.E3,
+            sentinel.E4,
+            sentinel.E5,
+            sentinel.E6,
+        ]
+        self.mock_system_runner.get_energy.side_effect = (
+            self.FAKE_ENERGIES_AFTER_GET_ENERGY
+        )
         self.mock_system_runner.temperature_scaler = mock.MagicMock()
         self.mock_system_runner.temperature_scaler.return_value = 1.0
 
@@ -112,19 +130,25 @@ class TestSingleStep(unittest.TestCase):
         "calling run should broadcast states"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_comm.broadcast_states_to_slaves.assert_called_once_with(sentinel.ALL_STATES)
+        self.mock_comm.broadcast_states_to_slaves.assert_called_once_with(
+            sentinel.ALL_STATES
+        )
 
     def test_should_call_minimize_then_run(self):
         "should call minimize_then_run on the system_runner"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_system_runner.minimize_then_run.assert_called_once_with(sentinel.MY_STATE_INIT)
+        self.mock_system_runner.minimize_then_run.assert_called_once_with(
+            sentinel.MY_STATE_INIT
+        )
 
     def test_should_exchange_states_for_energy_calc(self):
         "should gather all states"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_comm.exchange_states_for_energy_calc.assert_called_once_with(sentinel.MY_STATE)
+        self.mock_comm.exchange_states_for_energy_calc.assert_called_once_with(
+            sentinel.MY_STATE
+        )
 
     def test_calls_get_energy_on_each_state(self):
         "should call get_energy on each state"
@@ -137,25 +161,41 @@ class TestSingleStep(unittest.TestCase):
         "should call gather_energies_from_slaves"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_comm.gather_energies_from_slaves.assert_called_once_with(self.FAKE_ENERGIES_AFTER_GET_ENERGY)
+        self.mock_comm.gather_energies_from_slaves.assert_called_once_with(
+            self.FAKE_ENERGIES_AFTER_GET_ENERGY
+        )
 
     def test_calls_ladder(self):
         "should call ladder"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_ladder.compute_exchanges.assert_called_once_with(self.mock_energy_matrix, self.mock_adaptor)
+        self.mock_ladder.compute_exchanges.assert_called_once_with(
+            self.mock_energy_matrix, self.mock_adaptor
+        )
 
     def test_states_are_saved_in_permuted_form(self):
         "states should be saved to store in properly permuted order"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         # our permutation matrix is reversed
-        correct_order = list(reversed([sentinel.pos1, sentinel.pos2, sentinel.pos3,
-                                  sentinel.pos4, sentinel.pos5, sentinel.pos6]))
+        correct_order = list(
+            reversed(
+                [
+                    sentinel.pos1,
+                    sentinel.pos2,
+                    sentinel.pos3,
+                    sentinel.pos4,
+                    sentinel.pos5,
+                    sentinel.pos6,
+                ]
+            )
+        )
         observed_order = [s.positions for s in self.fake_states_after_run]
         self.assertEqual(observed_order, correct_order)
 
-        self.mock_store.save_states.assert_called_once_with(self.fake_states_after_run, 1)
+        self.mock_store.save_states.assert_called_once_with(
+            self.fake_states_after_run, 1
+        )
 
     def test_should_save_remd_runner(self):
         "should save ourselves to disk"
@@ -179,7 +219,9 @@ class TestSingleStep(unittest.TestCase):
         "should write permutation matrix to disk"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_store.save_permutation_vector.assert_called_once_with(self.PERM_VECTOR, 1)
+        self.mock_store.save_permutation_vector.assert_called_once_with(
+            self.PERM_VECTOR, 1
+        )
 
     def test_should_call_backup(self):
         "should ask the store to handle backup for us"
@@ -193,12 +235,13 @@ class TestFiveSteps(unittest.TestCase):
         self.N_REPS = 6
         self.MAX_STEPS = 5
         self.mock_ladder = mock.Mock(spec_set=ladder.NearestNeighborLadder)
-        self.mock_ladder.compute_exchanges.return_value = list(reversed(range(self.N_REPS)))
+        self.mock_ladder.compute_exchanges.return_value = list(
+            reversed(range(self.N_REPS))
+        )
         self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
-        self.runner = master_runner.MasterReplicaExchangeRunner(self.N_REPS,
-                                                                self.MAX_STEPS,
-                                                                self.mock_ladder,
-                                                                self.mock_adaptor)
+        self.runner = master_runner.MasterReplicaExchangeRunner(
+            self.N_REPS, self.MAX_STEPS, self.mock_ladder, self.mock_adaptor
+        )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
         self.mock_comm.broadcast_states_to_slaves.return_value = sentinel.MY_STATE_INIT
@@ -222,19 +265,38 @@ class TestFiveSteps(unittest.TestCase):
         self.mock_state_6.positions = sentinel.pos6
         self.mock_state_6.velocities = 1.0
         self.fake_states_after_run = [
-            self.mock_state_1, self.mock_state_2, self.mock_state_3,
-            self.mock_state_4, self.mock_state_5, self.mock_state_6]
-        self.mock_comm.gather_states_from_slaves.return_value = self.fake_states_after_run
+            self.mock_state_1,
+            self.mock_state_2,
+            self.mock_state_3,
+            self.mock_state_4,
+            self.mock_state_5,
+            self.mock_state_6,
+        ]
+        self.mock_comm.gather_states_from_slaves.return_value = (
+            self.fake_states_after_run
+        )
         self.mock_energy_matrix = mock.MagicMock()
-        self.mock_comm.gather_energies_from_slaves.return_value = self.mock_energy_matrix
-        self.mock_comm.exchange_states_for_energy_calc.return_value = self.fake_states_after_run
+        self.mock_comm.gather_energies_from_slaves.return_value = (
+            self.mock_energy_matrix
+        )
+        self.mock_comm.exchange_states_for_energy_calc.return_value = (
+            self.fake_states_after_run
+        )
 
         self.mock_system_runner = mock.Mock(spec=runner.ReplicaRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.mock_system_runner.run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
-            sentinel.E1, sentinel.E2, sentinel.E3, sentinel.E4, sentinel.E5, sentinel.E6]
-        self.mock_system_runner.get_energy.side_effect = self.FAKE_ENERGIES_AFTER_GET_ENERGY * self.MAX_STEPS
+            sentinel.E1,
+            sentinel.E2,
+            sentinel.E3,
+            sentinel.E4,
+            sentinel.E5,
+            sentinel.E6,
+        ]
+        self.mock_system_runner.get_energy.side_effect = (
+            self.FAKE_ENERGIES_AFTER_GET_ENERGY * self.MAX_STEPS
+        )
         self.mock_system_runner.temperature_scaler = mock.MagicMock()
         self.mock_system_runner.temperature_scaler.return_value = 1.0
 

@@ -11,15 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 class NullReseeder(object):
-    '''
+    """
     Dummy reseeder that does nothing.
-    '''
+    """
+
     def reseed(self, time, current_states, store):
         pass
 
 
 class Reseeder(object):
-    '''
+    """
     Reseed replicas from previous states.
 
     This class implements a reseeder that will periodically reseed all
@@ -29,7 +30,8 @@ class Reseeder(object):
     :param candidate_frames: consider this many frames previous to the current
                              frame for reseeding
 
-    '''
+    """
+
     def __init__(self, interval, candidate_frames):
         self.interval = interval
         self._next_reseed = interval
@@ -39,22 +41,20 @@ class Reseeder(object):
         assert self.candidate_frames < self.interval
 
     def reseed(self, step, current_states, store):
-        '''
+        """
         Perform the reseeding.
 
         :param step: the current timestep
         :param current_states: a list of the current replica states to
                                be modified
         :param store: a DataStore object to get historical structures from
-        '''
+        """
         if step == self._next_reseed:
-            msg = 'Performing reseeding. Will seed from stages %d to %d.'
+            msg = "Performing reseeding. Will seed from stages %d to %d."
             logger.info(msg, step - self.candidate_frames, step - 1)
             self._next_reseed += self.interval
-            logger.info('Next reseeding will be at step %d.',
-                        self._next_reseed)
+            logger.info("Next reseeding will be at step %d.", self._next_reseed)
             for state in current_states:
-                from_frame = random.randrange(
-                    step - self.candidate_frames, step)
+                from_frame = random.randrange(step - self.candidate_frames, step)
                 all_coords = store.load_positions_random_access(from_frame)
                 state.positions = all_coords[0, :, :]

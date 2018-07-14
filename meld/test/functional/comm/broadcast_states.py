@@ -42,5 +42,5 @@ def main():
         check_state(my_state, c.rank)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

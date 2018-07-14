@@ -2,7 +2,8 @@
 # encoding: utf-8
 
 import logging
-meld_logger = logging.getLogger('meld')
+
+meld_logger = logging.getLogger("meld")
 console = logging.StreamHandler()
 meld_logger.setLevel(logging.DEBUG)
 console.setLevel(logging.DEBUG)
@@ -14,16 +15,15 @@ import os
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Launch replica exchange run.')
-    parser.add_argument('--debug', default=False, action='store_true')
-    parser.add_argument('--console-log', default=False, action='store_true')
+    parser = argparse.ArgumentParser(description="Launch replica exchange run.")
+    parser.add_argument("--debug", default=False, action="store_true")
+    parser.add_argument("--console-log", default=False, action="store_true")
     args = parser.parse_args()
 
-    #os.system('ls -l /opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9613.6.1/bin/nvcc')
+    # os.system('ls -l /opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9613.6.1/bin/nvcc')
 
     launch.launch(console, args.debug, args.console_log)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

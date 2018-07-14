@@ -30,7 +30,7 @@ def gen_state(s):
 
 def setup_system():
     # get the sequence
-    sequence = 'AAAAAAAAAAAAAAAA'
+    sequence = "AAAAAAAAAAAAAAAA"
     sequence = parse.get_sequence_from_AA1(contents=sequence)
     # create the system
     p = system.ProteinMoleculeFromSequence(sequence)
@@ -38,38 +38,53 @@ def setup_system():
     s = b.build_system_from_molecules([p])
     s.temperature_scaler = system.LinearTemperatureScaler(0, 1, 300, 310)
 
-    rest_scaler = s.restraints.create_scaler('nonlinear', alpha_min=0, alpha_max=1, factor=4.0)
-    secondary = 'H'*16
-    secondary_restraints = parse.get_secondary_structure_restraints(system=s, scaler=rest_scaler,
-                                                                          contents=secondary)
-    s.restraints.add_selectively_active_collection(secondary_restraints, len(secondary_restraints))
+    rest_scaler = s.restraints.create_scaler(
+        "nonlinear", alpha_min=0, alpha_max=1, factor=4.0
+    )
+    secondary = "H" * 16
+    secondary_restraints = parse.get_secondary_structure_restraints(
+        system=s, scaler=rest_scaler, contents=secondary
+    )
+    s.restraints.add_selectively_active_collection(
+        secondary_restraints, len(secondary_restraints)
+    )
 
     # create com restraint
-    com = s.restraints.create_restraint('com', rest_scaler, ramp=None,
-                                        group1=[(1, 'CA')],
-                                        group2=[(3, 'CA')],
-                                        weights1=None,
-                                        weights2=None,
-                                        dims='xyz',
-                                        force_const=100.,
-                                        distance=0.5)
+    com = s.restraints.create_restraint(
+        "com",
+        rest_scaler,
+        ramp=None,
+        group1=[(1, "CA")],
+        group2=[(3, "CA")],
+        weights1=None,
+        weights2=None,
+        dims="xyz",
+        force_const=100.,
+        distance=0.5,
+    )
     s.restraints.add_as_always_active(com)
 
     # create absolute com restraint
-    com = s.restraints.create_restraint('abs_com', rest_scaler, ramp=None,
-                                        group=[(1, 'CA')],
-                                        weights=None,
-                                        dims='xyz',
-                                        force_const=1.,
-                                        position=[0., 0., 0.])
+    com = s.restraints.create_restraint(
+        "abs_com",
+        rest_scaler,
+        ramp=None,
+        group=[(1, "CA")],
+        weights=None,
+        dims="xyz",
+        force_const=1.,
+        position=[0., 0., 0.],
+    )
     s.restraints.add_as_always_active(com)
 
     # create the options
     options = system.RunOptions()
 
     # create a store
-    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BACKUP_FREQ)
-    store.initialize(mode='w')
+    store = vault.DataStore(
+        s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BACKUP_FREQ
+    )
+    store.initialize(mode="w")
     store.save_system(s)
     store.save_run_options(options)
 
@@ -77,7 +92,9 @@ def setup_system():
     l = ladder.NearestNeighborLadder(n_trials=1)
     policy = adaptor.AdaptationPolicy(1.0, 50, 100)
     a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
-    remd_runner = master_runner.MasterReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+    remd_runner = master_runner.MasterReplicaExchangeRunner(
+        N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a
+    )
     store.save_remd_runner(remd_runner)
 
     # create and store the communicator
@@ -102,20 +119,20 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('launch_remd_multiplex', shell=True)
+        subprocess.check_call("launch_remd_multiplex", shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
 
     def test_data_dir_should_be_present(self):
-        self.assertTrue(os.path.exists('Data'))
+        self.assertTrue(os.path.exists("Data"))
 
     def test_files_should_have_been_backed_up(self):
-        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/system.dat"))
 
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
-        s.initialize(mode='a')
+        s.initialize(mode="a")
         pos = s.load_positions(N_STEPS)
 
         self.assertEqual(pos.shape[0], N_REPLICAS)

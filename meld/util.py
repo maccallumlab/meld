@@ -38,10 +38,11 @@ def log_timing(dest_logger):
             t1 = time.time()
             res = func(*args, **kwds)
             t2 = time.time()
-            dest_logger.debug('%s took %0.3f ms' %
-                              (func.__name__, (t2-t1)*1000.0))
+            dest_logger.debug("%s took %0.3f ms" % (func.__name__, (t2 - t1) * 1000.0))
             return res
+
         return wrapper
+
     return wrap
 
 
@@ -62,7 +63,7 @@ class LogRecordStreamHandler(socketserver.StreamRequestHandler):
             chunk = self.connection.recv(4)
             if len(chunk) < 4:
                 break
-            slen = struct.unpack('>L', chunk)[0]
+            slen = struct.unpack(">L", chunk)[0]
             chunk = self.connection.recv(slen)
             while len(chunk) < slen:
                 chunk = chunk + self.connection.recv(slen - len(chunk))
@@ -100,8 +101,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
 
     allow_reuse_address = 1
 
-    def __init__(self, host, abort_queue, socket_queue,
-                 handler=LogRecordStreamHandler):
+    def __init__(self, host, abort_queue, socket_queue, handler=LogRecordStreamHandler):
         # we request port zero, which should get an unused, non-privileged port
         socketserver.ThreadingTCPServer.__init__(self, (host, 0), handler)
         # queue used to communicate from the main MELD process that the
@@ -118,11 +118,10 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
 
     def serve_until_stopped(self):
         import select
+
         abort = 0
         while not abort:
-            rd, wr, ex = select.select([self.socket.fileno()],
-                                       [], [],
-                                       self.timeout)
+            rd, wr, ex = select.select([self.socket.fileno()], [], [], self.timeout)
             if rd:
                 self.handle_request()
             # check the abort queue to see if we should terminate
@@ -134,6 +133,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
 
 class HostNameContextFilter(logging.Filter):
     """Filter class that adds hostid information to logging records."""
+
     def __init__(self, hostid):
         logging.Filter.__init__(self)
         self.hostid = hostid
@@ -144,8 +144,8 @@ class HostNameContextFilter(logging.Filter):
 
 
 def configure_logging_and_launch_listener(host, abort_queue, socket_queue):
-    fmt = '%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s'
-    datefmt = '%Y-%m-%d %H:%M:%S'
-    logging.basicConfig(filename='remd.log', format=fmt, datefmt=datefmt)
+    fmt = "%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+    logging.basicConfig(filename="remd.log", format=fmt, datefmt=datefmt)
     receiver = LogRecordSocketReceiver(host, abort_queue, socket_queue)
     receiver.serve_until_stopped()

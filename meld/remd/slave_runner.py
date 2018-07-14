@@ -5,10 +5,10 @@
 
 
 class SlaveReplicaExchangeRunner(object):
-    '''
+    """
     This class coordinates running replica exchange on the slaves.
 
-    '''
+    """
 
     def __init__(self, step, max_steps):
         self._step = step
@@ -16,7 +16,7 @@ class SlaveReplicaExchangeRunner(object):
 
     @classmethod
     def from_master(cls, master):
-        '''
+        """
         Initialize a new slave from a master.
 
         :param master: a :class:`meld.remd.master_runner.
@@ -24,7 +24,7 @@ class SlaveReplicaExchangeRunner(object):
                        to serve as a template
         :return: a :class:`SlaveReplicaExchangeRunner`
 
-        '''
+        """
         new_slave = cls(master.step, master.max_steps)
         return new_slave
 
@@ -37,14 +37,14 @@ class SlaveReplicaExchangeRunner(object):
         return self._max_steps
 
     def run(self, communicator, system_runner):
-        '''
+        """
         Continue running slave jobs until done.
 
         :param communicator: a communicator object for talking to the master
         :param system_runner: a system_runner object for actually running the
                               simulations
 
-        '''
+        """
         my_alpha = None
 
         # we always minimize when we first start, either on the first
@@ -62,7 +62,7 @@ class SlaveReplicaExchangeRunner(object):
             # do one round of simulation
             if minimize:
                 state = system_runner.minimize_then_run(state)
-                minimize = False    # we don't need to minimize again
+                minimize = False  # we don't need to minimize again
             else:
                 state = system_runner.run(state)
 

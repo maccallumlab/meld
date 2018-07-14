@@ -15,38 +15,49 @@ from meld.system.restraints import ConstantRamp
 
 
 aa_map = {
-    'A': 'ALA',
-    'C': 'CYS',
-    'D': 'ASP',
-    'E': 'GLU',
-    'F': 'PHE',
-    'G': 'GLY',
-    'H': 'HIE',
-    'I': 'ILE',
-    'K': 'LYS',
-    'L': 'LEU',
-    'M': 'MET',
-    'N': 'ASN',
-    'P': 'PRO',
-    'Q': 'GLN',
-    'R': 'ARG',
-    'S': 'SER',
-    'T': 'THR',
-    'V': 'VAL',
-    'W': 'TRP',
-    'Y': 'TYR'
+    "A": "ALA",
+    "C": "CYS",
+    "D": "ASP",
+    "E": "GLU",
+    "F": "PHE",
+    "G": "GLY",
+    "H": "HIE",
+    "I": "ILE",
+    "K": "LYS",
+    "L": "LEU",
+    "M": "MET",
+    "N": "ASN",
+    "P": "PRO",
+    "Q": "GLN",
+    "R": "ARG",
+    "S": "SER",
+    "T": "THR",
+    "V": "VAL",
+    "W": "TRP",
+    "Y": "TYR",
 }
 
 
 # copy the canonical forms
 allowed_residues = [aa for aa in aa_map.values()]
 # add the alternate protonation states
-allowed_residues += ['ASH', 'GLH', 'HIE', 'HID', 'HIP', 'LYN', 'ACE',
-                     'OHE', 'NME', 'NHE']
+allowed_residues += [
+    "ASH",
+    "GLH",
+    "HIE",
+    "HID",
+    "HIP",
+    "LYN",
+    "ACE",
+    "OHE",
+    "NME",
+    "NHE",
+]
 
 
-def get_sequence_from_AA1(filename=None, contents=None, file=None,
-                          capped=False, nter=None, cter=None):
+def get_sequence_from_AA1(
+    filename=None, contents=None, file=None, capped=False, nter=None, cter=None
+):
     """
     Get the sequence from a list of 1-letter amino acid codes.
 
@@ -86,8 +97,8 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
-    lines = [line.strip() for line in lines if not line.startswith('#')]
-    sequence = ''.join(lines)
+    lines = [line.strip() for line in lines if not line.startswith("#")]
+    sequence = "".join(lines)
 
     output = []
     for aa in sequence:
@@ -99,8 +110,8 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
 
     # append terminal qualifiers
     if not capped:
-        output[0] = 'N' + output[0]
-        output[-1] = 'C' + output[-1]
+        output[0] = "N" + output[0]
+        output[-1] = "C" + output[-1]
     else:
         if nter:
             output.insert(0, nter)
@@ -108,14 +119,17 @@ def get_sequence_from_AA1(filename=None, contents=None, file=None,
             output.append(cter)
 
     max_aa_per_line = 100
-    groups = [output[i:i+max_aa_per_line] for i in
-              range(0, len(sequence), max_aa_per_line)]
-    lines = [' '.join(group) for group in groups]
-    return '\n'.join(lines)
+    groups = [
+        output[i : i + max_aa_per_line]
+        for i in range(0, len(sequence), max_aa_per_line)
+    ]
+    lines = [" ".join(group) for group in groups]
+    return "\n".join(lines)
 
 
-def get_sequence_from_AA3(filename=None, contents=None, file=None,
-                          capped=False, nter=None, cter=None):
+def get_sequence_from_AA3(
+    filename=None, contents=None, file=None, capped=False, nter=None, cter=None
+):
     """
     Get the sequence from a list of 3-letter amino acid codes.
 
@@ -153,39 +167,42 @@ def get_sequence_from_AA3(filename=None, contents=None, file=None,
     """
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
-    lines = [line.strip() for line in lines if not line.startswith('#')]
-    sequence = ' '.join(lines).split()
+    lines = [line.strip() for line in lines if not line.startswith("#")]
+    sequence = " ".join(lines).split()
 
     output = []
     for aa in sequence:
         if aa not in allowed_residues:
-            raise RuntimeError('Unknown residue {}.'.format(aa))
+            raise RuntimeError("Unknown residue {}.".format(aa))
         else:
             output.append(aa)
 
     # append terminal qualifiers
     if not capped:
-        output[0] = 'N' + output[0]
-        output[-1] = 'C' + output[-1]
+        output[0] = "N" + output[0]
+        output[-1] = "C" + output[-1]
     else:
         if nter:
             output.insert(0, nter)
         if cter:
             output.append(cter)
 
-    return ' '.join(output)
+    return " ".join(output)
 
 
-def get_secondary_structure_restraints(system, scaler,
-                                       ramp=None,
-                                       torsion_force_constant=2.48,
-                                       distance_force_constant=2.48,
-                                       quadratic_cut=2.0,
-                                       first_residue=1,
-                                       min_secondary_match=4,
-                                       filename=None,
-                                       contents=None,
-                                       file=None):
+def get_secondary_structure_restraints(
+    system,
+    scaler,
+    ramp=None,
+    torsion_force_constant=2.48,
+    distance_force_constant=2.48,
+    quadratic_cut=2.0,
+    first_residue=1,
+    min_secondary_match=4,
+    filename=None,
+    contents=None,
+    file=None,
+):
     """
     Get a list of secondary structure restraints.
 
@@ -228,8 +245,10 @@ def get_secondary_structure_restraints(system, scaler,
         ramp = ConstantRamp()
 
     if min_secondary_match > 5:
-        raise RuntimeError('Minimum number of elements to match in secondary structure '
-                           'must be less than or equal to 5.')
+        raise RuntimeError(
+            "Minimum number of elements to match in secondary structure "
+            "must be less than or equal to 5."
+        )
     min_secondary_match = int(min_secondary_match)
 
     contents = _get_secondary_sequence(filename, contents, file)
@@ -239,58 +258,176 @@ def get_secondary_structure_restraints(system, scaler,
 
     groups = []
 
-    helices = _extract_secondary_runs(contents, 'H', 5,
-                                      min_secondary_match,
-                                      first_residue)
+    helices = _extract_secondary_runs(
+        contents, "H", 5, min_secondary_match, first_residue
+    )
     for helix in helices:
         rests = []
         for index in range(helix.start + 1, helix.end - 1):
-            phi = TorsionRestraint(system, scaler, ramp, index-1, 'C', index,
-                                   'N', index, 'CA', index, 'C',
-                                   -62.5, 17.5, torsion_force_constant)
-            psi = TorsionRestraint(system, scaler, ramp, index, 'N', index,
-                                   'CA', index, 'C', index+1, 'N',
-                                   -42.5, 17.5, torsion_force_constant)
+            phi = TorsionRestraint(
+                system,
+                scaler,
+                ramp,
+                index - 1,
+                "C",
+                index,
+                "N",
+                index,
+                "CA",
+                index,
+                "C",
+                -62.5,
+                17.5,
+                torsion_force_constant,
+            )
+            psi = TorsionRestraint(
+                system,
+                scaler,
+                ramp,
+                index,
+                "N",
+                index,
+                "CA",
+                index,
+                "C",
+                index + 1,
+                "N",
+                -42.5,
+                17.5,
+                torsion_force_constant,
+            )
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, ramp, helix.start, 'CA',
-                               helix.start+3, 'CA', 0, 0.485, 0.561,
-                               0.561 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, ramp, helix.start+1, 'CA',
-                               helix.start+4, 'CA', 0, 0.485, 0.561,
-                               0.561 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, ramp, helix.start, 'CA',
-                               helix.start+4, 'CA', 0, 0.581, 0.684,
-                               0.684 + quadratic_cut, distance_force_constant)
+        d1 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            helix.start,
+            "CA",
+            helix.start + 3,
+            "CA",
+            0,
+            0.485,
+            0.561,
+            0.561 + quadratic_cut,
+            distance_force_constant,
+        )
+        d2 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            helix.start + 1,
+            "CA",
+            helix.start + 4,
+            "CA",
+            0,
+            0.485,
+            0.561,
+            0.561 + quadratic_cut,
+            distance_force_constant,
+        )
+        d3 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            helix.start,
+            "CA",
+            helix.start + 4,
+            "CA",
+            0,
+            0.581,
+            0.684,
+            0.684 + quadratic_cut,
+            distance_force_constant,
+        )
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)
         group = RestraintGroup(rests, len(rests))
         groups.append(group)
 
-    extended = _extract_secondary_runs(contents, 'E', 5,
-                                       min_secondary_match,
-                                       first_residue)
+    extended = _extract_secondary_runs(
+        contents, "E", 5, min_secondary_match, first_residue
+    )
     for ext in extended:
         rests = []
         for index in range(ext.start + 1, ext.end - 1):
-            phi = TorsionRestraint(system, scaler, ramp, index-1, 'C', index,
-                                   'N', index, 'CA', index, 'C',
-                                   -117.5, 27.5, torsion_force_constant)
-            psi = TorsionRestraint(system, scaler, ramp, index, 'N', index,
-                                   'CA', index, 'C', index+1, 'N',
-                                   145, 25.0, torsion_force_constant)
+            phi = TorsionRestraint(
+                system,
+                scaler,
+                ramp,
+                index - 1,
+                "C",
+                index,
+                "N",
+                index,
+                "CA",
+                index,
+                "C",
+                -117.5,
+                27.5,
+                torsion_force_constant,
+            )
+            psi = TorsionRestraint(
+                system,
+                scaler,
+                ramp,
+                index,
+                "N",
+                index,
+                "CA",
+                index,
+                "C",
+                index + 1,
+                "N",
+                145,
+                25.0,
+                torsion_force_constant,
+            )
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(system, scaler, ramp, ext.start, 'CA',
-                               ext.start+3, 'CA', 0, 0.785, 1.063,
-                               1.063 + quadratic_cut, distance_force_constant)
-        d2 = DistanceRestraint(system, scaler, ramp, ext.start+1, 'CA',
-                               ext.start+4, 'CA', 0, 0.785, 1.063,
-                               1.063 + quadratic_cut, distance_force_constant)
-        d3 = DistanceRestraint(system, scaler, ramp, ext.start, 'CA',
-                               ext.start+4, 'CA', 0, 1.086, 1.394,
-                               1.394 + quadratic_cut, distance_force_constant)
+        d1 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            ext.start,
+            "CA",
+            ext.start + 3,
+            "CA",
+            0,
+            0.785,
+            1.063,
+            1.063 + quadratic_cut,
+            distance_force_constant,
+        )
+        d2 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            ext.start + 1,
+            "CA",
+            ext.start + 4,
+            "CA",
+            0,
+            0.785,
+            1.063,
+            1.063 + quadratic_cut,
+            distance_force_constant,
+        )
+        d3 = DistanceRestraint(
+            system,
+            scaler,
+            ramp,
+            ext.start,
+            "CA",
+            ext.start + 4,
+            "CA",
+            0,
+            1.086,
+            1.394,
+            1.394 + quadratic_cut,
+            distance_force_constant,
+        )
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)
@@ -303,20 +440,18 @@ def get_secondary_structure_restraints(system, scaler,
 def _get_secondary_sequence(filename=None, contents=None, file=None):
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
-    lines = [line.strip() for line in lines if not line.startswith('#')]
-    sequence = ''.join(lines)
+    lines = [line.strip() for line in lines if not line.startswith("#")]
+    sequence = "".join(lines)
     for ss in sequence:
-        if ss not in 'HE.':
-            raise RuntimeError(
-                'Unknown secondary structure type "{}"'.format(ss))
+        if ss not in "HE.":
+            raise RuntimeError('Unknown secondary structure type "{}"'.format(ss))
     return sequence
 
 
-SecondaryRun = namedtuple('SecondaryRun', 'start end')
+SecondaryRun = namedtuple("SecondaryRun", "start end")
 
 
-def _extract_secondary_runs(content, ss_type, run_length,
-                            at_least, first_residue):
+def _extract_secondary_runs(content, ss_type, run_length, at_least, first_residue):
     # mark the elements that have the correct type
     has_correct_type = [1 if ss == ss_type else 0 for ss in content]
 
@@ -324,19 +459,20 @@ def _extract_secondary_runs(content, ss_type, run_length,
     length = len(content)
     totals = [0] * (length - run_length + 1)
     for index in range(length - run_length + 1):
-        totals[index] = sum(has_correct_type[index:index+run_length])
+        totals[index] = sum(has_correct_type[index : index + run_length])
 
     # add a result whenever we've had at_least correct
     results = []
     for index in range(len(totals)):
         if totals[index] >= at_least:
-            results.append(SecondaryRun(index, index+run_length))
+            results.append(SecondaryRun(index, index + run_length))
 
     # At this point, the runs are zero-based relative to the start of the
     # secondary structure string. Now, we'll add the offset to make them
     # one-based and relative to the first residue
-    results = [SecondaryRun(s.start + first_residue, s.end + first_residue)
-               for s in results]
+    results = [
+        SecondaryRun(s.start + first_residue, s.end + first_residue) for s in results
+    ]
 
     return results
 
@@ -344,8 +480,7 @@ def _extract_secondary_runs(content, ss_type, run_length,
 def _handle_arguments(filename, contents, file):
     set_args = [arg for arg in [filename, contents, file] if arg is not None]
     if len(set_args) != 1:
-        raise RuntimeError(
-            'Must set exactly one of filename, contents or file.')
+        raise RuntimeError("Must set exactly one of filename, contents or file.")
 
     if filename:
         return open(filename).read()
@@ -355,8 +490,9 @@ def _handle_arguments(filename, contents, file):
         return file.read()
 
 
-def get_rdc_restraints(system, scaler, ramp=None, filename=None,
-                       contents=None, file=None):
+def get_rdc_restraints(
+    system, scaler, ramp=None, filename=None, contents=None, file=None
+):
     """
     Reads restraints from file and returns as RdcRestraint object.
 
@@ -386,7 +522,7 @@ def get_rdc_restraints(system, scaler, ramp=None, filename=None,
 
     contents = _handle_arguments(filename, contents, file)
     lines = contents.splitlines()
-    lines = [line.strip() for line in lines if not line.startswith('#')]
+    lines = [line.strip() for line in lines if not line.startswith("#")]
 
     restraints = []
     for line in lines:
@@ -402,7 +538,20 @@ def get_rdc_restraints(system, scaler, ramp=None, filename=None,
         force_const = float(cols[8])
         weight = float(cols[9])
 
-        rest = RdcRestraint(system, scaler, ramp, res_i, atom_i, res_j, atom_j,
-                            kappa, obs, tolerance, force_const, weight, expt)
+        rest = RdcRestraint(
+            system,
+            scaler,
+            ramp,
+            res_i,
+            atom_i,
+            res_j,
+            atom_j,
+            kappa,
+            obs,
+            tolerance,
+            force_const,
+            weight,
+            expt,
+        )
         restraints.append(rest)
     return restraints

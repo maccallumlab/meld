@@ -11,36 +11,63 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Analyze the results of replica exchange.')
+        description="Analyze the results of replica exchange."
+    )
 
-    parser.add_argument('--start', type=int, default=None,
-                        help='first frame to extract (default: first')
-    parser.add_argument('--end', type=int, default=None,
-                        help='last frame to extract (default: last)')
-    subparsers = parser.add_subparsers(dest='command')
+    parser.add_argument(
+        "--start", type=int, default=None, help="first frame to extract (default: first"
+    )
+    parser.add_argument(
+        "--end", type=int, default=None, help="last frame to extract (default: last)"
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
-    extract_energy = subparsers.add_parser('extract_energy', help='extract the energy')
-    extract_energy.add_argument('outfile', help='filename to output energy to')
-    extract_energy.add_argument('--index', type=int, default=None, nargs='+',
-                            help='ladder index to analyze energy for')
+    extract_energy = subparsers.add_parser("extract_energy", help="extract the energy")
+    extract_energy.add_argument("outfile", help="filename to output energy to")
+    extract_energy.add_argument(
+        "--index",
+        type=int,
+        default=None,
+        nargs="+",
+        help="ladder index to analyze energy for",
+    )
 
-    vis_energy = subparsers.add_parser('visualize_energy', help='visualize the energy')
-    vis_energy.add_argument('--index', type=int, default=None, nargs='+',
-                            help='ladder index to analyze energy for')
+    vis_energy = subparsers.add_parser("visualize_energy", help="visualize the energy")
+    vis_energy.add_argument(
+        "--index",
+        type=int,
+        default=None,
+        nargs="+",
+        help="ladder index to analyze energy for",
+    )
 
-    vis_delta = subparsers.add_parser('visualize_delta', help='visualize the energy difference between replicas')
-    vis_delta.add_argument('--index', type=int, default=None, nargs='+',
-                            help='ladder index to analyze delta for')
+    vis_delta = subparsers.add_parser(
+        "visualize_delta", help="visualize the energy difference between replicas"
+    )
+    vis_delta.add_argument(
+        "--index",
+        type=int,
+        default=None,
+        nargs="+",
+        help="ladder index to analyze delta for",
+    )
 
-    vis_energy_column = subparsers.add_parser('visualize_column', help='visualize a column of the energy matrix')
-    vis_energy_column.add_argument('--index', type=int, default=0,
-                                   help='column index to analyze the energies for')
+    vis_energy_column = subparsers.add_parser(
+        "visualize_column", help="visualize a column of the energy matrix"
+    )
+    vis_energy_column.add_argument(
+        "--index", type=int, default=0, help="column index to analyze the energies for"
+    )
 
-    vis_matrix = subparsers.add_parser('visualize_matrix', help='visualize the energy matrix over time')
-    vis_matrix.add_argument('--vmin', type=float, default=None,
-                            help='clamp minimum energy at this value')
-    vis_matrix.add_argument('--vmax', type=float, default=None,
-                            help='clamp maximum energy at this value')
+    vis_matrix = subparsers.add_parser(
+        "visualize_matrix", help="visualize the energy matrix over time"
+    )
+    vis_matrix.add_argument(
+        "--vmin", type=float, default=None, help="clamp minimum energy at this value"
+    )
+    vis_matrix.add_argument(
+        "--vmax", type=float, default=None, help="clamp maximum energy at this value"
+    )
 
     return parser.parse_args()
 
@@ -49,17 +76,17 @@ def main():
     args = parse_args()
 
     store = vault.DataStore.load_data_store()
-    store.initialize(mode='r')
+    store.initialize(mode="r")
 
-    if args.command == 'visualize_energy':
+    if args.command == "visualize_energy":
         visualize_energy(store, args)
-    if args.command == 'extract_energy':
+    if args.command == "extract_energy":
         extract_energy(store, args)
-    if args.command == 'visualize_delta':
+    if args.command == "visualize_delta":
         visualize_delta(store, args)
-    if args.command == 'visualize_column':
+    if args.command == "visualize_column":
         visualize_energy_column(store, args)
-    if args.command == 'visualize_matrix':
+    if args.command == "visualize_matrix":
         visualize_matrix(store, args)
 
 
@@ -74,7 +101,8 @@ def visualize_energy(store, args):
         pyplot.plot(energies[rep, :])
     pyplot.show()
 
-def extract_energy(store,args):
+
+def extract_energy(store, args):
     energies = get_energy(store, args.start, args.end)
     n_reps = energies.shape[0]
     if args.index is None:
@@ -98,7 +126,12 @@ def visualize_delta(store, args):
 
     for i in replicas:
         j = i + 1
-        delta = energy_matrix[i, i, :] + energy_matrix[j, j] - energy_matrix[i, j] - energy_matrix[j, i]
+        delta = (
+            energy_matrix[i, i, :]
+            + energy_matrix[j, j]
+            - energy_matrix[i, j]
+            - energy_matrix[j, i]
+        )
         pyplot.plot(delta)
     pyplot.show()
 
@@ -115,8 +148,8 @@ def visualize_matrix(store, args):
     energy_matrix = get_matrix(store, args.start, args.end)
     the_min = np.min(energy_matrix)
     the_max = np.max(energy_matrix)
-    print('minimum energy: {}'.format(the_min))
-    print('maximum energy: {}'.format(the_max))
+    print("minimum energy: {}".format(the_min))
+    print("maximum energy: {}".format(the_max))
 
     if not args.vmin is None:
         the_min = args.vmin
@@ -128,7 +161,16 @@ def visualize_matrix(store, args):
     figure = pyplot.figure()
     plots = []
     for i in range(n_timesteps):
-        plots.append([pyplot.imshow(energy_matrix[:, :, i], interpolation='nearest', vmin=the_min, vmax=the_max)])
+        plots.append(
+            [
+                pyplot.imshow(
+                    energy_matrix[:, :, i],
+                    interpolation="nearest",
+                    vmin=the_min,
+                    vmax=the_max,
+                )
+            ]
+        )
     ani = animation.ArtistAnimation(figure, plots, interval=50, blit=True)
     pyplot.show()
 
@@ -145,7 +187,7 @@ def get_energy(store, start, end):
     assert 0 < end < n_energies
     assert end > start
 
-    return energies[:, start:(end + 1)]
+    return energies[:, start : (end + 1)]
 
 
 def get_matrix(store, start, end):
@@ -160,8 +202,8 @@ def get_matrix(store, start, end):
     assert 0 < end < n_steps
     assert end > start
 
-    return matrix[:, :, start:(end + 1)]
+    return matrix[:, :, start : (end + 1)]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

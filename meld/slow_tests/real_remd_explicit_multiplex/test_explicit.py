@@ -24,8 +24,7 @@ def gen_state(s, index):
     vel = np.zeros_like(pos)
     alpha = index / (N_REPLICAS - 1.0)
     energy = 0
-    return system.SystemState(pos, vel, alpha,
-                              energy, box_vectors)
+    return system.SystemState(pos, vel, alpha, energy, box_vectors)
 
 
 def make_group_indices(filename):
@@ -33,16 +32,16 @@ def make_group_indices(filename):
     with open(filename) as f:
         for line in f:
             index = int(line.strip())
-            group.append((index, 'CA'))
+            group.append((index, "CA"))
     return group
 
 
 def setup_system():
-    s = system.builder.load_amber_system('system.top', 'system.mdcrd')
+    s = system.builder.load_amber_system("system.top", "system.mdcrd")
     s.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
     # create the options
-    options = system.RunOptions(solvation='explicit')
+    options = system.RunOptions(solvation="explicit")
     options.enable_pme = True
     options.pme_tolerance = 0.0005
     options.enable_pressure_coupling = True
@@ -52,8 +51,10 @@ def setup_system():
     options.minimize_steps = 50
 
     # create a store
-    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE)
-    store.initialize(mode='w')
+    store = vault.DataStore(
+        s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE
+    )
+    store.initialize(mode="w")
     store.save_system(s)
     store.save_run_options(options)
 
@@ -62,7 +63,8 @@ def setup_system():
     a = adaptor.NullAdaptor(N_REPLICAS)
 
     remd_runner = master_runner.MasterReplicaExchangeRunner(
-        N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+        N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a
+    )
     store.save_remd_runner(remd_runner)
 
     # create and store the communicator
@@ -86,27 +88,27 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
         # copy over files
         cwd = os.getcwd()
         path = os.path.dirname(os.path.realpath(__file__))
-        shutil.copy(os.path.join(path, 'system.top'), cwd)
-        shutil.copy(os.path.join(path, 'system.mdcrd'), cwd)
+        shutil.copy(os.path.join(path, "system.top"), cwd)
+        shutil.copy(os.path.join(path, "system.mdcrd"), cwd)
 
         self.n_atoms = setup_system()
 
         # now run it
-        subprocess.check_call('launch_remd_multiplex', shell=True)
+        subprocess.check_call("launch_remd_multiplex", shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
 
     def test_should_have_correct_results(self):
         # make sure the data directory is there
-        self.assertTrue(os.path.exists('Data'))
+        self.assertTrue(os.path.exists("Data"))
 
         # make sure we're backing things up
-        self.assertTrue(os.path.exists('Data/Backup/system.dat'))
+        self.assertTrue(os.path.exists("Data/Backup/system.dat"))
 
         # make sure we have the right number of steps
         s = vault.DataStore.load_data_store()
-        s.initialize(mode='a')
+        s.initialize(mode="a")
         pos = s.load_positions(N_STEPS)
 
         # make sure things have the right shape

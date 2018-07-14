@@ -1,4 +1,4 @@
-'''
+"""
 Transformers are objects that take an openmm system
 as created by loading an amber topology and modify
 it in various ways. Example transformations include:
@@ -19,11 +19,11 @@ protocol given in `TransformerBase`. Next, you
 must add this class to the list in
 `OpenMMRunner._setup_transformers`.
 
-'''
+"""
 
 
 class TransformerBase(object):
-    '''
+    """
     Base class to document how transformers work.
 
     The transformation process proceeds in several stages.
@@ -58,13 +58,15 @@ class TransformerBase(object):
     selectively_active_collections: list of SelectivelyActiveCollection
         these restraints are selected by the MELD algorithm
 
-    '''
-    def __init__(self, options, always_active_restraints,
-                 selectively_active_restraints):
-        raise NotImplementedError('TransformerBase cannot be instantiated.')
+    """
+
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        raise NotImplementedError("TransformerBase cannot be instantiated.")
 
     def add_interactions(self, system, topology):
-        '''
+        """
         Add new interactions to the system.
 
         This may involve:
@@ -84,11 +86,11 @@ class TransformerBase(object):
             OpenMM topology object to be modified and/or used
             for indexing
 
-        '''
+        """
         return system
 
     def finalize(self, system, topology):
-        '''
+        """
         Finalize the transformer.
 
         This method is guaranteed to be called after all forces
@@ -105,11 +107,11 @@ class TransformerBase(object):
             OpenMM topology object to be modified and/or used
             for indexing
 
-        '''
+        """
         pass
 
     def update(self, simulation, alpha, timestep):
-        '''
+        """
         Update the system according to alpha and timestep.
 
         This method is called at the beginning of every stage.
@@ -124,7 +126,7 @@ class TransformerBase(object):
         stage: int
             Current stage of the simulation, starting from 0
 
-        '''
+        """
         pass
 
 
@@ -135,6 +137,7 @@ from meld.system.openmm_runner.transform.restraints import (
     YZCartesianTransformer,
     COMRestraintTransformer,
     AbsoluteCOMRestraintTransformer,
-    MeldRestraintTransformer)
+    MeldRestraintTransformer,
+)
 
 from meld.system.openmm_runner.transform.rest2 import REST2Transformer

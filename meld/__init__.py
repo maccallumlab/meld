@@ -5,7 +5,7 @@
 
 import logging
 
-logger = logging.getLogger('meld')
+logger = logging.getLogger("meld")
 logger.addHandler(logging.NullHandler())
 
-__version__ = '0.4.6'
+__version__ = "0.4.6"

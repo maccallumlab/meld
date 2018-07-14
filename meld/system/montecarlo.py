@@ -12,6 +12,7 @@ class MonteCarloScheduler(object):
     """
     Weighted random selection of Monte Carlo moves
     """
+
     def __init__(self, movers_with_weights, update_trials):
         """
         Parameters
@@ -65,13 +66,14 @@ class MonteCarloScheduler(object):
             if upto + w >= r:
                 return c, i
             upto += w
-        assert False, 'Should never get here'
+        assert False, "Should never get here"
 
 
 class RandomTorsionMover(object):
     """
     Rotate a torsion to a random angle
     """
+
     def __init__(self, index1, index2, atom_indices):
         """
         Parameters
@@ -111,7 +113,9 @@ class RandomTorsionMover(object):
         trial_positions[self.atom_indices, :] = rotate_around_vector(
             starting_positions[self.index1, :],
             starting_positions[self.index2, :],
-            angle, starting_positions[self.atom_indices, :])
+            angle,
+            starting_positions[self.atom_indices, :],
+        )
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
 
@@ -127,8 +131,9 @@ class RandomTorsionMover(object):
 
 
 class DoubleTorsionMover(object):
-    def __init__(self, index1a, index1b, atom_indices1, index2a,
-                 index2b, atom_indices2):
+    def __init__(
+        self, index1a, index1b, atom_indices1, index2a, index2b, atom_indices2
+    ):
         """
         Parameters
         ----------
@@ -172,11 +177,15 @@ class DoubleTorsionMover(object):
         trial_positions[self.atom_indices1, :] = rotate_around_vector(
             starting_positions[self.index1a, :],
             starting_positions[self.index1b, :],
-            angle1, starting_positions[self.atom_indices1, :])
+            angle1,
+            starting_positions[self.atom_indices1, :],
+        )
         trial_positions[self.atom_indices2, :] = rotate_around_vector(
             trial_positions[self.index2a, :],
             trial_positions[self.index2b, :],
-            angle2, trial_positions[self.atom_indices2, :])
+            angle2,
+            trial_positions[self.atom_indices2, :],
+        )
 
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
@@ -196,6 +205,7 @@ class TranslationMover(object):
     """
     Translate a chain
     """
+
     def __init__(self, atom_indices, move_size=0.1):
         """
         Parameters
@@ -257,8 +267,7 @@ def rotate_around_vector(p1, p2, angle, points):
     direction = p2 - p1
     angle = angle / 180. * math.pi
     rot_mat = _rotation_matrix(angle, direction, point=p1)
-    return _covert_from_homogeneous(
-        np.dot(_convert_to_homogeneous(points), rot_mat))
+    return _covert_from_homogeneous(np.dot(_convert_to_homogeneous(points), rot_mat))
 
 
 def metropolis(current_energy, trial_energy, bias):
@@ -314,9 +323,13 @@ def _rotation_matrix(angle, direction, point=None):
     R = np.diag([cosa, cosa, cosa])
     R += np.outer(direction, direction) * (1.0 - cosa)
     direction *= sina
-    R += np.array([[ 0.0,          -direction[2],  direction[1]],
-                   [ direction[2],  0.0,          -direction[0]],
-                   [-direction[1],  direction[0],  0.0]])
+    R += np.array(
+        [
+            [0.0, -direction[2], direction[1]],
+            [direction[2], 0.0, -direction[0]],
+            [-direction[1], direction[0], 0.0],
+        ]
+    )
     M = np.identity(4)
     M[:3, :3] = R
     if point is not None:

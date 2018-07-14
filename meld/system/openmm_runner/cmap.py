@@ -13,47 +13,61 @@ import numpy as np
 from meld.system.system import ParmTopReader
 
 
-CMAPResidue = namedtuple('CMAPResidue',
-                         'res_num res_name index_N index_CA index_C')
+CMAPResidue = namedtuple("CMAPResidue", "res_num res_name index_N index_CA index_C")
 
 # Termini residues that act as a cap and have no amap term
-capped = ['ACE', 'NHE', 'OHE', 'NME', 'GLP', 'DUM', 'NAG', 'DIF', 'BER', 'GUM',
-          'KNI', 'PU5', 'AMP', '0E9']
+capped = [
+    "ACE",
+    "NHE",
+    "OHE",
+    "NME",
+    "GLP",
+    "DUM",
+    "NAG",
+    "DIF",
+    "BER",
+    "GUM",
+    "KNI",
+    "PU5",
+    "AMP",
+    "0E9",
+]
 
 
 class CMAPAdder(object):
     _map_index = {
-        'GLY': 0,
-        'PRO': 1,
-        'ALA': 2,
-        'CYS': 3,
-        'CYX': 3,
-        'ASP': 3,
-        'ASH': 3,
-        'GLU': 3,
-        'GLH': 3,
-        'PHE': 3,
-        'HIS': 3,
-        'HIE': 3,
-        'HID': 3,
-        'HIP': 3,
-        'ILE': 3,
-        'LYS': 3,
-        'LYN': 3,
-        'MET': 3,
-        'ASN': 3,
-        'GLN': 3,
-        'SER': 3,
-        'THR': 3,
-        'VAL': 3,
-        'TRP': 3,
-        'TYR': 3,
-        'LEU': 3,
-        'ARG': 3
+        "GLY": 0,
+        "PRO": 1,
+        "ALA": 2,
+        "CYS": 3,
+        "CYX": 3,
+        "ASP": 3,
+        "ASH": 3,
+        "GLU": 3,
+        "GLH": 3,
+        "PHE": 3,
+        "HIS": 3,
+        "HIE": 3,
+        "HID": 3,
+        "HIP": 3,
+        "ILE": 3,
+        "LYS": 3,
+        "LYN": 3,
+        "MET": 3,
+        "ASN": 3,
+        "GLN": 3,
+        "SER": 3,
+        "THR": 3,
+        "VAL": 3,
+        "TRP": 3,
+        "TYR": 3,
+        "LEU": 3,
+        "ARG": 3,
     }
 
-    def __init__(self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False,
-                 ncap=False):
+    def __init__(
+        self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False
+    ):
         """
         Initialize a new CMAPAdder object
 
@@ -93,7 +107,7 @@ class CMAPAdder(object):
         for chain in self._iterate_cmap_chains():
             # loop over the interior residues
             n_res = len(chain)
-            for i in range(1, n_res-1):
+            for i in range(1, n_res - 1):
                 map_index = self._map_index[chain[i].res_name]
                 # subtract one from all of these to get zero-based indexing,
                 # as in openmm
@@ -101,9 +115,8 @@ class CMAPAdder(object):
                 n = chain[i].index_N - 1
                 ca = chain[i].index_CA - 1
                 c = chain[i].index_C - 1
-                n_next = chain[i+1].index_N - 1
-                cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca,
-                                      c, n_next)
+                n_next = chain[i + 1].index_N - 1
+                cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
 
     def _iterate_cmap_chains(self):
@@ -115,8 +128,10 @@ class CMAPAdder(object):
         """
         # use an ordered dict to remember num, name pairs in order, while
         # removing duplicates
-        residues = OrderedDict((num, name) for (num, name) in
-                               zip(self._residue_numbers, self._residue_names))
+        residues = OrderedDict(
+            (num, name)
+            for (num, name) in zip(self._residue_numbers, self._residue_names)
+        )
         new_res = []
         for r in residues.items():
             num, name = r
@@ -124,9 +139,11 @@ class CMAPAdder(object):
                 new_res.append(r)
         residues = OrderedDict(new_res)
         # now turn the ordered dict into a list of CMAPResidues
-        residues = [self._to_cmap_residue(num, name) for
-                    (num, name) in residues.items()
-                    if name in self._map_index.keys()]
+        residues = [
+            self._to_cmap_residue(num, name)
+            for (num, name) in residues.items()
+            if name in self._map_index.keys()
+        ]
 
         # is each residue i connected to it's predecessor, i-1?
         connected = self._compute_connected(residues)
@@ -154,6 +171,7 @@ class CMAPAdder(object):
         :return: a list of boolean values indicating if residue i is bonded
                  to i-1
         """
+
         def has_c_n_bond(res_i, res_j):
             """Return True if there is a bond between C of res_i and N of
             res_j, otherwise False.
@@ -164,8 +182,7 @@ class CMAPAdder(object):
                 return False
 
         # zip to together consecutive residues and see if they are bonded
-        connected = [has_c_n_bond(i, j) for (i, j) in zip(residues[0:],
-                                                          residues[1:])]
+        connected = [has_c_n_bond(i, j) for (i, j) in zip(residues[0:], residues[1:])]
         # the first element has no element to the left, so it's not connected
         connected = [False] + connected
         return connected
@@ -178,21 +195,22 @@ class CMAPAdder(object):
         :param name: residue name
         :return: CMAPResidue
         """
-        n = self._atom_map[(num, 'N')]
-        ca = self._atom_map[(num, 'CA')]
-        c = self._atom_map[(num, 'C')]
-        res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca,
-                          index_C=c)
+        n = self._atom_map[(num, "N")]
+        ca = self._atom_map[(num, "CA")]
+        c = self._atom_map[(num, "C")]
+        res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca, index_C=c)
         return res
 
     def _load_map(self, stem):
-        basedir = os.path.join(os.path.dirname(__file__), 'maps')
+        basedir = os.path.join(os.path.dirname(__file__), "maps")
         alpha = (
-            np.loadtxt(os.path.join(basedir, '{}_alpha.txt'.format(stem))) *
-                       self._alpha_bias)
+            np.loadtxt(os.path.join(basedir, "{}_alpha.txt".format(stem)))
+            * self._alpha_bias
+        )
         beta = (
-            np.loadtxt(os.path.join(basedir, '{}_beta.txt'.format(stem))) *
-            self._beta_bias)
+            np.loadtxt(os.path.join(basedir, "{}_beta.txt".format(stem)))
+            * self._beta_bias
+        )
         total = alpha + beta
         assert total.shape[0] == total.shape[1]
         n = int(math.ceil(total.shape[0] / 2.0))
@@ -203,7 +221,7 @@ class CMAPAdder(object):
 
     def _load_maps(self):
         """Load the maps from disk and apply the alpha and beta biases."""
-        self._gly_map = self._load_map('gly')
-        self._pro_map = self._load_map('pro')
-        self._ala_map = self._load_map('ala')
-        self._gen_map = self._load_map('gen')
+        self._gly_map = self._load_map("gly")
+        self._pro_map = self._load_map("pro")
+        self._ala_map = self._load_map("ala")
+        self._gen_map = self._load_map("gen")
