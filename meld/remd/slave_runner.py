@@ -4,7 +4,7 @@
 #
 
 
-class SlaveReplicaExchangeRunner():
+class SlaveReplicaExchangeRunner:
     """
     This class coordinates running replica exchange on the slaves.
 

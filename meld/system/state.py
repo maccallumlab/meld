@@ -4,7 +4,7 @@
 #
 
 
-class SystemState():
+class SystemState:
     """
     Class to hold the state of a system.
 

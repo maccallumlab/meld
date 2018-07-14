@@ -7,7 +7,7 @@ import numpy as np
 import math
 
 
-class ProteinBase():
+class ProteinBase:
     """
     Base class for other Protein classes.
 
@@ -141,35 +141,33 @@ class ProteinBase():
     def _gen_bond_string(self, mol_id):
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
-            d = 'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'.format(
-                mol_id=mol_id, i=i, j=j, a=a, b=b, t=t
-            )
+            d = f'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
     def _gen_disulfide_string(self, mol_id):
         disulfide_strings = []
         for i, j in self._disulfide_list:
-            d = "bond {mol_id}.{i}.SG {mol_id}.{j}.SG".format(mol_id=mol_id, i=i, j=j)
+            d = f"bond {mol_id}.{i}.SG {mol_id}.{j}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
     def _gen_read_prep_string(self):
         prep_string = []
         for p in self._prep_files:
-            prep_string.append("loadAmberPrep {}".format(p))
+            prep_string.append(f"loadAmberPrep {p}")
         return prep_string
 
     def _gen_read_frcmod_string(self):
         frcmod_string = []
         for p in self._frcmod_files:
-            frcmod_string.append("loadAmberParams {}".format(p))
+            frcmod_string.append(f"loadAmberParams {p}")
         return frcmod_string
 
     def _gen_read_lib_string(self):
         lib_string = []
         for p in self._lib_files:
-            lib_string.append("loadoff {}".format(p))
+            lib_string.append(f"loadoff {p}")
         return lib_string
 
 
@@ -202,9 +200,7 @@ class ProteinMoleculeFromSequence(ProteinBase):
         leap_cmds.extend(self._gen_read_frcmod_string())
         leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_lib_string())
-        leap_cmds.append(
-            "{mol_id} = sequence {{ {seq} }}".format(mol_id=mol_id, seq=self._sequence)
-        )
+        leap_cmds.append(f"{mol_id} = sequence {{ {self._sequence} }}")
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.extend(self._gen_bond_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))
@@ -233,7 +229,7 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory
-        pdb_path = "{mol_id}.pdb".format(mol_id=mol_id)
+        pdb_path = f"{mol_id}.pdb"
         with open(pdb_path, "w") as pdb_file:
             pdb_file.write(self._pdb_contents)
 
@@ -243,7 +239,7 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
         leap_cmds.extend(self._gen_read_frcmod_string())
         leap_cmds.extend(self._gen_read_prep_string())
         leap_cmds.extend(self._gen_read_lib_string())
-        leap_cmds.append("{mol_id} = loadPdb {mol_id}.pdb".format(mol_id=mol_id))
+        leap_cmds.append(f"{mol_id} = loadPdb {mol_id}.pdb")
         leap_cmds.extend(self._gen_bond_string(mol_id))
         leap_cmds.extend(self._gen_disulfide_string(mol_id))
         leap_cmds.append(self._gen_rotation_string(mol_id))

@@ -6,7 +6,7 @@
 from meld.system.openmm_runner import OpenMMRunner
 
 
-class ReplicaRunner():
+class ReplicaRunner:
     def initialize(self):
         pass
 
@@ -23,7 +23,7 @@ class ReplicaRunner():
         pass
 
 
-class FakeSystemRunner():
+class FakeSystemRunner:
     """
     Fake runner for test purposes.
     """
@@ -53,4 +53,4 @@ def get_runner(system, options, comm):
     elif options.runner == "fake_runner":
         return FakeSystemRunner(system, options, comm)
     else:
-        raise RuntimeError("Unknown type of runner: {}".format(options.runner))
+        raise RuntimeError(f"Unknown type of runner: {options.runner}")

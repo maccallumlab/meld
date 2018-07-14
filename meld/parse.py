@@ -106,7 +106,7 @@ def get_sequence_from_AA1(
             four_letter = aa_map[aa]
             output.append(four_letter)
         except KeyError:
-            raise RuntimeError('Unknown amino acid "{}".'.format(aa))
+            raise RuntimeError(f'Unknown amino acid "aa".')
 
     # append terminal qualifiers
     if not capped:
@@ -173,7 +173,7 @@ def get_sequence_from_AA3(
     output = []
     for aa in sequence:
         if aa not in allowed_residues:
-            raise RuntimeError("Unknown residue {}.".format(aa))
+            raise RuntimeError(f"Unknown residue {aa}.")
         else:
             output.append(aa)
 
@@ -444,7 +444,7 @@ def _get_secondary_sequence(filename=None, contents=None, file=None):
     sequence = "".join(lines)
     for ss in sequence:
         if ss not in "HE.":
-            raise RuntimeError('Unknown secondary structure type "{}"'.format(ss))
+            raise RuntimeError(f'Unknown secondary structure type "{ss}"')
     return sequence
 
 

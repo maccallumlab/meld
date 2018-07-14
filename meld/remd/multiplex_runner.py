@@ -12,7 +12,7 @@ import math
 logger = logging.getLogger(__name__)
 
 
-class MultiplexReplicaExchangeRunner():
+class MultiplexReplicaExchangeRunner:
     """
     Class to coordinate running of replica exchange
 

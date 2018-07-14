@@ -73,7 +73,7 @@ PressureCouplingParams = namedtuple(
 PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
 
 
-class OpenMMRunner():
+class OpenMMRunner:
     def __init__(self, system, options, communicator=None, test=False):
         if communicator:
             self._device_id = communicator.negotiate_device_id()
@@ -279,19 +279,19 @@ class OpenMMRunner():
     def _run_min_mc(self, state):
         if self._options.min_mc is not None:
             logger.info("Running MCMC before minimization.")
-            logger.info("Starting energy {:.3f}".format(self.get_energy(state)))
+            logger.info(f"Starting energy {self.get_energy(state):.3f}")
             state.energy = self.get_energy(state)
             state = self._options.min_mc.update(state, self)
-            logger.info("Ending energy {:.3f}".format(self.get_energy(state)))
+            logger.info(f"Ending energy {self.get_energy(state):.3f}")
         return state
 
     def _run_mc(self, state):
         if self._options.run_mc is not None:
             logger.info("Running MCMC.")
-            logger.debug("Starting energy {:.3f}".format(self.get_energy(state)))
+            logger.debug(f"Starting energy {self.get_energy(state):.3f}")
             state.energy = self.get_energy(state)
             state = self._options.run_mc.update(state, self)
-            logger.debug("Ending energy {:.3f}".format(self.get_energy(state)))
+            logger.debug(f"Ending energy {self.get_energy(state):.3f}")
         return state
 
     def _run(self, state, minimize):
@@ -432,7 +432,7 @@ def _create_openmm_system(
             temperature,
         )
     else:
-        raise ValueError("unknown value for solvation_type: {}".format(solvation_type))
+        raise ValueError(f"unknown value for solvation_type: {solvation_type}")
 
     _add_extras(system, extra_bonds, extra_restricted_angles, extra_torsions)
 
@@ -507,7 +507,7 @@ def _create_openmm_system_implicit(
         cutoff_type = ff.NoCutoff
         cutoff_dist = 999.
     else:
-        logger.info("USing a cutoff of {}".format(cutoff))
+        logger.info(f"Using a cutoff of {cutoff}")
         cutoff_type = ff.CutoffNonPeriodic
         cutoff_dist = cutoff
 
@@ -553,13 +553,13 @@ def _create_openmm_system_explicit(
         raise ValueError("cutoff must be set for explicit solvent, but got None")
     else:
         if pme_params.enable:
-            logger.info("Using PME with tolerance {}".format(pme_params.tolerance))
+            logger.info(f"Using PME with tolerance {pme_params.tolerance}")
             cutoff_type = ff.PME
         else:
             logger.info("Using reaction field")
             cutoff_type = ff.CutoffPeriodic
 
-        logger.info("Using a cutoff of {}".format(cutoff))
+        logger.info(f"Using a cutoff of {cutoff}")
         cutoff_dist = cutoff
 
     hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
@@ -580,10 +580,8 @@ def _create_openmm_system_explicit(
     baro = None
     if pcouple_params.enable:
         logger.info("Enabling pressure coupling")
-        logger.info("Pressure is {}".format(pcouple_params.pressure))
-        logger.info(
-            "Volume moves attempted every {} steps".format(pcouple_params.steps)
-        )
+        logger.info(f"Pressure is {pcouple_params.pressure}")
+        logger.info(f"Volume moves attempted every {pcouple_params.steps} steps")
         baro = MonteCarloBarostat(
             pcouple_params.pressure, pcouple_params.temperature, pcouple_params.steps
         )

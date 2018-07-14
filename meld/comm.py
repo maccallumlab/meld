@@ -24,8 +24,10 @@ sys_excepthook = sys.excepthook
 
 def mpi_excepthook(type, value, traceback):
     sys_excepthook(type, value, traceback)
-    node_name = "{}/{}".format(get_mpi_comm_world().rank + 1, get_mpi_comm_world().size)
-    logger.critical("MPI node {} raised exception.".format(node_name))
+    rank = get_mpi_comm_world().rank + 1
+    size = get_mpi_comm_world().size
+    node_name = f"{rank}/{size}"
+    logger.critical(f"MPI node {node_name} raised exception.")
     sys.stdout.flush()
     sys.stderr.flush()
     get_mpi_comm_world().Abort(1)
@@ -34,7 +36,7 @@ def mpi_excepthook(type, value, traceback):
 sys.excepthook = mpi_excepthook
 
 
-class MPICommunicator():
+class MPICommunicator:
     """
     Class to handle communications between master and slaves using MPI.
 
@@ -53,15 +55,11 @@ class MPICommunicator():
         self._n_replicas = n_replicas
         self._mpi_comm = None
         self._timeout = timeout
-        self._timeout_message = "Call to {{:s}} did not complete in {:d} seconds".format(
-            timeout
-        )
+        self._timeout_message = f"Call to {{:s}} did not complete in {timeout} seconds"
 
     def __getstate__(self):
         # don't pickle _mpi_comm
-        return dict(
-            (k, v) for (k, v) in self.__dict__.items() if not k == "_mpi_comm"
-        )
+        return dict((k, v) for (k, v) in self.__dict__.items() if not k == "_mpi_comm")
 
     def __setstate__(self, state):
         # set _mpi_comm to None
@@ -470,7 +468,7 @@ class StateException(Exception):
     pass
 
 
-class Quota():
+class Quota:
     def __init__(self, seconds):
         if seconds <= 0:
             raise ValueError("Invalid timeout: %s" % seconds)

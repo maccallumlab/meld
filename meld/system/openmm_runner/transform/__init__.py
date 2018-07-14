@@ -22,7 +22,7 @@ must add this class to the list in
 """
 
 
-class TransformerBase():
+class TransformerBase:
     """
     Base class to document how transformers work.
 

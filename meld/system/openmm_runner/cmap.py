@@ -34,7 +34,7 @@ capped = [
 ]
 
 
-class CMAPAdder():
+class CMAPAdder:
     _map_index = {
         "GLY": 0,
         "PRO": 1,
@@ -204,13 +204,9 @@ class CMAPAdder():
     def _load_map(self, stem):
         basedir = os.path.join(os.path.dirname(__file__), "maps")
         alpha = (
-            np.loadtxt(os.path.join(basedir, "{}_alpha.txt".format(stem)))
-            * self._alpha_bias
+            np.loadtxt(os.path.join(basedir, f"{stem}_alpha.txt")) * self._alpha_bias
         )
-        beta = (
-            np.loadtxt(os.path.join(basedir, "{}_beta.txt".format(stem)))
-            * self._beta_bias
-        )
+        beta = np.loadtxt(os.path.join(basedir, f"{stem}_beta.txt")) * self._beta_bias
         total = alpha + beta
         assert total.shape[0] == total.shape[1]
         n = int(math.ceil(total.shape[0] / 2.0))
