@@ -11,9 +11,8 @@ We use the updated version of Replica Exchange with Solute Scaling [1]_.
 Limitations
 -----------
 
-Currently, the REST2 implmentation in MELD has two limitations:
-1. MELD forces do not work with periodic boundary conditions
-2. Any CMAP / AMAP potentials are not scaled.
+Currently, the REST2 implmentation in MELD has a limitation:
+- Any CMAP / AMAP potentials are not scaled.
 
 
 References
@@ -83,7 +82,7 @@ class REST2Transformer(TransformerBase):
         bond_idxs = [sorted([i.index, j.index]) for i,j in topology.bonds()]
         for parm_index in range(self.dihedral_force.getNumTorsions()):
             params = self.dihedral_force.getTorsionParameters(parm_index)
-            i, j, k, l, mult, phi, fc = params
+            i, j, k, l, _, _, _ = params
 
             not_solvent = (i in nonsolvent_atoms and
                            j in nonsolvent_atoms and
