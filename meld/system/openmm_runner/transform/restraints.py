@@ -7,12 +7,21 @@ This module implements transformers that add restraint forces
 to the openmm system before simulation
 '''
 
+import logging
+logger = logging.getLogger(__name__)
+
 from simtk.openmm import CustomExternalForce
 from meld.system import restraints
 from collections import OrderedDict
 from meld.system.openmm_runner.transform import TransformerBase
-from meldplugin import MeldForce
 from simtk import openmm as mm
+try:
+    from meldplugin import MeldForce
+except ImportError:
+    logger.warning(
+        'Could not import meldplugin. '
+        'Are you sure it is installed correctly?\n'
+        'Attempts to use meld restraints will fail.')
 
 
 class ConfinementRestraintTransformer(TransformerBase):
