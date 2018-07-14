@@ -28,7 +28,7 @@ def load_amber_system(top_filename, crd_filename, patchers=None):
     return system
 
 
-class SystemBuilder():
+class SystemBuilder:
     def __init__(self, forcefield="ff14sbside", gb_radii="mbondi3"):
         self._forcefield = None
         self._set_forcefield(forcefield)
@@ -51,7 +51,7 @@ class SystemBuilder():
             leap_cmds.extend(self._generate_leap_header())
             leap_cmds.extend(leap_header_cmds)
             for index, mol in enumerate(molecules):
-                mol_id = "mol_{}".format(index)
+                mol_id = f"mol_{index}"
                 mol_ids.append(mol_id)
                 mol.prepare_for_tleap(mol_id)
                 leap_cmds.extend(mol.generate_tleap_input(mol_id))
@@ -72,27 +72,27 @@ class SystemBuilder():
         try:
             self._forcefield = ff_dict[forcefield]
         except KeyError:
-            raise RuntimeError("Unknown forcefield: {}".format(forcefield))
+            raise RuntimeError(f"Unknown forcefield: {forcefield}")
 
     def _set_gb_radii(self, gb_radii):
         allowed = ["mbondi2", "mbondi3"]
         if gb_radii not in allowed:
-            raise RuntimeError("Unknown gb_radii: {}".format(gb_radii))
+            raise RuntimeError(f"Unknown gb_radii: {gb_radii}")
         else:
             self._gb_radii = gb_radii
 
     def _generate_leap_header(self):
         leap_cmds = []
-        leap_cmds.append("set default PBradii {}".format(self._gb_radii))
-        leap_cmds.append("source {}".format(self._forcefield))
+        leap_cmds.append(f"set default PBradii {self._gb_radii}")
+        leap_cmds.append(f"source {self._forcefield}")
         return leap_cmds
 
     def _generate_leap_footer(self, mol_ids):
         leap_cmds = []
         list_of_mol_ids = ""
         for mol_id in mol_ids:
-            list_of_mol_ids += "{} ".format(mol_id)
-        leap_cmds.append("sys = combine {{ {} }}".format(list_of_mol_ids))
+            list_of_mol_ids += f"{mol_id} "
+        leap_cmds.append(f"sys = combine {{ {list_of_mol_ids} }}")
         leap_cmds.append("check sys")
         leap_cmds.append("saveAmberParm sys system.top system.mdcrd")
         leap_cmds.append("quit")

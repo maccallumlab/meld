@@ -9,7 +9,7 @@ from parmed import unit as u
 import numpy as np
 
 
-class PatcherBase():
+class PatcherBase:
     def patch(self, top_string, crd_string):
         """
         Called before `System` is created.
@@ -173,9 +173,9 @@ class VirtualSpinLabelPatcher(PatcherBase):
             topol.add_atom_to_residue(atom, topol.residues[key - 1])
 
             # find the other atoms
-            ca = topol.view[":{},@CA".format(key)].atoms[0]
-            cb = topol.view[":{},@CB".format(key)].atoms[0]
-            n = topol.view[":{},@N".format(key)].atoms[0]
+            ca = topol.view[f":{key},@CA"].atoms[0]
+            cb = topol.view[f":{key},@CB"].atoms[0]
+            n = topol.view[f":{key},@N"].atoms[0]
 
             # set position
             ca_pos = np.array((ca.xx, ca.xy, ca.xz))

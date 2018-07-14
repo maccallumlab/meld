@@ -9,7 +9,7 @@ import math
 from collections import namedtuple
 
 
-class AcceptanceCounter():
+class AcceptanceCounter:
     """
     Class to keep track of acceptance rates.
     """
@@ -238,7 +238,7 @@ class FluxAdaptor(AcceptanceCounter):
         return f(samples)
 
 
-class SwitchingCompositeAdaptor():
+class SwitchingCompositeAdaptor:
     def __init__(self, switching_time, first_adaptor, second_adaptor):
         self.switching_time = switching_time
         self.first_adaptor = first_adaptor
@@ -264,7 +264,7 @@ class SwitchingCompositeAdaptor():
         return self.first_adaptor.get_acceptance_probabilities()
 
 
-class AdaptationPolicy():
+class AdaptationPolicy:
     """
     Repeat adaptation on a regular schedule with an optional burn-in and
     increasing adaptation times.

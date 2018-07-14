@@ -162,13 +162,13 @@ class _RestraintRegistry(type):
                 key = attrs["_restraint_key_"]
             except KeyError:
                 raise RuntimeError(
-                    "Restraint type {} subclasses Restraint, "
-                    "but does not set _restraint_key_".format(name)
+                    f"Restraint type {name} subclasses Restraint, "
+                    "but does not set _restraint_key_"
                 )
             if key in _RestraintRegistry._restraint_registry:
                 raise RuntimeError(
                     "Trying to register two different classes"
-                    "with _restraint_key_ = {}.".format(key)
+                    f"with _restraint_key_ = {key}."
                 )
             _RestraintRegistry._restraint_registry[key] = cls
 
@@ -178,7 +178,7 @@ class _RestraintRegistry(type):
         try:
             return _RestraintRegistry._restraint_registry[key]
         except KeyError:
-            raise RuntimeError('Unknown restraint type "{}".'.format(key))
+            raise RuntimeError(f'Unknown restraint type "{key}".')
 
 
 class Restraint(metaclass=_RestraintRegistry):
@@ -321,24 +321,18 @@ class DistanceRestraint(SelectableRestraint):
                 )
             if self.r2(alpha) < self.r1(alpha):
                 raise RuntimeError(
-                    "r2 must be >= r1. r1={} r2={}.".format(
-                        self.r1(alpha), self.r2(alpha)
-                    )
+                    f"r2 must be >= r1. r1={self.r1(alpha)} r2={self.r2(alpha)}."
                 )
             if self.r3(alpha) < self.r2(alpha):
                 raise RuntimeError(
-                    "r3 must be >= r2. r2={} r3={}.".format(
-                        self.r2(alpha), self.r3(alpha)
-                    )
+                    f"r3 must be >= r2. r2={self.r2(alpha)} r3={self.r3(alpha)}."
                 )
             if self.r4(alpha) < self.r3(alpha):
                 raise RuntimeError(
-                    "r4 must be >= r3. r3={} r4={}.".format(
-                        self.r3(alpha), self.r4(alpha)
-                    )
+                    f"r4 must be >= r3. r3={self.r3(alpha)} r4={self.r4(alpha)}."
                 )
         if self.k < 0:
-            raise RuntimeError("k must be >= 0. k={}.".format(self.k))
+            raise RuntimeError(f"k must be >= 0. k={self.k}.")
 
 
 class GMMDistanceRestraint(SelectableRestraint):
@@ -511,32 +505,19 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
             )
 
         if self.r2 < self.r1:
-            raise RuntimeError(
-                "r2 must be >= r1. r1={} r2={}.".format(self.r1, self.r2)
-            )
+            raise RuntimeError(f"r2 must be >= r1. r1={self.r1} r2={self.r2}.")
 
         if self.r3 < self.r2:
-            raise RuntimeError(
-                "r3 must be >= r2. r2={} r3={}.".format(self.r2, self.r3)
-            )
+            raise RuntimeError(f"r3 must be >= r2. r2={self.r2} r3={self.r3}.")
 
-        if self.r4 < self.r3:
-            raise RuntimeError(
-                "r4 must be >= r3. r3={} r4={}.".format(self.r3, self.r4)
-            )
-
-        if self.r3 == self.r4:
-            raise RuntimeError(
-                "r4 cannot be equal to r3. r3={} r4={}.".format(self.r3, self.r4)
-            )
+        if self.r4 <= self.r3:
+            raise RuntimeError(f"r4 must be > r3. r3={self.r3} r4={self.r4}.")
 
         if self.k < 0:
-            raise RuntimeError("k must be >= 0. k={}.".format(self.k))
+            raise RuntimeError(f"k must be >= 0. k={self.k}.")
 
         if self.asymptote < 0:
-            raise RuntimeError(
-                "asymptote must be >= 0. asymptote={}.".format(self.asymptote)
-            )
+            raise RuntimeError(f"asymptote must be >= 0. asymptote={self.asymptote}.")
 
 
 class TorsionRestraint(SelectableRestraint):
@@ -607,13 +588,11 @@ class TorsionRestraint(SelectableRestraint):
                 "All four indices of a torsion restraint must be unique."
             )
         if self.phi < -180 or self.phi > 180:
-            raise RuntimeError("-180 <= phi <= 180. phi was {}.".format(self.phi))
+            raise RuntimeError(f"-180 <= phi <= 180. phi was {self.phi}.")
         if self.delta_phi < 0 or self.delta_phi > 180:
-            raise RuntimeError(
-                "0 <= delta_phi < 180. delta_phi was {}.".format(self.delta_phi)
-            )
+            raise RuntimeError(f"0 <= delta_phi < 180. delta_phi was {self.delta_phi}.")
         if self.k < 0:
-            raise RuntimeError("k >= 0. k was {}.".format(self.k))
+            raise RuntimeError(f"k >= 0. k was {self.k}.")
 
 
 class DistProfileRestraint(SelectableRestraint):
@@ -955,12 +934,10 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
     def _check_dims(self):
         for c in self.dims:
             if c not in "xyz":
-                raise ValueError(
-                    'dims must be a combination of "xyz", found {}'.format(c)
-                )
+                raise ValueError(f'dims must be a combination of "xyz", found {c}')
         for c in "xyz":
             if self.dims.count(c) > 1:
-                raise ValueError("{} occurs more than once in dims".format(c))
+                raise ValueError(f"{c} occurs more than once in dims")
 
     def _get_indices(self, system, group):
         return [
@@ -1108,16 +1085,14 @@ class COMRestraint(NonSelectableRestraint):
         # check for non 'xyz'
         for c in self.dims:
             if c not in "xyz":
-                raise ValueError(
-                    'dims must be a combination of "xyz", found {}'.format(c)
-                )
+                raise ValueError(f'dims must be a combination of "xyz", found {c}')
         for dim in "xyz":
             count = self.dims.count(dim)
             if count > 1:
-                raise ValueError("{} occurs more than once in dims".format(dim))
+                raise ValueError(f"{dim} occurs more than once in dims")
 
 
-class AlwaysActiveCollection():
+class AlwaysActiveCollection:
     """
     """
 
@@ -1131,14 +1106,12 @@ class AlwaysActiveCollection():
     def add_restraint(self, restraint):
         if not isinstance(restraint, Restraint):
             raise RuntimeError(
-                "Tried to add unknown restraint of type {}.".format(
-                    str(type(restraint))
-                )
+                f"Tried to add unknown restraint of type {str(type(restraint))}."
             )
         self._restraints.append(restraint)
 
 
-class SelectivelyActiveCollection():
+class SelectivelyActiveCollection:
     """
     """
 
@@ -1155,7 +1128,7 @@ class SelectivelyActiveCollection():
             raise RuntimeError("num_active must be >= 0.")
         n_rest = len(self._groups)
         if num_active > n_rest:
-            raise RuntimeError("num active must be <= num_groups ({}).".format(n_rest))
+            raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
         self._num_active = num_active
 
     @property
@@ -1171,15 +1144,15 @@ class SelectivelyActiveCollection():
             self._groups.append(restraint)
         elif not isinstance(restraint, SelectableRestraint):
             raise RuntimeError(
-                "Cannot add restraint of type {} to"
-                "SelectivelyActiveCollection".format(str(type(restraint)))
+                f"Cannot add restraint of type {str(type(restraint))} to"
+                "SelectivelyActiveCollection"
             )
         else:
             group = RestraintGroup([restraint], 1)
             self._groups.append(group)
 
 
-class RestraintGroup():
+class RestraintGroup:
     def __init__(self, rest_list, num_active):
         self._restraints = []
         if not rest_list:
@@ -1191,7 +1164,7 @@ class RestraintGroup():
             raise RuntimeError("num_active must be >= 0.")
         n_rest = len(self._restraints)
         if num_active > n_rest:
-            raise RuntimeError("num_active must be <= n_rest ({}).".format(n_rest))
+            raise RuntimeError(f"num_active must be <= n_rest ({n_rest}).")
         self._num_active = num_active
 
     @property
@@ -1208,7 +1181,7 @@ class RestraintGroup():
         self._restraints.append(rest)
 
 
-class RestraintManager():
+class RestraintManager:
     """
     """
 
@@ -1244,7 +1217,7 @@ class RestraintManager():
             if not isinstance(scaler, RestraintScaler):
                 raise ValueError(
                     "scaler must be a subclass of RestraintScaler, "
-                    "you tried to add a {}.".format(type(scaler))
+                    f"you tried to add a {type(scaler)}."
                 )
 
         if ramp is None:
@@ -1253,7 +1226,7 @@ class RestraintManager():
             if not isinstance(ramp, TimeRamp):
                 raise ValueError(
                     "ramp must be a subclass of TimeRamp,"
-                    "you tried to add a {}.".format(type(ramp))
+                    f"you tried to add a {type(ramp)}."
                 )
 
         return _RestraintRegistry.get_constructor_for_key(rest_type)(
@@ -1288,13 +1261,13 @@ class ScalerRegistry(type):
                 key = attrs["_scaler_key_"]
             except KeyError:
                 raise RuntimeError(
-                    "Scaler type {} subclasses Scaler, but"
-                    "does not set _scaler_key_".format(name)
+                    f"Scaler type {name} subclasses Scaler, but"
+                    "does not set _scaler_key_"
                 )
             if key in ScalerRegistry._scaler_registry:
                 raise RuntimeError(
                     "Trying to register two different classes"
-                    "with _scaler_key_ = {}.".format(key)
+                    f"with _scaler_key_ = {key}."
                 )
             ScalerRegistry._scaler_registry[key] = cls
 
@@ -1304,7 +1277,7 @@ class ScalerRegistry(type):
         try:
             return ScalerRegistry._scaler_registry[key]
         except KeyError:
-            raise RuntimeError('Unknown scaler type "{}".'.format(key))
+            raise RuntimeError(f'Unknown scaler type "{key}".')
 
 
 class AlphaMapper(metaclass=ScalerRegistry):
@@ -1316,7 +1289,7 @@ class AlphaMapper(metaclass=ScalerRegistry):
 
     def _check_alpha_range(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError("0 >= alpha >= 1. alpha is {}.".format(alpha))
+            raise RuntimeError(f"0 >= alpha >= 1. alpha is {alpha}.")
 
     def _handle_boundaries(self, alpha):
         if alpha <= self._alpha_min:
@@ -1335,12 +1308,12 @@ class AlphaMapper(metaclass=ScalerRegistry):
         ):
             raise RuntimeError(
                 "alpha_min and alpha_max must be in range [0, 1]."
-                "alpha_min={} alpha_max={}.".format(self._alpha_min, self._alpha_max)
+                f"alpha_min={self._alpha_min} alpha_max={self._alpha_max}."
             )
         if self._alpha_min >= self._alpha_max:
             raise RuntimeError(
                 "alpha_max must be less than alpha_min."
-                "alpha_min={} alpha_max={}.".format(self._alpha_min, self._alpha_max)
+                f"alpha_min={self._alpha_min} alpha_max={self._alpha_max}."
             )
 
 
@@ -1462,7 +1435,7 @@ class NonLinearScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
         if factor < 1:
-            raise RuntimeError("factor must be >= 1. factor={}.".format(factor))
+            raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
     def __call__(self, alpha):
@@ -1503,7 +1476,7 @@ class PlateauNonLinearScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
         if factor < 1:
-            raise RuntimeError("factor must be >= 1. factor={}.".format(factor))
+            raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
     def __call__(self, alpha):

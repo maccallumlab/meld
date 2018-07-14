@@ -600,7 +600,7 @@ def _add_meld_restraint(rest, meld_force, alpha, timestep):
         rest_index = meld_force.addGMMRestraint(nd, nc, scale, a, w, m, d, o)
 
     else:
-        raise RuntimeError("Do not know how to handle restraint {}".format(rest))
+        raise RuntimeError(f"Do not know how to handle restraint {rest}")
 
     return rest_index
 
@@ -718,7 +718,7 @@ def _update_meld_restraint(
         gmm_index += 1
 
     else:
-        raise RuntimeError("Do not know how to handle restraint {}".format(rest))
+        raise RuntimeError(f"Do not know how to handle restraint {rest}")
 
     return (
         dist_index,

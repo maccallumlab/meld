@@ -12,7 +12,7 @@ import tempfile
 import shutil
 
 
-class TempDirHelper():
+class TempDirHelper:
     """
     Class to add convenience methods for running tests in temp dirs.
 
@@ -32,7 +32,7 @@ class TempDirHelper():
         shutil.rmtree(self.tmpdir)
 
 
-class FakeSystem():
+class FakeSystem:
     """
     Fake system class to test REMD.
     """
@@ -40,7 +40,7 @@ class FakeSystem():
     pass
 
 
-class FakeSystemRunner():
+class FakeSystemRunner:
     """
     Fake system runner class. Doens't actually run anything. For testing REMD.
     """

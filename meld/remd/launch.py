@@ -35,7 +35,7 @@ def launch(console_handler, debug=False, console_log=False):
     # setup logging
     #
     hostname = socket.gethostname()
-    hostid = "{}:{:03d}".format(hostname, communicator.rank)
+    hostid = f"{hostname}:{communicator.rank:03d}"
 
     meld_logger = logging.getLogger("meld")
     # this filter adds the hostid to each logging record so

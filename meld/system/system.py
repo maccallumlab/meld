@@ -13,17 +13,17 @@ from meld.pdb_writer import PDBWriter
 from simtk.unit import atmosphere
 
 
-class ConstantTemperatureScaler():
+class ConstantTemperatureScaler:
     def __init__(self, temperature):
         self._temperature = temperature
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
-            raise RuntimeError("0 <= alpha <= 1. alpha={}".format(alpha))
+            raise RuntimeError(f"0 <= alpha <= 1. alpha={alpha}")
         return self._temperature
 
 
-class LinearTemperatureScaler():
+class LinearTemperatureScaler:
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -53,7 +53,7 @@ class LinearTemperatureScaler():
             return self._temperature_max
 
 
-class FixedTemperatureScaler():
+class FixedTemperatureScaler:
     def __init__(self, alpha_min, alpha_max, temperatures):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -84,7 +84,7 @@ class FixedTemperatureScaler():
             return self._temperatures[-1]
 
 
-class GeometricTemperatureScaler():
+class GeometricTemperatureScaler:
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -114,7 +114,7 @@ class GeometricTemperatureScaler():
             return self._temperature_max
 
 
-class REST2Scaler():
+class REST2Scaler:
     def __init__(self, reference_temperature, temperature_scaler):
         """
         Scaler for REST2
@@ -146,7 +146,7 @@ ExtraAngleParam = namedtuple("ExtraAngleParam", "i j k angle force_constant")
 ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity")
 
 
-class System():
+class System:
     def __init__(self, top_string, mdcrd_string):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
@@ -197,8 +197,8 @@ class System():
             return self._atom_index[(residue_number, atom_name)]
         except KeyError:
             print(
-                "Could not find atom index for residue_number={}"
-                "and atom name={}.".format(residue_number, atom_name)
+                f"Could not find atom index for residue_number={residue_number}"
+                f"and atom name={atom_name}."
             )
             raise
 
@@ -254,7 +254,7 @@ class System():
         self._n_atoms = self._coordinates.shape[0]
 
 
-class CrdReader():
+class CrdReader:
     def __init__(self, crd_string):
         self.crd_string = crd_string
         self._coords = None
@@ -297,7 +297,7 @@ class CrdReader():
         self._box_vectors = box_vectors
 
 
-class ParmTopReader():
+class ParmTopReader:
     def __init__(self, top_string):
         self._top_string = top_string
 
@@ -377,7 +377,7 @@ class ParmTopReader():
         }
 
 
-class RunOptions():
+class RunOptions:
     def __setattr__(self, name, value):
         # open we only allow setting of these attributes
         # all others will raise an error, which catches
@@ -409,7 +409,7 @@ class RunOptions():
         ]
         allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
-            raise ValueError("Attempted to set unknown attribute {}".format(name))
+            raise ValueError(f"Attempted to set unknown attribute {name}")
         else:
             object.__setattr__(self, name, value)
 
@@ -426,7 +426,7 @@ class RunOptions():
             self.enable_pme = True
             self.enable_pressure_coupling = True
         else:
-            raise RuntimeError("Unknown value {} for solvation".format(solvation))
+            raise RuntimeError(f"Unknown value {solvation} for solvation")
         self._runner = "openmm"
         self._timesteps = 5000
         self._minimize_steps = 1000
@@ -558,7 +558,7 @@ class RunOptions():
     @runner.setter
     def runner(self, value):
         if value not in ["openmm", "fake_runner"]:
-            raise RuntimeError("unknown value for runner {}".format(value))
+            raise RuntimeError(f"unknown value for runner {value}")
         self._runner = value
 
     @property
@@ -590,9 +590,7 @@ class RunOptions():
     @implicit_solvent_model.setter
     def implicit_solvent_model(self, value):
         if value not in [None, "obc", "gbNeck", "gbNeck2", "vacuum"]:
-            raise RuntimeError(
-                "unknown value for implicit solvent model {}".format(value)
-            )
+            raise RuntimeError(f"unknown value for implicit solvent model {value}")
         self._implicit_solvent_model = value
 
     @property

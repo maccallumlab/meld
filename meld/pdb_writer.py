@@ -12,7 +12,7 @@ template = (
 )
 
 
-class PDBWriter():
+class PDBWriter:
     def __init__(self, atom_numbers, atom_names, residue_numbers, residue_names):
         self._atom_numbers = atom_numbers
         self._n_atoms = len(atom_numbers)

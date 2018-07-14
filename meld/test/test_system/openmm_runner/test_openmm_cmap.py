@@ -137,7 +137,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
         self.patcher.stop()
 
     def make_system(self, restype):
-        sequence = "NALA {0} CALA".format(restype)
+        sequence = f"NALA {restype} CALA"
         p = protein.ProteinMoleculeFromSequence(sequence)
         b = builder.SystemBuilder()
         self.system = b.build_system_from_molecules([p])

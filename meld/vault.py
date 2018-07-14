@@ -13,7 +13,7 @@ import shutil
 from meld.system import state
 
 
-class DataStore():
+class DataStore:
     """
     Class to handle storing data from MELD runs.
 
@@ -83,9 +83,7 @@ class DataStore():
     def __getstate__(self):
         # don't save some fields to disk
         excluded = ["_cdf_data_set"]
-        return dict(
-            (k, v) for (k, v) in self.__dict__.items() if k not in excluded
-        )
+        return dict((k, v) for (k, v) in self.__dict__.items() if k not in excluded)
 
     def __setstate__(self, state):
         # set _cdf_data_set to None
@@ -145,7 +143,7 @@ class DataStore():
             self._readonly_mode = True
             self._load_cdf_file_readonly()
         else:
-            raise RuntimeError("Unknown value for mode={}".format(mode))
+            raise RuntimeError(f"Unknown value for mode={mode}")
 
     def close(self):
         """Close the DataStore"""

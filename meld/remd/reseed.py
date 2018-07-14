@@ -10,7 +10,7 @@ import random
 logger = logging.getLogger(__name__)
 
 
-class NullReseeder():
+class NullReseeder:
     """
     Dummy reseeder that does nothing.
     """
@@ -19,7 +19,7 @@ class NullReseeder():
         pass
 
 
-class Reseeder():
+class Reseeder:
     """
     Reseed replicas from previous states.
 
