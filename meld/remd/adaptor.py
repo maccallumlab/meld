@@ -7,7 +7,11 @@ import numpy as np  # type: ignore
 from scipy import interpolate  # type: ignore
 import math
 from collections import namedtuple
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
+
+
+# named tuple to hold the results
+AdaptationRequired = namedtuple("AdaptationRequired", "adapt_now reset_now")
 
 
 class AdaptationPolicy:
@@ -21,18 +25,20 @@ class AdaptationPolicy:
     :param adapt_every: how frequently to adapt (in picoseconds)
 
     """
-
-    # named tuple to hold the results
-    AdaptationRequired = namedtuple("AdaptationRequired", "adapt_now reset_now")
-
-    def __init__(self, growth_factor, burn_in, adapt_every, stop_after=None):
+    def __init__(
+        self,
+        growth_factor: float,
+        burn_in: int,
+        adapt_every: int,
+        stop_after: Optional[int] = None,
+    ) -> None:
         self.growth_factor = growth_factor
-        self.burn_in = burn_in
+        self.burn_in: Optional[int] = burn_in
         self.adapt_every = adapt_every
         self.next_adapt = adapt_every + burn_in
         self.stop_after = stop_after
 
-    def should_adapt(self, step):
+    def should_adapt(self, step: int) -> AdaptationRequired:
         """
         Is adaptation required?
 
@@ -43,21 +49,21 @@ class AdaptationPolicy:
         """
         if self.stop_after is not None:
             if step > self.stop_after:
-                return self.AdaptationRequired(False, False)
+                return AdaptationRequired(False, False)
 
         if self.burn_in:
             if step >= self.burn_in:
                 self.burn_in = None
-                result = self.AdaptationRequired(False, True)
+                result = AdaptationRequired(False, True)
             else:
-                result = self.AdaptationRequired(False, False)
+                result = AdaptationRequired(False, False)
         else:
             if step >= self.next_adapt:
-                result = self.AdaptationRequired(True, True)
-                self.adapt_every *= self.growth_factor
+                result = AdaptationRequired(True, True)
+                self.adapt_every = int(self.growth_factor * self.adapt_every)
                 self.next_adapt += self.adapt_every
             else:
-                result = self.AdaptationRequired(False, False)
+                result = AdaptationRequired(False, False)
         return result
 
 
