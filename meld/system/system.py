@@ -4,12 +4,12 @@
 #
 
 import math
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
-from simtk.unit import atmosphere  #type: ignore
+from simtk.unit import atmosphere  # type: ignore
 
 
 class TemperatureScaler:
@@ -633,6 +633,10 @@ class RunOptions:
 
     @use_amap.setter
     def use_amap(self, value):
+        if not value in [True, False]:
+            raise ValueError("use_amap must be True or False")
+        if value and self._solvation == "explicit":
+            raise ValueError("use_amap can not be set with explicit solvent")
         self._use_amap = bool(value)
 
     @property
@@ -687,3 +691,5 @@ class RunOptions:
                     'implicit_solvent_model != "vacuum" for explicit '
                     "solvation simulation"
                 )
+            if self._use_amap == True:
+                raise ValueError('use_amap cannot be set with explicit solvent')
