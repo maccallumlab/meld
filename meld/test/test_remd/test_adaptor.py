@@ -51,7 +51,7 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
         "if the adaptation_policy says so, we should reset"
         STEP = 10
         # False, True => No adapt, but reset
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             False, True
         )
         # set one success; this should be removed by the reset
@@ -72,7 +72,7 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
             self.adaptor.update(0, False)
             self.adaptor.update(1, True)
         # adpatation_policy says not to adapt
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             False, False
         )
 
@@ -94,7 +94,7 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
             self.adaptor.update(0, False)
             self.adaptor.update(1, True)
         # adpatation_policy says to adapt
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             True, False
         )
 
@@ -109,7 +109,7 @@ class TestAdaptationUsesPolicy(unittest.TestCase):
 class TestTwoReplicas(unittest.TestCase):
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             True, False
         )
         self.adaptor = adaptor.EqualAcceptanceAdaptor(
@@ -143,7 +143,7 @@ class TestTwoReplicas(unittest.TestCase):
 class TestThreeReplicas(unittest.TestCase):
     def setUp(self):
         self.mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        self.mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             True, False
         )
         self.adaptor = adaptor.EqualAcceptanceAdaptor(
@@ -202,7 +202,7 @@ class TestMinimum(unittest.TestCase):
     def test_minimum(self):
         "the minimum value should work correctly"
         mock_adapt_policy = mock.Mock(spec_set=adaptor.AdaptationPolicy)
-        mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationPolicy.AdaptationRequired(
+        mock_adapt_policy.should_adapt.return_value = adaptor.AdaptationRequired(
             True, False
         )
         a = adaptor.EqualAcceptanceAdaptor(

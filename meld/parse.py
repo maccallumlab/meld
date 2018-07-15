@@ -104,7 +104,7 @@ def get_sequence_from_AA1(
     ------
     RuntimeError
         Error raised on bad input
- 
+
     Notes
     -----
     Specify exactly one of filename, contents, file
@@ -524,10 +524,10 @@ def _handle_arguments(
 def get_rdc_restraints(
     system: System,
     scaler: RestraintScaler,
-    ramp: Optional[TimeRamp]=None,
-    filename: Optional[str]=None,
-    content: Optional[str]=None,
-    file: Optional[TextIO]=None,
+    ramp: Optional[TimeRamp] = None,
+    filename: Optional[str] = None,
+    content: Optional[str] = None,
+    file: Optional[TextIO] = None,
 ) -> List[RdcRestraint]:
     """
     Reads restraints from file and returns as RdcRestraint object.
