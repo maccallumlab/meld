@@ -4,7 +4,7 @@
 #
 
 import unittest
-import mock
+from unittest import mock  #type: ignore
 from meld.remd import slave_runner, master_runner, launch
 from meld.system import OpenMMRunner
 from meld import comm, vault

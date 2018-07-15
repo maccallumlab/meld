@@ -5,10 +5,10 @@
 
 import unittest
 
-from simtk import openmm
-import mock
-from mock import ANY
-import numpy as np
+from simtk import openmm  #type: ignore
+from unittest import mock  #type: ignore
+from unittest.mock import ANY  #type: ignore
+import numpy as np  #type: ignore
 
 from meld.system import protein, builder
 from meld.system.openmm_runner.cmap import CMAPAdder

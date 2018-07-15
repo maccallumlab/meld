@@ -3,8 +3,8 @@
 # All rights reserved
 #
 
-import numpy as np
-from scipy import interpolate
+import numpy as np  #type: ignore
+from scipy import interpolate  #type: ignore
 import math
 from collections import namedtuple
 

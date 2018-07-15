@@ -4,7 +4,7 @@
 #
 
 import unittest
-import numpy as np
+import numpy as np  #type: ignore
 from meld.system import state
 
 

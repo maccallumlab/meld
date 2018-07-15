@@ -3,9 +3,9 @@
 # All rights reserved
 #
 
-import numpy as np
+import numpy as np  #type: ignore
 import unittest
-import mock
+from unittest import mock  #type: ignore
 
 
 from meld import system

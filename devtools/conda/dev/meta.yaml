@@ -19,10 +19,10 @@ requirements:
     - hdf4
     - netcdf4
     - sphinx
-    - mock
     - sphinx_rtd_theme ==0.1.9
     - mpi4py
     - clangdev ==6.0.0
+    - mypy
 
   run:
     - python
@@ -32,7 +32,6 @@ requirements:
     - scipy
     - hdf4
     - netcdf4
-    - mock
     - mpi4py
     - scikit-learn >=0.18.0
 
@@ -42,6 +41,7 @@ test:
     - meldplugin
   commands:
     - python -m unittest discover meld.test
+    - bash /io/devtools/run_mypy.sh
 
 about:
     home: https://meldmd.org

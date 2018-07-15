@@ -4,12 +4,12 @@
 #
 
 import math
-import numpy as np
+import numpy as np  #type: ignore
 from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
-from simtk.unit import atmosphere
+from simtk.unit import atmosphere  #type: ignore
 
 
 class ConstantTemperatureScaler:

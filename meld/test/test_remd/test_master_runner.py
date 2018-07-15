@@ -4,12 +4,12 @@
 #
 
 import unittest
-import mock
-from mock import sentinel
+from unittest import mock  #type: ignore
+from unittest.mock import sentinel  #type: ignore
 from meld.remd import master_runner, ladder, adaptor
 from meld.system import runner
 from meld import comm, vault
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal  #type: ignore
 
 
 class TestSingleStep(unittest.TestCase):

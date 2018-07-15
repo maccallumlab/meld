@@ -4,8 +4,8 @@
 #
 
 import unittest
-import mock
-import numpy as np
+from unittest import mock  #type: ignore
+import numpy as np  #type: ignore
 from meld.remd import ladder, adaptor
 
 

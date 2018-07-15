@@ -3,6 +3,8 @@
 # All rights reserved
 #
 
+import numpy as np  #type: ignore
+
 
 class SystemState:
     """
@@ -12,10 +14,18 @@ class SystemState:
     :param velocities: velocities for structure, same as coords
     :param alpha: alpha value, within ``[0, 1]``
     :param energy: total potential energy, including restraints
+    :
 
     """
 
-    def __init__(self, positions, velocities, alpha, energy, box_vector):
+    def __init__(
+        self,
+        positions: np.ndarray,
+        velocities: np.ndarray,
+        alpha: float,
+        energy: float,
+        box_vector: np.ndarray,
+    ) -> None:
         self.positions = positions
         self.velocities = velocities
         self.box_vector = box_vector

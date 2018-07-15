@@ -49,3 +49,4 @@ meld/version.py
 
 .idea
 .vscode/settings.json
+.mypy_cache
