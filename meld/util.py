@@ -99,7 +99,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
     through the abort_queue.
     """
 
-    allow_reuse_address = 1
+    allow_reuse_address = True
 
     def __init__(self, host, abort_queue, socket_queue, handler=LogRecordStreamHandler):
         # we request port zero, which should get an unused, non-privileged port

@@ -4,7 +4,7 @@
 #
 
 import unittest
-import mock
+from unittest import mock  #type: ignore
 from meld.system import get_runner, RunOptions
 
 

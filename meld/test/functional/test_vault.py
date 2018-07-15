@@ -5,7 +5,7 @@
 # All rights reserved
 #
 
-import numpy as np
+import numpy as np  #type: ignore
 import unittest
 import os
 from meld import vault, comm
@@ -96,7 +96,6 @@ class DataStorePickleTestCase(unittest.TestCase):
 
             self.assertEqual(c.n_atoms, c2.n_atoms)
             self.assertEqual(c.n_replicas, c2.n_replicas)
-            self.assertIsNone(c2._mpi_comm, "_mpi_comm should not be saved")
             self.assertTrue(os.path.exists("Data/communicator.dat"))
 
     def test_save_and_load_remd_runner(self):

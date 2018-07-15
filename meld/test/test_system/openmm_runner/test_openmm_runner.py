@@ -4,7 +4,7 @@
 #
 
 import unittest
-import mock
+from unittest import mock  #type: ignore
 from meld.system import OpenMMRunner, RunOptions
 from meld.system import protein, builder, ConstantTemperatureScaler
 from meld.system.openmm_runner.runner import (
@@ -14,10 +14,10 @@ from meld.system.openmm_runner.runner import (
     PressureCouplingParams,
     PMEParams,
 )
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2
+from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  #type: ignore
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MonteCarloBarostat
-from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere
+from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  #type: ignore
+from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  #type: ignore
 from meld.system.restraints import (
     SelectableRestraint,
     NonSelectableRestraint,

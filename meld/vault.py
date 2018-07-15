@@ -7,8 +7,8 @@ import contextlib
 import os
 import time
 import pickle
-import netCDF4 as cdf
-import numpy as np
+import netCDF4 as cdf  #type: ignore
+import numpy as np #type: ignore
 import shutil
 from meld.system import state
 

@@ -3,10 +3,10 @@ This module implements `Patcher` classes that can modify
 the system to include new atoms and/or paramters.
 """
 
-import parmed as pmd
+import parmed as pmd  #type: ignore
 from meld import util
 from parmed import unit as u
-import numpy as np
+import numpy as np  #type: ignore
 
 
 class PatcherBase:

@@ -3,9 +3,9 @@
 # All rights reserved
 #
 
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation
-from simtk.openmm.app import forcefield as ff
-from simtk.openmm import (
+from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  #type: ignore
+from simtk.openmm.app import forcefield as ff  #type: ignore
+from simtk.openmm import (  #type: ignore
     LangevinIntegrator,
     Platform,
     CustomExternalForce,
@@ -16,7 +16,7 @@ from simtk.openmm import (
     PeriodicTorsionForce,
     CustomAngleForce,
 )
-from simtk.unit import (
+from simtk.unit import (  #type: ignore
     Quantity,
     kelvin,
     picosecond,
@@ -47,14 +47,14 @@ from meld.system.openmm_runner import cmap
 from meld.system.openmm_runner import transform
 import logging
 from meld.util import log_timing
-import numpy as np
+import numpy as np  #type: ignore
 import tempfile
 from collections import Callable, namedtuple
 
 logger = logging.getLogger(__name__)
 
 try:
-    from meldplugin import MeldForce, RdcForce
+    from meldplugin import MeldForce, RdcForce  #type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "

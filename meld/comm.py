@@ -3,17 +3,20 @@
 # All rights reserved
 #
 
+from mpi4py import MPI  #type: ignore
 import signal
 import threading
 import time
 import os
-import numpy as np
+import numpy as np  #type: ignore
 import platform
 from collections import defaultdict, namedtuple
 import contextlib
 import logging
 from meld.util import log_timing
 import sys
+from meld.system.state import SystemState
+from typing import Dict, List, Tuple, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -47,26 +50,25 @@ class MPICommunicator:
         creating an MPI communicator will not actually initialize MPI.
         To do that, call :meth:`initialize`.
     """
+    _mpi_comm: MPI.Comm
 
-    def __init__(self, n_atoms, n_replicas, timeout=600):
+    def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600) -> None:
         # We're not using n_atoms and n_replicas, but if we switch
         # to more efficient buffer-based MPI routines, we'll need them.
         self._n_atoms = n_atoms
         self._n_replicas = n_replicas
-        self._mpi_comm = None
         self._timeout = timeout
         self._timeout_message = f"Call to {{:s}} did not complete in {timeout} seconds"
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         # don't pickle _mpi_comm
         return dict((k, v) for (k, v) in self.__dict__.items() if not k == "_mpi_comm")
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         # set _mpi_comm to None
         self.__dict__ = state
-        self._mpi_comm = None
 
-    def initialize(self):
+    def initialize(self) -> None:
         """
         Initialize and start MPI
 
@@ -74,7 +76,7 @@ class MPICommunicator:
         self._mpi_comm = get_mpi_comm_world()
         self._my_rank = self._mpi_comm.Get_rank()
 
-    def is_master(self):
+    def is_master(self) -> bool:
         """
         Is this the master node?
 
@@ -87,14 +89,14 @@ class MPICommunicator:
             return False
 
     @log_timing(logger)
-    def barrier(self):
+    def barrier(self) -> None:
         with timeout(
             self._timeout, RuntimeError(self._timeout_message.format("barrier"))
         ):
             self._mpi_comm.barrier()
 
     @log_timing(logger)
-    def broadcast_alphas_to_slaves(self, alphas):
+    def broadcast_alphas_to_slaves(self, alphas: List[float]) -> None:
         """
         broadcast_alphas_to_slaves(alphas)
         Send the alpha values to the slaves.
@@ -112,7 +114,7 @@ class MPICommunicator:
             self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
-    def broadcast_logger_address_to_slaves(self, address):
+    def broadcast_logger_address_to_slaves(self, address: Tuple[str, int]) -> None:
         """
         Broadcast the hostname and port of the logger to slaves.
 
@@ -128,7 +130,7 @@ class MPICommunicator:
             self._mpi_comm.bcast(address, root=0)
 
     @log_timing(logger)
-    def receive_logger_address_from_master(self):
+    def receive_logger_address_from_master(self) -> Tuple[str, int]:
         """
         Receive the hostname and port of the logger from the master
 
@@ -143,7 +145,7 @@ class MPICommunicator:
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def receive_alpha_from_master(self):
+    def receive_alpha_from_master(self) -> float:
         """
         receive_alpha_from_master()
         Receive alpha value from master node.
@@ -158,7 +160,7 @@ class MPICommunicator:
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def broadcast_states_to_slaves(self, states):
+    def broadcast_states_to_slaves(self, states: List[SystemState]) -> SystemState:
         """
         broadcast_states_to_slaves(states)
         Send a state to each slave.
@@ -176,7 +178,7 @@ class MPICommunicator:
             return self._mpi_comm.scatter(states, root=0)
 
     @log_timing(logger)
-    def receive_state_from_master(self):
+    def receive_state_from_master(self) -> SystemState:
         """
         receive_state_from_master()
         Get state to run for this step
@@ -191,7 +193,7 @@ class MPICommunicator:
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def gather_states_from_slaves(self, state_on_master):
+    def gather_states_from_slaves(self, state_on_master: SystemState) -> List[SystemState]:
         """
         gather_states_from_slaves(state_on_master)
         Receive states from all slaves
@@ -208,7 +210,7 @@ class MPICommunicator:
             return self._mpi_comm.gather(state_on_master, root=0)
 
     @log_timing(logger)
-    def send_state_to_master(self, state):
+    def send_state_to_master(self, state: SystemState) -> None:
         """
         send_state_to_master(state)
         Send state to master
@@ -225,7 +227,7 @@ class MPICommunicator:
             self._mpi_comm.gather(state, root=0)
 
     @log_timing(logger)
-    def broadcast_states_for_energy_calc_to_slaves(self, states):
+    def broadcast_states_for_energy_calc_to_slaves(self, states: List[SystemState]) -> None:
         """
         broadcast_states_for_energy_calc_to_slaves(states)
         Broadcast states to all slaves. Send all results from this step
@@ -247,7 +249,7 @@ class MPICommunicator:
             self._mpi_comm.bcast(states, root=0)
 
     @log_timing(logger)
-    def exchange_states_for_energy_calc(self, state):
+    def exchange_states_for_energy_calc(self, state: SystemState) -> List[SystemState]:
         """
         exchange_states_for_energy_calc(state)
         Exchange states between all processes.
@@ -265,7 +267,7 @@ class MPICommunicator:
             return self._mpi_comm.allgather(state)
 
     @log_timing(logger)
-    def receive_states_for_energy_calc_from_master(self):
+    def receive_states_for_energy_calc_from_master(self) -> List[SystemState]:
         """
         receive_states_for_energy_calc_from_master()
         Receive all states from master.
@@ -284,7 +286,7 @@ class MPICommunicator:
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def gather_energies_from_slaves(self, energies_on_master):
+    def gather_energies_from_slaves(self, energies_on_master: List[float]) -> np.ndarray:
         """
         gather_energies_from_slaves(energies_on_master)
         Receive a list of energies from each slave.
@@ -302,7 +304,7 @@ class MPICommunicator:
             return np.array(energies)
 
     @log_timing(logger)
-    def send_energies_to_master(self, energies):
+    def send_energies_to_master(self, energies: List[float]) -> None:
         """
         send_energies_to_master(energies)
         Send a list of energies to the master.
@@ -318,19 +320,17 @@ class MPICommunicator:
             return self._mpi_comm.gather(energies, root=0)
 
     @log_timing(logger)
-    def negotiate_device_id(self):
+    def negotiate_device_id(self) -> int:
         with timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("negotiate_device_id")),
         ):
             hostname = platform.node()
             try:
-                visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
-                logger.info("%s found cuda devices: %s", hostname, visible_devices)
-                visible_devices = visible_devices.split(",")
-                if visible_devices:
-                    visible_devices = [int(dev) for dev in visible_devices]
-                else:
+                env_visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
+                logger.info("%s found cuda devices: %s", hostname, env_visible_devices)
+                visible_devices: Optional[List[int]] = [int(dev) for dev in env_visible_devices.split(",")]
+                if not visible_devices:
                     raise RuntimeError("No cuda devices available")
             except KeyError:
                 logger.info("%s CUDA_VISIBLE_DEVICES is not set.", hostname)
@@ -349,7 +349,7 @@ class MPICommunicator:
                     logger.info("numbering starts from 0.")
 
                     # create an empty default dict to count hosts
-                    host_counts = defaultdict(int)
+                    host_counts: Dict[str, int] = defaultdict(int)
 
                     # list of device ids
                     # this assumes that available devices for each node
@@ -365,7 +365,7 @@ class MPICommunicator:
                     logger.info("CUDA_VISIBLE_DEVICES is set.")
 
                     # create a dict to hold the device ids available on each host
-                    available_devices = {}
+                    available_devices: Dict[str, List[int]] = {}
                     # store the available devices on each node
                     for host in hosts:
                         if host.host_name in available_devices:
@@ -401,33 +401,31 @@ class MPICommunicator:
 
             # receive device id from master
             else:
-                device_ids = None
+                device_ids = []
 
             # do the communication
-            device_id = self._mpi_comm.scatter(device_ids, root=0)
+            device_id = self._mpi_comm.scatter(device_ids if device_ids else None, root=0)
             logger.info("hostname: %s, device_id: %d", hostname, device_id)
             return device_id
 
     @property
-    def n_replicas(self):
+    def n_replicas(self) -> int:
         return self._n_replicas
 
     @property
-    def n_atoms(self):
+    def n_atoms(self) -> int:
         return self._n_atoms
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         return self._my_rank
 
 
-def get_mpi_comm_world():
+def get_mpi_comm_world() -> MPI.Comm:
     """
-    Helper function to import mpi4py and return the comm_world.
+    Helper function to return the comm_world.
 
     """
-    from mpi4py import MPI
-
     return MPI.COMM_WORLD
 
 

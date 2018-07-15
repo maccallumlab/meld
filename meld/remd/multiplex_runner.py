@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-import numpy as np
+import numpy as np  #type: ignore
 from meld.remd.reseed import NullReseeder
 import logging
 import math

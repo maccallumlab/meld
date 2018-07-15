@@ -135,8 +135,9 @@ References
 
 """
 import math
-import numpy as np
+import numpy as np  #type: ignore
 from collections import namedtuple
+from typing import Dict, Any
 
 
 class _RestraintRegistry(type):
@@ -151,7 +152,7 @@ class _RestraintRegistry(type):
     corresponding key.
     """
 
-    _restraint_registry = {}
+    _restraint_registry: Dict[str, type] = {}
 
     def __init__(cls, name, bases, attrs):
         if name in ["Restraint", "SelectableRestraint", "NonSelectableRestraint"]:
@@ -1250,7 +1251,7 @@ class ScalerRegistry(type):
     # The function get_constructor_for_key is used to get the class for the
     # corresponding key.
     # '''
-    _scaler_registry = {}
+    _scaler_registry: Dict[str, type] = {}
 
     def __init__(cls, name, bases, attrs):
         if name in ["AlphaMapper", "RestraintScaler", "TimeRamp", "Positioner"]:

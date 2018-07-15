@@ -6,8 +6,8 @@
 from meld.system import montecarlo as mc
 import meld
 import unittest
-import mock
-import numpy as np
+from unittest import mock  #type: ignore
+import numpy as np  #type: ignore
 
 
 class TestMonteCarloSchedulerSingle(unittest.TestCase):
