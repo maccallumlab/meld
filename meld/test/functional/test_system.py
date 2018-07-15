@@ -277,6 +277,27 @@ class TestOptions(unittest.TestCase):
 
     def test_use_amap_defaults_to_false(self):
         self.assertEqual(self.options.use_amap, False)
+    
+class TestOptionsImplicitSanityCheck(unittest.TestCase):
+    def setUp(self):
+        self.options = RunOptions(solvation="implicit")
+    
+    def test_setting_enable_pme_should_raise(self):
+        with self.assertRaises(ValueError):
+            self.options.enable_pme = True
+
+    def test_setting_enable_pressure_coupling_should_raise(self):
+        with self.assertRaises(ValueError):
+            self.options.enable_pressure_coupling = True
+
+class TestOptionsExplicitSanityCheck(unittest.TestCase):
+    def setUp(self):
+        self.options = RunOptions(solvation="explicit")
+    
+    def test_setting_usse_amap_should_riase(self):
+        with self.assertRaises(ValueError):
+            self.options.use_amap = True
+
 
 
 class TestGetBonds(unittest.TestCase):
