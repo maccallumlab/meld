@@ -3,54 +3,56 @@
 # All rights reserved
 #
 
-from meld.system.openmm_runner import OpenMMRunner
+from meld.system.state import SystemState
+from meld.system.system import TemperatureScaler, System
+from meld.system import RunOptions
+from meld.comm import MPICommunicator
+from typing import Optional
 
 
 class ReplicaRunner:
-    def initialize(self):
+    temperature_scaler: TemperatureScaler
+
+    def initialize(self) -> None:
         pass
 
-    def minimize_then_run(self, state):
+    def minimize_then_run(self, state: SystemState) -> SystemState:
         pass
 
-    def run(self, state):
+    def run(self, state: SystemState) -> SystemState:
         pass
 
-    def get_energy(self, state):
+    def get_energy(self, state: SystemState) -> float:
         pass
 
     def prepare_for_timestep(self, alpha, timestep):
         pass
 
 
-class FakeSystemRunner:
+class FakeSystemRunner(ReplicaRunner):
     """
     Fake runner for test purposes.
     """
 
-    def __init__(self, system, options, communicator=None):
+    def __init__(
+        self,
+        system: System,
+        options: RunOptions,
+        communicator: Optional[MPICommunicator] = None,
+    ) -> None:
         self.temperature_scaler = system.temperature_scaler
 
-    def set_alpha_and_timestep(self, alpha, timestep):
+    def set_alpha_and_timestep(self, alpha: float, timestep: int) -> None:
         pass
 
-    def minimize_then_run(self, state):
+    def minimize_then_run(self, state: SystemState) -> SystemState:
         return state
 
-    def run(self, state):
+    def run(self, state: SystemState) -> SystemState:
         return state
 
-    def get_energy(self, state):
+    def get_energy(self, state: SystemState) -> float:
         return 0.
 
-    def prepare_for_timestep(self, alpha, timestep):
+    def prepare_for_timestep(self, alpha: float, timestep: int) -> None:
         pass
-
-
-def get_runner(system, options, comm):
-    if options.runner == "openmm":
-        return OpenMMRunner(system, options, comm)
-    elif options.runner == "fake_runner":
-        return FakeSystemRunner(system, options, comm)
-    else:
-        raise RuntimeError(f"Unknown type of runner: {options.runner}")

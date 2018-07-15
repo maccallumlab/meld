@@ -9,6 +9,27 @@ from unittest import mock  #type: ignore
 from meld.remd import adaptor
 
 
+class TestAcceptanceCounter(unittest.TestCase):
+    def setUp(self):
+        self.counter = adaptor.AcceptanceCounter(3)
+    
+    def test_should_give_zero_with_no_success(self):
+        result = self.counter.get_acceptance_probabilities()
+        self.assertAlmostEqual(result[0], 0.0)
+        self.assertAlmostEqual(result[1], 0.0)
+    
+    def test_should_give_100_percent_with_all_success(self):
+        self.counter.update(0, True)
+        result = self.counter.get_acceptance_probabilities()
+        self.assertAlmostEqual(result[0], 1.0)
+
+    def test_should_give_50_percent_with_half_success(self):
+        self.counter.update(0, True)
+        self.counter.update(0, False)
+        result = self.counter.get_acceptance_probabilities()
+        self.assertAlmostEqual(result[0], 0.5)
+
+
 class TestAdaptationUsesPolicy(unittest.TestCase):
     "tests to see if adaptor delegates decisions to adapt or reset to the adapation_policy"
 

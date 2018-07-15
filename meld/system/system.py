@@ -12,7 +12,12 @@ from meld.pdb_writer import PDBWriter
 from simtk.unit import atmosphere  #type: ignore
 
 
-class ConstantTemperatureScaler:
+class TemperatureScaler:
+    def __call__(self, alpha: float) -> float:
+        pass
+
+
+class ConstantTemperatureScaler(TemperatureScaler):
     def __init__(self, temperature):
         self._temperature = temperature
 
@@ -22,7 +27,7 @@ class ConstantTemperatureScaler:
         return self._temperature
 
 
-class LinearTemperatureScaler:
+class LinearTemperatureScaler(TemperatureScaler):
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -52,7 +57,7 @@ class LinearTemperatureScaler:
             return self._temperature_max
 
 
-class FixedTemperatureScaler:
+class FixedTemperatureScaler(TemperatureScaler):
     def __init__(self, alpha_min, alpha_max, temperatures):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
@@ -83,7 +88,7 @@ class FixedTemperatureScaler:
             return self._temperatures[-1]
 
 
-class GeometricTemperatureScaler:
+class GeometricTemperatureScaler(TemperatureScaler):
     def __init__(self, alpha_min, alpha_max, temperature_min, temperature_max):
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")

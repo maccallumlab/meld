@@ -3,10 +3,17 @@
 # All rights reserved
 #
 
+from meld.vault import DataStore
+from meld.system.state import SystemState
 from meld.remd import slave_runner
+from meld.remd.ladder import NearestNeighborLadder
+from meld.remd.adaptor import Adaptor
 from meld.remd.reseed import NullReseeder
+from meld.system.runner import ReplicaRunner
+from meld.comm import MPICommunicator
 import logging
 import math
+from typing import List, Union
 
 
 logger = logging.getLogger(__name__)
@@ -31,45 +38,55 @@ class MasterReplicaExchangeRunner:
     #
 
     @property
-    def n_replicas(self):
+    def n_replicas(self) -> int:
         return self._n_replicas
 
     @property
-    def alphas(self):
+    def alphas(self) -> List[float]:
         return self._alphas
 
     @property
-    def step(self):
+    def step(self) -> int:
         return self._step
 
     @property
-    def max_steps(self):
+    def max_steps(self) -> int:
         return self._max_steps
 
     #
     # public methods
     #
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor):
+    _alphas: List[float]
+
+    def __init__(
+        self,
+        n_replicas: int,
+        max_steps: int,
+        ladder: NearestNeighborLadder,
+        adaptor: Adaptor,
+    ) -> None:
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
-
-        self._alphas = None
         self._setup_alphas()
-
         self.reseeder = NullReseeder()
 
-    def to_slave(self):
+    def to_slave(self) -> slave_runner.SlaveReplicaExchangeRunner:
         """
         Return a SlaveReplicaExchangeRunner based on self.
 
         """
         return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
 
-    def run(self, communicator, system_runner, store):
+    def run(
+        self,
+        communicator: MPICommunicator,
+        system_runner: ReplicaRunner,
+        store: DataStore,
+    ):
         """
         Run replica exchange until finished
 
@@ -148,14 +165,20 @@ class MasterReplicaExchangeRunner:
     #
 
     @staticmethod
-    def _compute_energies(states, system_runner):
+    def _compute_energies(
+        states: List[SystemState], system_runner: ReplicaRunner
+    ) -> List[float]:
         my_energies = []
         for state in states:
             my_energies.append(system_runner.get_energy(state))
         return my_energies
 
     @staticmethod
-    def _permute_states(permutation_matrix, states, system_runner):
+    def _permute_states(
+        permutation_matrix: List[int],
+        states: List[SystemState],
+        system_runner: ReplicaRunner,
+    ) -> List[SystemState]:
         old_coords = [s.positions for s in states]
         old_velocities = [s.velocities for s in states]
         old_box_vectors = [s.box_vector for s in states]
@@ -171,6 +194,6 @@ class MasterReplicaExchangeRunner:
             states[i].energy = old_energy[index]
         return states
 
-    def _setup_alphas(self):
+    def _setup_alphas(self) -> None:
         delta = 1.0 / (self._n_replicas - 1.0)
         self._alphas = [i * delta for i in range(self._n_replicas)]
