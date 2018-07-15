@@ -9,21 +9,28 @@ import meld
 from meld import util
 from meld import vault
 from meld.system import get_runner
-from simtk.openmm import version as mm_version  #type: ignore
+from simtk.openmm import version as mm_version  # type: ignore
 from meld.remd import multiplex_runner
 import socket
-import multiprocessing
+import multiprocessing as mp
+from typing import Tuple, Union
+
+Handler = Union[logging.StreamHandler, logging.handlers.SocketHandler]
 
 
 logger = logging.getLogger(__name__)
 
 
-def log_versions():
+def log_versions() -> None:
     logger.info("Meld version is %s", meld.__version__)
     logger.info("OpenMM_Meld version is %s", mm_version.full_version)
 
 
-def launch(console_handler, debug=False, console_log=False):
+def launch(
+    console_handler: Handler,
+    debug: bool = False,
+    console_log: bool = False,
+) -> None:
     logger.info("loading data store")
     store = vault.DataStore.load_data_store()
 
@@ -50,9 +57,9 @@ def launch(console_handler, debug=False, console_log=False):
     if not console_log:
         if communicator.is_master():
             # start logging server
-            abort_queue = multiprocessing.Queue()
-            socket_queue = multiprocessing.Queue()
-            process = multiprocessing.Process(
+            abort_queue: mp.Queue[int] = mp.Queue()
+            socket_queue: mp.Queue[Tuple[str, int]] = mp.Queue()
+            process = mp.Process(
                 target=util.configure_logging_and_launch_listener,
                 args=(hostname, abort_queue, socket_queue),
             )
@@ -65,7 +72,7 @@ def launch(console_handler, debug=False, console_log=False):
             logger_address = communicator.receive_logger_address_from_master()
 
         # create SocketHandler to write logging over network
-        handler = logging.handlers.SocketHandler(logger_address[0], logger_address[1])
+        handler: Handler = logging.handlers.SocketHandler(logger_address[0], logger_address[1])
     else:
         fmt = "%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s"
         fmt = fmt.format(hostid)
@@ -109,7 +116,9 @@ def launch(console_handler, debug=False, console_log=False):
         process.join()
 
 
-def launch_multiplex(console_handler, debug=False):
+def launch_multiplex(
+    console_handler: Handler, debug: bool = False
+) -> None:
     logger.info("Loading data store")
     store = vault.DataStore.load_data_store()
 

@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+from meld.system.runner import ReplicaRunner
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  #type: ignore
 from simtk.openmm.app import forcefield as ff  #type: ignore
 from simtk.openmm import (  #type: ignore
@@ -73,7 +74,7 @@ PressureCouplingParams = namedtuple(
 PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
 
 
-class OpenMMRunner:
+class OpenMMRunner(ReplicaRunner):
     def __init__(self, system, options, communicator=None, test=False):
         if communicator:
             self._device_id = communicator.negotiate_device_id()

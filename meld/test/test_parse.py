@@ -13,28 +13,28 @@ class TestGetAA1(unittest.TestCase):
     def test_can_parse_simple_sequence(self):
         content = "AAAA"
 
-        result = parse.get_sequence_from_AA1(contents=content)
+        result = parse.get_sequence_from_AA1(content=content)
 
         self.assertEqual(result, "NALA ALA ALA CALA")
 
     def test_can_handle_multiple_lines(self):
         content = "AA\nAA\n"
 
-        result = parse.get_sequence_from_AA1(contents=content)
+        result = parse.get_sequence_from_AA1(content=content)
 
         self.assertEqual(result, "NALA ALA ALA CALA")
 
     def test_can_handle_comments(self):
         content = "AA\n#comment\nAA\n"
 
-        result = parse.get_sequence_from_AA1(contents=content)
+        result = parse.get_sequence_from_AA1(content=content)
 
         self.assertEqual(result, "NALA ALA ALA CALA")
 
     def test_can_handle_all_residues(self):
         content = "ACDEFGHIKLMNPQRSTVWY"
 
-        result = parse.get_sequence_from_AA1(contents=content)
+        result = parse.get_sequence_from_AA1(content=content)
 
         self.assertEqual(
             result,
@@ -45,28 +45,28 @@ class TestGetAA1(unittest.TestCase):
         content = "AX"
 
         with self.assertRaises(RuntimeError):
-            parse.get_sequence_from_AA1(contents=content)
+            parse.get_sequence_from_AA1(content=content)
 
 
 class TestGetAA3(unittest.TestCase):
     def test_can_parse_simple_sequence(self):
         content = "ALA ALA ALA ALA"
 
-        result = parse.get_sequence_from_AA3(contents=content)
+        result = parse.get_sequence_from_AA3(content=content)
 
         self.assertEqual(result, "NALA ALA ALA CALA")
 
     def test_can_handle_comment(self):
         content = "ALA ALA\n#comment\nALA ALA\n"
 
-        result = parse.get_sequence_from_AA3(contents=content)
+        result = parse.get_sequence_from_AA3(content=content)
 
         self.assertEqual(result, "NALA ALA ALA CALA")
 
     def test_can_handle_all_residues(self):
         content = "ALA CYS ASP GLU PHE GLY HIE ILE LYS LEU MET ASN PRO GLN ARG SER THR VAL TRP TYR"
 
-        result = parse.get_sequence_from_AA3(contents=content)
+        result = parse.get_sequence_from_AA3(content=content)
 
         self.assertEqual(
             result,
@@ -76,7 +76,7 @@ class TestGetAA3(unittest.TestCase):
     def test_can_handle_alternate_protonation_states(self):
         content = "ALA ASH GLH LYN HIE HIP HID ALA"
 
-        result = parse.get_sequence_from_AA3(contents=content)
+        result = parse.get_sequence_from_AA3(content=content)
 
         self.assertEqual(result, "NALA ASH GLH LYN HIE HIP HID CALA")
 
@@ -84,34 +84,34 @@ class TestGetAA3(unittest.TestCase):
         content = "ALA XXX ALA"
 
         with self.assertRaises(RuntimeError):
-            parse.get_sequence_from_AA3(contents=content)
+            parse.get_sequence_from_AA3(content=content)
 
 
 class TestGetSecondaryString(unittest.TestCase):
     def test_can_parse_simple_input(self):
         content = "..HHEE.."
 
-        results = parse._get_secondary_sequence(contents=content)
+        results = parse._get_secondary_sequence(content=content)
 
         self.assertEqual(results, "..HHEE..")
 
     def test_can_parse_multiline_input(self):
         content = "..HH\nEE..\n"
 
-        results = parse._get_secondary_sequence(contents=content)
+        results = parse._get_secondary_sequence(content=content)
 
         self.assertEqual(results, "..HHEE..")
 
     def test_can_parse_input_with_comment(self):
         content = "..HH\n#comment\nEE..\n"
 
-        results = parse._get_secondary_sequence(contents=content)
+        results = parse._get_secondary_sequence(content=content)
 
     def test_raises_on_bad_input(self):
         content = ".HEx"
 
         with self.assertRaises(RuntimeError):
-            parse._get_secondary_sequence(contents=content)
+            parse._get_secondary_sequence(content=content)
 
 
 class TestExtractSecondaryRuns(unittest.TestCase):
@@ -180,14 +180,14 @@ class TestGetSecondaryStructures(unittest.TestCase):
 
     def test_adds_correct_number_of_groups(self):
         results = parse.get_secondary_structure_restraints(
-            contents=self.ss, system=self.system, scaler=self.scaler
+            content=self.ss, system=self.system, scaler=self.scaler
         )
 
         self.assertEqual(len(results), 4)
 
     def each_group_should_have_six_restraints(self):
         results = parse.get_secondary_structure_restraints(
-            contents=self.ss, system=self.system, scaler=self.scaler
+            content=self.ss, system=self.system, scaler=self.scaler
         )
 
         for group in results:
@@ -206,7 +206,7 @@ class TestGetRdcRestraints(unittest.TestCase):
     def test_ignores_comment_lines(self):
         contents = "#\n#\n"
         results = parse.get_rdc_restraints(
-            contents=contents, system=self.system, scaler=self.scaler
+            content=contents, system=self.system, scaler=self.scaler
         )
 
         self.assertEqual(len(results), 0)
@@ -214,7 +214,7 @@ class TestGetRdcRestraints(unittest.TestCase):
     def test_adds_correct_number_of_restraints(self):
         contents = "#\n2 N 2 H 10 0 10 25000 1.0 1\n"
         results = parse.get_rdc_restraints(
-            contents=contents, system=self.system, scaler=self.scaler
+            content=contents, system=self.system, scaler=self.scaler
         )
 
         self.assertEqual(len(results), 1)

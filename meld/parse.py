@@ -4,14 +4,26 @@
 #
 
 """
-Docstring describing whole file
+Functions to read in sequences, secondary structures, and RDCs.
 
 """
 
+from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
-from meld.system.restraints import RestraintGroup, TorsionRestraint
-from meld.system.restraints import DistanceRestraint, RdcRestraint
-from meld.system.restraints import ConstantRamp
+from meld.system import System
+from meld.system.restraints import (
+    RestraintGroup,
+    Restraint,
+    TorsionRestraint,
+    DistanceRestraint,
+    RdcRestraint,
+    TimeRamp,
+    ConstantRamp,
+    RestraintScaler,
+)
+
+SequenceString = NewType("SequenceString", str)
+SecondaryString = NewType("SecondaryString", str)
 
 
 aa_map = {
@@ -56,8 +68,13 @@ allowed_residues += [
 
 
 def get_sequence_from_AA1(
-    filename=None, contents=None, file=None, capped=False, nter=None, cter=None
-):
+    filename: Optional[str] = None,
+    content: Optional[str] = None,
+    file: Optional[TextIO] = None,
+    capped: bool = False,
+    nter: Optional[str] = None,
+    cter: Optional[str] = None,
+) -> SequenceString:
     """
     Get the sequence from a list of 1-letter amino acid codes.
 
@@ -65,7 +82,7 @@ def get_sequence_from_AA1(
     ----------
     filename : string
         Filename to open
-    contents : string
+    content : string
         Contents
     file : file-like
         Object to read from
@@ -95,7 +112,7 @@ def get_sequence_from_AA1(
     Will have to set options in setup script to skip cmap assignment
 
     """
-    contents = _handle_arguments(filename, contents, file)
+    contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith("#")]
     sequence = "".join(lines)
@@ -124,12 +141,17 @@ def get_sequence_from_AA1(
         for i in range(0, len(sequence), max_aa_per_line)
     ]
     lines = [" ".join(group) for group in groups]
-    return "\n".join(lines)
+    return SequenceString("\n".join(lines))
 
 
 def get_sequence_from_AA3(
-    filename=None, contents=None, file=None, capped=False, nter=None, cter=None
-):
+    filename: Optional[str] = None,
+    content: Optional[str] = None,
+    file: Optional[TextIO] = None,
+    capped: bool = False,
+    nter: Optional[str] = None,
+    cter: Optional[str] = None,
+) -> SequenceString:
     """
     Get the sequence from a list of 3-letter amino acid codes.
 
@@ -137,7 +159,7 @@ def get_sequence_from_AA3(
     ----------
     filename : string
         Filename to open
-    contents : string
+    content : string
         Contains contents
     file : file-like object
         Object to read from
@@ -165,7 +187,7 @@ def get_sequence_from_AA3(
     Specify exactly one of filename, contents, file
 
     """
-    contents = _handle_arguments(filename, contents, file)
+    contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith("#")]
     sequence = " ".join(lines).split()
@@ -187,22 +209,22 @@ def get_sequence_from_AA3(
         if cter:
             output.append(cter)
 
-    return " ".join(output)
+    return SequenceString(" ".join(output))
 
 
 def get_secondary_structure_restraints(
-    system,
-    scaler,
-    ramp=None,
-    torsion_force_constant=2.48,
-    distance_force_constant=2.48,
-    quadratic_cut=2.0,
-    first_residue=1,
-    min_secondary_match=4,
-    filename=None,
-    contents=None,
-    file=None,
-):
+    system: System,
+    scaler: RestraintScaler,
+    ramp: Optional[TimeRamp] = None,
+    torsion_force_constant: float = 2.48,
+    distance_force_constant: float = 2.48,
+    quadratic_cut: float = 2.0,
+    first_residue: int = 1,
+    min_secondary_match: int = 4,
+    filename: Optional[str] = None,
+    content: Optional[str] = None,
+    file: Optional[TextIO] = None,
+) -> List[RestraintGroup]:
     """
     Get a list of secondary structure restraints.
 
@@ -226,7 +248,7 @@ def get_secondary_structure_restraints(
         Residue at which to delineate peptide vs. protein,
     filename : string
         Filename to open
-    contents : string
+    content : string
         Contents to process
     file : file-like object
         Object to read from
@@ -251,7 +273,7 @@ def get_secondary_structure_restraints(
         )
     min_secondary_match = int(min_secondary_match)
 
-    contents = _get_secondary_sequence(filename, contents, file)
+    contents = _get_secondary_sequence(filename, content, file)
     torsion_force_constant /= 100.
     distance_force_constant *= 100.
     quadratic_cut *= 10.
@@ -262,7 +284,7 @@ def get_secondary_structure_restraints(
         contents, "H", 5, min_secondary_match, first_residue
     )
     for helix in helices:
-        rests = []
+        rests: List[Restraint] = []
         for index in range(helix.start + 1, helix.end - 1):
             phi = TorsionRestraint(
                 system,
@@ -437,21 +459,27 @@ def get_secondary_structure_restraints(
     return groups
 
 
-def _get_secondary_sequence(filename=None, contents=None, file=None):
-    contents = _handle_arguments(filename, contents, file)
+def _get_secondary_sequence(
+    filename: Optional[str] = None,
+    content: Optional[str] = None,
+    file: Optional[TextIO] = None,
+) -> SecondaryString:
+    contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith("#")]
     sequence = "".join(lines)
     for ss in sequence:
         if ss not in "HE.":
             raise RuntimeError(f'Unknown secondary structure type "{ss}"')
-    return sequence
+    return SecondaryString(sequence)
 
 
 SecondaryRun = namedtuple("SecondaryRun", "start end")
 
 
-def _extract_secondary_runs(content, ss_type, run_length, at_least, first_residue):
+def _extract_secondary_runs(
+    content: str, ss_type: str, run_length: int, at_least: int, first_residue: int
+) -> List[SecondaryRun]:
     # mark the elements that have the correct type
     has_correct_type = [1 if ss == ss_type else 0 for ss in content]
 
@@ -477,22 +505,30 @@ def _extract_secondary_runs(content, ss_type, run_length, at_least, first_residu
     return results
 
 
-def _handle_arguments(filename, contents, file):
+def _handle_arguments(
+    filename: Optional[str], contents: Optional[str], file: Optional[TextIO]
+) -> str:
     set_args = [arg for arg in [filename, contents, file] if arg is not None]
     if len(set_args) != 1:
         raise RuntimeError("Must set exactly one of filename, contents or file.")
 
     if filename:
-        return open(filename).read()
+        content = open(filename).read()
     elif contents:
-        return contents
+        content = contents
     elif file:
-        return file.read()
+        content = file.read()
+    return content
 
 
 def get_rdc_restraints(
-    system, scaler, ramp=None, filename=None, contents=None, file=None
-):
+    system: System,
+    scaler: RestraintScaler,
+    ramp: Optional[TimeRamp]=None,
+    filename: Optional[str]=None,
+    content: Optional[str]=None,
+    file: Optional[TextIO]=None,
+) -> List[RdcRestraint]:
     """
     Reads restraints from file and returns as RdcRestraint object.
 
@@ -506,7 +542,7 @@ def get_rdc_restraints(
         Ramp, default is ConstantRamp()
     filename : string
         Filename to open
-    contents : string
+    content : string
         Contents to process
     file : a file_like object
         Object to read from
@@ -520,7 +556,7 @@ def get_rdc_restraints(
     if ramp is None:
         ramp = ConstantRamp()
 
-    contents = _handle_arguments(filename, contents, file)
+    contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith("#")]
 

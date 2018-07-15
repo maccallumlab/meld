@@ -6,6 +6,9 @@
 import random
 import math
 import logging
+import numpy as np  # type: ignore
+from typing import List
+from meld.remd.adaptor import Adaptor
 from meld.util import log_timing
 
 logger = logging.getLogger(__name__)
@@ -19,11 +22,11 @@ class NearestNeighborLadder:
 
     """
 
-    def __init__(self, n_trials):
+    def __init__(self, n_trials: int) -> None:
         self.n_trials = n_trials
 
     @log_timing(logger)
-    def compute_exchanges(self, energies, adaptor):
+    def compute_exchanges(self, energies: np.ndarray, adaptor: Adaptor) -> List[int]:
         """
         compute_exchanges(energies, adaptor)
         Compute the exchanges given an energy matrix.
@@ -67,7 +70,14 @@ class NearestNeighborLadder:
 
         return permutation_vector
 
-    def _do_trial(self, i, j, permutation_vector, energies, adaptor):
+    def _do_trial(
+        self,
+        i: int,
+        j: int,
+        permutation_vector: List[int],
+        energies: np.ndarray,
+        adaptor: Adaptor,
+    ) -> None:
         """Perform a replica exchange trial"""
         delta = energies[i, i] - energies[j, i] + energies[j, j] - energies[i, j]
         accepted = False
@@ -88,7 +98,7 @@ class NearestNeighborLadder:
             adaptor.update(i, False)
 
     @staticmethod
-    def _swap_permutation(i, j, permutation_vector):
+    def _swap_permutation(i: int, j: int, permutation_vector: List[int]) -> None:
         """Swap two elements of the permutation matrix"""
         permutation_vector[i], permutation_vector[j] = (
             permutation_vector[j],
@@ -96,6 +106,6 @@ class NearestNeighborLadder:
         )
 
     @staticmethod
-    def _swap_energies(i, j, energies):
+    def _swap_energies(i: int, j: int, energies: np.ndarray) -> None:
         """Swap two columns of the energy matrix"""
         energies[:, [i, j]] = energies[:, [j, i]]

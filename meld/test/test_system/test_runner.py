@@ -14,7 +14,7 @@ class TestGetRunner(unittest.TestCase):
         comm = mock.Mock()
         options = RunOptions()
         options.runner = "openmm"
-        with mock.patch("meld.system.runner.OpenMMRunner") as mock_runner:
+        with mock.patch("meld.system.OpenMMRunner") as mock_runner:
             get_runner(system, options, comm)
             self.assertEqual(mock_runner.call_count, 1)
 
@@ -23,6 +23,6 @@ class TestGetRunner(unittest.TestCase):
         comm = mock.Mock()
         options = RunOptions()
         options.runner = "fake_runner"
-        with mock.patch("meld.system.runner.FakeSystemRunner") as mock_runner:
+        with mock.patch("meld.system.FakeSystemRunner") as mock_runner:
             get_runner(system, options, comm)
             self.assertEqual(mock_runner.call_count, 1)

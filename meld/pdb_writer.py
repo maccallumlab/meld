@@ -3,6 +3,8 @@
 # All rights reserved
 #
 
+import numpy as np  # type: ignore
+from typing import List
 
 header = "REMARK stage {stage}"
 footer = "TER\nEND\n\n"
@@ -13,7 +15,13 @@ template = (
 
 
 class PDBWriter:
-    def __init__(self, atom_numbers, atom_names, residue_numbers, residue_names):
+    def __init__(
+        self,
+        atom_numbers: List[int],
+        atom_names: List[str],
+        residue_numbers: List[int],
+        residue_names: List[str],
+    ) -> None:
         self._atom_numbers = atom_numbers
         self._n_atoms = len(atom_numbers)
         self.header = header
@@ -33,7 +41,7 @@ class PDBWriter:
         assert len(residue_names) == self._n_atoms
         self._residue_names = residue_names
 
-    def get_pdb_string(self, coordinates, stage):
+    def get_pdb_string(self, coordinates: np.ndarray, stage: int) -> str:
         assert coordinates.shape[0] == self._n_atoms
         assert coordinates.shape[1] == 3
 
