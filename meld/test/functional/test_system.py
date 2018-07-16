@@ -44,6 +44,7 @@ class TestCreateFromSequence(unittest.TestCase):
     def test_has_correct_residue_names(self):
         self.assertEqual(self.system.residue_names[0], "ALA")
         self.assertEqual(self.system.residue_names[-1], "ALA")
+        self.assertEqual(sum(["ALA" == res for res in self.system.residue_names]), 33)
         self.assertEqual(
             len(self.system.residue_names), self.system.coordinates.shape[0]
         )
@@ -55,6 +56,39 @@ class TestCreateFromSequence(unittest.TestCase):
     def test_temperature_scaler_defaults_to_none(self):
         self.assertEqual(self.system.temperature_scaler, None)
 
+class TestCreateFromSequenceExplicit(TestCreateFromSequence):
+    def setUp(self):
+        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder(explicit_solvent=True)
+        self.system = b.build_system_from_molecules([p])
+
+    def test_has_correct_number_of_atoms(self):
+        self.assertEqual(self.system.n_atoms, 861)
+
+    def test_coordinates_have_correct_shape(self):
+        self.assertEqual(self.system.coordinates.shape[0], 861)
+        self.assertEqual(self.system.coordinates.shape[1], 3)
+
+    def test_has_correct_atom_names(self):
+        self.assertEqual(self.system.atom_names[0], "N")
+        self.assertEqual(self.system.atom_names[-1], "H2")
+        self.assertEqual(len(self.system.atom_names), self.system.coordinates.shape[0])
+
+    def test_has_correct_residue_indices(self):
+        self.assertEqual(self.system.residue_numbers[0], 1)
+        self.assertEqual(self.system.residue_numbers[-1], 279)
+        self.assertEqual(
+            len(self.system.residue_numbers), self.system.coordinates.shape[0]
+        )
+
+    def test_has_correct_residue_names(self):
+        self.assertEqual(self.system.residue_names[0], "ALA")
+        self.assertEqual(self.system.residue_names[-1], "WAT")
+        self.assertEqual(sum(["ALA" == res for res in self.system.residue_names]), 33)
+        self.assertEqual(sum(["WAT" == res for res in self.system.residue_names]), 828)
+        self.assertEqual(
+            len(self.system.residue_names), self.system.coordinates.shape[0]
+        )
 
 class TestConstantTemperatureScaler(unittest.TestCase):
     def setUp(self):
@@ -75,7 +109,6 @@ class TestConstantTemperatureScaler(unittest.TestCase):
     def test_raises_when_alpha_above_one(self):
         with self.assertRaises(RuntimeError):
             self.s(2)
-
 
 class TestLinearTemperatureScaler(unittest.TestCase):
     def setUp(self):
