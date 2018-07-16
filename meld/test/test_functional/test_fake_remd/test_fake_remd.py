@@ -22,8 +22,8 @@ BACKUP_FREQ = 100
 def gen_state(index):
     pos = index * np.ones((N_ATOMS, 3))
     vel = index * np.ones((N_ATOMS, 3))
-    alpha = 0
-    energy = 0
+    alpha = 0.0
+    energy = 0.0
     box_vectors = np.zeros(3)
     return state.SystemState(pos, vel, alpha, energy, box_vectors)
 
@@ -70,11 +70,14 @@ def setup_system():
 class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def setUp(self):
         self.setUpTempDir()
-
         setup_system()
-
-        # now run it
-        subprocess.check_call("mpirun -np 4 launch_remd", shell=True)
+        directory = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../../../../")
+        )
+        path = os.path.join(directory, "scripts/launch_remd")
+        subprocess.check_call(
+            f"PYTHONPATH={directory}:$PYTHONPATH mpirun -np 4 {path}", shell=True
+        )
 
     def tearDown(self):
         self.tearDownTempDir()

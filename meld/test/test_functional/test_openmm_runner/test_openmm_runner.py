@@ -4,11 +4,17 @@
 #
 
 from meld import system
+from meld.system.openmm_runner import OpenMMRunner
 import numpy as np
 import unittest
+import os
 
 
 class TestOpenRunner(unittest.TestCase):
+    def setUp(self):
+        self.top_path = os.path.join(os.path.dirname(__file__), 'system.top')
+        self.mdcrd_path = os.path.join(os.path.dirname(__file__), 'system.mdcrd')
+
     def test_implicit_runner(self):
         p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
         b = system.SystemBuilder()
@@ -16,9 +22,9 @@ class TestOpenRunner(unittest.TestCase):
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions()
-        options.timesteps = 100
+        options.timesteps = 20
 
-        runner = system.OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, test=True)
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -40,11 +46,11 @@ class TestOpenRunner(unittest.TestCase):
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions()
-        options.timesteps = 100
+        options.timesteps = 20
         options.use_amap = True
         options.amap_beta_bias = 10
 
-        runner = system.OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, test=True)
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -61,13 +67,13 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner(self):
         # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system("system.top", "system.mdcrd")
+        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions(solvation="explicit")
-        options.timesteps = 100
+        options.timesteps = 20
 
-        runner = system.OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, test=True)
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -84,16 +90,16 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner_scaler(self):
         # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system("system.top", "system.mdcrd")
+        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
         rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300., 350.)
 
         options = system.RunOptions(solvation="explicit")
         options.rest2_scaler = system.REST2Scaler(300., rest2_scaler)
-        options.timesteps = 100
+        options.timesteps = 20
         options.use_rest2 = True
 
-        runner = system.OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, test=True)
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()

@@ -13,8 +13,8 @@ import platform
 from collections import defaultdict, namedtuple
 import contextlib
 import logging
-from meld.util import log_timing
 import sys
+from meld.util import log_timing
 from meld.system.state import SystemState
 from typing import Dict, List, Tuple, Any, Optional
 
