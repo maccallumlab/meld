@@ -5,8 +5,8 @@
 
 import unittest
 from unittest import mock  #type: ignore
-from meld.system import OpenMMRunner, RunOptions
-from meld.system import protein, builder, ConstantTemperatureScaler
+from meld.system.openmm_runner import OpenMMRunner
+from meld.system import protein, builder, ConstantTemperatureScaler, RunOptions
 from meld.system.openmm_runner.runner import (
     _parm_top_from_string,
     _create_openmm_system,

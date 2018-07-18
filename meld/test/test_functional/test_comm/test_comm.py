@@ -15,7 +15,7 @@ class CommTestCase(unittest.TestCase):
         )
         return directory
 
-    def test_broadcast_lambda(self):
+    def test_broadcast_alpha(self):
         directory = self.get_directory()
         path = os.path.join(directory, 'meld/test/test_functional/test_comm/broadcast_alpha.py')
         subprocess.check_call(f"PYTHONPATH={directory} mpirun -np 4 python {path}", shell=True)
