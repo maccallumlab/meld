@@ -16,16 +16,32 @@ def main():
     if c.is_master():
         alphas = [0., 0.1, 0.2, 0.3]
         c.broadcast_alphas_to_slaves(alphas)
-        assert alphas[0] == 0.
+        try:
+            assert alphas[0] == 0.
+        except AssertionError:
+            print(f"Expected 0.0, but got {alphas[0]}")
+            raise
 
     else:
         alpha = c.receive_alpha_from_master()
         if c.rank == 1:
-            assert alpha == 0.1
+            try:
+                assert alpha == 0.1
+            except AssertionError:
+                print(f"Expected 0.1, but got {alpha}")
+                raise
         elif c.rank == 2:
-            assert alpha == 0.2
+            try:
+                assert alpha == 0.2
+            except AssertionError:
+                print(f"Expected 0.2, but got {alpha}")
+                raise
         elif c.rank == 3:
-            assert alpha == 0.3
+            try:
+                assert alpha == 0.3
+            except:
+                print(f"Expected 0.3, but got {alpha}")
+                raise
 
 
 if __name__ == "__main__":
