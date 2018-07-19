@@ -22,20 +22,14 @@ export VERSTRING=${MAJOR}.${MINOR}.${PATCH}.post${POST}
 cd /
 
 # decide if we should upload to anaconda cloud
-if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "dev" ]]; then
-    UPLOAD="--upload maccallum_lab"
-elif [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
+if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then
     UPLOAD="--upload maccallum_lab"
 else
     UPLOAD=""
 fi
 
 # build the meld conda package
-if [[ "${TRAVIS_BRANCH}" == "dev" ]]; then
-    /io/devtools/conda-build-all --force $UPLOAD --python $PYVER -- /io/devtools/conda/dev
-else
-    /io/devtools/conda-build-all --force $UPLOAD --python $PYVER -- /io/devtools/conda/master
-fi
+/io/devtools/conda-build-all --force $UPLOAD --python $PYVER -- /io/devtools/conda
 
 # upload docs to S3
 # if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then

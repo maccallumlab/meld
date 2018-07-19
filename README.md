@@ -28,10 +28,6 @@ Test versions of MELD are built automatically. Current status:
 Github `master`: [![Build Status](https://travis-ci.org/maccallumlab/meld.svg?branch=master)](https://travis-ci.org/maccallumlab/meld)
                 [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-test)
 
-Github `dev`: [![Build Status](https://travis-ci.org/maccallumlab/meld.svg?branch=dev)](https://travis-ci.org/maccallumlab/meld)
-             [![Anaconda-Server Badge](https://anaconda.org/maccallum_lab/meld-dev-test/badges/version.svg)](https://anaconda.org/maccallum_lab/meld-dev-test)
-
-
 ## Building from Scratch
 
 MELD requires a CUDA compatible GPU.

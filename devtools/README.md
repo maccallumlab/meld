@@ -50,9 +50,7 @@ code, but may contain bugs.
 The test builds are triggered every time there is a
 commit or pull request to `maccallumlab/meld`.
 
-For commits to the `master` or `dev` branches,
-`meld-test` and `meld-dev-test` packages are
-built and uploaded to the
+For the `master` branch Commits are built and uploaded as `meld-test` to the 
 [maccallum_lab](https://anaconda.org/maccallum_lab)
 anaconda channel.
 
