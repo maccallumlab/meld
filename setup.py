@@ -8,7 +8,13 @@ setup(
     author="Justin L. MacCallum",
     author_email="justin.maccallum@ucalgary.ca",
     packages=find_packages(),
-    package_data={"meld.system.openmm_runner": ["maps/*.txt", "maps/GAVL/*.txt"]},
+    package_data={
+        "meld.system.openmm_runner": ["maps/*.txt", "maps/GAVL/*.txt"],
+        "meld.test.test_functional.test_openmm_runner": [
+            "system.top",
+            "system.mdcrd",
+        ],
+    },
     scripts=[
         "scripts/analyze_energy",
         "scripts/analyze_remd",
