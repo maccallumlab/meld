@@ -20,7 +20,7 @@ requirements:
     - netcdf4
     - sphinx
     - sphinx_rtd_theme ==0.1.9
-    - mpi4py
+    - mpi4py ==2.0.0
     - clangdev ==6.0.0
     - mypy
 
@@ -32,7 +32,7 @@ requirements:
     - scipy
     - hdf4
     - netcdf4
-    - mpi4py
+    - mpi4py ==2.0.0
     - scikit-learn >=0.18.0
 
 test:
