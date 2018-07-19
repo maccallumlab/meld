@@ -71,13 +71,7 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def setUp(self):
         self.setUpTempDir()
         setup_system()
-        directory = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "../../../../")
-        )
-        path = os.path.join(directory, "scripts/launch_remd")
-        subprocess.check_call(
-            f"PYTHONPATH={directory}:$PYTHONPATH mpirun -np 4 {path}", shell=True
-        )
+        subprocess.check_call("mpirun -np 4 launch_remd", shell=True)
 
     def tearDown(self):
         self.tearDownTempDir()
