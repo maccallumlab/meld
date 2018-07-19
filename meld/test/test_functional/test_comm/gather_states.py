@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-import numpy as np
+import numpy as np  # type: ignore
 from meld import comm
 from meld.system.state import SystemState
 

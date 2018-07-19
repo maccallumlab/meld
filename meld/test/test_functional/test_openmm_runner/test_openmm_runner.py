@@ -5,15 +5,15 @@
 
 from meld import system
 from meld.system.openmm_runner import OpenMMRunner
-import numpy as np
+import numpy as np  # type: ignore
 import unittest
 import os
 
 
 class TestOpenRunner(unittest.TestCase):
     def setUp(self):
-        self.top_path = os.path.join(os.path.dirname(__file__), 'system.top')
-        self.mdcrd_path = os.path.join(os.path.dirname(__file__), 'system.mdcrd')
+        self.top_path = os.path.join(os.path.dirname(__file__), "system.top")
+        self.mdcrd_path = os.path.join(os.path.dirname(__file__), "system.mdcrd")
 
     def test_implicit_runner(self):
         p = system.ProteinMoleculeFromSequence("NALA ALA CALA")

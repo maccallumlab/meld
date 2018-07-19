@@ -6,7 +6,7 @@
 import unittest
 import os
 import subprocess
-import numpy as np
+import numpy as np  # type: ignore
 from meld.remd import ladder, adaptor, master_runner
 from meld.system import state, RunOptions, ConstantTemperatureScaler
 from meld import comm, vault, pdb_writer
