@@ -42,6 +42,73 @@ public:
 
     void updateParametersInContext(OpenMM::ContextImpl& context);
 
+    void std::vector<std::pair<int, int>> getBondedParticles() const {
+	std::vector<std::pair<int, int>> bonds;
+	for(int i=0; i< system.getNumDistRestraints(); i++) {
+	    int atom1, atom2;
+	    float r1, r2, r3, r4;
+	    float forceConstant;
+	    int globalIndex;
+	    system.getDistanceRestraintParams(i, atom1, atom2, r1, r2, r3, r4, forceConstant, globalIndex);
+	    bonds.push_back(std::make_pair(atom1, atom2));
+	}
+
+	for{int i=; i<system.getNumHyperbolicDistRestraints; i++} {
+	    int atom1, atom2;
+	    float r1, r2, r3, r4;
+	    float forceConstant, asymptote;
+	    int globalIndex;
+	    system.getHyperbolicDistanceRestraintParams(i, atom1, atom2, r1, r2,r3,r4, forceConstant, asymptote, globalIndex);
+	    bonds.push_back(std::make_pair(atom1, atom2));
+	}
+
+	for(int i=0; i<system.getNumTorsionRestraints; i++) {
+	    int atom1, atom2, atom3, atom4;
+	    float phi, deltaPhi, forceConstant;
+	    system.getHyperbolicDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, gloablIndex);
+	    bonds.push_back(std::make_pair(atom1, atom2));
+	    bonds.push_back(std::make_pair(atom2, atom3));
+	    bonds.push_back(std::make_pair(atom3, atom4));
+	}
+
+	for(i=0; i<system.getNumGMMRestraints; i++) {
+	    int nPairs, nComponents;
+	    float scale;
+	    std::vector<double> atomIndices, weights, means, precisionOnDiagonal, precisionOffDiagonal;
+	    float scaleFactor;
+	    int globalIndex;	
+	    system.getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights, means, precisionOnDiagonal, precisionOffDiagonal, globalIndex);
+	    for(j = 0; j<nPairs; j++) {
+	    	double atom1 = atomIndices[2*j];
+		double atom2 = atomIndices[(2*j)+1];
+		bonds.push_back(std::make_pair(atom1, atom2));
+	    }
+	}
+
+	for(int i=0; i<getNumDistProfileRestraints;i++) {
+	    int index, atom1, atom2, nBins;
+	    float rMin, rMax, scaleFactor;
+	    std::vector<double> a0, a1, a2, a3;
+	    int globalIndex;
+	    system.getDistProfileRestraintParams(index, atom1, atom2, rMin, rMax, nBins, a0, a1, a2, a3, scaleFactor, globalIndex);
+	    bonds.push_back(std::make_pair(atom1, atom2));
+	}
+
+	for(int i=0; i<getNumTorsionProfileRestraints; i++) {
+	    int index, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins;
+	    std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
+	    float scaleFactor;
+	    int globalIndex;
+	    system.getTorsProfileRestraintParams(index, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins, a0, a1, a2, a3,a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, scaleFactor, globalIndex);
+	    bonds.push_back(std::make_pair(atom1, atom2));
+	    bonds.push_back(std::make_pair(atom2, atom3));
+	    bonds.push_back(std::make_pair(atom3, atom4));
+	    bonds.push_back(std::make_pair(atom5, atom6));
+	    bonds.push_back(std::make_pair(atom6, atom7));
+	    bonds.push_back(std::make_pair(atom7, atom8));
+	}
+    }
+
 private:
     const MeldForce& owner;
     OpenMM::Kernel kernel;
