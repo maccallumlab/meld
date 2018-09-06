@@ -74,7 +74,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
         {
             int atom1, atom2, atom3, atom4, globalIndex;
             float phi, deltaPhi, forceConstant;
-            owner.getTorsionDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi,
+            owner.getTorsionRestraintParams(i, atom1, atom2, atom3, atom4, phi,
                                                        deltaPhi, forceConstant, globalIndex);
             bonds.push_back(std::make_pair(atom1, atom2));
             bonds.push_back(std::make_pair(atom2, atom3));
