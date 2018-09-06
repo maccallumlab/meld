@@ -42,7 +42,7 @@ public:
 
     void updateParametersInContext(OpenMM::ContextImpl& context);
 
-    void std::vector<std::pair<int, int>> getBondedParticles() const {
+    std::vector<std::pair<int, int>> getBondedParticles() const {
 	std::vector<std::pair<int, int>> bonds;
 	for(int i=0; i< system.getNumDistRestraints(); i++) {
 	    int atom1, atom2;
