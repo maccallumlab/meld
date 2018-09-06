@@ -72,9 +72,10 @@ class MeldForceImpl : public OpenMM::ForceImpl
 
         for (int i = 0; i < owner.getNumTorsionRestraints(); i++)
         {
-            int atom1, atom2, atom3, atom4;
+            int atom1, atom2, atom3, atom4, globalIndex;
             float phi, deltaPhi, forceConstant;
-            owner.getHyperbolicDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, globalIndex);
+            owner.getHyperbolicDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi,
+                                                       deltaPhi, forceConstant, globalIndex);
             bonds.push_back(std::make_pair(atom1, atom2));
             bonds.push_back(std::make_pair(atom2, atom3));
             bonds.push_back(std::make_pair(atom3, atom4));
@@ -84,10 +85,12 @@ class MeldForceImpl : public OpenMM::ForceImpl
         {
             int nPairs, nComponents;
             float scale;
-            std::vector<double> atomIndices, weights, means, precisionOnDiagonal, precisionOffDiagonal;
+            std::vector<int> atomIndices;
+            std::vector<double> weights, means, precisionOnDiagonal, precisionOffDiagonal;
             float scaleFactor;
             int globalIndex;
-            owner.getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights, means, precisionOnDiagonal, precisionOffDiagonal, globalIndex);
+            owner.getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights, means,
+                                        precisionOnDiagonal, precisionOffDiagonal, globalIndex);
             for (int j = 0; j < nPairs; j++)
             {
                 double atom1 = atomIndices[2 * j];
@@ -106,7 +109,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom1, atom2));
         }
 
-        for (int i = 0; i < owner.getNumTorsionProfileRestraints(); i++)
+        for (int i = 0; i < owner.getNumTorsProfileRestraints(); i++)
         {
             int index, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins;
             std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
