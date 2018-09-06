@@ -60,7 +60,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom1, atom2));
         }
 
-        for (int i = ; i < owner.getNumHyperbolicDistRestraints; i++)
+        for (int i = 0; i < owner.getNumHyperbolicDistRestraints(); i++)
         {
             int atom1, atom2;
             float r1, r2, r3, r4;
@@ -70,7 +70,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom1, atom2));
         }
 
-        for (int i = 0; i < owner.getNumTorsionRestraints; i++)
+        for (int i = 0; i < owner.getNumTorsionRestraints(); i++)
         {
             int atom1, atom2, atom3, atom4;
             float phi, deltaPhi, forceConstant;
@@ -80,7 +80,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom3, atom4));
         }
 
-        for (i = 0; i < owner.getNumGMMRestraints; i++)
+        for (i = 0; i < owner.getNumGMMRestraints(); i++)
         {
             int nPairs, nComponents;
             float scale;
@@ -96,7 +96,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             }
         }
 
-        for (int i = 0; i < getNumDistProfileRestraints; i++)
+        for (int i = 0; i < getNumDistProfileRestraints(); i++)
         {
             int index, atom1, atom2, nBins;
             float rMin, rMax, scaleFactor;
@@ -106,7 +106,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom1, atom2));
         }
 
-        for (int i = 0; i < getNumTorsionProfileRestraints; i++)
+        for (int i = 0; i < getNumTorsionProfileRestraints(); i++)
         {
             int index, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins;
             std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
