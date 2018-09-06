@@ -74,13 +74,13 @@ class MeldForceImpl : public OpenMM::ForceImpl
         {
             int atom1, atom2, atom3, atom4;
             float phi, deltaPhi, forceConstant;
-            owner.getHyperbolicDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, gloablIndex);
+            owner.getHyperbolicDistanceRestraintParams(i, atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, globalIndex);
             bonds.push_back(std::make_pair(atom1, atom2));
             bonds.push_back(std::make_pair(atom2, atom3));
             bonds.push_back(std::make_pair(atom3, atom4));
         }
 
-        for (i = 0; i < owner.getNumGMMRestraints(); i++)
+        for (int i = 0; i < owner.getNumGMMRestraints(); i++)
         {
             int nPairs, nComponents;
             float scale;
@@ -88,7 +88,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             float scaleFactor;
             int globalIndex;
             owner.getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights, means, precisionOnDiagonal, precisionOffDiagonal, globalIndex);
-            for (j = 0; j < nPairs; j++)
+            for (int j = 0; j < nPairs; j++)
             {
                 double atom1 = atomIndices[2 * j];
                 double atom2 = atomIndices[(2 * j) + 1];
@@ -96,7 +96,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             }
         }
 
-        for (int i = 0; i < getNumDistProfileRestraints(); i++)
+        for (int i = 0; i < owner.getNumDistProfileRestraints(); i++)
         {
             int index, atom1, atom2, nBins;
             float rMin, rMax, scaleFactor;
@@ -106,7 +106,7 @@ class MeldForceImpl : public OpenMM::ForceImpl
             bonds.push_back(std::make_pair(atom1, atom2));
         }
 
-        for (int i = 0; i < getNumTorsionProfileRestraints(); i++)
+        for (int i = 0; i < owner.getNumTorsionProfileRestraints(); i++)
         {
             int index, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins;
             std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
