@@ -410,6 +410,10 @@ class RunOptions:
             "pme_tolerance",
             "use_rest2",
             "rest2_scaler",
+            "soluteDielectric",
+            "solventDielectric",
+            "implicitSolventSaltConc",
+            "implicitSolventSaltConcitSolventKappa",
         ]
         allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
@@ -449,6 +453,10 @@ class RunOptions:
         self._pme_tolerance = 0.0005
         self._use_rest2 = False
         self._rest2_scaler = None
+        self._implicitSolventSaltConc = None
+        self._implicitSolventSaltConcitSolventKappa = None
+        self._solventDielectric = None
+        self._soluteDielectric = None
 
     # solvation is a read-only property that must be set
     # when the options are created
@@ -565,6 +573,60 @@ class RunOptions:
             raise RuntimeError(f"unknown value for runner {value}")
         self._runner = value
 
+    @property
+    def implicitSolventSaltConc(self):
+        return self._implicitSolventSaltConc
+
+    @implicitSolventSaltConc.setter
+    def implicitSolventSaltConc(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError("implicitSolventSaltConc must be > 0")
+        self._implicitSolventSaltConc = value
+
+    @property
+    def implicitSolventSaltConcitSolventKappa(self):
+        return self._implicitSolventSaltConcitSolventKappa
+
+    @implicitSolventSaltConcitSolventKappa.setter
+    def implicitSolventSaltConcitSolventKappa(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError("implicitSolventSaltConcitSolventKappa must be > 0")
+        self._implicitSolventSaltConcitSolventKappa = value
+
+    @property
+    def solventDielectric(self):
+        return self._solventDielectric
+
+    @solventDielectric.setter
+    def solventDielectric(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError("solventDielectric must be > 0")
+        self._solventDielectric = value
+
+    @property
+    def soluteDielectric(self):
+        return self._soluteDielectric
+
+    @soluteDielectric.setter
+    def soluteDielectric(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError("soluteDielectric must be > 0")
+        self._soluteDielectric = value
+
+    @property
+    def timesteps(self):
+        return self._timesteps
+
+    @timesteps.setter
+    def timesteps(self, value):
+        value = int(value)
+        if value <= 0:
+            raise RuntimeError("timesteps must be > 0")
+        self._timesteps = value
     @property
     def timesteps(self):
         return self._timesteps

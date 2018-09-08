@@ -77,6 +77,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -85,6 +89,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             constraints=ff.HBonds,
             implicitSolvent=OBC2,
             hydrogenMass=None,
+            implicitSolventSaltConc=0.0,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
         )
 
     def test_cutoff_sets_correct_method(self):
@@ -102,6 +110,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -110,6 +122,142 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             constraints=ff.HBonds,
             implicitSolvent=OBC2,
             hydrogenMass=None,
+            implicitSolventSaltConc=0.0,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
+        )
+
+    def test_salt_shielding_sets_correct_method(self):
+        _create_openmm_system(
+            self.mock_parm,
+            solvation_type="implicit",
+            cutoff=1.5,
+            use_big_timestep=False,
+            use_bigger_timestep=False,
+            implicit_solvent="obc",
+            pme_params=self.pme_params,
+            pcouple_params=self.pcouple_params,
+            remove_com=False,
+            temperature=self.TEMP,
+            extra_bonds=[],
+            extra_restricted_angles=[],
+            extra_torsions=[],
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=None,
+            solventDielectric=None,
+        )
+        self.mock_parm.createSystem.assert_called_with(
+            removeCMMotion=False,
+            nonbondedMethod=ff.CutoffNonPeriodic,
+            nonbondedCutoff=1.5,
+            constraints=ff.HBonds,
+            implicitSolvent=OBC2,
+            hydrogenMass=None,
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
+        )
+
+    def test_soulte_dielectric_sets_correct_method(self):
+        _create_openmm_system(
+            self.mock_parm,
+            solvation_type="implicit",
+            cutoff=1.5,
+            use_big_timestep=False,
+            use_bigger_timestep=False,
+            implicit_solvent="obc",
+            pme_params=self.pme_params,
+            pcouple_params=self.pcouple_params,
+            remove_com=False,
+            temperature=self.TEMP,
+            extra_bonds=[],
+            extra_restricted_angles=[],
+            extra_torsions=[],
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=2.,
+            solventDielectric=None,
+        )
+        self.mock_parm.createSystem.assert_called_with(
+            removeCMMotion=False,
+            nonbondedMethod=ff.CutoffNonPeriodic,
+            nonbondedCutoff=1.5,
+            constraints=ff.HBonds,
+            implicitSolvent=OBC2,
+            hydrogenMass=None,
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=2.0,
+            solventDielectric=78.5,
+        )
+
+    def test_solvent_dielectric_sets_correct_method(self):
+        _create_openmm_system(
+            self.mock_parm,
+            solvation_type="implicit",
+            cutoff=1.5,
+            use_big_timestep=False,
+            use_bigger_timestep=False,
+            implicit_solvent="obc",
+            pme_params=self.pme_params,
+            pcouple_params=self.pcouple_params,
+            remove_com=False,
+            temperature=self.TEMP,
+            extra_bonds=[],
+            extra_restricted_angles=[],
+            extra_torsions=[],
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=None,
+            solventDielectric=5.,
+        )
+        self.mock_parm.createSystem.assert_called_with(
+            removeCMMotion=False,
+            nonbondedMethod=ff.CutoffNonPeriodic,
+            nonbondedCutoff=1.5,
+            constraints=ff.HBonds,
+            implicitSolvent=OBC2,
+            hydrogenMass=None,
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=2.,
+            soluteDielectric=1.0,
+            solventDielectric=5.,
+        )
+
+    def test_salt_concentration_sets_correct_method(self):
+        _create_openmm_system(
+            self.mock_parm,
+            solvation_type="implicit",
+            cutoff=1.5,
+            use_big_timestep=False,
+            use_bigger_timestep=False,
+            implicit_solvent="obc",
+            pme_params=self.pme_params,
+            pcouple_params=self.pcouple_params,
+            remove_com=False,
+            temperature=self.TEMP,
+            extra_bonds=[],
+            extra_restricted_angles=[],
+            extra_torsions=[],
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
+        )
+        self.mock_parm.createSystem.assert_called_with(
+            removeCMMotion=False,
+            nonbondedMethod=ff.CutoffNonPeriodic,
+            nonbondedCutoff=1.5,
+            constraints=ff.HBonds,
+            implicitSolvent=OBC2,
+            hydrogenMass=None,
+            implicitSolventSaltConc=0.150,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
         )
 
     def test_big_timestep_sets_allbonds_and_hydrogen_masses(self):
@@ -127,6 +275,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -135,6 +287,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             constraints=ff.AllBonds,
             implicitSolvent=OBC2,
             hydrogenMass=3.0 * (gram / mole),
+            implicitSolventSaltConc=0.0,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
         )
 
     def test_gbneck_sets_correct_solvent_model(self):
@@ -152,6 +308,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -160,6 +320,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             constraints=ff.HBonds,
             implicitSolvent=GBn,
             hydrogenMass=None,
+            implicitSolventSaltConc=0.0,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
         )
 
     def test_gbneck2_sets_correct_solvent_model(self):
@@ -177,6 +341,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -185,6 +353,10 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             constraints=ff.HBonds,
             implicitSolvent=GBn2,
             hydrogenMass=None,
+            implicitSolventSaltConc=0.0,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=1.0,
+            solventDielectric=78.5,
         )
 
 
@@ -214,6 +386,10 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -241,6 +417,10 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -268,6 +448,10 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -295,6 +479,10 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_bonds=[],
             extra_restricted_angles=[],
             extra_torsions=[],
+            implicitSolventSaltConc=None,
+            implicitSolventSaltConcitSolventKappa=None,
+            soluteDielectric=None,
+            solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=True,
@@ -341,6 +529,10 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
                 extra_bonds=[],
                 extra_restricted_angles=[],
                 extra_torsions=[],
+                implicitSolventSaltConc=None,
+                implicitSolventSaltConcitSolventKappa=None,
+                soluteDielectric=None,
+                solventDielectric=None,
             )
 
             mock_baro.assert_called_with(PRESS, self.TEMP, STEPS)
