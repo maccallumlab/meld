@@ -190,6 +190,10 @@ class OpenMMRunner(ReplicaRunner):
                 self._extra_bonds,
                 self._extra_restricted_angles,
                 self._extra_torsions,
+                self._options.implicitSolventSaltConc,
+                self._options.implicitSolventSaltConcitSolventKappa,
+                self._options.soluteDielectric,
+                self._options.solventDielectric,
             )
 
             self._barostat = barostat
@@ -406,6 +410,10 @@ def _create_openmm_system(
     extra_bonds,
     extra_restricted_angles,
     extra_torsions,
+    implicitSolventSaltConc,
+    implicitSolventSaltConcitSolventKappa,
+    soluteDielectric,
+    solventDielectric,
 ):
     if solvation_type == "implicit":
         logger.info("Creating implicit solvent system")
@@ -417,6 +425,10 @@ def _create_openmm_system(
                 use_bigger_timestep,
                 implicit_solvent,
                 remove_com,
+                implicitSolventSaltConc,
+                implicitSolventSaltConcitSolventKappa,
+                soluteDielectric,
+                solventDielectric,
             ),
             None,
         )
@@ -502,6 +514,10 @@ def _create_openmm_system_implicit(
     use_bigger_timestep,
     implicit_solvent,
     remove_com,
+    implicitSolventSaltConc,
+    implicitSolventSaltConcitSolventKappa,
+    soluteDielectric,
+    solventDielectric,
 ):
     if cutoff is None:
         logger.info("Using no cutoff")
@@ -530,6 +546,16 @@ def _create_openmm_system_implicit(
         implicit_type = None
     else:
         RuntimeError("Should never get here")
+
+
+    if implicitSolventSaltConc is None:
+        implicitSolventSaltConc = 0.0
+    if implicitSolventSaltConcitSolventKappa is None:
+        implicitSolventSaltConcitSolventKappa = None
+    if soluteDielectric is None:
+        soluteDielectric = 1.0
+    if solventDielectric is None:
+        solventDielectric =78.5
     return parm_object.createSystem(
         nonbondedMethod=cutoff_type,
         nonbondedCutoff=cutoff_dist,
@@ -537,6 +563,10 @@ def _create_openmm_system_implicit(
         implicitSolvent=implicit_type,
         removeCMMotion=remove_com,
         hydrogenMass=hydrogen_mass,
+        implicitSolventSaltConc=implicitSolventSaltConc,
+        implicitSolventSaltConcitSolventKappa=implicitSolventSaltConcitSolventKappa,
+        soluteDielectric=soluteDielectric,
+        solventDielectric=solventDielectric,
     )
 
 
