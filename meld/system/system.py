@@ -413,7 +413,6 @@ class RunOptions:
             "soluteDielectric",
             "solventDielectric",
             "implicitSolventSaltConc",
-            "implicitSolventSaltConcitSolventKappa",
         ]
         allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
@@ -454,7 +453,6 @@ class RunOptions:
         self._use_rest2 = False
         self._rest2_scaler = None
         self._implicitSolventSaltConc = None
-        self._implicitSolventSaltConcitSolventKappa = None
         self._solventDielectric = None
         self._soluteDielectric = None
 
@@ -583,17 +581,6 @@ class RunOptions:
         if value <= 0:
             raise RuntimeError("implicitSolventSaltConc must be > 0")
         self._implicitSolventSaltConc = value
-
-    @property
-    def implicitSolventSaltConcitSolventKappa(self):
-        return self._implicitSolventSaltConcitSolventKappa
-
-    @implicitSolventSaltConcitSolventKappa.setter
-    def implicitSolventSaltConcitSolventKappa(self, value):
-        value = int(value)
-        if value <= 0:
-            raise RuntimeError("implicitSolventSaltConcitSolventKappa must be > 0")
-        self._implicitSolventSaltConcitSolventKappa = value
 
     @property
     def solventDielectric(self):

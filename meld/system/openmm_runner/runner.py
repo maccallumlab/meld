@@ -191,7 +191,6 @@ class OpenMMRunner(ReplicaRunner):
                 self._extra_restricted_angles,
                 self._extra_torsions,
                 self._options.implicitSolventSaltConc,
-                self._options.implicitSolventSaltConcitSolventKappa,
                 self._options.soluteDielectric,
                 self._options.solventDielectric,
             )
@@ -411,7 +410,6 @@ def _create_openmm_system(
     extra_restricted_angles,
     extra_torsions,
     implicitSolventSaltConc,
-    implicitSolventSaltConcitSolventKappa,
     soluteDielectric,
     solventDielectric,
 ):
@@ -426,7 +424,6 @@ def _create_openmm_system(
                 implicit_solvent,
                 remove_com,
                 implicitSolventSaltConc,
-                implicitSolventSaltConcitSolventKappa,
                 soluteDielectric,
                 solventDielectric,
             ),
@@ -515,7 +512,6 @@ def _create_openmm_system_implicit(
     implicit_solvent,
     remove_com,
     implicitSolventSaltConc,
-    implicitSolventSaltConcitSolventKappa,
     soluteDielectric,
     solventDielectric,
 ):
@@ -550,8 +546,6 @@ def _create_openmm_system_implicit(
 
     if implicitSolventSaltConc is None:
         implicitSolventSaltConc = 0.0
-    if implicitSolventSaltConcitSolventKappa is None:
-        implicitSolventSaltConcitSolventKappa = None
     if soluteDielectric is None:
         soluteDielectric = 1.0
     if solventDielectric is None:
@@ -564,7 +558,6 @@ def _create_openmm_system_implicit(
         removeCMMotion=remove_com,
         hydrogenMass=hydrogen_mass,
         implicitSolventSaltConc=implicitSolventSaltConc,
-        implicitSolventSaltConcitSolventKappa=implicitSolventSaltConcitSolventKappa,
         soluteDielectric=soluteDielectric,
         solventDielectric=solventDielectric,
     )
