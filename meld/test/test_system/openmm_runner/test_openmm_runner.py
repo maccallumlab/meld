@@ -78,7 +78,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -90,7 +89,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.0,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -111,7 +109,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -123,7 +120,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.0,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -144,7 +140,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -156,7 +151,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -177,7 +171,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=2.,
             solventDielectric=None,
         )
@@ -189,7 +182,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=2.0,
             solventDielectric=78.5,
         )
@@ -210,7 +202,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=None,
             solventDielectric=5.,
         )
@@ -222,7 +213,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=2.,
             soluteDielectric=1.0,
             solventDielectric=5.,
         )
@@ -243,7 +233,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -255,7 +244,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.150,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -276,7 +264,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -288,7 +275,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=OBC2,
             hydrogenMass=3.0 * (gram / mole),
             implicitSolventSaltConc=0.0,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -309,7 +295,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -321,7 +306,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=GBn,
             hydrogenMass=None,
             implicitSolventSaltConc=0.0,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -342,7 +326,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -354,7 +337,6 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             implicitSolvent=GBn2,
             hydrogenMass=None,
             implicitSolventSaltConc=0.0,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=1.0,
             solventDielectric=78.5,
         )
@@ -387,7 +369,6 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -418,7 +399,6 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -449,7 +429,6 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -480,7 +459,6 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=None,
-            implicitSolventSaltConcitSolventKappa=None,
             soluteDielectric=None,
             solventDielectric=None,
         )
@@ -530,7 +508,6 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
                 extra_restricted_angles=[],
                 extra_torsions=[],
                 implicitSolventSaltConc=None,
-                implicitSolventSaltConcitSolventKappa=None,
                 soluteDielectric=None,
                 solventDielectric=None,
             )
