@@ -577,7 +577,7 @@ class RunOptions:
 
     @implicitSolventSaltConc.setter
     def implicitSolventSaltConc(self, value):
-        value = int(value)
+        value = float(value)
         if value <= 0:
             raise RuntimeError("implicitSolventSaltConc must be > 0")
         self._implicitSolventSaltConc = value
@@ -588,7 +588,7 @@ class RunOptions:
 
     @solventDielectric.setter
     def solventDielectric(self, value):
-        value = int(value)
+        value = float(value)
         if value <= 0:
             raise RuntimeError("solventDielectric must be > 0")
         self._solventDielectric = value
@@ -599,7 +599,7 @@ class RunOptions:
 
     @soluteDielectric.setter
     def soluteDielectric(self, value):
-        value = int(value)
+        value = float(value)
         if value <= 0:
             raise RuntimeError("soluteDielectric must be > 0")
         self._soluteDielectric = value
