@@ -614,16 +614,6 @@ class RunOptions:
         if value <= 0:
             raise RuntimeError("timesteps must be > 0")
         self._timesteps = value
-    @property
-    def timesteps(self):
-        return self._timesteps
-
-    @timesteps.setter
-    def timesteps(self, value):
-        value = int(value)
-        if value <= 0:
-            raise RuntimeError("timesteps must be > 0")
-        self._timesteps = value
 
     @property
     def minimize_steps(self):
