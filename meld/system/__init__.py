@@ -18,7 +18,8 @@ from meld.system.state import SystemState
 def get_runner(system, options, comm):
     if options.runner == "openmm":
         import meld.system
-        return meld.system.openmm_runner.OpenMMRunner(system, options, comm)
+        import meld.system.openmm_runner
+        return meld.system.openmm_runner.runner.OpenMMRunner(system, options, comm)
     elif options.runner == "fake_runner":
         from meld.system.runner import FakeSystemRunner
         return FakeSystemRunner(system, options, comm)
