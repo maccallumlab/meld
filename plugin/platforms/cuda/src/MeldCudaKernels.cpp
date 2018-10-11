@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <numeric>
 #include <vector>
+#include <iostream>
 #include <Eigen/Dense>
 
 #ifdef _MSC_VER
@@ -41,17 +42,29 @@ public:
     CudaMeldForceInfo(const MeldForce& force) : force(force) {
     }
 
-    int getNumParticleGroups() {
-        return 0;
+    int getNumParticleGroups() override {
+        auto groups = force.getBondedParticles();
+        return groups.size();
     }
 
-    bool areParticlesIdentical(int particle1, int particle2) {
+    void getParticlesInGroup(int index, vector<int>& particles) override {
+        auto groups = force.getBondedParticles();
+        particles.clear();
+        particles.push_back(groups[index].first);
+        particles.push_back(groups[index].second);
+        // Particles.resize(2);
+        // Particles[0] = groups[index].first;
+        // Particles[1] = groups[index].second;
+    }
+
+
+    bool areParticlesIdentical(int particle1, int particle2) override {
       if(force.containsParticle(particle1) || force.containsParticle(particle2))
           return false;
       return true;
     }
 
-  bool areGroupsIdentical(int group1, int group2) {
+  bool areGroupsIdentical(int group1, int group2) override {
     return false;
   }
 
@@ -665,7 +678,7 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
             float det = eigenvalues.prod();
 
             // compute normalization
-            float norm = weights[i] * sqrt(det);
+            float norm = weights[i] / sqrt(pow(2.0 * 3.141597, nPairs)) * sqrt(det);
 
             // shove stuff in array
             h_gmmData[dataBlockOffset] = norm;

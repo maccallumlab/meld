@@ -548,6 +548,10 @@ public:
      */
     int addCollection(std::vector<int> group_indices, int n_active);
 
+    bool usesPeriodicBoundaryConditions() const override;
+
+    std::vector<std::pair<int, int>> getBondedParticles() const;
+
 protected:
     OpenMM::ForceImpl* createImpl() const;
 
