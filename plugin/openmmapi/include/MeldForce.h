@@ -550,7 +550,7 @@ public:
 
     bool usesPeriodicBoundaryConditions() const override;
 
-    std::vector<std::pair<int, int>> getBondedParticles() const;
+    std::vector<std::pair<int, int> > getBondedParticles() const;
 
 protected:
     OpenMM::ForceImpl* createImpl() const;
