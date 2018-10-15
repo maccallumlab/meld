@@ -14,7 +14,6 @@ class SystemState:
     :param velocities: velocities for structure, same as coords
     :param alpha: alpha value, within ``[0, 1]``
     :param energy: total potential energy, including restraints
-    :
 
     """
 

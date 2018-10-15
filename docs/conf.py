@@ -35,12 +35,16 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'numpydoc'
+    'breathe',
+    'sphinx.ext.napoleon'
 ]
 
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
-numpydoc_class_members_toctree = False
+
+# setup for C++ api docs
+breathe_projects = { "meld-api": "../plugin/build/xml" }
+breathe_default_project = "meld-api"
 
 
 # Add any paths that contain templates here, relative to this directory.

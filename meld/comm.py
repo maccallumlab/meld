@@ -3,12 +3,12 @@
 # All rights reserved
 #
 
-from mpi4py import MPI  #type: ignore
+from mpi4py import MPI  # type: ignore
 import signal
 import threading
 import time
 import os
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import platform
 from collections import defaultdict, namedtuple
 import contextlib
@@ -50,6 +50,7 @@ class MPICommunicator:
         creating an MPI communicator will not actually initialize MPI.
         To do that, call :meth:`initialize`.
     """
+
     _mpi_comm: MPI.Comm
 
     def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600) -> None:
@@ -193,7 +194,9 @@ class MPICommunicator:
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def gather_states_from_slaves(self, state_on_master: SystemState) -> List[SystemState]:
+    def gather_states_from_slaves(
+        self, state_on_master: SystemState
+    ) -> List[SystemState]:
         """
         gather_states_from_slaves(state_on_master)
         Receive states from all slaves
@@ -227,7 +230,9 @@ class MPICommunicator:
             self._mpi_comm.gather(state, root=0)
 
     @log_timing(logger)
-    def broadcast_states_for_energy_calc_to_slaves(self, states: List[SystemState]) -> None:
+    def broadcast_states_for_energy_calc_to_slaves(
+        self, states: List[SystemState]
+    ) -> None:
         """
         broadcast_states_for_energy_calc_to_slaves(states)
         Broadcast states to all slaves. Send all results from this step
@@ -286,7 +291,9 @@ class MPICommunicator:
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def gather_energies_from_slaves(self, energies_on_master: List[float]) -> np.ndarray:
+    def gather_energies_from_slaves(
+        self, energies_on_master: List[float]
+    ) -> np.ndarray:
         """
         gather_energies_from_slaves(energies_on_master)
         Receive a list of energies from each slave.
@@ -329,7 +336,9 @@ class MPICommunicator:
             try:
                 env_visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
                 logger.info("%s found cuda devices: %s", hostname, env_visible_devices)
-                visible_devices: Optional[List[int]] = [int(dev) for dev in env_visible_devices.split(",")]
+                visible_devices: Optional[List[int]] = [
+                    int(dev) for dev in env_visible_devices.split(",")
+                ]
                 if not visible_devices:
                     raise RuntimeError("No cuda devices available")
             except KeyError:
@@ -404,7 +413,9 @@ class MPICommunicator:
                 device_ids = []
 
             # do the communication
-            device_id = self._mpi_comm.scatter(device_ids if device_ids else None, root=0)
+            device_id = self._mpi_comm.scatter(
+                device_ids if device_ids else None, root=0
+            )
             logger.info("hostname: %s, device_id: %d", hostname, device_id)
             return device_id
 
