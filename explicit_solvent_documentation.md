@@ -1,4 +1,4 @@
-# Explcit Solvent
+# Expilcit Solvent
 
 ## Building an Explicit Solvent Model
 
@@ -15,7 +15,7 @@ The system is then built from the molecular sequence according to the specificat
 ```python
 	self.system = b.build_system_from_molecules([p])
 ```
-This set of commands will instruct MELD to use tleap to generate a solvent box with 6 &#197; betweeen any atom in the protein and the edge of the box, and produce the necessary amber topology (system.top) and coordinate files (system.mdcrd). By default MELD uses the TIP3P water model, however `'spce'`, `'spceb'`, `'obc'`, `'tip4pew'` are all allowed values for `solvent_forcefield`:
+This set of commands will instruct MELD to use tleap to generate a solvent box with 6 &#197; between any atom in the protein and the edge of the box, and produce the necessary amber topology (system.top) and coordinate files (system.mdcrd). By default MELD uses the TIP3P water model, however `'spce'`, `'spceb'`, `'obc'`, `'tip4pew'` are all allowed values for `solvent_forcefield`:
 ```python       
 	b = builder.SystemBuilder(explicit_solvent=True, solvent_forcefield="tip3p")
 ```
@@ -27,7 +27,7 @@ The box is not automatically neutralized, which therefore requires the user to d
 ```python     
 	b = builder.SystemBuilder(explicit_solvent=True, explicit_ions=True, p_ioncount=5, n_ioncount=5)
 ```
-By default the positive ions are `'Na+'`, and the negative ions are `'Cl-'`. Allowed valuyes for `p_ions` include: '`'Na+'`, `'K+'`, `'Li+'`, `'Rb+'`, `'Cs+'`, `'Mg+'`. The allowed values for `n_ions` include: `'Cl-'`, `'I-'`, `'Br-'`, `'F-'`. They can be specified by:
+By default the positive ions are `'Na+'`, and the negative ions are `'Cl-'`. Allowed values for `p_ions` include: '`'Na+'`, `'K+'`, `'Li+'`, `'Rb+'`, `'Cs+'`, `'Mg+'`. The allowed values for `n_ions` include: `'Cl-'`, `'I-'`, `'Br-'`, `'F-'`. They can be specified by:
 ```python     
 	b = builder.SystemBuilder(explicit_solvent=True, explicit_ions=True, p_ion="K+", p_ioncount=5, n_ion="F-", n_ioncount=5)
 ```
@@ -64,14 +64,14 @@ and is limited to rectangular box shapes.
 
 ## Setting Options
 
-Once an explicit solvent system is built either with the builder or from pre-generated amber files, it must be delcared to the runtime options:
+Once an explicit solvent system is built either with the builder or from pre-generated amber files, it must be declared to the runtime options:
 ```python      
 	options = system.RunOptions(solvation='explicit')
 ```
 
 ## Explicit Solvent and Replica Exchange
 
-For a simple system, MELD's regular Hamiltonian replica exchange algorithm is likely to be sufficent. Keep in mind that, due to the greater size of the system, this will require a larger number of replicas and a longer run time, with careful monitoring of replica exchanges. The exact parameters are system specific. For larger systems (such as proteins) it is advisable to use replica exchange with solute tempering (REST2). A full explanation of the method can be found here:
+For a simple system, MELD's regular Hamiltonian replica exchange algorithm is likely to be sufficient. Keep in mind that, due to the greater size of the system, this will require a larger number of replicas and a longer run time, with careful monitoring of replica exchanges. The exact parameters are system specific. For larger systems (such as proteins) it is advisable to use replica exchange with solute tempering (REST2). A full explanation of the method can be found here:
 
 >Wang, Lingle, Richard A. Friesner, and B. J. Berne. "Replica exchange with solute scaling: a more efficient version of replica exchange with solute tempering (REST2)." The Journal of Physical Chemistry B 115.30 (2011): 9431-9438. [DOI: 10.1021/jp204407d](https://pubs.acs.org/doi/10.1021/jp204407d)
 
@@ -98,5 +98,5 @@ And set the REST2 scaler:
 
 ## Periodic Boundary Conditions
 
-Explicit solvent simulations in MELD make use of periodic boundary conditions (PBC’s) through OpenMM. In OpenMM, if a periodic box is enforced then the center of every molecule is translated so that it lies in the same periodic box. This means that unconnected molecules, say a peptide and a protein in a complex that are not bound together, could be translated/reimaged differently. In OpenMM all atoms involved in each bond are treated as a single molecule. Therefore, in MELD we group together all of the atom pairs that are restrained by: distance, hyperbolic distance, torsions, Gaussian mixture models (GMM’s), distance profiles, and torsion profiles. This creates a single “molecule” that will be reimaged when PBC’s are enforced. For example, by placing a distance restraint on a protein and the peptide it is complexed with, they become a single molecule in terms of PBCs. Confinement and cartesian restraints work across periodic boundaries through OpenMM’s `periodicdistance()` function in the CustomExternalForce class.
+Explicit solvent simulations in MELD make use of periodic boundary conditions (PBC’s) through OpenMM. In OpenMM, if a periodic box is enforced then the center of every molecule is translated so that it lies in the same periodic box. This means that unconnected molecules, say a peptide and a protein in a complex that are not bound together, could be translated/reimaged differently. In OpenMM all atoms involved in each bond are treated as a single molecule. Therefore, in MELD we group together all of the atom pairs that are restrained by: distance, hyperbolic distance, torsions, Gaussian mixture models (GMM’s), distance profiles, and torsion profiles. This creates a single “molecule” that will be reimaged when PBC’s are enforced. For example, by placing a distance restraint on a protein and the peptide it is complexed with, they become a single molecule in terms of PBCs. Confinement and Cartesian restraints work across periodic boundaries through OpenMM’s `periodicdistance()` function in the CustomExternalForce class.
 
