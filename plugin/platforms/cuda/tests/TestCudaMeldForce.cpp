@@ -451,7 +451,7 @@ void testGMMRest1Pair1Component() {
     context.setPositions(positions);
 
     // values from wolframalpha
-    // -2.48 * Log[Exp[-0.5 * ( (x-1)^2 )]] /. {x->1}
+    // -2.48 * Log[1.0 / Sqrt[2 pi]* Exp[-0.5 * ( (x-1)^2 )]] /. {x->1}
     // D[-2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]], {x, 1}] /. {x->1}
     float expectedEnergy = 2.278967;
     Vec3 expectedForce = Vec3(0.0, 0.0, 0.0);
@@ -463,7 +463,7 @@ void testGMMRest1Pair1Component() {
 
     // Test at 1-sigma away
     // values from wolframalpha
-    // -2.48 * Log[Exp[-0.5 * ( (x-1)^2 )]] /. {x->2}
+    // -2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]] /. {x->2}
     // D[-2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]], {x, 1}] /. {x->2}
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(2.0, 0.0, 0.0);
@@ -568,13 +568,13 @@ void testGMMRest1Pair2Component() {
     Platform& platform = Platform::getPlatformByName("CUDA");
     Context context(system, integ, platform);
 
-    // -2.48 * Log[0.75 / Sqrt[4 pi^2 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[4 pi^2 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1.5, a->1, b->2, c->1, d->2}
-    // D[-2.48 * Log[0.75 / Sqrt[4 pi^2 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[4 pi^2 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1.5, a->1, b->2, c->1, d->2}
+    // -2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2* Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1.5, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1.5, a->1, b->2, c->1, d->2}
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(1.5, 0.0, 0.0);
     context.setPositions(positions);
 
-    float expectedEnergy = 4.71873;
+    float expectedEnergy = 2.43976;
     Vec3 expectedForce = Vec3(0.147094, 0.0, 0.0);
 
     State state = context.getState(State::Energy | State::Forces);
@@ -582,13 +582,13 @@ void testGMMRest1Pair2Component() {
     ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-4);
     ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-4);
 
-    // -2.48 * Log[0.75 / Sqrt[4 pi^2 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[4 pi^2 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1, a->1, b->2, c->1, d->2}
-    // D[-2.48 * Log[0.75 / Sqrt[4 pi^2 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[4 pi^2 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1, a->1, b->2, c->1, d->2}
+    // -2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1, a->1, b->2, c->1, d->2}
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(1.0, 0.0, 0.0);
     context.setPositions(positions);
 
-    expectedEnergy = 4.87478;
+    expectedEnergy = 2.59581;
     expectedForce = Vec3(-0.73304, 0.0, 0.0);
 
     state = context.getState(State::Energy | State::Forces);
@@ -1137,12 +1137,12 @@ int main(int argc, char* argv[]) {
         testTorsProfileRest();
         testDistRestChangingParameters();
         testHyperbolicDistRest();
-     //   testGMMRest1Pair1Component();
-     //   testGMMRest1Pair1Component0Scale();
-     //   testGMMRest1Pair2Component();
-     //   testGMMRest2Pair2Component();
-     //   testGMMRest3Pair2Component();
-     //   testGroupSelectsCorrectly();
+        testGMMRest1Pair1Component();
+        testGMMRest1Pair1Component0Scale();
+        testGMMRest1Pair2Component();
+        testGMMRest2Pair2Component();
+        testGMMRest3Pair2Component();
+        testGroupSelectsCorrectly();
         testCollectionSelectsCorrectly();
         testSingleGroup();
         testMultipleGroups();
