@@ -49,7 +49,7 @@ make -j$CPU_COUNT install PythonInstall
 # build MELD plugin docs
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 make -j$CPU_COUNT DoxygenApiDocs
-cd ..
+cd ../..
 
 # build MELD docs
 cd docs
