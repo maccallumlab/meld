@@ -3,12 +3,6 @@
 # build MELD
 python setup.py install
 
-# build MELD docs
-cd docs
-pip install msmb_theme==1.2.0 numpydoc
-make html
-cd ..
-
 # build MELD plugin
 cd plugin
 CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF"
@@ -55,4 +49,11 @@ make -j$CPU_COUNT install PythonInstall
 # build MELD plugin docs
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 make -j$CPU_COUNT DoxygenApiDocs
+cd ..
+
+# build MELD docs
+cd docs
+pip install msmb_theme==1.2.0 numpydoc
+make html
+cd ..
 fi
