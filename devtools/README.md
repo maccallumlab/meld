@@ -7,53 +7,41 @@ platform. All build results are available at
 <https://travis-ci.org/maccallumlab>.
 
 There are two sets of builds:
-- release builds
-- `test` builds
+- The ones in this directory, which are for testing
+- The ones in the [meld-pkg](https://github.com/maccallumlab/meld-pkg) repository,
+  which are releases
 
 ## Conda Packages
 
 We use the [anaconda](http://anaconda.org) package
-manager. The packages end up in two places, depending
-on if they are release or test builds.
-- release builds are found at <http://anaconda.org/omnia>
-- test builds are found at <http://anaconda.org/maccallum_lab>
+manager. The builds can be found on the
+[maccallum_lab](http://anaconda.org/maccallum_lab)
+anaconda channel.
 
 To use these packages, you must first add a channel and then
 load the appropriate package. For example:
 ```
-conda config --add channels omnia
-conda install meld
+conda config --add channels maccallum_lab omnia
+conda install meld-cuda{VER}
 ```
+Where `VER` can be:
+- `75`
+- `80`
+- `85`
+- `90`
+- `92`
 
-**WARNING**: anaconda currently has no way to specify that
-packages are mutually exclusive. So, it's possible to 
-install both release and test versions, which will
-cause problems.
+## Creating a new release
 
-## Release Builds
-
-The release builds are intended for wide distribution
-and use.
-
-The release builds are triggered when the
-[omnia-md/conda-recipes](http://github.com/omnia-md/conda-recipes)
-repository is modified. This repository specifies a
-specific git revision that is uploaded to
-the [omnia channel](https://anaconda.org/omnia).
-
-## Test Builds
-
-The test builds are intended for testing of new features.
-They are bleeding-edge builds with all of the latest
-code, but may contain bugs.
-
-The test builds are triggered every time there is a
-commit or pull request to `maccallumlab/meld`.
-
-For the `master` branch Commits are built and uploaded as `meld-test` to the 
-[maccallum_lab](https://anaconda.org/maccallum_lab)
-anaconda channel.
-
-For pull requests and other branches, the build is performed,
-but no packages are uploaded. Pull requests will not be merged
-until the build passes.
+1. Make sure that `CHANGELOG.md` is up to date.
+2. Make sure that all changes are committed.
+3. Run the following command to update the version number:
+    - `bumpversion patch`
+4. Push the changes to the `maccallumlab/meld` github repository.
+5. Push the tags up as well:
+    - `git push --tags`
+6. Check to make sure that the new tag shows up as a
+   [release](https://github.com/maccallumlab/meld/releases).
+7. Edit the `meld-pkg/meld/meta.yaml` file in the
+   [meld-pkg](https://github.com/maccallumlab/meld-pkg)
+   repository to use the new version.
