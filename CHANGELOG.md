@@ -1,3 +1,15 @@
+## 0.4.7
+
+### Enchancements
+
+- Support for building explicit solvent systems
+- Support for periodic boundary conditions
+- Started working on documentation
+
+### Bug Fixes
+
+- Fixed incorrect tests for GMM restraints
+
 ## 0.4.6
 
 ### Enhancements

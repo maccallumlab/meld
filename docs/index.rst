@@ -13,6 +13,11 @@ on it.
 
    getting_started
 
+.. toctree::
+   :maxdepth: 1
+
+   explicit_solvent
+
 API Reference
 -------------
 
