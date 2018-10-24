@@ -14,36 +14,46 @@
 #include <vector>
 #include <string>
 
-namespace MeldPlugin {
+namespace MeldPlugin
+{
 
-class MeldForceImpl : public OpenMM::ForceImpl {
-public:
-    MeldForceImpl(const MeldForce& owner);
+class MeldForceImpl : public OpenMM::ForceImpl
+{
+  public:
+    MeldForceImpl(const MeldForce &owner);
 
     ~MeldForceImpl();
 
-    void initialize(OpenMM::ContextImpl& context);
+    void initialize(OpenMM::ContextImpl &context);
 
-    const MeldForce& getOwner() const {
+    const MeldForce &getOwner() const
+    {
         return owner;
     }
 
-    void updateContextState(OpenMM::ContextImpl& context) {
+    void updateContextState(OpenMM::ContextImpl &context)
+    {
         // This force field doesn't update the state directly.
     }
 
-    double calcForcesAndEnergy(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy, int groups);
+    double calcForcesAndEnergy(OpenMM::ContextImpl &context, bool includeForces, bool includeEnergy, int groups);
 
-    std::map<std::string, double> getDefaultParameters() {
+    std::map<std::string, double> getDefaultParameters()
+    {
         return std::map<std::string, double>(); // This force field doesn't define any parameters.
     }
 
     std::vector<std::string> getKernelNames();
 
-    void updateParametersInContext(OpenMM::ContextImpl& context);
+    void updateParametersInContext(OpenMM::ContextImpl &context);
 
-private:
-    const MeldForce& owner;
+    std::vector<std::pair<int, int>> getBondedParticles() const
+    {
+        return owner.getBondedParticles();
+    }
+
+  private:
+    const MeldForce &owner;
     OpenMM::Kernel kernel;
 };
 

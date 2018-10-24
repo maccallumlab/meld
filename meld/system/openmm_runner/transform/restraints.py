@@ -11,14 +11,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from simtk.openmm import CustomExternalForce  #type: ignore
+from simtk.openmm import CustomExternalForce  # type: ignore
 from meld.system import restraints
 from collections import OrderedDict, Callable
 from meld.system.openmm_runner.transform import TransformerBase
-from simtk import openmm as mm  #type: ignore
+from simtk import openmm as mm  # type: ignore
 
 try:
-    from meldplugin import MeldForce, RdcForce  #type: ignore
+    from meldplugin import MeldForce, RdcForce  # type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "
@@ -36,6 +36,7 @@ class ConfinementRestraintTransformer(TransformerBase):
     def __init__(
         self, options, always_active_restraints, selectively_active_restraints
     ):
+        self.use_pbc = options.solvation == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -53,10 +54,16 @@ class ConfinementRestraintTransformer(TransformerBase):
     def add_interactions(self, system, topology):
         if self.active:
             # create the confinement force
-            confinement_force = CustomExternalForce(
-                "step(r - radius) * force_const * (radius - r)^2;"
-                "r=sqrt(x*x + y*y + z*z)"
-            )
+            if self.use_pbc:
+                confinement_force = CustomExternalForce(
+                    "step(r - radius) * force_const * (radius - r)^2;"
+                    "r = periodicdistance(x, y, z, 0, 0 ,0)"
+                )
+            else:
+                confinement_force = CustomExternalForce(
+                    "step(r - radius) * force_const * (radius - r)^2;"
+                    "r=sqrt(x*x + y*y + z*z)"
+                )
             confinement_force.addPerParticleParameter("radius")
             confinement_force.addPerParticleParameter("force_const")
 
@@ -157,6 +164,7 @@ class CartesianRestraintTransformer(TransformerBase):
     def __init__(
         self, options, always_active_restraints, selectively_active_restraints
     ):
+        self.use_pbc = options.solvation == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -173,15 +181,21 @@ class CartesianRestraintTransformer(TransformerBase):
 
     def add_interactions(self, system, topology):
         if self.active:
-            # create the confinement force
-            cartesian_force = CustomExternalForce(
-                "0.5 * cart_force_const * r_eff^2;"
-                "r_eff = max(0.0, r - cart_delta);"
-                "r = sqrt(dx*dx + dy*dy + dz*dz);"
-                "dx = x - cart_x;"
-                "dy = y - cart_y;"
-                "dz = z - cart_z;"
-            )
+            if self.use_pbc:
+                cartesian_force = CustomExternalForce(
+                    "0.5 * cart_force_const * r_eff^2;"
+                    "r_eff = max(0.0, r - cart_delta);"
+                    "r = periodicdistance(x, y, z, cart_x, cart_y, cart_z)"
+                )
+            else:
+                cartesian_force = CustomExternalForce(
+                    "0.5 * cart_force_const * r_eff^2;"
+                    "r_eff = max(0.0, r - cart_delta);"
+                    "r = sqrt(dx*dx + dy*dy + dz*dz);"
+                    "dx = x - cart_x;"
+                    "dy = y - cart_y;"
+                    "dz = z - cart_z;"
+                )
             cartesian_force.addPerParticleParameter("cart_x")
             cartesian_force.addPerParticleParameter("cart_y")
             cartesian_force.addPerParticleParameter("cart_z")
@@ -212,6 +226,7 @@ class YZCartesianTransformer(TransformerBase):
     def __init__(
         self, options, always_active_restraints, selectively_active_restraints
     ):
+        self.use_pbc = options.solvation == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -229,13 +244,21 @@ class YZCartesianTransformer(TransformerBase):
     def add_interactions(self, system, topology):
         if self.active:
             # create the confinement force
-            cartesian_force = CustomExternalForce(
-                "0.5 * cart_force_const * r_eff2;"
-                "r_eff2 = max(0.0, r2 - cart_delta^2);"
-                "r2 = dy*dy + dz*dz;"
-                "dy = y - cart_y;"
-                "dz = z - cart_z;"
-            )
+            if self.use_pbc:
+                cartesian_force = CustomExternalForce(
+                    "0.5 * cart_force_const * r_eff^2;"
+                    "r_eff = max(0.0, r - cart_delta);"
+                    "r = periodicdistance(0, y, z, 0, cart_y, cart_z);"
+                )
+            else:
+                cartesian_force = CustomExternalForce(
+                    "0.5 * cart_force_const * r_eff^2;"
+                    "r_eff = max(0.0, r - cart_delta);"
+                    "r = sqrt(r2);"
+                    "r2 = dy*dy + dz*dz;"
+                    "dy = y - cart_y;"
+                    "dz = z - cart_z;"
+                )
             cartesian_force.addPerParticleParameter("cart_y")
             cartesian_force.addPerParticleParameter("cart_z")
             cartesian_force.addPerParticleParameter("cart_delta")

@@ -10,6 +10,7 @@
 #include "openmm/Platform.h"
 #include "openmm/System.h"
 #include "openmm/VerletIntegrator.h"
+#include "openmm/NonbondedForce.h"
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -450,7 +451,7 @@ void testGMMRest1Pair1Component() {
     context.setPositions(positions);
 
     // values from wolframalpha
-    // -2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]] /. {x->1}
+    // -2.48 * Log[1.0 / Sqrt[2 pi]* Exp[-0.5 * ( (x-1)^2 )]] /. {x->1}
     // D[-2.48 * Log[1.0 / Sqrt[2 pi] * Exp[-0.5 * ( (x-1)^2 )]], {x, 1}] /. {x->1}
     float expectedEnergy = 2.278967;
     Vec3 expectedForce = Vec3(0.0, 0.0, 0.0);
@@ -513,7 +514,7 @@ void testGMMRest1Pair1Component0Scale() {
     positions[1] = Vec3(1.0, 0.0, 0.0);
     context.setPositions(positions);
 
-    float expectedEnergy = 0.0;
+    float expectedEnergy = 2.27897;
     Vec3 expectedForce = Vec3(0.0, 0.0, 0.0);
 
     State state = context.getState(State::Energy | State::Forces);
@@ -526,7 +527,7 @@ void testGMMRest1Pair1Component0Scale() {
     positions[1] = Vec3(2.0, 0.0, 0.0);
     context.setPositions(positions);
 
-    expectedEnergy = 0.0;
+    expectedEnergy = 2.27897;
     expectedForce = Vec3(0.00, 0.0, 0.0);
 
     state = context.getState(State::Energy | State::Forces);
@@ -567,8 +568,8 @@ void testGMMRest1Pair2Component() {
     Platform& platform = Platform::getPlatformByName("CUDA");
     Context context(system, integ, platform);
 
-    // -2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1.5, a->1, b->2, c->1, d->2}
-    // D[-2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1.5, a->1, b->2, c->1, d->2}
+    // -2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2* Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1.5, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1.5, a->1, b->2, c->1, d->2}
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(1.5, 0.0, 0.0);
     context.setPositions(positions);
@@ -581,8 +582,8 @@ void testGMMRest1Pair2Component() {
     ASSERT_EQUAL_VEC(expectedForce, state.getForces()[0], 1e-4);
     ASSERT_EQUAL_VEC(-expectedForce, state.getForces()[1], 1e-4);
 
-    // -2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1, a->1, b->2, c->1, d->2}
-    // D[-2.48 * Log[0.75 / Sqrt[2 pi 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[2 pi 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1, a->1, b->2, c->1, d->2}
+    // -2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]] /. {x->1, a->1, b->2, c->1, d->2}
+    // D[-2.48 * Log[0.75 / Sqrt[(2*Pi) 1/a] * Exp[-0.5 * a * (x-c)^2] + 0.25 / Sqrt[(2*Pi) 1/b] * Exp[-0.5 * b * (x-d)^2 ]], {x,1}] /. {x->1, a->1, b->2, c->1, d->2}
     positions[0] = Vec3(0.0, 0.0, 0.0);
     positions[1] = Vec3(1.0, 0.0, 0.0);
     context.setPositions(positions);
@@ -705,7 +706,7 @@ void testGMMRest3Pair2Component() {
     Context context(system, integ, platform);
 
     // pa = 1 / Det[{{3, 0, 1}, {0, 4, 0}, {1, 0, 5}}]
-    // pb =1 /  Det[{{5, 0, 2}, {0, 4, 0}, {2, 0, 3}}]
+    // pb = 1 / Det[{{5, 0, 2}, {0, 4, 0}, {2, 0, 3}}]
 
     // -2.48 * Log[
     // 0.5 / Sqrt[(2*Pi)^3 pa]*
@@ -1070,17 +1071,72 @@ void testBigSystem() {
 }
 
 
+void testPBC() {
+    // setup system
+    const int numParticles = 2;
+    System system;
+    vector<Vec3> positions(numParticles);
+    system.addParticle(1.0);
+    system.addParticle(1.0);
+
+    // use nonbonded force with no charges and no LJ to
+    // force system to use PBC
+    NonbondedForce* nb = new NonbondedForce();
+    nb->addParticle(0.0, 0.0, 0.0);
+    nb->addParticle(0.0, 0.0, 0.0);
+    nb->setNonbondedMethod(NonbondedForce::CutoffPeriodic);
+    nb->setCutoffDistance(0.15);
+    system.addForce(nb);
+
+    // setup meld force
+    MeldForce* force = new MeldForce();
+    int k = 1.0;
+    int restIdx = force->addDistanceRestraint(0, 1, 1.0, 2.0, 3.0, 4.0, k);
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force->addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force->addCollection(groupIndices, 1);
+    system.addForce(force);
+
+    // setup the context
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPeriodicBoxVectors(Vec3(0.3, 0, 0), Vec3(0, 0.3, 0), Vec3(0, 0, 0.3));
+
+
+    // set the postitions, compute the forces and energy
+    // test to make sure they have the expected values
+    positions[0] = Vec3(0.1, 0.0, 0.0);
+    positions[1] = Vec3(0.6, 0.0, 0.0);
+    context.setPositions(positions);
+
+    float expectedEnergy = 1.0;
+    Vec3 expectedForce = Vec3(-1.0, 0.0, 0.0);
+    Vec3 expectedPos1 = Vec3(-0.2, 0.0, 0.0);
+    Vec3 expectedPos2 = Vec3(0.3, 0.0, 0.0);
+
+    State stateI = context.getState(State::Energy | State::Forces | State::Positions, 1 );  // enforce PBC when getting state
+    ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(), 1e-5);
+    ASSERT_EQUAL_VEC(expectedForce, stateI.getForces()[0], 1e-5);
+    ASSERT_EQUAL_VEC(-expectedForce, stateI.getForces()[1], 1e-5);
+    ASSERT_EQUAL_VEC(expectedPos1, stateI.getPositions()[0], 1e-5);
+    ASSERT_EQUAL_VEC(expectedPos2, stateI.getPositions()[1], 1e-5);
+}
+
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
         testDistRest();
-        testDistRestChangingParameters();
-        testHyperbolicDistRest();
         testTorsRest();
         testDistProfileRest();
         testTorsProfileRest();
+        testDistRestChangingParameters();
+        testHyperbolicDistRest();
         testGMMRest1Pair1Component();
         testGMMRest1Pair1Component0Scale();
         testGMMRest1Pair2Component();
@@ -1091,6 +1147,7 @@ int main(int argc, char* argv[]) {
         testSingleGroup();
         testMultipleGroups();
         testBigSystem();
+        testPBC();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

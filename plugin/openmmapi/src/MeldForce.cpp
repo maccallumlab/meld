@@ -18,13 +18,100 @@ using namespace std;
 MeldForce::MeldForce() : n_restraints(0) {
 }
 
+
+std::vector<std::pair<int, int>> MeldForce::getBondedParticles() const
+{
+    std::vector<std::pair<int, int>> bonds;
+    for (int i = 0; i < this->getNumDistRestraints(); i++)
+    {
+        int atom1, atom2;
+        float r1, r2, r3, r4;
+        float forceConstant;
+        int globalIndex;
+        this->getDistanceRestraintParams(i, atom1, atom2, r1, r2, r3, r4, forceConstant, globalIndex);
+        bonds.push_back(std::make_pair(atom1, atom2));
+    }
+
+    for (int i = 0; i < this->getNumHyperbolicDistRestraints(); i++)
+    {
+        int atom1, atom2;
+        float r1, r2, r3, r4;
+        float forceConstant, asymptote;
+        int globalIndex;
+        this->getHyperbolicDistanceRestraintParams(i, atom1, atom2, r1, r2, r3, r4, forceConstant, asymptote, globalIndex);
+        bonds.push_back(std::make_pair(atom1, atom2));
+    }
+
+    for (int i = 0; i < this->getNumTorsionRestraints(); i++)
+    {
+        int atom1, atom2, atom3, atom4, globalIndex;
+        float phi, deltaPhi, forceConstant;
+        this->getTorsionRestraintParams(i, atom1, atom2, atom3, atom4, phi,
+                                                   deltaPhi, forceConstant, globalIndex);
+        bonds.push_back(std::make_pair(atom1, atom2));
+        bonds.push_back(std::make_pair(atom2, atom3));
+        bonds.push_back(std::make_pair(atom3, atom4));
+    }
+
+    for (int i = 0; i < this->getNumGMMRestraints(); i++)
+    {
+        int nPairs, nComponents;
+        float scale;
+        std::vector<int> atomIndices;
+        std::vector<double> weights, means, precisionOnDiagonal, precisionOffDiagonal;
+        float scaleFactor;
+        int globalIndex;
+        this->getGMMRestraintParams(i, nPairs, nComponents, scale, atomIndices, weights, means,
+                                    precisionOnDiagonal, precisionOffDiagonal, globalIndex);
+        for (int j = 0; j < nPairs; j++)
+        {
+            double atom1 = atomIndices[2 * j];
+            double atom2 = atomIndices[(2 * j) + 1];
+            bonds.push_back(std::make_pair(atom1, atom2));
+        }
+    }
+
+    for (int i = 0; i < this->getNumDistProfileRestraints(); i++)
+    {
+        int atom1, atom2, nBins;
+        float rMin, rMax, scaleFactor;
+        std::vector<double> a0, a1, a2, a3;
+        int globalIndex;
+        this->getDistProfileRestraintParams(i, atom1, atom2, rMin, rMax, nBins, a0, a1, a2, a3, scaleFactor, globalIndex);
+        bonds.push_back(std::make_pair(atom1, atom2));
+    }
+
+    for (int i = 0; i < this->getNumTorsProfileRestraints(); i++)
+    {
+        int atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins;
+        std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
+        float scaleFactor;
+        int globalIndex;
+        this->getTorsProfileRestraintParams(i, atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, scaleFactor, globalIndex);
+        bonds.push_back(std::make_pair(atom1, atom2));
+        bonds.push_back(std::make_pair(atom2, atom3));
+        bonds.push_back(std::make_pair(atom3, atom4));
+        bonds.push_back(std::make_pair(atom5, atom6));
+        bonds.push_back(std::make_pair(atom6, atom7));
+        bonds.push_back(std::make_pair(atom7, atom8));
+    }
+    return bonds;
+}
+
+
 bool MeldForce::containsParticle(int particle) const {
     std::set<int>::const_iterator loc=meldParticleSet.find(particle);
     if(loc==meldParticleSet.end()) {
-      return false;
+        return false;
     }
     return true;
 }
+
+
+bool MeldForce::usesPeriodicBoundaryConditions() const {
+    return false;
+}
+
 
 void MeldForce::updateMeldParticleSet() {
     meldParticleSet.clear();
