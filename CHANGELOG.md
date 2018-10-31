@@ -1,3 +1,5 @@
+Added support for implicit ion concentration and solute/solvent dielectric constants.
+
 ## 0.4.7
 
 ### Enchancements
