@@ -177,6 +177,11 @@ class VirtualSpinLabelPatcher(PatcherBase):
             cb = topol.view[f":{key},@CB"].atoms[0]
             n = topol.view[f":{key},@N"].atoms[0]
 
+            # Mark that the spin label and CA are connected.
+            # This will not actually add a bond to the potential,
+            # but will mark the connectivity between the atoms.
+            atom.bond_to(ca)
+
             # set position
             ca_pos = np.array((ca.xx, ca.xy, ca.xz))
             n_pos = np.array((n.xx, n.xy, n.xz))
