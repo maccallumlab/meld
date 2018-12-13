@@ -1,4 +1,17 @@
-Added support for implicit ion concentration and solute/solvent dielectric constants.
+## 0.4.8
+
+### Enhancements
+
+- Added support for implicit ion concentration and solute/solvent dielectric constants.
+
+### Bug Fixes
+
+- Fixed major bug in handling of groups where the number of
+  restraints to be satisfied was less than the total size
+  of the group. On GTX 1080 Ti, this resulted in frequent
+  crashes with `CUDA Error (700)`. It is unknown what
+  effect this would have on other platforms. Simulations
+  with groups that were 100% satisfied are unaffected.
 
 ## 0.4.7
 
