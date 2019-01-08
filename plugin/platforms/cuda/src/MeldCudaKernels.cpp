@@ -39,24 +39,21 @@ using namespace std;
 
 class CudaMeldForceInfo : public CudaForceInfo {
 public:
+    std::vector<std::pair<int, int>> bonds;
+
     CudaMeldForceInfo(const MeldForce& force) : force(force) {
+        bonds = force.getBondedParticles();
     }
 
     int getNumParticleGroups() override {
-        auto groups = force.getBondedParticles();
-        return groups.size();
+        return bonds.size();
     }
 
     void getParticlesInGroup(int index, vector<int>& particles) override {
-        auto groups = force.getBondedParticles();
         particles.clear();
-        particles.push_back(groups[index].first);
-        particles.push_back(groups[index].second);
-        // Particles.resize(2);
-        // Particles[0] = groups[index].first;
-        // Particles[1] = groups[index].second;
+        particles.push_back(bonds[index].first);
+        particles.push_back(bonds[index].second);
     }
-
 
     bool areParticlesIdentical(int particle1, int particle2) override {
       if(force.containsParticle(particle1) || force.containsParticle(particle2))
@@ -77,7 +74,6 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
                                                  const System& system) :
     CalcMeldForceKernel(name, platform), cu(cu), system(system)
 {
-
     if (cu.getUseDoublePrecision()) {
         cout << "***\n";
         cout << "*** MeldForce does not support double precision.\n";
@@ -735,7 +731,6 @@ void CudaCalcMeldForceKernel::setupCollections(const MeldForce& force) {
         std::vector<int> indices;
         int numActive;
         force.getCollectionParams(i, indices, numActive);
-
         checkGroupCollectionIndices(numGroups, indices, groupAssigned, i, "Group", "Collection");
         checkNumActive(indices, numActive, i, "Collection");
 
@@ -886,7 +881,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     replacements["MAXGROUPSIZE"] = cu.intToString(largestGroup);
     replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
 
-    // setup thr maximum number of groups calculated in a single block
+    // setup the maximum number of groups calculated in a single block
     // want to maximize occupancy, but need to ensure that we fit
     // into shared memory
     int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));

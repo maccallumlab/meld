@@ -1,3 +1,9 @@
+## 0.4.10
+
+## Enhancements
+
+- Major improvement in simulation startup time with large numbers of restraints.
+
 ## 0.4.9
 
 ## Bug Fixes

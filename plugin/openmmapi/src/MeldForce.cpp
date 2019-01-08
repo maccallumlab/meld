@@ -9,6 +9,7 @@
 #include "openmm/OpenMMException.h"
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 
 using namespace MeldPlugin;
@@ -21,7 +22,7 @@ MeldForce::MeldForce() : n_restraints(0) {
 
 std::vector<std::pair<int, int>> MeldForce::getBondedParticles() const
 {
-    std::vector<std::pair<int, int>> bonds;
+    std::vector<std::pair<int, int> > bonds;
     for (int i = 0; i < this->getNumDistRestraints(); i++)
     {
         int atom1, atom2;
@@ -290,6 +291,7 @@ int MeldForce::addGMMRestraint(int nPairs, int nComponents, float scale,
                                              atomIndices, weights, means,
                                              precisionOnDiagonal, precisionOffDiagonal));
     n_restraints++;
+
     return n_restraints - 1;
 }
 
