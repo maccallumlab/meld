@@ -10,6 +10,7 @@
 #include "openmm/Platform.h"
 #include "openmm/System.h"
 #include "openmm/VerletIntegrator.h"
+#include "openmm/LocalEnergyMinimizer.h"
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -264,6 +265,64 @@ void testForceMatchesFiniteDifference() {
     }
 }
 
+void testEnergyGoesDown() {
+    // Setup RNG
+    default_random_engine generator;
+    normal_distribution<double> distribution(0.0, 1.0);
+    generator.seed(1979);
+
+    System system;
+
+    // Add the particles with random positions
+    const int numParticles = 20;
+    const int numRdc = 10;
+    vector<Vec3> positions;
+    for(int i=0; i<numParticles; i++) {
+        float x = 0.1 * distribution(generator);
+        float y = 0.1 * distribution(generator);
+        float z = 0.1 * distribution(generator);
+        positions.push_back(Vec3(x, y, z));
+        system.addParticle(1.0);
+    }
+
+    RdcForce* force = new RdcForce();
+    float weight = 1.0;
+    float fc = 250.0;
+    float tol = 0.0;
+    float kappa = 10000.0;
+    vector<int> rest_ids;
+
+    for(int i=0; i<numRdc; i++) {
+        float obs = 5.0 * distribution(generator);
+        int restIdx = force->addRdcRestraint(
+            2*i, 2*i+1,
+            kappa,
+            obs,
+            tol,
+            fc,
+            weight
+        );
+        rest_ids.push_back(restIdx);
+    }
+
+    force->addExperiment(rest_ids);
+    system.addForce(force);
+
+    // Compute the forces and energy.
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+    context.setPositions(positions);
+    State state1 = context.getState(State::Energy);
+    double energy1 = state1.getPotentialEnergy();
+
+    // If we energy minimize for a few steps, the energy should go down
+    LocalEnergyMinimizer::minimize(context, 1, 10);
+    State state2 = context.getState(State::Energy);
+    double energy2 = state2.getPotentialEnergy();
+    ASSERT(energy2 < energy1);    
+}
+
 
 int main(int argc, char* argv[]) {
     try {
@@ -273,6 +332,7 @@ int main(int argc, char* argv[]) {
         testTranslationInvariance();
         testRotationInvariance();
         testForceMatchesFiniteDifference();
+        testEnergyGoesDown();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;
