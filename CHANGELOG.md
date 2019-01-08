@@ -1,4 +1,12 @@
-Added support for implicit ion concentration and solute/solvent dielectric constants.
+## 0.4.8
+
+### Enhancements
+
+- Added support for implicit ion concentration and solute/solvent dielectric constants.
+
+## Bug Fixes
+
+- Fixed inconsistencies in RDC calculations
 
 ## 0.4.7
 

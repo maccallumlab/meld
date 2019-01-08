@@ -14,7 +14,7 @@ extern "C" __global__ void computeRdcPhase1(
     for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
         // compute the dipole vector and its norm
         // these are in Angstrom
-        float3 rVec = 10. * trimTo3(posQ[atomExptIndices[index].x] - posQ[atomExptIndices[index].y]);
+        float3 rVec = trimTo3(posQ[atomExptIndices[index].x] - posQ[atomExptIndices[index].y]);
         float norm = SQRT(rVec.x*rVec.x + rVec.y*rVec.y + rVec.z*rVec.z);
 
         // compute the direction cosines
@@ -30,24 +30,15 @@ extern "C" __global__ void computeRdcPhase1(
 
         // compute lhs
         float invr3 = 1.0 / (norm * norm * norm);
-        float k = kappa[index];
+        float k = 2.0 * kappa[index];
         lhs[5 * index + 0] = k * invr3 * (y*y - x*x);
         lhs[5 * index + 1] = k * invr3 * (z*z - x*x);
         lhs[5 * index + 2] = k * invr3 * (2.0 * x * y);
         lhs[5 * index + 3] = k * invr3 * (2.0 * x * z);
         lhs[5 * index + 4] = k * invr3 * (2.0 * y * z);
-
-        /*printf("%8d\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t%8.3f\n", index, x, y, z, norm,*/
-                /*lhs[5 * index + 0],*/
-                /*lhs[5 * index + 1],*/
-                /*lhs[5 * index + 2],*/
-                /*lhs[5 * index + 3],*/
-                /*lhs[5 * index + 4]);*/
     }
 }
 
-
-// Fix this routine next to compute the correct forces
 
 extern "C" __global__ void computeRdcPhase3(
                             const int numRestraints,
@@ -81,10 +72,9 @@ extern "C" __global__ void computeRdcPhase3(
         float SXY = S[5 * expt + 2];
         float SXZ = S[5 * expt + 3];
         float SYZ = S[5 * expt + 4];
-        /*printf("S: %f %f %f %f %f %f\n", SXX, SYY, SZZ, SXY, SXZ, SYZ);*/
 
         // compute the calculated coupling
-        float dcalc = kappa[index] * invr3 * (
+        float dcalc = 2.0 * kappa[index] * invr3 * (
                 SXX * x2 +
                 SYY * y2 +
                 SZZ * z2 +
@@ -98,8 +88,6 @@ extern "C" __global__ void computeRdcPhase3(
         float tol = tolerance[index];
         float fc = force_const[index];
         float temp = 0.;
-
-        /*printf("%8d\t%8.3f\t%9.3f\n", index, dcalc, dobs);*/
 
         // computed splitting is too high
         if (dcalc > (dobs + tol)) {
@@ -117,30 +105,28 @@ extern "C" __global__ void computeRdcPhase3(
             temp = 0.;
         }
         float fx = temp * (
-                SXX * x * (x2 - 1.0) +
-                SYY * y2 * x +
-                SZZ * z2 * x +
-                SXY * y * (2.0 * x2 - 1.0) +
-                SXZ * z * (2.0 * x2 - 1.0) +
-                SYZ * 2.0 * x * y * z);
+                SXX * x * (2.5 * x2 - 1.0) +
+                2.5 * SYY * y2 * x +
+                2.5 * SZZ * z2 * x +
+                SXY * y * (5.0 * x2 - 1.0) +
+                SXZ * z * (5.0 * x2 - 1.0) +
+                SYZ * 5.0 * x * y * z);
 
         float fy = temp * (
-                SXX * x2 * y +
-                SYY * y * (y2  - 1.0) +
-                SZZ * z2 * y +
-                SXY * x * (2.0 * y2 - 1.0) +
-                SXZ * 2.0 * x * y * z +
-                SYZ * z * (2.0 * y2 - 1.0));
+                2.5 * SXX * x2 * y +
+                SYY * y * (2.5 * y2  - 1.0) +
+                2.5 * SZZ * z2 * y +
+                SXY * x * (5.0 * y2 - 1.0) +
+                SXZ * 5.0 * x * y * z +
+                SYZ * z * (5.0 * y2 - 1.0));
 
         float fz = temp * (
-                SXX * x2 * z +
-                SYY * y2 * z +
-                SZZ * z * (z2 - 1.0) +
-                SXY * 2.0 * x * y * z +
-                SXZ * x * (2.0 * z2 - 1.0) +
-                SYZ * y * (2.0 * z2 - 1.0));
-
-        // TODO: compute axial part of force
+                2.5 * SXX * x2 * z +
+                2.5 * SYY * y2 * z +
+                SZZ * z * (2.5 * z2 - 1.0) +
+                SXY * 5.0 * x * y * z +
+                SXZ * x * (5.0 * z2 - 1.0) +
+                SYZ * y * (5.0 * z2 - 1.0));
 
         // apply forces and energies
         int atom_i = atomExptIndices[index].x;
