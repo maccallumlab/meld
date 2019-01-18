@@ -1,3 +1,10 @@
+## 0.4.11
+
+## Bug Fixes
+
+- Fixed updating of RDC forces. Previously, the RDC forces were not correctly
+  updated with alpha and timestep.
+
 ## 0.4.10
 
 ## Enhancements

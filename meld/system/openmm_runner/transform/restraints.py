@@ -135,10 +135,10 @@ class RDCRestraintTransformer(TransformerBase):
 
     def update(self, simulation, alpha, timestep):
         if self.active:
+            expt_dict = DefaultOrderedDict(list)
             # make a dictionary based on the experiment index
-            expt_dict = OrderedDict()
             for r in self.restraints:
-                expt_dict.get(r.expt_index, []).append(r)
+                expt_dict[r.expt_index].append(r)
 
             # loop over the experiments and update the restraints
             index = 0

@@ -24,6 +24,121 @@ using namespace std;
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
 
+void testUpdateForceConstants() {
+    // Setup RNG
+    default_random_engine generator;
+    generator.seed(1979);
+    normal_distribution<double> distribution(0.0, 1.0);
+
+    System system;
+
+    // Add the particles with random positions
+    const int numParticles = 20;
+    const int numRdc = 10;
+    vector<Vec3> positions;
+    for(int i=0; i<numParticles; i++) {
+        float x = 0.1 * distribution(generator);
+        float y = 0.1 * distribution(generator);
+        float z = 0.1 * distribution(generator);
+        positions.push_back(Vec3(x, y, z));
+        system.addParticle(1.0);
+    }
+
+
+    float weight = 1.0;
+    float tol = 0.0;
+    float kappa = 10000.0;
+    float fc1 = 1000.0;
+    float fc2 = 2000.0;
+    float fc0 = 0.0;
+
+    RdcForce* force = new RdcForce();
+    vector<int> rest_ids;
+
+    for(int i=0; i<numRdc; i++) {
+        float obs = 5.0 * distribution(generator);
+        int restIdx = force->addRdcRestraint(
+            2*i, 2*i+1,
+            kappa,
+            obs,
+            tol,
+            fc1,
+            weight
+        );
+        rest_ids.push_back(restIdx);
+    }
+
+    force->addExperiment(rest_ids);
+    system.addForce(force);
+
+    vector<Vec3> pos1(positions);
+
+    VerletIntegrator integ(1.0);
+    Platform& platform = Platform::getPlatformByName("CUDA");
+    Context context(system, integ, platform);
+
+    // compute the eneriy and forces with fc1
+    context.setPositions(pos1);
+    State state1 = context.getState(State::Energy | State::Forces);
+    double energy1 = state1.getPotentialEnergy();
+    vector<Vec3> forces1 = state1.getForces();
+
+    // compute the energy and forces with fc2
+    for(int index=0; index<numRdc; index++) {
+        int i, j, global;
+        float kappa=0;
+        float obs=0;
+        float tol=0;
+        float fc=0;
+        float weight=0;
+        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, weight, global);
+        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc2, weight);
+    }
+    force->updateParametersInContext(context);
+
+    State state2 = context.getState(State::Energy | State::Forces);
+    double energy2 = state2.getPotentialEnergy();
+    vector<Vec3> forces2 = state2.getForces();
+
+    // compute the energy and forces with fc0
+    for(int index=0; index<numRdc; index++) {
+        int i, j, global;
+        float kappa=0;
+        float obs=0;
+        float tol=0;
+        float fc=0;
+        float weight=0;
+        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, weight, global);
+        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc0, weight);
+    }
+    force->updateParametersInContext(context);
+
+    State state0 = context.getState(State::Energy | State::Forces);
+    double energy0 = state0.getPotentialEnergy();
+    vector<Vec3> forces0 = state0.getForces();
+
+
+
+    // energy with fc2 should be twice with fc1
+    ASSERT_EQUAL_TOL(2 * energy1, energy2, 1e-4);
+
+    // energy with fc0 should be zero
+    ASSERT_EQUAL_TOL(0.0, energy0, 1e-4);
+
+    // The forces should be twice as high with fc2 than fc1
+    for(int i=0; i<numParticles; i++) {
+        for(int j=0; j<3; j++) {
+            ASSERT_EQUAL_TOL(2*forces1[i][j], forces2[i][j], 1e-3);
+        }
+    }
+
+    // The forces should be zero with fc0
+    for(int i=0; i<numParticles; i++) {
+        for(int j=0; j<3; j++) {
+            ASSERT_EQUAL_TOL(0.0, forces0[i][j], 1e-3);
+        }
+    }
+}
 void testTranslationInvariance() {
     // Setup RNG
     default_random_engine generator;
@@ -329,6 +444,7 @@ int main(int argc, char* argv[]) {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
+        testUpdateForceConstants();
         testTranslationInvariance();
         testRotationInvariance();
         testForceMatchesFiniteDifference();
