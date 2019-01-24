@@ -71,11 +71,12 @@ public:
      * @param dObs  The dObs parameter
      * @param tolerance  The tolerance parameter
      * @param force_const  The force constant of the restraint
+     * @param quadratic_cut The energy becomes linear beyond quadratic_cut
      * @param weight  The weight parameter
      * @return index  The index of the new restraint
      */
     int addRdcRestraint(int particle1, int particle2, float kappa, float dObs, float tolerance,
-            float force_const, float weight);
+            float force_const, float quadratic_cut, float weight);
 
     /**
      * Modify an existing RDC restraint.
@@ -87,10 +88,11 @@ public:
      * @param dObs  The dObs parameter
      * @param tolerance  The tolerance parameter
      * @param force_const  The force constant of the restraint
+     * @param quadratic_cut The force becomes linear beyond quadratic_cut
      * @param weight  The weight parameter
      */
     void updateRdcRestraint(int index, int particle1, int particle2, float kappa, float dObs,
-            float tolerance, float force_const, float weight);
+            float tolerance, float force_const, float quadratic_cut, float weight);
 
     /**
      * Get the parameters of an experiment.
@@ -110,12 +112,13 @@ public:
      * @param dObs  The dObs parameter
      * @param tolerance  The tolerance parameter
      * @param force_const  The force constant of the restraint
+     * @param quadratic_cut The force constant becomes linear beyond quadratic cut
      * @param weight  The weight parameter
      * @param globalIndex  The global index of the restraint
      */
     void getRdcRestraintInfo(int index, int& particle1, int& partcile2, float& kappa,
-            float& dObs, float& tolerance, float& force_const, float& weight,
-            int& globalIndex) const;
+            float& dObs, float& tolerance, float& force_const, float& quadratic_cut,
+            float& weight, int& globalIndex) const;
 
 protected:
     OpenMM::ForceImpl* createImpl() const;
@@ -130,7 +133,7 @@ private:
     class RdcRestraintInfo {
     public:
         int atom1, atom2;
-        float kappa, dObs, tolerance, force_const, weight;
+        float kappa, dObs, tolerance, force_const, quadratic_cut, weight;
         int globalIndex;
 
         RdcRestraintInfo() {
@@ -139,14 +142,16 @@ private:
             dObs = 0;
             tolerance = 0.;
             force_const = 0.;
+            quadratic_cut = 999999.;
             weight = 0.;
             globalIndex =  -1;
         }
 
         RdcRestraintInfo(int atom1, int atom2, float kappa, float dObs, float tolerance,
-                float force_const, float weight, int globalIndex) :
+                float force_const, float quadratic_cut, float weight, int globalIndex) :
             atom1(atom1), atom2(atom2), kappa(kappa), dObs(dObs), tolerance(tolerance),
-            force_const(force_const), weight(weight), globalIndex(globalIndex) {
+            force_const(force_const), quadratic_cut(quadratic_cut),
+            weight(weight), globalIndex(globalIndex) {
         }
     };
 

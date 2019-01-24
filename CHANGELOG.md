@@ -1,3 +1,15 @@
+## 0.4.12
+
+## Enhancements
+
+- You can now specify quadratic_cut for RDC restraints. The energy will increase
+  quadratically when |d_obs - d_calc| is less than quadratic cut and linearly
+  when it is larger.
+
+## Bug Fixes
+
+- Fixed a bug where RDC energies were incorrect in mixed precision.
+
 ## 0.4.11
 
 ## Bug Fixes

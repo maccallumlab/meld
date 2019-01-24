@@ -347,10 +347,10 @@ namespace MeldPlugin {
         int addExperiment(std::vector<int> rdcIndices);
 
         int addRdcRestraint(int particle1, int particle2, float kappa, float dObs, float tolerance,
-                float force_const, float weight);
+                float force_const, float quadratic_cut, float weight);
 
         void updateRdcRestraint(int index, int particle1, int particle2, float kappa, float dObs,
-                float tolerance, float force_const, float weight);
+                float tolerance, float force_const, float quadratic_cut, float weight);
 
         %apply std::vector<int>& OUTPUT {std::vector<int>& restraints};
         void getExperimentInfo(int index, std::vector<int>& restraints) const;
@@ -362,17 +362,19 @@ namespace MeldPlugin {
         %apply float& OUTPUT {float & dObs};
         %apply float& OUTPUT {float & tolerance};
         %apply float& OUTPUT {float & force_const};
+        %apply float& OUTPUT {float & quadratic_cut};
         %apply float& OUTPUT {float & weight};
         %apply int& OUTPUT {int & globalIndex};
         void getRdcRestraintInfo(int index, int& particle1, int& partcile2, float& kappa,
-                float& dObs, float& tolerance, float& force_const, float& weight,
-                int& globalIndex) const;
+                float& dObs, float& tolerance, float& force_const, float& quadratic_cut,
+                float& weight, int& globalIndex) const;
         %clear int & particle1;
         %clear int & particle2;
         %clear float & kappa;
         %clear float & dObs;
         %clear float & tolerance;
         %clear float & force_const;
+        %clear float & quadratic_cut;
         %clear float & weight;
         %clear int & globalIndex;
     };

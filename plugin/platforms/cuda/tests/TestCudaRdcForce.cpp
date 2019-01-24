@@ -24,7 +24,7 @@ using namespace std;
 extern "C" OPENMM_EXPORT void registerMeldCudaKernelFactories();
 
 
-void testUpdateForceConstants() {
+void testUpdateForceConstants(float cut) {
     // Setup RNG
     default_random_engine generator;
     generator.seed(1979);
@@ -33,8 +33,8 @@ void testUpdateForceConstants() {
     System system;
 
     // Add the particles with random positions
-    const int numParticles = 20;
-    const int numRdc = 10;
+    const int numParticles = 256;
+    const int numRdc = 128;
     vector<Vec3> positions;
     for(int i=0; i<numParticles; i++) {
         float x = 0.1 * distribution(generator);
@@ -48,8 +48,8 @@ void testUpdateForceConstants() {
     float weight = 1.0;
     float tol = 0.0;
     float kappa = 10000.0;
-    float fc1 = 1000.0;
-    float fc2 = 2000.0;
+    float fc1 = 10.0;
+    float fc2 = 20.0;
     float fc0 = 0.0;
 
     RdcForce* force = new RdcForce();
@@ -63,6 +63,7 @@ void testUpdateForceConstants() {
             obs,
             tol,
             fc1,
+            cut,
             weight
         );
         rest_ids.push_back(restIdx);
@@ -90,9 +91,10 @@ void testUpdateForceConstants() {
         float obs=0;
         float tol=0;
         float fc=0;
+        float cut=0;
         float weight=0;
-        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, weight, global);
-        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc2, weight);
+        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, cut, weight, global);
+        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc2, cut, weight);
     }
     force->updateParametersInContext(context);
 
@@ -107,9 +109,10 @@ void testUpdateForceConstants() {
         float obs=0;
         float tol=0;
         float fc=0;
+        float cut=0;
         float weight=0;
-        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, weight, global);
-        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc0, weight);
+        force->getRdcRestraintInfo(index, i, j, kappa, obs, tol, fc, cut, weight, global);
+        force->updateRdcRestraint(index, i, j, kappa, obs, tol, fc0, cut, weight);
     }
     force->updateParametersInContext(context);
 
@@ -139,7 +142,7 @@ void testUpdateForceConstants() {
         }
     }
 }
-void testTranslationInvariance() {
+void testTranslationInvariance(float cut) {
     // Setup RNG
     default_random_engine generator;
     generator.seed(1979);
@@ -148,8 +151,8 @@ void testTranslationInvariance() {
     System system;
 
     // Add the particles with random positions
-    const int numParticles = 20;
-    const int numRdc = 10;
+    const int numParticles = 256;
+    const int numRdc = 128;
     vector<Vec3> positions;
     for(int i=0; i<numParticles; i++) {
         float x = 0.1 * distribution(generator);
@@ -161,7 +164,7 @@ void testTranslationInvariance() {
 
     RdcForce* force = new RdcForce();
     float weight = 1.0;
-    float fc = 2000.0;
+    float fc = 10.0;
     float tol = 0.0;
     float kappa = 10000.0;
     vector<int> rest_ids;
@@ -174,6 +177,7 @@ void testTranslationInvariance() {
             obs,
             tol,
             fc,
+            cut,
             weight
         );
         rest_ids.push_back(restIdx);
@@ -185,9 +189,11 @@ void testTranslationInvariance() {
     vector<Vec3> pos1(positions);
     vector<Vec3> pos2(positions);
 
-    const float pert = 42.0;
+    const float pert = 1.0;
     for(int i=0; i<numParticles; i++) {
         pos2[i][0] += pert;
+        pos2[i][1] += -pert;
+        pos2[i][2] += pert;
     }
 
     VerletIntegrator integ(1.0);
@@ -213,13 +219,13 @@ void testTranslationInvariance() {
     const float delta = 1e-4;
     for(int i=0; i<numParticles; i++) {
         for(int j=0; j<3; j++) {
-            ASSERT_EQUAL_TOL(forces1[i][j], forces2[i][j], 1e-3);
+            ASSERT_EQUAL_TOL(forces1[i][j], forces2[i][j], 1e-2);
         }
     }
 }
 
 
-void testRotationInvariance() {
+void testRotationInvariance(float cut) {
     // Setup RNG
     default_random_engine generator;
     generator.seed(1979);
@@ -228,8 +234,8 @@ void testRotationInvariance() {
     System system;
 
     // Add the particles with random positions
-    const int numParticles = 20;
-    const int numRdc = 10;
+    const int numParticles = 256;
+    const int numRdc = 128;
     vector<Vec3> positions;
     for(int i=0; i<numParticles; i++) {
         float x = 0.1 * distribution(generator);
@@ -241,7 +247,7 @@ void testRotationInvariance() {
 
     RdcForce* force = new RdcForce();
     float weight = 1.0;
-    float fc = 2000.0;
+    float fc = 10.0;
     float tol = 0.0;
     float kappa = 10000.0;
     vector<int> rest_ids;
@@ -254,6 +260,7 @@ void testRotationInvariance() {
             obs,
             tol,
             fc,
+            cut,
             weight
         );
         rest_ids.push_back(restIdx);
@@ -265,11 +272,11 @@ void testRotationInvariance() {
     vector<Vec3> pos1(positions);
     vector<Vec3> pos2(positions);
 
-    // we'll rotate around the z-axis by 180 degrees
-    // so x becomes -x and y becomes -y
+    // we'll rotate around the z-axis by 90 degrees
+    // so x = y_old, y = -x_old
     for(int i=0; i<numParticles; i++) {
-        pos2[i][0] = -pos1[i][0];
-        pos2[i][1] = -pos1[i][1];
+        pos2[i][0] = pos1[i][1];
+        pos2[i][1] = -pos1[i][0];
         pos2[i][2] = pos1[i][2];
     }
 
@@ -295,8 +302,8 @@ void testRotationInvariance() {
     // The forces should match after accounting for rotation
     const float delta = 1e-4;
     for(int i=0; i<numParticles; i++) {
-        ASSERT_EQUAL_TOL(-forces1[i][0], forces2[i][0], 1e-3);
-        ASSERT_EQUAL_TOL(-forces1[i][1], forces2[i][1], 1e-3);
+        ASSERT_EQUAL_TOL(forces1[i][1], forces2[i][0], 1e-3);
+        ASSERT_EQUAL_TOL(-forces1[i][0], forces2[i][1], 1e-3);
         ASSERT_EQUAL_TOL(forces1[i][2], forces2[i][2], 1e-3);
     }
 }
@@ -311,8 +318,8 @@ void testForceMatchesFiniteDifference() {
     System system;
 
     // Add the particles with random positions
-    const int numParticles = 20;
-    const int numRdc = 10;
+    const int numParticles = 256;
+    const int numRdc = 128;
     vector<Vec3> positions;
     for(int i=0; i<numParticles; i++) {
         float x = 0.1 * distribution(generator);
@@ -324,9 +331,10 @@ void testForceMatchesFiniteDifference() {
 
     RdcForce* force = new RdcForce();
     float weight = 1.0;
-    float fc = 2000.0;
+    float fc = 10.0;
     float tol = 0.0;
     float kappa = 10000.0;
+    float cut = 999999.0;
     vector<int> rest_ids;
 
     for(int i=0; i<numRdc; i++) {
@@ -337,6 +345,7 @@ void testForceMatchesFiniteDifference() {
             obs,
             tol,
             fc,
+            cut,
             weight
         );
         rest_ids.push_back(restIdx);
@@ -372,15 +381,23 @@ void testForceMatchesFiniteDifference() {
             float actual_force = forces[i][j];
 
             // See if the forces match what is expected.
-            // The tolerance is coarse, as chaning the
+            // The tolerance is coarse, as changing the
             // coordinates will change the alignment,
             // which is not included in the force calculation.
-            ASSERT_EQUAL_TOL(fd_force, actual_force, 1e-1);
+            // We ignore any errors that are smaller than
+            // 0.5 kJ / mol / nm, as these are common due
+            // to the issue just mentioned. Any errors with
+            // a larger absolute value should have a relative
+            // error below 1%.
+            float delta = fd_force - actual_force;
+            if(std::abs(delta) > 0.5) {
+                ASSERT_EQUAL_TOL(fd_force, actual_force, 1e-2);
+            }
         }
     }
 }
 
-void testEnergyGoesDown() {
+void testEnergyGoesDown(float cut) {
     // Setup RNG
     default_random_engine generator;
     normal_distribution<double> distribution(0.0, 1.0);
@@ -389,8 +406,8 @@ void testEnergyGoesDown() {
     System system;
 
     // Add the particles with random positions
-    const int numParticles = 20;
-    const int numRdc = 10;
+    const int numParticles = 256;
+    const int numRdc = 128;
     vector<Vec3> positions;
     for(int i=0; i<numParticles; i++) {
         float x = 0.1 * distribution(generator);
@@ -402,7 +419,7 @@ void testEnergyGoesDown() {
 
     RdcForce* force = new RdcForce();
     float weight = 1.0;
-    float fc = 250.0;
+    float fc = 10.0;
     float tol = 0.0;
     float kappa = 10000.0;
     vector<int> rest_ids;
@@ -415,6 +432,7 @@ void testEnergyGoesDown() {
             obs,
             tol,
             fc,
+            cut,
             weight
         );
         rest_ids.push_back(restIdx);
@@ -442,13 +460,27 @@ void testEnergyGoesDown() {
 int main(int argc, char* argv[]) {
     try {
         registerMeldCudaKernelFactories();
-        if (argc > 1)
+        if (argc > 1) {
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
-        testUpdateForceConstants();
-        testTranslationInvariance();
-        testRotationInvariance();
+        } else
+        {
+            Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string("mixed"));
+        }
+        
+    
+        testUpdateForceConstants(99999.);
+        testUpdateForceConstants(1.0);
+        testUpdateForceConstants(0.1);
+        testTranslationInvariance(99999.);
+        testTranslationInvariance(1.0);
+        testTranslationInvariance(0.1);
+        testRotationInvariance(99999.);
+        testRotationInvariance(1.0);
+        testRotationInvariance(0.1);
         testForceMatchesFiniteDifference();
-        testEnergyGoesDown();
+        testEnergyGoesDown(99999.);
+        testEnergyGoesDown(1.);
+        testEnergyGoesDown(0.1);
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

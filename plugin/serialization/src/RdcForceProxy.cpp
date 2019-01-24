@@ -22,8 +22,8 @@ void RdcForceProxy::serialize(const void* object, SerializationNode& node) const
     SerializationNode& rdcRestraints = node.createChildNode("RdcRestraints");
     for (int i = 0; i < force.getNumTotalRestraints(); i++) {
         int particle1, particle2, globalIndex;
-        float kappa, dObs, tolerance, force_const, weight;
-        force.getRdcRestraintInfo(i, particle1, particle2, kappa, dObs, tolerance, force_const, weight, globalIndex);
+        float kappa, dObs, tolerance, force_const, cut, weight;
+        force.getRdcRestraintInfo(i, particle1, particle2, kappa, dObs, tolerance, force_const, cut, weight, globalIndex);
         SerializationNode& rdc = rdcRestraints.createChildNode("RdcRestraint");
         rdc.setIntProperty("particle1", particle1);
         rdc.setIntProperty("particle2", particle2);
@@ -31,6 +31,7 @@ void RdcForceProxy::serialize(const void* object, SerializationNode& node) const
         rdc.setDoubleProperty("dObs", dObs);
         rdc.setDoubleProperty("tolerance", tolerance);
         rdc.setDoubleProperty("force_const", force_const);
+        rdc.setDoubleProperty("quadratic_cut", cut);
         rdc.setDoubleProperty("weight", weight);
         rdc.setIntProperty("globalIndex", globalIndex);
     }
@@ -61,9 +62,11 @@ void* RdcForceProxy::deserialize(const SerializationNode& node) const {
             float kappa = dr.getDoubleProperty("kappa");
             float dObs = dr.getDoubleProperty("dObs");
             float tolerance = dr.getDoubleProperty("tolerance");
+            float cut = dr.getDoubleProperty("quadratic_cut");
             float force_const = dr.getDoubleProperty("force_const");
             float weight = dr.getDoubleProperty("weight");
-            force->addRdcRestraint(particle1, particle2, kappa, dObs, tolerance, force_const, weight);
+            force->addRdcRestraint(particle1, particle2, kappa, dObs, tolerance,
+                                   force_const, cut, weight);
         }
 
         const SerializationNode& experiments = node.getChildNode("Experiments");
