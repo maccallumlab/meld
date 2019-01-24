@@ -697,6 +697,7 @@ class RdcRestraint(NonSelectableRestraint):
     # :param tolerance: calculed couplings within tolerance (in Hz) of d_obs
     #                   will have zero energy and force
     # :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
+    # :param quadratic_cut: force onstant becomes linear bond this deviation s^-1
     # :param weight: dimensionless weight to place on this restraint
     # :param expt_index: integer experiment id
 
@@ -723,6 +724,7 @@ class RdcRestraint(NonSelectableRestraint):
         d_obs,
         tolerance,
         force_const,
+        quadratic_cut,
         weight,
         expt_index,
     ):
@@ -732,6 +734,7 @@ class RdcRestraint(NonSelectableRestraint):
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)
         self.force_const = float(force_const)
+        self.quadratic_cut = quadratic_cut
         self.weight = float(weight)
         self.expt_index = int(expt_index)
         self.scaler = scaler
@@ -747,6 +750,8 @@ class RdcRestraint(NonSelectableRestraint):
             raise ValueError("force_constant must be > 0")
         if self.weight < 0:
             raise ValueError("weight must be > 0")
+        if self.quadratic_cut <= 0:
+            raise ValueError("quadratic_cut must be > 0")
 
 
 class ConfinementRestraint(NonSelectableRestraint):

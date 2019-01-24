@@ -124,6 +124,7 @@ class RDCRestraintTransformer(TransformerBase):
                         r.d_obs,
                         r.tolerance,
                         r.force_const,
+                        r.quadratic_cut,
                         r.weight,
                     )
                     rest_ids.append(r_id)
@@ -154,6 +155,7 @@ class RDCRestraintTransformer(TransformerBase):
                         r.d_obs,
                         r.tolerance,
                         r.force_const * scale,
+                        r.quadratic_cut,
                         r.weight,
                     )
                     index = index + 1

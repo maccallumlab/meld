@@ -525,6 +525,7 @@ def get_rdc_restraints(
     system: System,
     scaler: RestraintScaler,
     ramp: Optional[TimeRamp] = None,
+    quadratic_cut: float = 99999.,
     filename: Optional[str] = None,
     content: Optional[str] = None,
     file: Optional[TextIO] = None,
@@ -540,6 +541,8 @@ def get_rdc_restraints(
         Object to scale the force constant.
     ramp : meld.system.restraints.TimeRamp
         Ramp, default is ConstantRamp()
+    quadratic_cut : float
+        Restraints become linear beyond this deviation s^-1
     filename : string
         Filename to open
     content : string
@@ -586,6 +589,7 @@ def get_rdc_restraints(
             obs,
             tolerance,
             force_const,
+            quadratic_cut,
             weight,
             expt,
         )

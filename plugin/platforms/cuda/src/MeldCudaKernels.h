@@ -299,7 +299,7 @@ private:
     OpenMM::CudaArray* atomExptIndices;         // int3 of indices of atoms involved in each dipole and exp't index
     OpenMM::CudaArray* lhs;                     // float 5 x numRdcRestraints array of the left-hand side of the LLS equations
     OpenMM::CudaArray* rhs;                     // float x numRdcRestraints array of observed couplings
-    OpenMM::CudaArray* kappa;                   // float x numRedRestraints array of constants
+    OpenMM::CudaArray* kappaCut;                // float 2 x numRedRestraints array of constants and quadratic cutoffs
     OpenMM::CudaArray* tolerance;               // float x numRdcRestraints array of tolerances
     OpenMM::CudaArray* force_const;             // float x numRdcRestraints array of force constants
     OpenMM::CudaArray* weight;                  // float x numRdcRestraints array of weights
@@ -309,7 +309,7 @@ private:
     std::vector<int2> h_experimentBounds;
     std::vector<float> h_lhs;
     std::vector<float> h_rhs;
-    std::vector<float> h_kappa;
+    std::vector<float2> h_kappa_cut;
     std::vector<float> h_tolerance;
     std::vector<float> h_force_const;
     std::vector<float> h_weight;

@@ -34,17 +34,18 @@ int RdcForce::getNumTotalRestraints() const {
 }
 
 int RdcForce::addRdcRestraint(int particle1, int particle2, float kappa, float dObs, float tolerance,
-        float force_const, float weight) {
+        float force_const, float quadratic_cut, float weight) {
     rdcRestraints.push_back(
-            RdcRestraintInfo(particle1, particle2, kappa, dObs, tolerance, force_const, weight, numRestraints));
+            RdcRestraintInfo(particle1, particle2, kappa, dObs, tolerance, force_const, quadratic_cut,
+            weight, numRestraints));
     numRestraints++;
     return numRestraints - 1;
 }
 void RdcForce::updateRdcRestraint(int index, int particle1, int particle2, float kappa, float dObs,
-        float tolerance, float force_const, float weight) {
+        float tolerance, float force_const, float quadratic_cut, float weight) {
     int oldGlobal = rdcRestraints[index].globalIndex;
     rdcRestraints[index] =
-        RdcRestraintInfo(particle1, particle2, kappa, dObs, tolerance, force_const, weight, oldGlobal);
+        RdcRestraintInfo(particle1, particle2, kappa, dObs, tolerance, force_const, quadratic_cut, weight, oldGlobal);
 }
 
 int RdcForce::addExperiment(std::vector<int> rdcIndices) {
@@ -62,7 +63,8 @@ void RdcForce::getExperimentInfo(int index, std::vector<int>& indices) const {
 }
 
 void RdcForce::getRdcRestraintInfo(int index, int& particle1, int& particle2, float& kappa,
-        float& dObs, float& tolerance, float& force_const, float& weight, int& globalIndex) const {
+        float& dObs, float& tolerance, float& force_const, float& quadratic_cut,
+        float& weight, int& globalIndex) const {
     const RdcRestraintInfo& rest = rdcRestraints[index];
     particle1 = rest.atom1;
     particle2 = rest.atom2;
@@ -70,6 +72,7 @@ void RdcForce::getRdcRestraintInfo(int index, int& particle1, int& particle2, fl
     dObs = rest.dObs;
     tolerance = rest.tolerance;
     force_const = rest.force_const;
+    quadratic_cut = rest.quadratic_cut;
     weight = rest.weight;
     globalIndex = rest.globalIndex;
 }

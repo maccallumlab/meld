@@ -632,6 +632,7 @@ class TestRdcRestraint(unittest.TestCase):
             10.,
             10.,
             1.0,
+            999.,
             1.0,
             0,
         )
@@ -654,6 +655,7 @@ class TestRdcRestraint(unittest.TestCase):
                 10.,
                 10.,
                 1.0,
+                999.,
                 1.0,
                 0,
             )
@@ -672,6 +674,7 @@ class TestRdcRestraint(unittest.TestCase):
                 10.,
                 -10.,
                 1.0,
+                999.,
                 1.0,
                 0,
             )
@@ -690,6 +693,7 @@ class TestRdcRestraint(unittest.TestCase):
                 10.,
                 10.,
                 -1.0,
+                999.,
                 1.0,
                 0,
             )
@@ -708,6 +712,7 @@ class TestRdcRestraint(unittest.TestCase):
                 10.,
                 10.,
                 1.0,
+                999.,
                 -1.0,
                 0,
             )

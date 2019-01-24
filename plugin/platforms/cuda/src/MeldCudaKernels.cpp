@@ -1187,7 +1187,7 @@ CudaCalcRdcForceKernel::CudaCalcRdcForceKernel(std::string name, const Platform&
     lhs = nullptr;
     rhs = nullptr;
     S = nullptr;
-    kappa = nullptr;
+    kappaCut = nullptr;
     tolerance = nullptr;
     force_const = nullptr;
     weight = nullptr;
@@ -1200,7 +1200,7 @@ CudaCalcRdcForceKernel::~CudaCalcRdcForceKernel() {
     delete lhs;
     delete rhs;
     delete S;
-    delete kappa;
+    delete kappaCut;
     delete tolerance;
     delete force_const;
     delete weight;
@@ -1231,7 +1231,7 @@ double CudaCalcRdcForceKernel::execute(ContextImpl& context, bool includeForces,
         &numRdcRestraints,
         &cu.getPosq().getDevicePointer(),
         &atomExptIndices->getDevicePointer(),
-        &kappa->getDevicePointer(),
+        &kappaCut->getDevicePointer(),
         &r->getDevicePointer(),
         &lhs->getDevicePointer()};
     cu.executeKernel(computeRdcPhase1, computePhase1Args, numRdcRestraints);
@@ -1240,13 +1240,14 @@ double CudaCalcRdcForceKernel::execute(ContextImpl& context, bool includeForces,
     // download the lhs, compute S on CPU, upload S back to GPU
     computeRdcPhase2();
 
+
     // Phase 3
     // compute the energies and forces on the GPU
     void* computePhase3Args[] = {
         &numRdcRestraints,
         &cu.getPosq().getDevicePointer(),
         &atomExptIndices->getDevicePointer(),
-        &kappa->getDevicePointer(),
+        &kappaCut->getDevicePointer(),
         &S->getDevicePointer(),
         &rhs->getDevicePointer(),
         &tolerance->getDevicePointer(),
@@ -1256,6 +1257,7 @@ double CudaCalcRdcForceKernel::execute(ContextImpl& context, bool includeForces,
         &cu.getForce().getDevicePointer(),
         &cu.getEnergyBuffer().getDevicePointer()};
     cu.executeKernel(computeRdcPhase3, computePhase3Args, numRdcRestraints);
+
     return 0.;
 }
 
@@ -1275,11 +1277,9 @@ void CudaCalcRdcForceKernel::computeRdcPhase2() {
         Eigen::Map<Eigen::VectorXf> rhsWrap(&h_rhs[start], len);
         Eigen::Map<Eigen::VectorXf> SWrap(&h_S[5 * i], 5);
 
-
         // solve for S
         SWrap = lhsWrap.jacobiSvd(Eigen::ComputeThinU|Eigen::ComputeThinV).solve(rhsWrap);
     }
-
     // upload S back up to the gpu
     S->upload(h_S);
 }
@@ -1302,7 +1302,7 @@ void CudaCalcRdcForceKernel::allocateMemory(const RdcForce& force) {
     atomExptIndices = CudaArray::create<int3> (cu, numRdcRestraints, "atomExptIndices");
     lhs = CudaArray::create<float> (cu, 5 * numRdcRestraints, "lhs");
     rhs = CudaArray::create<float> (cu, numRdcRestraints, "rhs");
-    kappa = CudaArray::create<float> (cu, numRdcRestraints, "kappa");
+    kappaCut = CudaArray::create<float2> (cu, numRdcRestraints, "kappaCut");
     tolerance = CudaArray::create<float> (cu, numRdcRestraints, "tolerance");
     force_const = CudaArray::create<float> (cu, numRdcRestraints, "force_const");
     weight = CudaArray::create<float> (cu, numRdcRestraints, "weight");
@@ -1314,7 +1314,7 @@ void CudaCalcRdcForceKernel::allocateMemory(const RdcForce& force) {
     h_atomExptIndices = std::vector<int3> (numRdcRestraints, make_int3(0, 0, 0));
     h_lhs = std::vector<float> (5 * numRdcRestraints, 0.);
     h_rhs = std::vector<float> (numRdcRestraints, 0.);
-    h_kappa = std::vector<float> (numRdcRestraints, 0.);
+    h_kappa_cut = std::vector<float2> (numRdcRestraints, make_float2(0, 0));
     h_tolerance = std::vector<float> (numRdcRestraints, 0.);
     h_force_const = std::vector<float> (numRdcRestraints, 0.);
     h_weight = std::vector<float> (numRdcRestraints, 0.);
@@ -1334,13 +1334,14 @@ void CudaCalcRdcForceKernel::setupRdcRestraints(const RdcForce& force) {
         for(int withinExpIndex = 0; withinExpIndex < force.getNumRestraints(expIndex); ++withinExpIndex) {
             int currentRestraint = restraintsInExperiment[withinExpIndex];
             int atom1, atom2, globalIndex;
-            float kappa, dobs, tolerance, force_const, weight;
+            float kappa, cut, dobs, tolerance, force_const, weight;
 
             force.getRdcRestraintInfo(currentRestraint, atom1, atom2, kappa, dobs, tolerance,
-                    force_const, weight, globalIndex);
+                    force_const, cut, weight, globalIndex);
 
             h_atomExptIndices[currentIndex] = make_int3(atom1, atom2, expIndex);
-            h_kappa[currentIndex] = kappa;
+            h_kappa_cut[currentIndex].x = kappa;
+            h_kappa_cut[currentIndex].y = cut;
             h_force_const[currentIndex] = force_const;
             h_weight[currentIndex] = weight;
             h_rhs[currentIndex] = dobs;
@@ -1361,5 +1362,5 @@ void CudaCalcRdcForceKernel::validateAndUpload() {
     tolerance->upload(h_tolerance);
     force_const->upload(h_force_const);
     weight->upload(h_weight);
-    kappa->upload(h_kappa);
+    kappaCut->upload(h_kappa_cut);
 }
