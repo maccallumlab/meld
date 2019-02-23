@@ -413,6 +413,7 @@ class RunOptions:
             "soluteDielectric",
             "solventDielectric",
             "implicitSolventSaltConc",
+            "rdc_patcher",
         ]
         allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
@@ -455,6 +456,7 @@ class RunOptions:
         self._implicitSolventSaltConc = None
         self._solventDielectric = None
         self._soluteDielectric = None
+        self._rdc_patcher = None
 
     # solvation is a read-only property that must be set
     # when the options are created
@@ -713,6 +715,14 @@ class RunOptions:
         if value < 0:
             raise RuntimeError("amap_beta_bias < 0")
         self._amap_beta_bias = value
+
+    @property
+    def rdc_patcher(self):
+        return self._rdc_patcher
+    
+    @rdc_patcher.setter
+    def rdc_patcher(self, value):
+        self._rdc_patcher = value
 
     def sanity_check(self):
         if self._solvation == "implicit":
