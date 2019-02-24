@@ -109,22 +109,30 @@ class RDCRestraintTransformer(TransformerBase):
                 raise ValueError("Option 'rdc_patcher' must be set.")
             self.patcher_resids = options.rdc_patcher.resids
 
+            # map experiments to restraints
             self.expt_dict = DefaultOrderedDict(list)
-            # make a dictionary based on the experiment index
             for r in self.restraints:
                 self.expt_dict[r.expt_index].append(r)
 
             self.n_tensors = len(self.expt_dict)
             if self.n_tensors != len(self.patcher_resids):
-                raise ValueError("The number of experiments and the number of RDC dummy atoms do not match.")
+                raise ValueError(
+                    "The number of experiments and the number of RDC dummy atoms do not match."
+                )
+
+            # map experiments to dummy residues
+            self.expt_to_resid = {}
+            for i, expt in enumerate(self.expt_dict):
+                self.expt_to_resid[expt] = self.patcher_resids[i]
 
     def add_interactions(self, system, topology):
         if self.active:
-            rdc_force = mm.CustomCentroidBondForce(5,
+            rdc_force = mm.CustomCentroidBondForce(
+                5,
                 "Erest + Ez;"
-                "Erest = 0.5 * k * (dcalc - dobs)^2;"
-                "dcalc=mu/r^5 *(s1*(rx^2 - ry^2) + s2*(3*rz^2 - r^2) + s3*2*rx*ry + s4*2*rx*rz + s5*2*ry*rz);"
-                "r=sqrt(rx^2 + ry^2 + rz^2);"
+                "Erest = 0.5 * k * (dcalc - d_obs)^2;"
+                "dcalc=kappa/r^5 * (s1*(rx^2-ry^2) + s2*(3*rz^2-r^2) + s3*2*rx*ry + s4*2*rx*rz + s5*2*ry*rz);"
+                "r=distance(g4, g5);"
                 "rx=x4-x5;"
                 "ry=y4-y5;"
                 "rz=z4-z5;"
@@ -133,30 +141,40 @@ class RDCRestraintTransformer(TransformerBase):
                 "s3=z2-z1;"
                 "s4=x3-x1;"
                 "s5=y3-y1;"
-                "Ez=(z3-z1)^2;")
-            rdc_force.addPerBondParameter("dobs")
-            rdc_force.addPerBondParameter("mu")
+                "Ez=(z3-z1)^2;",
+            )
+            rdc_force.addPerBondParameter("d_obs")
+            rdc_force.addPerBondParameter("kappa")
             rdc_force.addPerBondParameter("k")
             rdc_force.addPerBondParameter("flat")
             rdc_force.addPerBondParameter("quadcut")
 
-            # loop over the experiments and add the restraints to openmm
             for experiment in self.expt_dict:
-                rests = self.expt_dict[experiment]
-                rest_ids = []
-                for r in rests:
-                    r_id = rdc_force.addRdcRestraint(
-                        r.atom_index_1 - 1,
-                        r.atom_index_2 - 1,
-                        r.kappa,
-                        r.d_obs,
-                        r.tolerance,
-                        r.force_const,
-                        r.quadratic_cut,
-                        r.weight,
+                # find the set of all atoms involved in this experiment
+                com_ind = set()
+                for r in self.expt_dict[experiment]:
+                    com_ind.add(r.atom_index_1 - 1)
+                    com_ind.add(r.atom_index_2 - 1)
+                com_ind = list(com_ind)
+
+                # add groups for the COM and dummy particles
+                g1 = rdc_force.addGroup(com_ind)
+                g2 = rdc_force.addGroup(
+                    [system.index_of_atom(self.expt_to_resid[experiment] - 1, "S1")]
+                )
+                g3 = rdc_force.addGroup(
+                    [system.index_of_atom(self.expt_to_resid[experiment] - 1, "S2")]
+                )
+
+                for r in self.expt_dict[experiment]:
+                    # add groups for the atoms involved in the RDC
+                    g4 = rdc_force.addGroup([r.atom_index_1 - 1])
+                    g5 = rdc_force.addGroup([r.atom_index_2 - 1])
+
+                    rdc_force.addBond(
+                        [g1, g2, g3, g4, g5],
+                        [r.d_obs, r.kappa, r.force_const, r.tolerance, r.quadratic_cut],
                     )
-                    rest_ids.append(r_id)
-                rdc_force.addExperiment(rest_ids)
 
             system.addForce(rdc_force)
             self.force = rdc_force
@@ -164,22 +182,22 @@ class RDCRestraintTransformer(TransformerBase):
 
     def update(self, simulation, alpha, timestep):
         if self.active:
-            # loop over the experiments and update the restraints
             index = 0
             for experiment in self.expt_dict:
                 rests = self.expt_dict[experiment]
                 for r in rests:
                     scale = r.scaler(alpha) * r.ramp(timestep)
-                    self.force.updateRdcRestraint(
-                        index,
-                        r.atom_index_1 - 1,
-                        r.atom_index_2 - 1,
-                        r.kappa,
-                        r.d_obs,
-                        r.tolerance,
-                        r.force_const * scale,
-                        r.quadratic_cut,
-                        r.weight,
+                    groups, params = self.force.getBondParameters(index)
+                    assert params[0] == r.d_obs
+                    self.force.setBondParameters(
+                        groups,
+                        [
+                            r.d_obs,
+                            r.kappa,
+                            scale * r.force_const,
+                            r.tolerance,
+                            r.quadratic_cut,
+                        ],
                     )
                     index = index + 1
             self.force.updateParametersInContext(simulation.context)

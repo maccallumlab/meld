@@ -526,6 +526,7 @@ def get_rdc_restraints(
     scaler: RestraintScaler,
     ramp: Optional[TimeRamp] = None,
     quadratic_cut: float = 99999.,
+    scale_factor: float = 1.0e4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
     file: Optional[TextIO] = None,
@@ -543,6 +544,8 @@ def get_rdc_restraints(
         Ramp, default is ConstantRamp()
     quadratic_cut : float
         Restraints become linear beyond this deviation s^-1
+    scale_factor: float
+        Scale factor for kappa and alignment tensor
     filename : string
         Filename to open
     content : string
@@ -555,6 +558,16 @@ def get_rdc_restraints(
     restraints: RdcREstraint object
         Restraints from file
 
+    Notes
+    -----
+
+    The value of `kappa` will be scaled down by `scale_factor`. This will
+    result in the alignment tensor being scaled up by `scale_factor`.
+    Ideally, the largest values of the scaled alignment tensor should be
+    approximately 1. As typical values of the alignment are on the order
+    of 1e-4, the default value of 1e4 is a reasonable guess. The value
+    of `scale_factor` must be the same for all experiments that share the
+    same alignment.
     """
     if ramp is None:
         ramp = ConstantRamp()
@@ -573,7 +586,7 @@ def get_rdc_restraints(
         obs = float(cols[4])
         expt = int(cols[5])
         tolerance = float(cols[6])
-        kappa = float(cols[7])
+        kappa = float(cols[7]) / scale_factor
         force_const = float(cols[8])
         weight = float(cols[9])
 
