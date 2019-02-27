@@ -21,6 +21,7 @@ from meld.system.restraints import (
     ConstantRamp,
     RestraintScaler,
 )
+from meld.system.patchers import RdcAlignmentPatcher
 
 SequenceString = NewType("SequenceString", str)
 SecondaryString = NewType("SecondaryString", str)
@@ -523,6 +524,7 @@ def _handle_arguments(
 
 def get_rdc_restraints(
     system: System,
+    patcher: RdcAlignmentPatcher,
     scaler: RestraintScaler,
     ramp: Optional[TimeRamp] = None,
     quadratic_cut: float = 99999.,
@@ -538,6 +540,8 @@ def get_rdc_restraints(
     ----------
     system : meld.system.System
         The system object for the restraints to be added to.
+    patcher: meld.system.patchers.RdcAlignmentPatcher
+        The patcher that was used to add alignment tensor dummy atoms
     scaler : meld.system.restraints.RestraintScaler
         Object to scale the force constant.
     ramp : meld.system.restraints.TimeRamp
@@ -605,6 +609,7 @@ def get_rdc_restraints(
             quadratic_cut,
             weight,
             expt,
+            patcher,
         )
         restraints.append(rest)
     return restraints

@@ -91,37 +91,39 @@ class RdcAlignmentPatcher(PatcherBase):
             atype.set_lj_params(0.0, 0.0)
 
             for i in range(self.n_tensors):
-                a1 = pd.Atom(
+                a1 = pmd.Atom(
                     name="S1",
                     atomic_number=atype.atomic_number,
                     type=str(atype),
                     charge=atype.charge,
                     mass=atype.mass,
-                    solvent_radius=0.0,
-                    screen=0.0,
+                    solvent_radius=1.0,
+                    screen=0.5,
                 )
                 a1.atom_type = atype
 
-                a2 = pd.Atom(
+                a2 = pmd.Atom(
                     name="S2",
                     atomic_number=atype.atomic_number,
                     type=str(atype),
                     charge=atype.charge,
                     mass=atype.mass,
-                    solvent_radius=0.0,
-                    screen=0.0,
+                    solvent_radius=1.0,
+                    screen=0.5,
                 )
                 a2.atom_type = atype
 
-                parm.add_atom(a1, resname="SDUM", resnum=i)
-                parm.add_atom(a2, resname="SDUM", resnum=i)
+                parm.add_atom(a1, resname="SDM", resnum=i)
+                parm.add_atom(a2, resname="SDM", resnum=i)
 
+            # we add noise here because we'll get NaN if the particles ever
+            # end up exactly on top of each other
             parm.positions = np.zeros((2 * self.n_tensors, 3))
 
             # combine the old system with the new dummy atoms
             comb = base + parm
             last_index = comb.residues[-1].idx
-            self.resids = list(range(last_index - self.n_tensors + 1, last_index + 1))
+            self.resids = list(range(last_index - self.n_tensors + 2, last_index + 2))
 
             comb.write_parm(OUTTOP)
             comb.write_rst7(OUTRST)

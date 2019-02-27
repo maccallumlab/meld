@@ -201,7 +201,7 @@ class System:
             return self._atom_index[(residue_number, atom_name)]
         except KeyError:
             print(
-                f"Could not find atom index for residue_number={residue_number}"
+                f"Could not find atom index for residue_number={residue_number} "
                 f"and atom name={atom_name}."
             )
             raise
