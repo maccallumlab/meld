@@ -1,3 +1,8 @@
+## 0.4.13
+
+## Enhancements
+
+- Much faster handling of RDCs following the approach of Habeck and co-workiers. DOI 10.1007/s10858-007-9215-1
 ## 0.4.12
 
 ## Enhancements
