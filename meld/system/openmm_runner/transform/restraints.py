@@ -131,7 +131,7 @@ class RDCRestraintTransformer(TransformerBase):
                 5,
                 "Erest + Ez;"
                 "Erest = 0.5 * k_rdc * (dcalc - d_obs)^2;"
-                "dcalc=kappa_rdc/r^5 * (s1*(rx^2-ry^2) + s2*(3*rz^2-r^2) + s3*2*rx*ry + s4*2*rx*rz + s5*2*ry*rz);"
+                "dcalc=2/3 * kappa_rdc/r^5 * (s1*(rx^2-ry^2) + s2*(3*rz^2-r^2) + s3*2*rx*ry + s4*2*rx*rz + s5*2*ry*rz);"
                 "r=distance(g4, g5);"
                 "rx=x4-x5;"
                 "ry=y4-y5;"

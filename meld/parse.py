@@ -590,7 +590,7 @@ def get_rdc_restraints(
         obs = float(cols[4])
         expt = int(cols[5])
         tolerance = float(cols[6])
-        kappa = float(cols[7]) / scale_factor
+        kappa = float(cols[7]) / scale_factor / 1000.  # convert Hz A^3 to Hz nm^3
         force_const = float(cols[8])
         weight = float(cols[9])
 
