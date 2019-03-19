@@ -700,6 +700,7 @@ class RdcRestraint(NonSelectableRestraint):
     # :param quadratic_cut: force onstant becomes linear bond this deviation s^-1
     # :param weight: dimensionless weight to place on this restraint
     # :param expt_index: integer experiment id
+    # :param patcher: meld.system.patchers.RdcAlignmentPatcher
 
     # Typical values for kappa are:
 
@@ -727,9 +728,12 @@ class RdcRestraint(NonSelectableRestraint):
         quadratic_cut,
         weight,
         expt_index,
+        patcher,
     ):
         self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
         self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        self.s1_index = system.index_of_atom(patcher.resids[expt_index], "S1")
+        self.s2_index = system.index_of_atom(patcher.resids[expt_index], "S2")
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)

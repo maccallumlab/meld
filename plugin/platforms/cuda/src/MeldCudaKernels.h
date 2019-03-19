@@ -266,61 +266,6 @@ private:
     int calcSizeGMMAtomIndices(const MeldForce& force);
     int calcSizeGMMData(const MeldForce& force);
 };
-
-
-class CudaCalcRdcForceKernel : public CalcRdcForceKernel {
-public:
-    CudaCalcRdcForceKernel(std::string name,
-                           const OpenMM::Platform& platform,
-                           OpenMM::CudaContext& cu,
-                           const OpenMM::System& system);
-
-    ~CudaCalcRdcForceKernel();
-
-    void initialize(const OpenMM::System& system, const RdcForce& force);
-
-    double execute(OpenMM::ContextImpl& context, bool includeForces, bool includeEnergy);
-
-    void copyParametersToContext(OpenMM::ContextImpl& context, const RdcForce& force);
-
-private:
-    class ForceInfo;
-    int numRdcRestraints;
-    int numExperiments;
-    OpenMM::CudaContext& cu;
-    const OpenMM::System& system;
-    CUfunction computeRdcPhase1;
-    CUfunction computeRdcPhase3;
-
-    /*
-     * Per RDC data
-     */
-    OpenMM::CudaArray* r;                       // float4 array to hold direction cosines and norm of r
-    OpenMM::CudaArray* atomExptIndices;         // int3 of indices of atoms involved in each dipole and exp't index
-    OpenMM::CudaArray* lhs;                     // float 5 x numRdcRestraints array of the left-hand side of the LLS equations
-    OpenMM::CudaArray* rhs;                     // float x numRdcRestraints array of observed couplings
-    OpenMM::CudaArray* kappaCut;                // float 2 x numRedRestraints array of constants and quadratic cutoffs
-    OpenMM::CudaArray* tolerance;               // float x numRdcRestraints array of tolerances
-    OpenMM::CudaArray* force_const;             // float x numRdcRestraints array of force constants
-    OpenMM::CudaArray* weight;                  // float x numRdcRestraints array of weights
-    OpenMM::CudaArray* S;                       // float 5 x numExperiments array of alignment tensor elements
-    // host vectors
-    std::vector<int3> h_atomExptIndices;
-    std::vector<int2> h_experimentBounds;
-    std::vector<float> h_lhs;
-    std::vector<float> h_rhs;
-    std::vector<float2> h_kappa_cut;
-    std::vector<float> h_tolerance;
-    std::vector<float> h_force_const;
-    std::vector<float> h_weight;
-    std::vector<float> h_S;
-
-    void allocateMemory(const RdcForce& force);
-    void setupRdcRestraints(const RdcForce& force);
-    void validateAndUpload();
-    void computeRdcPhase2();
-};
-
 } // namespace MeldPlugin
 
 #endif /*MELD_OPENMM_CUDAKERNELS_H*/

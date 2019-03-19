@@ -3,10 +3,10 @@ This module implements `Patcher` classes that can modify
 the system to include new atoms and/or paramters.
 """
 
-import parmed as pmd  #type: ignore
+import parmed as pmd  # type: ignore
 from meld import util
 from parmed import unit as u
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 
 
 class PatcherBase:
@@ -54,16 +54,96 @@ class PatcherBase:
         pass
 
 
+class RdcAlignmentPatcher(PatcherBase):
+    def __init__(self, n_tensors):
+        """
+        Patch system to include extra dummy atoms to encode RDC alignment tensors.
+
+        Parameters
+        ----------
+        n_tensors: int
+            number of unique RDC tensors
+        """
+        self.n_tensors = n_tensors
+        self.resids = []
+
+    def patch(self, top_string, crd_string):
+        INTOP = "in.top"
+        INRST = "in.rst"
+        OUTTOP = "out.top"
+        OUTRST = "out.rst"
+
+        with util.in_temp_dir():
+            with open(INTOP, "wt") as outfile:
+                outfile.write(top_string)
+            with open(INRST, "wt") as outfile:
+                outfile.write(crd_string)
+
+            base = pmd.load_file(INTOP)
+            crd = pmd.load_file(INRST)
+            base.coordinates = crd.coordinates
+
+            # create a new structure to add our dummy atoms to
+            parm = pmd.Structure()
+
+            # add in atom type for our dummy particles
+            atype = pmd.AtomType("SDUM", 0, mass=12.0, charge=0.0)
+            atype.set_lj_params(0.0, 0.0)
+
+            for i in range(self.n_tensors):
+                a1 = pmd.Atom(
+                    name="S1",
+                    atomic_number=atype.atomic_number,
+                    type=str(atype),
+                    charge=atype.charge,
+                    mass=atype.mass,
+                    solvent_radius=1.0,
+                    screen=0.5,
+                )
+                a1.atom_type = atype
+
+                a2 = pmd.Atom(
+                    name="S2",
+                    atomic_number=atype.atomic_number,
+                    type=str(atype),
+                    charge=atype.charge,
+                    mass=atype.mass,
+                    solvent_radius=1.0,
+                    screen=0.5,
+                )
+                a2.atom_type = atype
+
+                parm.add_atom(a1, resname="SDM", resnum=i)
+                parm.add_atom(a2, resname="SDM", resnum=i)
+
+            # we add noise here because we'll get NaN if the particles ever
+            # end up exactly on top of each other
+            parm.positions = np.zeros((2 * self.n_tensors, 3))
+
+            # combine the old system with the new dummy atoms
+            comb = base + parm
+            last_index = comb.residues[-1].idx
+            self.resids = list(range(last_index - self.n_tensors + 2, last_index + 2))
+
+            comb.write_parm(OUTTOP)
+            comb.write_rst7(OUTRST)
+            with open(OUTTOP, "rt") as infile:
+                top_string = infile.read()
+            with open(OUTRST, "rt") as infile:
+                crd_string = infile.read()
+        return top_string, crd_string
+
+
 class VirtualSpinLabelPatcher(PatcherBase):
     ALLOWED_TYPES = ["OND"]
 
     bond_params = {
-        "OND": (1.2 * u.kilocalorie_per_mole / u.angstrom ** 2, 8. * u.angstrom)
+        "OND": (1.2 * u.kilocalorie_per_mole / u.angstrom ** 2, 8.0 * u.angstrom)
     }
     angle_params = {
-        "OND": (2.0 * u.kilocalorie_per_mole / u.radian ** 2, 46. * u.degrees)
+        "OND": (2.0 * u.kilocalorie_per_mole / u.radian ** 2, 46.0 * u.degrees)
     }
-    tors_params = {"OND": (1.9 * u.kilocalorie_per_mole, 1, 240. * u.degrees)}
+    tors_params = {"OND": (1.9 * u.kilocalorie_per_mole, 1, 240.0 * u.degrees)}
     lj_params = {"OND": (4.0 * u.angstrom / 2.0, 0.05 * u.kilocalorie_per_mole)}
 
     def __init__(self, params, explicit_solvent=False):

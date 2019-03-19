@@ -21,7 +21,6 @@ extern "C" OPENMM_EXPORT void registerKernelFactories() {
         Platform& platform = Platform::getPlatformByName("CUDA");
         MeldCudaKernelFactory* factory = new MeldCudaKernelFactory();
         platform.registerKernelFactory(CalcMeldForceKernel::Name(), factory);
-        platform.registerKernelFactory(CalcRdcForceKernel::Name(), factory);
     }
     catch (...) {
         // Ignore.  The CUDA platform isn't available.
@@ -44,7 +43,5 @@ KernelImpl* MeldCudaKernelFactory::createKernelImpl(std::string name, const Plat
 
     if (name == CalcMeldForceKernel::Name())
         return new CudaCalcMeldForceKernel(name, platform, cu, context.getSystem());
-    if (name == CalcRdcForceKernel::Name())
-        return new CudaCalcRdcForceKernel(name, platform, cu, context.getSystem());
     throw OpenMMException((std::string("Tried to create kernel with illegal kernel name '")+name+"'").c_str());
 }

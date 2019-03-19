@@ -19,7 +19,6 @@ namespace std {
 
 %{
 #include "MeldForce.h"
-#include "RdcForce.h"
 #include "OpenMM.h"
 #include "OpenMMAmoeba.h"
 #include "OpenMMDrude.h"
@@ -330,52 +329,5 @@ namespace MeldPlugin {
         int addGroup(std::vector<int> restraint_indices, int n_active);
 
         int addCollection(std::vector<int> group_indices, int n_active);
-    };
-
-    class RdcForce : public OpenMM::Force {
-    public:
-        RdcForce();
-
-        void updateParametersInContext(OpenMM::Context& context);
-
-        int getNumExperiments() const;
-
-        int getNumRestraints(int experiment) const;
-
-        int getNumTotalRestraints() const;
-
-        int addExperiment(std::vector<int> rdcIndices);
-
-        int addRdcRestraint(int particle1, int particle2, float kappa, float dObs, float tolerance,
-                float force_const, float quadratic_cut, float weight);
-
-        void updateRdcRestraint(int index, int particle1, int particle2, float kappa, float dObs,
-                float tolerance, float force_const, float quadratic_cut, float weight);
-
-        %apply std::vector<int>& OUTPUT {std::vector<int>& restraints};
-        void getExperimentInfo(int index, std::vector<int>& restraints) const;
-        %clear std::vector<int> & restraints;
-
-        %apply int& OUTPUT {int & particle1};
-        %apply int& OUTPUT {int & particle2};
-        %apply float& OUTPUT {float & kappa};
-        %apply float& OUTPUT {float & dObs};
-        %apply float& OUTPUT {float & tolerance};
-        %apply float& OUTPUT {float & force_const};
-        %apply float& OUTPUT {float & quadratic_cut};
-        %apply float& OUTPUT {float & weight};
-        %apply int& OUTPUT {int & globalIndex};
-        void getRdcRestraintInfo(int index, int& particle1, int& partcile2, float& kappa,
-                float& dObs, float& tolerance, float& force_const, float& quadratic_cut,
-                float& weight, int& globalIndex) const;
-        %clear int & particle1;
-        %clear int & particle2;
-        %clear float & kappa;
-        %clear float & dObs;
-        %clear float & tolerance;
-        %clear float & force_const;
-        %clear float & quadratic_cut;
-        %clear float & weight;
-        %clear int & globalIndex;
     };
 }

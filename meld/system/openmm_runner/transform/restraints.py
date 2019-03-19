@@ -104,6 +104,146 @@ class RDCRestraintTransformer(TransformerBase):
 
         self.force = None
 
+        if self.active:
+            # map experiments to restraints
+            self.expt_dict = DefaultOrderedDict(list)
+            for r in self.restraints:
+                self.expt_dict[r.expt_index].append(r)
+
+    def add_interactions(self, system, topology):
+        # The approach we use is based on
+        # Habeck, Nilges, Rieping, J. Biomol. NMR., 2007, 135-144.
+        #
+        # Rather than solving for the exact alignment tensor
+        # every step, we sample from a distribution of alignment
+        # tensors.
+        #
+        # We encode the five components of the alignment tensor in
+        # the positions of two dummy atoms relative to the center
+        # of mass. The value of kappa should be scaled so that the
+        # components of the alignment tensor are approximately unity.
+        #
+        # There is a restraint on the z-component of the seocnd dummy
+        # particle to ensure that it does not diffuse off to ininity,
+        # which could cause precision issues.
+        if self.active:
+            rdc_force = mm.CustomCentroidBondForce(
+                5,
+                "Erest + Ez;"
+                "Erest = 0.5 * k_rdc * (dcalc - d_obs)^2;"
+                "dcalc=2/3 * kappa_rdc/r^5 * (s1*(rx^2-ry^2) + s2*(3*rz^2-r^2) + s3*2*rx*ry + s4*2*rx*rz + s5*2*ry*rz);"
+                "r=distance(g4, g5);"
+                "rx=x4-x5;"
+                "ry=y4-y5;"
+                "rz=z4-z5;"
+                "s1=x2-x1;"
+                "s2=y2-y1;"
+                "s3=z2-z1;"
+                "s4=x3-x1;"
+                "s5=y3-y1;"
+                "Ez=(z3-z1)^2;",
+            )
+            rdc_force.addPerBondParameter("d_obs")
+            rdc_force.addPerBondParameter("kappa_rdc")
+            rdc_force.addPerBondParameter("k_rdc")
+            rdc_force.addPerBondParameter("flat")
+            rdc_force.addPerBondParameter("quadcut")
+
+            for experiment in self.expt_dict:
+                # find the set of all atoms involved in this experiment
+                com_ind = set()
+                for r in self.expt_dict[experiment]:
+                    com_ind.add(r.atom_index_1 - 1)
+                    com_ind.add(r.atom_index_2 - 1)
+                com_ind = list(com_ind)
+
+                # add groups for the COM and dummy particles
+                s1 = self.expt_dict[experiment][0].s1_index - 1
+                s2 = self.expt_dict[experiment][0].s2_index - 1
+                g1 = rdc_force.addGroup(com_ind)
+                g2 = rdc_force.addGroup([s1])
+                g3 = rdc_force.addGroup([s2])
+
+                # add non-bonded exclusions between dummy particles and all other atoms
+                nb_forces = [
+                    f
+                    for f in system.getForces()
+                    if isinstance(f, mm.NonbondedForce)
+                    or isinstance(f, mm.CustomNonbondedForce)
+                ]
+                for nb_force in nb_forces:
+                    n_parts = nb_force.getNumParticles()
+                    for i in range(n_parts):
+                        if isinstance(nb_force, mm.NonbondedForce):
+                            if i != s1:
+                                nb_force.addException(
+                                    i, s1, 0.0, 0.0, 0.0, replace=True
+                                )
+                            if i != s2:
+                                nb_force.addException(
+                                    i, s2, 0.0, 0.0, 0.0, replace=True
+                                )
+                        else:
+                            if i != s1:
+                                nb_force.addExclusion(i, s1)
+                            if i != s2:
+                                nb_force.addExclusion(i, s2)
+
+                for r in self.expt_dict[experiment]:
+                    # add groups for the atoms involved in the RDC
+                    g4 = rdc_force.addGroup([r.atom_index_1 - 1])
+                    g5 = rdc_force.addGroup([r.atom_index_2 - 1])
+                    rdc_force.addBond(
+                        [g1, g2, g3, g4, g5],
+                        [r.d_obs, r.kappa, 0.0, r.tolerance, r.quadratic_cut],
+                    )
+
+            system.addForce(rdc_force)
+            self.force = rdc_force
+        return system
+
+    def update(self, simulation, alpha, timestep):
+        if self.active:
+            index = 0
+            for experiment in self.expt_dict:
+                rests = self.expt_dict[experiment]
+                for r in rests:
+                    scale = r.scaler(alpha) * r.ramp(timestep)
+                    groups, params = self.force.getBondParameters(index)
+                    assert params[0] == r.d_obs
+                    self.force.setBondParameters(
+                        index,
+                        groups,
+                        [
+                            r.d_obs,
+                            r.kappa,
+                            scale * r.force_const,
+                            r.tolerance,
+                            r.quadratic_cut,
+                        ],
+                    )
+                    index = index + 1
+            self.force.updateParametersInContext(simulation.context)
+
+
+class OldRDCRestraintTransformer(TransformerBase):
+    def __init__(
+        self, options, always_active_restraints, selectively_active_restraints
+    ):
+        self.restraints = [
+            r
+            for r in always_active_restraints
+            if isinstance(r, restraints.RdcRestraint)
+        ]
+        _delete_from_always_active(self.restraints, always_active_restraints)
+
+        if self.restraints:
+            self.active = True
+        else:
+            self.active = False
+
+        self.force = None
+
     def add_interactions(self, system, topology):
         if self.active:
             rdc_force = RdcForce()

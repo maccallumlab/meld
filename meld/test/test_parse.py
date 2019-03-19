@@ -6,6 +6,7 @@
 import unittest
 from meld import parse
 from meld import system
+from meld.system import patchers
 from meld.system import restraints
 
 
@@ -200,13 +201,15 @@ class TestGetRdcRestraints(unittest.TestCase):
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
         self.scaler = restraints.LinearScaler(0, 1)
+        self.patcher = patchers.RdcAlignmentPatcher(n_tensors=1)
+        self.system = b.build_system_from_molecules([p], patchers=[self.patcher])
+
 
     def test_ignores_comment_lines(self):
         contents = "#\n#\n"
         results = parse.get_rdc_restraints(
-            content=contents, system=self.system, scaler=self.scaler
+            content=contents, system=self.system, scaler=self.scaler, patcher=self.patcher
         )
 
         self.assertEqual(len(results), 0)
@@ -214,7 +217,7 @@ class TestGetRdcRestraints(unittest.TestCase):
     def test_adds_correct_number_of_restraints(self):
         contents = "#\n2 N 2 H 10 0 10 25000 1.0 1\n"
         results = parse.get_rdc_restraints(
-            content=contents, system=self.system, scaler=self.scaler
+            content=contents, system=self.system, scaler=self.scaler, patcher=self.patcher
         )
 
         self.assertEqual(len(results), 1)
