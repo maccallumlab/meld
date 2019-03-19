@@ -18,7 +18,7 @@ requirements:
     - scipy
     - hdf4
     - netcdf4
-    - sphinx ==1.7
+    - sphinx
     - sphinx_rtd_theme
     - mpi4py ==2.0.0
     - clangdev ==6.0.0
