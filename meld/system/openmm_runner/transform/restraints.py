@@ -18,7 +18,7 @@ from meld.system.openmm_runner.transform import TransformerBase
 from simtk import openmm as mm  # type: ignore
 
 try:
-    from meldplugin import MeldForce, RdcForce  # type: ignore
+    from meldplugin import MeldForce  # type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "
@@ -221,82 +221,6 @@ class RDCRestraintTransformer(TransformerBase):
                             r.tolerance,
                             r.quadratic_cut,
                         ],
-                    )
-                    index = index + 1
-            self.force.updateParametersInContext(simulation.context)
-
-
-class OldRDCRestraintTransformer(TransformerBase):
-    def __init__(
-        self, options, always_active_restraints, selectively_active_restraints
-    ):
-        self.restraints = [
-            r
-            for r in always_active_restraints
-            if isinstance(r, restraints.RdcRestraint)
-        ]
-        _delete_from_always_active(self.restraints, always_active_restraints)
-
-        if self.restraints:
-            self.active = True
-        else:
-            self.active = False
-
-        self.force = None
-
-    def add_interactions(self, system, topology):
-        if self.active:
-            rdc_force = RdcForce()
-            expt_dict = DefaultOrderedDict(list)
-            # make a dictionary based on the experiment index
-            for r in self.restraints:
-                expt_dict[r.expt_index].append(r)
-
-            # loop over the experiments and add the restraints to openmm
-            for experiment in expt_dict:
-                rests = expt_dict[experiment]
-                rest_ids = []
-                for r in rests:
-                    r_id = rdc_force.addRdcRestraint(
-                        r.atom_index_1 - 1,
-                        r.atom_index_2 - 1,
-                        r.kappa,
-                        r.d_obs,
-                        r.tolerance,
-                        r.force_const,
-                        r.quadratic_cut,
-                        r.weight,
-                    )
-                    rest_ids.append(r_id)
-                rdc_force.addExperiment(rest_ids)
-
-            system.addForce(rdc_force)
-            self.force = rdc_force
-        return system
-
-    def update(self, simulation, alpha, timestep):
-        if self.active:
-            expt_dict = DefaultOrderedDict(list)
-            # make a dictionary based on the experiment index
-            for r in self.restraints:
-                expt_dict[r.expt_index].append(r)
-
-            # loop over the experiments and update the restraints
-            index = 0
-            for experiment in expt_dict:
-                rests = expt_dict[experiment]
-                for r in rests:
-                    scale = r.scaler(alpha) * r.ramp(timestep)
-                    self.force.updateRdcRestraint(
-                        index,
-                        r.atom_index_1 - 1,
-                        r.atom_index_2 - 1,
-                        r.kappa,
-                        r.d_obs,
-                        r.tolerance,
-                        r.force_const * scale,
-                        r.quadratic_cut,
-                        r.weight,
                     )
                     index = index + 1
             self.force.updateParametersInContext(simulation.context)
