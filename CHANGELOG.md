@@ -1,3 +1,9 @@
+## 0.4.14
+
+## Enhancements
+
+- Implemented flat-bottom / quadratic / linear RDC restraints
+
 ## 0.4.13
 
 ## Enhancements
