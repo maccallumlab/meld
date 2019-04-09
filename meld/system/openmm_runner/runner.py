@@ -55,7 +55,7 @@ from collections import Callable, namedtuple
 logger = logging.getLogger(__name__)
 
 try:
-    from meldplugin import MeldForce, RdcForce  #type: ignore
+    from meldplugin import MeldForce  #type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "
