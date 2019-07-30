@@ -7,10 +7,22 @@ import contextlib
 import os
 import time
 import pickle
-import netCDF4 as cdf  #type: ignore
-import numpy as np #type: ignore
+import netCDF4 as cdf  # type: ignore
+import numpy as np  # type: ignore
 import shutil
 from meld.system import state
+
+
+def _load_pickle(data):
+    """Read in pickle file.
+
+    Work around incompatibility between python 2 and 3 when
+    reading in pickle files saved with python 2.
+    """
+    try:
+        return pickle.load(data)
+    except UnicodeDecodeError:
+        return pickle.load(data, encoding="latin1")
 
 
 class DataStore:
@@ -161,7 +173,7 @@ class DataStore:
         """Load the DataStore object from disk."""
         path = cls.data_store_backup_path if load_backup else cls.data_store_path
         with open(path, "rb") as store_file:
-            return pickle.load(store_file)
+            return _load_pickle(store_file)
 
     def save_communicator(self, comm):
         """Save the communicator to disk"""
@@ -176,7 +188,7 @@ class DataStore:
         else:
             path = self.communicator_path
         with open(path, "rb") as comm_file:
-            return pickle.load(comm_file)
+            return _load_pickle(comm_file)
 
     def save_positions(self, positions, stage):
         """
@@ -559,7 +571,7 @@ class DataStore:
             else self.remd_runner_path
         )
         with open(path, "rb") as runner_file:
-            return pickle.load(runner_file)
+            return _load_pickle(runner_file)
 
     def save_system(self, system):
         self._can_save()
@@ -569,7 +581,7 @@ class DataStore:
     def load_system(self):
         path = self.system_backup_path if self._readonly_mode else self.system_path
         with open(path, "rb") as system_file:
-            return pickle.load(system_file)
+            return _load_pickle(system_file)
 
     def save_run_options(self, run_options):
         self._can_save()
@@ -584,7 +596,7 @@ class DataStore:
             else self.run_options_path
         )
         with open(path, "rb") as options_file:
-            options = pickle.load(options_file)
+            options = _load_pickle(options_file)
         options.sanity_check()
         return options
 
