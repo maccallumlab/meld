@@ -322,6 +322,34 @@ class DataStore:
         self._handle_load_stage(stage)
         return self._cdf_data_set.variables["box_vectors"][..., stage]
 
+    def load_all_box_vectors(self):
+        """
+        Load all box_vectors from disk.
+
+        Warning, this could use a lot of memory.
+
+        """
+        return np.concatenate(
+            [
+                np.array(self.load_box_vectors(i))[..., np.newaxis]
+                for i in range(self.max_safe_frame)
+            ],
+            axis=-1,
+        )
+
+    def iterate_box_vectors(self, start=None, end=None):
+        """
+        Iterate over the box_vectors from disk.
+
+        """
+        if start is None:
+            start = 0
+        if end is None:
+            end = self.max_safe_frame
+
+        for i in range(start, end):
+            yield self.load_box_vectors(i)
+
     def save_states(self, states, stage):
         """
         Save states to disk.
