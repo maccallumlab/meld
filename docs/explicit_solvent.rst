@@ -1,5 +1,5 @@
 ================
-Explcit Solvent
+Explicit Solvent
 ================
 
 Building an Explicit Solvent Model
