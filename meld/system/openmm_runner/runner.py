@@ -134,9 +134,6 @@ class OpenMMRunner(ReplicaRunner):
             )
 
         # get the energy
-        snapshot = self._simulation.context.getState(
-            getPositions=True, getVelocities=True, getEnergy=True
-        )
         snapshot = self._simulation.context.getState(getEnergy=True)
         e_potential = snapshot.getPotentialEnergy()
         e_potential = (
