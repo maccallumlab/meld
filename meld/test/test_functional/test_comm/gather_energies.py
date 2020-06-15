@@ -21,8 +21,8 @@ def main():
 
     energies = generate_energies(c.rank)
 
-    if c.is_master():
-        all_energies = c.gather_energies_from_slaves(energies)
+    if c.is_leader():
+        all_energies = c.gather_energies_from_followers(energies)
         assert all_energies[0, 0] == 0.
         assert all_energies[0, 1] == 0.
         assert all_energies[0, 2] == 0.
@@ -33,7 +33,7 @@ def main():
         assert all_energies[3, 3] == 3.
 
     else:
-        c.send_energies_to_master(energies)
+        c.send_energies_to_leader(energies)
 
 
 if __name__ == "__main__":

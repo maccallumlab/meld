@@ -7,7 +7,7 @@ import unittest
 import os
 import subprocess
 import numpy as np
-from meld.remd import ladder, adaptor, master_runner
+from meld.remd import ladder, adaptor, leader
 from meld import system
 from meld import comm, vault
 from meld.test import helper
@@ -65,7 +65,7 @@ def setup_system():
     l = ladder.NearestNeighborLadder(n_trials=1)
     policy = adaptor.AdaptationPolicy(1.0, 50, 100)
     a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
-    remd_runner = master_runner.MasterReplicaExchangeRunner(
+    remd_runner = leader.LeaderReplicaExchangeRunner(
         N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a
     )
     store.save_remd_runner(remd_runner)

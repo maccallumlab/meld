@@ -55,7 +55,7 @@ def launch(
     meld_logger.removeHandler(console_handler)
 
     if not console_log:
-        if communicator.is_master():
+        if communicator.is_leader():
             # start logging server
             abort_queue: mp.Queue[int] = mp.Queue()
             socket_queue: mp.Queue[Tuple[str, int]] = mp.Queue()
@@ -64,12 +64,12 @@ def launch(
                 args=(hostname, abort_queue, socket_queue),
             )
             process.start()
-            # communicate address to slaves
+            # communicate address to followers
             logger_address = socket_queue.get(block=True, timeout=60)
-            communicator.broadcast_logger_address_to_slaves(logger_address)
+            communicator.broadcast_logger_address_to_followers(logger_address)
         else:
-            # get port from master
-            logger_address = communicator.receive_logger_address_from_master()
+            # get port from leader
+            logger_address = communicator.receive_logger_address_from_leader()
 
         # create SocketHandler to write logging over network
         handler: Handler = logging.handlers.SocketHandler(logger_address[0], logger_address[1])
@@ -88,10 +88,10 @@ def launch(
     meld_logger.setLevel(level)
     meld_logger.propagate = False
 
-    if communicator.is_master():
-        logger.info("Launching replica exchange on master")
+    if communicator.is_leader():
+        logger.info("Launching replica exchange on leader")
     else:
-        logger.info("Launching replica exchange on slave")
+        logger.info("Launching replica exchange on follower")
     log_versions()
 
     logger.info("Loading system")
@@ -102,15 +102,15 @@ def launch(
 
     system_runner = get_runner(system, options, communicator)
 
-    if communicator.is_master():
+    if communicator.is_leader():
         store.initialize(mode="a")
         remd_runner = store.load_remd_runner()
         remd_runner.run(communicator, system_runner, store)
     else:
-        remd_runner = store.load_remd_runner().to_slave()
+        remd_runner = store.load_remd_runner().to_follower()
         remd_runner.run(communicator, system_runner)
 
-    if (not console_log) and communicator.is_master():
+    if (not console_log) and communicator.is_leader():
         # pause and then shutdown logging server
         abort_queue.put(1)
         process.join()

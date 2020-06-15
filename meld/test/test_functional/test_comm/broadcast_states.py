@@ -32,13 +32,13 @@ def main():
     c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
     c.initialize()
 
-    if c.is_master():
+    if c.is_leader():
         states = [generate_state(index) for index in range(4)]
-        my_state = c.broadcast_states_to_slaves(states)
+        my_state = c.broadcast_states_to_followers(states)
         check_state(my_state, 0)
 
     else:
-        my_state = c.receive_state_from_master()
+        my_state = c.receive_state_from_leader()
         check_state(my_state, c.rank)
 
 

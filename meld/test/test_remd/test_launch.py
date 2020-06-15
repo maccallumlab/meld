@@ -5,13 +5,13 @@
 
 import unittest
 from unittest import mock  #type: ignore
-from meld.remd import slave_runner, master_runner, launch
+from meld.remd import follower, leader, launch
 from meld.system.openmm_runner import OpenMMRunner
 from meld import comm, vault
 import logging
 
 
-class TestLaunchNotMaster(unittest.TestCase):
+class TestLaunchNotLeader(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch("meld.remd.launch.vault")
         self.mock_vault = self.patcher.start()
@@ -30,8 +30,8 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.MockDataStore.load_data_store.return_value = self.mock_store
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
-        self.mock_comm.is_master.return_value = False
-        self.mock_comm.receive_logger_address_from_master.return_value = (
+        self.mock_comm.is_leader.return_value = False
+        self.mock_comm.receive_logger_address_from_leader.return_value = (
             "127.0.0.1",
             32768,
         )
@@ -41,14 +41,14 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_master = mock.Mock(
-            spec_set=master_runner.MasterReplicaExchangeRunner
+        self.mock_remd_leader = mock.Mock(
+            spec_set=leader.LeaderReplicaExchangeRunner
         )
-        self.mock_remd_slave = mock.Mock(
-            spec_set=slave_runner.SlaveReplicaExchangeRunner
+        self.mock_remd_follower = mock.Mock(
+            spec_set=follower.FollowerReplicaExchangeRunner
         )
-        self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
-        self.mock_store.load_remd_runner.return_value = self.mock_remd_master
+        self.mock_remd_leader.to_follower.return_value = self.mock_remd_follower
+        self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
         self.mock_store.load_run_options.return_value.runner = "openmm"
 
@@ -71,17 +71,17 @@ class TestLaunchNotMaster(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_call_to_slave(self):
-        "should call to_slave on remd_runner"
+    def test_should_call_to_follower(self):
+        "should call to_follower on remd_runner"
         launch.launch(self.log_handler)
 
-        self.mock_remd_master.to_slave.assert_called_once_with()
+        self.mock_remd_leader.to_follower.assert_called_once_with()
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
         launch.launch(self.log_handler)
 
-        self.mock_remd_slave.run.assert_called_once_with(
+        self.mock_remd_follower.run.assert_called_once_with(
             self.mock_comm, self.mock_runner
         )
 
@@ -92,7 +92,7 @@ class TestLaunchNotMaster(unittest.TestCase):
         self.assertEqual(self.mock_store.initialize.call_count, 0)
 
 
-class TestLaunchMaster(unittest.TestCase):
+class TestLaunchLeader(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch("meld.remd.launch.vault")
         self.mock_vault = self.patcher.start()
@@ -108,21 +108,21 @@ class TestLaunchMaster(unittest.TestCase):
         self.MockDataStore.load_data_store.return_value = self.mock_store
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
-        self.mock_comm.is_master.return_value = True
+        self.mock_comm.is_leader.return_value = True
         self.mock_comm.rank = 0
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_master = mock.Mock(
-            spec_set=master_runner.MasterReplicaExchangeRunner
+        self.mock_remd_leader = mock.Mock(
+            spec_set=leader.LeaderReplicaExchangeRunner
         )
-        self.mock_remd_slave = mock.Mock(
-            spec_set=slave_runner.SlaveReplicaExchangeRunner
+        self.mock_remd_follower = mock.Mock(
+            spec_set=follower.FollowerReplicaExchangeRunner
         )
-        self.mock_remd_master.to_slave.return_value = self.mock_remd_slave
-        self.mock_store.load_remd_runner.return_value = self.mock_remd_master
+        self.mock_remd_leader.to_follower.return_value = self.mock_remd_follower
+        self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
         self.mock_store.load_run_options.return_value.runner = "openmm"
 
@@ -154,6 +154,6 @@ class TestLaunchMaster(unittest.TestCase):
         "should run remd runner with correct parameters"
         launch.launch(self.log_handler)
 
-        self.mock_remd_master.run.assert_called_once_with(
+        self.mock_remd_leader.run.assert_called_once_with(
             self.mock_comm, self.mock_runner, self.mock_store
         )

@@ -13,9 +13,9 @@ def main():
     c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
     c.initialize()
 
-    if c.is_master():
+    if c.is_leader():
         alphas = [0., 0.1, 0.2, 0.3]
-        c.broadcast_alphas_to_slaves(alphas)
+        c.broadcast_alphas_to_followers(alphas)
         try:
             assert alphas[0] == 0.
         except AssertionError:
@@ -23,7 +23,7 @@ def main():
             raise
 
     else:
-        alpha = c.receive_alpha_from_master()
+        alpha = c.receive_alpha_from_leader()
         if c.rank == 1:
             try:
                 assert alpha == 0.1

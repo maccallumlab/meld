@@ -32,12 +32,12 @@ def main():
     c = comm.MPICommunicator(N_ATOMS, N_REPLICAS)
     c.initialize()
 
-    if c.is_master():
+    if c.is_leader():
         states = [generate_state(index) for index in range(4)]
-        c.broadcast_states_for_energy_calc_to_slaves(states)
+        c.broadcast_states_for_energy_calc_to_followers(states)
 
     else:
-        all_states = c.receive_states_for_energy_calc_from_master()
+        all_states = c.receive_states_for_energy_calc_from_leader()
         check_state(all_states[0], 0)
         check_state(all_states[1], 1)
         check_state(all_states[2], 2)

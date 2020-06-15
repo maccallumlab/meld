@@ -41,7 +41,7 @@ sys.excepthook = mpi_excepthook
 
 class MPICommunicator:
     """
-    Class to handle communications between master and slaves using MPI.
+    Class to handle communications between leader and followers using MPI.
 
     :param n_atoms: number of atoms
     :param n_replicas: number of replicas
@@ -77,11 +77,11 @@ class MPICommunicator:
         self._mpi_comm = get_mpi_comm_world()
         self._my_rank = self._mpi_comm.Get_rank()
 
-    def is_master(self) -> bool:
+    def is_leader(self) -> bool:
         """
-        Is this the master node?
+        Is this the leader node?
 
-        :returns: :const:`True` if we are the master, otherwise :const:`False`
+        :returns: :const:`True` if we are the leader, otherwise :const:`False`
 
         """
         if self._my_rank == 0:
@@ -97,27 +97,27 @@ class MPICommunicator:
             self._mpi_comm.barrier()
 
     @log_timing(logger)
-    def broadcast_alphas_to_slaves(self, alphas: List[float]) -> None:
+    def broadcast_alphas_to_followers(self, alphas: List[float]) -> None:
         """
-        broadcast_alphas_to_slaves(alphas)
-        Send the alpha values to the slaves.
+        broadcast_alphas_to_followers(alphas)
+        Send the alpha values to the followers.
 
         :param alphas: a list of alpha values, one for each replica.
-            The master node's alpha value should be included in this list.
-            The master node will always be at alpha=0.0
+            The leader's alpha value should be included in this list.
+            The leader's node will always be at alpha=0.0
         :returns: :const:`None`
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_alphas_to_slaves")),
+            RuntimeError(self._timeout_message.format("broadcast_alphas_to_followers")),
         ):
             self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
-    def broadcast_logger_address_to_slaves(self, address: Tuple[str, int]) -> None:
+    def broadcast_logger_address_to_followers(self, address: Tuple[str, int]) -> None:
         """
-        Broadcast the hostname and port of the logger to slaves.
+        Broadcast the hostname and port of the logger to followers.
 
         :param address: a tuple (hostname, port)
         :return: :const: `None`
@@ -125,63 +125,63 @@ class MPICommunicator:
         with timeout(
             self._timeout,
             RuntimeError(
-                self._timeout_message.format("broadcast_logger_address_to_slaves")
+                self._timeout_message.format("broadcast_logger_address_to_followers")
             ),
         ):
             self._mpi_comm.bcast(address, root=0)
 
     @log_timing(logger)
-    def receive_logger_address_from_master(self) -> Tuple[str, int]:
+    def receive_logger_address_from_leader(self) -> Tuple[str, int]:
         """
-        Receive the hostname and port of the logger from the master
+        Receive the hostname and port of the logger from the leader
 
         :return: a (hostname, port) tuple
         """
         with timeout(
             self._timeout,
             RuntimeError(
-                self._timeout_message.format("receive_logger_address_from_master")
+                self._timeout_message.format("receive_logger_address_from_leader")
             ),
         ):
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def receive_alpha_from_master(self) -> float:
+    def receive_alpha_from_leader(self) -> float:
         """
-        receive_alpha_from_master()
-        Receive alpha value from master node.
+        receive_alpha_from_leader()
+        Receive alpha value from leader node.
 
         :returns: a floating point value for alpha in ``[0,1]``
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("receive_alpha_from_master")),
+            RuntimeError(self._timeout_message.format("receive_alpha_from_leader")),
         ):
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def broadcast_states_to_slaves(self, states: List[SystemState]) -> SystemState:
+    def broadcast_states_to_followers(self, states: List[SystemState]) -> SystemState:
         """
-        broadcast_states_to_slaves(states)
-        Send a state to each slave.
+        broadcast_states_to_followers(states)
+        Send a state to each follower.
 
         :param states: a list of states. The list of states should include
-            the state for the master node. These are the states that will
+            the state for the leader node. These are the states that will
             be simulated on each replica for each step.
-        :returns: the state to run on the master node
+        :returns: the state to run on the leader node
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_states_to_slaves")),
+            RuntimeError(self._timeout_message.format("broadcast_states_to_followers")),
         ):
             return self._mpi_comm.scatter(states, root=0)
 
     @log_timing(logger)
-    def receive_state_from_master(self) -> SystemState:
+    def receive_state_from_leader(self) -> SystemState:
         """
-        receive_state_from_master()
+        receive_state_from_leader()
         Get state to run for this step
 
         :returns: the state to run for this step
@@ -189,54 +189,54 @@ class MPICommunicator:
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("receive_state_from_master")),
+            RuntimeError(self._timeout_message.format("receive_state_from_leader")),
         ):
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def gather_states_from_slaves(
-        self, state_on_master: SystemState
+    def gather_states_from_follwers(
+        self, state_on_leader: SystemState
     ) -> List[SystemState]:
         """
-        gather_states_from_slaves(state_on_master)
-        Receive states from all slaves
+        gather_states_from_follwers(state_on_leader)
+        Receive states from all follwers
 
-        :param state_on_master: the state on the master after simulating
+        :param state_on_leader: the state on the leader after simulating
         :returns: A list of states, one from each replica.
                   The returned states are the states after simulating.
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("gather_states_from_slaves")),
+            RuntimeError(self._timeout_message.format("gather_states_from_follwers")),
         ):
-            return self._mpi_comm.gather(state_on_master, root=0)
+            return self._mpi_comm.gather(state_on_leader, root=0)
 
     @log_timing(logger)
-    def send_state_to_master(self, state: SystemState) -> None:
+    def send_state_to_leader(self, state: SystemState) -> None:
         """
-        send_state_to_master(state)
-        Send state to master
+        send_state_to_leader(state)
+        Send state to leader
 
-        :param state: State to send to master. This is the state after
+        :param state: State to send to leader. This is the state after
                       simulating this step.
         :returns: :const:`None`
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("send_state_to_master")),
+            RuntimeError(self._timeout_message.format("send_state_to_leader")),
         ):
             self._mpi_comm.gather(state, root=0)
 
     @log_timing(logger)
-    def broadcast_states_for_energy_calc_to_slaves(
+    def broadcast_states_for_energy_calc_to_follwers(
         self, states: List[SystemState]
     ) -> None:
         """
-        broadcast_states_for_energy_calc_to_slaves(states)
-        Broadcast states to all slaves. Send all results from this step
-        to every slave so that we can calculate the energies and do
+        broadcast_states_for_energy_calc_to_follwers(states)
+        Broadcast states to all follwers. Send all results from this step
+        to every follower so that we can calculate the energies and do
         replica exchange.
 
         :param states: a list of states
@@ -247,7 +247,7 @@ class MPICommunicator:
             self._timeout,
             RuntimeError(
                 self._timeout_message.format(
-                    "broadcast_states_for_energy_calc_to_slaves"
+                    "broadcast_states_for_energy_calc_to_follwers"
                 )
             ),
         ):
@@ -272,10 +272,10 @@ class MPICommunicator:
             return self._mpi_comm.allgather(state)
 
     @log_timing(logger)
-    def receive_states_for_energy_calc_from_master(self) -> List[SystemState]:
+    def receive_states_for_energy_calc_from_leader(self) -> List[SystemState]:
         """
-        receive_states_for_energy_calc_from_master()
-        Receive all states from master.
+        receive_states_for_energy_calc_from_leader()
+        Receive all states from leader.
 
         :returns: a list of states to calculate the energy of
 
@@ -284,45 +284,45 @@ class MPICommunicator:
             self._timeout,
             RuntimeError(
                 self._timeout_message.format(
-                    "receive_states_for_energy_calc_from_master"
+                    "receive_states_for_energy_calc_from_leader"
                 )
             ),
         ):
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def gather_energies_from_slaves(
-        self, energies_on_master: List[float]
+    def gather_energies_from_follwers(
+        self, energies_on_leader: List[float]
     ) -> np.ndarray:
         """
-        gather_energies_from_slaves(energies_on_master)
-        Receive a list of energies from each slave.
+        gather_energies_from_follwers(energies_on_leader)
+        Receive a list of energies from each follower.
 
-        :param energies_on_master: a list of energies from the master
+        :param energies_on_leader: a list of energies from the leader
         :returns: a square matrix of every state on every replica to be used
                   for replica exchange
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("gather_energies_from_slaves")),
+            RuntimeError(self._timeout_message.format("gather_energies_from_follwers")),
         ):
-            energies = self._mpi_comm.gather(energies_on_master, root=0)
+            energies = self._mpi_comm.gather(energies_on_leader, root=0)
             return np.array(energies)
 
     @log_timing(logger)
-    def send_energies_to_master(self, energies: List[float]) -> None:
+    def send_energies_to_leader(self, energies: List[float]) -> None:
         """
-        send_energies_to_master(energies)
-        Send a list of energies to the master.
+        send_energies_to_leader(energies)
+        Send a list of energies to the leader.
 
-        :param energies: a list of energies to send to the master
+        :param energies: a list of energies to send to the leader
         :returns: :const:`None`
 
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("send_energies_to_master")),
+            RuntimeError(self._timeout_message.format("send_energies_to_leader")),
         ):
             return self._mpi_comm.gather(energies, root=0)
 
@@ -347,10 +347,10 @@ class MPICommunicator:
 
             hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
 
-            # the master computes the device ids
+            # the leader computes the device ids
             if self._my_rank == 0:
                 if hosts[0].devices is None:
-                    # if CUDA_VISIBLE_DEVICES isn't set on the master, we assume it
+                    # if CUDA_VISIBLE_DEVICES isn't set on the leader, we assume it
                     # isn't set for any node
                     logger.info("CUDA_VISIBLE_DEVICES is not set.")
                     logger.info("Assuming each mpi process has access")
@@ -369,7 +369,7 @@ class MPICommunicator:
                         device_ids.append(host_counts[host.host_name])
                         host_counts[host.host_name] += 1
                 else:
-                    # CUDA_VISIBLE_DEVICES is set on the master, so we
+                    # CUDA_VISIBLE_DEVICES is set on the leader, so we
                     # assume it is set for all nodes
                     logger.info("CUDA_VISIBLE_DEVICES is set.")
 
@@ -408,7 +408,7 @@ class MPICommunicator:
                             logger.error("More mpi processes than GPUs")
                             raise RuntimeError("More mpi process than GPUs")
 
-            # receive device id from master
+            # receive device id from leader
             else:
                 device_ids = []
 

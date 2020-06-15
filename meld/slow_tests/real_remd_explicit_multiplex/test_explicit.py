@@ -3,7 +3,7 @@
 
 import numpy as np
 import unittest
-from meld.remd import ladder, adaptor, master_runner
+from meld.remd import ladder, adaptor, leader
 from meld import system
 from meld import comm, vault
 from meld import parse
@@ -62,7 +62,7 @@ def setup_system():
     l = ladder.NearestNeighborLadder(n_trials=48 * 48)
     a = adaptor.NullAdaptor(N_REPLICAS)
 
-    remd_runner = master_runner.MasterReplicaExchangeRunner(
+    remd_runner = leader.LeaderReplicaExchangeRunner(
         N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a
     )
     store.save_remd_runner(remd_runner)

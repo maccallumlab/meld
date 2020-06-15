@@ -6,7 +6,7 @@
 import unittest
 from unittest import mock  #type: ignore
 from unittest.mock import sentinel  #type: ignore
-from meld.remd import master_runner, ladder, adaptor
+from meld.remd import leader, ladder, adaptor
 from meld.system import runner
 from meld import comm, vault
 from numpy.testing import assert_almost_equal  #type: ignore
@@ -20,12 +20,12 @@ class TestSingleStep(unittest.TestCase):
         self.PERM_VECTOR = list(reversed(range(self.N_REPS)))
         self.mock_ladder.compute_exchanges.return_value = self.PERM_VECTOR
         self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
-        self.runner = master_runner.MasterReplicaExchangeRunner(
+        self.runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPS, self.MAX_STEPS, self.mock_ladder, self.mock_adaptor
         )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
-        self.mock_comm.broadcast_states_to_slaves.return_value = sentinel.MY_STATE_INIT
+        self.mock_comm.broadcast_states_to_followers.return_value = sentinel.MY_STATE_INIT
 
         self.mock_state_1 = mock.Mock()
         self.mock_state_1.positions = sentinel.pos1
@@ -54,11 +54,11 @@ class TestSingleStep(unittest.TestCase):
             self.mock_state_6,
         ]
 
-        self.mock_comm.gather_states_from_slaves.return_value = (
+        self.mock_comm.gather_states_from_followers.return_value = (
             self.fake_states_after_run
         )
         self.mock_energy_matrix = mock.MagicMock()
-        self.mock_comm.gather_energies_from_slaves.return_value = (
+        self.mock_comm.gather_energies_from_followers.return_value = (
             self.mock_energy_matrix
         )
         self.mock_comm.exchange_states_for_energy_calc.return_value = (
@@ -117,20 +117,20 @@ class TestSingleStep(unittest.TestCase):
         "should set alphas on the system runner"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        # the master is always alphas = 0.
+        # the leader is always alphas = 0.
         self.mock_system_runner.prepare_for_timestep.assert_called_once_with(0., 1)
 
     def test_should_broadcast_alphas(self):
         "calling run should broadcast all of the alpha values"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.assertEqual(self.mock_comm.broadcast_alphas_to_slaves.call_count, 1)
+        self.assertEqual(self.mock_comm.broadcast_alphas_to_followers.call_count, 1)
 
     def test_should_broadcast_states(self):
         "calling run should broadcast states"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_comm.broadcast_states_to_slaves.assert_called_once_with(
+        self.mock_comm.broadcast_states_to_followers.assert_called_once_with(
             sentinel.ALL_STATES
         )
 
@@ -157,11 +157,11 @@ class TestSingleStep(unittest.TestCase):
         calls = [mock.call(s) for s in self.fake_states_after_run]
         self.mock_system_runner.get_energy.assert_has_calls(calls)
 
-    def test_calls_gather_energies_from_slaves(self):
-        "should call gather_energies_from_slaves"
+    def test_calls_gather_energies_from_followers(self):
+        "should call gather_energies_from_followers"
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
-        self.mock_comm.gather_energies_from_slaves.assert_called_once_with(
+        self.mock_comm.gather_energies_from_followers.assert_called_once_with(
             self.FAKE_ENERGIES_AFTER_GET_ENERGY
         )
 
@@ -239,12 +239,12 @@ class TestFiveSteps(unittest.TestCase):
             reversed(range(self.N_REPS))
         )
         self.mock_adaptor = mock.Mock(adaptor.EqualAcceptanceAdaptor)
-        self.runner = master_runner.MasterReplicaExchangeRunner(
+        self.runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPS, self.MAX_STEPS, self.mock_ladder, self.mock_adaptor
         )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
-        self.mock_comm.broadcast_states_to_slaves.return_value = sentinel.MY_STATE_INIT
+        self.mock_comm.broadcast_states_to_followers.return_value = sentinel.MY_STATE_INIT
 
         self.mock_state_1 = mock.Mock()
         self.mock_state_1.positions = sentinel.pos1
@@ -272,11 +272,11 @@ class TestFiveSteps(unittest.TestCase):
             self.mock_state_5,
             self.mock_state_6,
         ]
-        self.mock_comm.gather_states_from_slaves.return_value = (
+        self.mock_comm.gather_states_from_followers.return_value = (
             self.fake_states_after_run
         )
         self.mock_energy_matrix = mock.MagicMock()
-        self.mock_comm.gather_energies_from_slaves.return_value = (
+        self.mock_comm.gather_energies_from_followers.return_value = (
             self.mock_energy_matrix
         )
         self.mock_comm.exchange_states_for_energy_calc.return_value = (

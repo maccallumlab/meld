@@ -34,15 +34,15 @@ def main():
 
     state = generate_state(c.rank)
 
-    if c.is_master():
-        all_states = c.gather_states_from_slaves(state)
+    if c.is_leader():
+        all_states = c.gather_states_from_followers(state)
         check_state(all_states[0], 0)
         check_state(all_states[1], 1)
         check_state(all_states[2], 2)
         check_state(all_states[3], 3)
 
     else:
-        c.send_state_to_master(state)
+        c.send_state_to_leader(state)
 
 
 if __name__ == "__main__":

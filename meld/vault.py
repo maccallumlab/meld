@@ -40,7 +40,7 @@ class DataStore:
 
     - data_store.dat -- the DataStore object
     - communicator.dat -- the MPICommunicator object
-    - remd_runner.dat -- the MasterReplicaExchangeRunner object
+    - remd_runner.dat -- the LeaderReplicaExchangeRunner object
 
     Other data (positions, velocities, etc) is stored in the results.nc file.
 

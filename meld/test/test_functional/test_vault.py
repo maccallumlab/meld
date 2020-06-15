@@ -9,7 +9,7 @@ import numpy as np  #type: ignore
 import unittest
 import os
 from meld import vault, comm
-from meld.remd import master_runner, ladder, adaptor
+from meld.remd import leader, ladder, adaptor
 from meld import system
 from meld.test.helper import TempDirHelper
 from meld.util import in_temp_dir
@@ -110,7 +110,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             a = adaptor.EqualAcceptanceAdaptor(
                 n_replicas=self.N_REPLICAS, adaptation_policy=policy
             )
-            runner = master_runner.MasterReplicaExchangeRunner(
+            runner = leader.LeaderReplicaExchangeRunner(
                 self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
             )
 
@@ -341,7 +341,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             return system.SystemState(pos, vel, lam, energy, np.zeros(3))
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
-        runner = master_runner.MasterReplicaExchangeRunner(
+        runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
         )
 
@@ -402,7 +402,7 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             lam = index / 100.
             return system.SystemState(pos, vel, lam, energy, np.zeros(3))
 
-        runner = master_runner.MasterReplicaExchangeRunner(
+        runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
         )
 

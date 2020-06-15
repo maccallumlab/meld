@@ -5,7 +5,7 @@
 
 from meld.vault import DataStore
 from meld.system.state import SystemState
-from meld.remd import slave_runner
+from meld.remd import follower
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.adaptor import Adaptor
 from meld.remd.reseed import NullReseeder
@@ -19,7 +19,7 @@ from typing import List, Union
 logger = logging.getLogger(__name__)
 
 
-class MasterReplicaExchangeRunner:
+class LeaderReplicaExchangeRunner:
     """
     Class to coordinate running of replica exchange
 
@@ -74,12 +74,12 @@ class MasterReplicaExchangeRunner:
         self._setup_alphas()
         self.reseeder = NullReseeder()
 
-    def to_slave(self) -> slave_runner.SlaveReplicaExchangeRunner:
+    def to_follower(self) -> follower.FollowerReplicaExchangeRunner:
         """
-        Return a SlaveReplicaExchangeRunner based on self.
+        Return a FollowerReplicaExchangeRunner based on self.
 
         """
-        return slave_runner.SlaveReplicaExchangeRunner.from_master(self)
+        return follower.FollowerReplicaExchangeRunner.from_leader(self)
 
     def run(
         self,
@@ -90,7 +90,7 @@ class MasterReplicaExchangeRunner:
         """
         Run replica exchange until finished
 
-        :param communicator: A communicator object to talk with slaves
+        :param communicator: A communicator object to talk with followers
         :param system_runner: a ReplicaRunner object to run the simulations
         :param store: a Store object to handle storing data to disk
 
@@ -115,10 +115,10 @@ class MasterReplicaExchangeRunner:
             # update alphas
             system_runner.prepare_for_timestep(0., self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
-            communicator.broadcast_alphas_to_slaves(self._alphas)
+            communicator.broadcast_alphas_to_followers(self._alphas)
 
             # do one step
-            my_state = communicator.broadcast_states_to_slaves(states)
+            my_state = communicator.broadcast_states_to_followers(states)
             if minimize:
                 logger.info("First step, minimizing and then running.")
                 my_state = system_runner.minimize_then_run(my_state)
@@ -132,7 +132,7 @@ class MasterReplicaExchangeRunner:
 
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
-            energies = communicator.gather_energies_from_slaves(my_energies)
+            energies = communicator.gather_energies_from_followers(my_energies)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)

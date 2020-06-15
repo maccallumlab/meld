@@ -11,7 +11,7 @@ ladder and the way we do it is very customizable. The minimum number of replicas
 Loading Some Helpful Modules
 --------------------
 import numpy as np
-from meld.remd import ladder, adaptor, master_runner
+from meld.remd import ladder, adaptor, leader
 from meld import comm, vault
 from meld import system
 from meld import parse
@@ -80,7 +80,7 @@ We can choose and adaptor policy for the REMD ladder. In essence, this alows to 
     policy = adaptor.AdaptationPolicy(2.0, 50, 50)
     a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
 
-    remd_runner = master_runner.MasterReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+    remd_runner = leader.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
     store.save_remd_runner(remd_runner)
 
 Initialize the communicators and starting replica conformations

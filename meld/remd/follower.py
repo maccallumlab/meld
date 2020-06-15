@@ -4,9 +4,9 @@
 #
 
 
-class SlaveReplicaExchangeRunner:
+class FollowerReplicaExchangeRunner:
     """
-    This class coordinates running replica exchange on the slaves.
+    This class coordinates running replica exchange on the follwers.
 
     """
 
@@ -15,18 +15,18 @@ class SlaveReplicaExchangeRunner:
         self._max_steps = max_steps
 
     @classmethod
-    def from_master(cls, master):
+    def from_leader(cls, leader):
         """
-        Initialize a new slave from a master.
+        Initialize a new follower from a leader.
 
-        :param master: a :class:`meld.remd.master_runner.
-                                 MasterReplicaExchangeRunner`
+        :param leader: a :class:`meld.remd.leader.
+                                 LeaderReplicaExchangeRunner`
                        to serve as a template
-        :return: a :class:`SlaveReplicaExchangeRunner`
+        :return: a :class:`FollwerReplicaExchangeRunner`
 
         """
-        new_slave = cls(master.step, master.max_steps)
-        return new_slave
+        new_follower = cls(leader.step, leader.max_steps)
+        return new_follower
 
     @property
     def step(self):
@@ -38,9 +38,9 @@ class SlaveReplicaExchangeRunner:
 
     def run(self, communicator, system_runner):
         """
-        Continue running slave jobs until done.
+        Continue running follower jobs until done.
 
-        :param communicator: a communicator object for talking to the master
+        :param communicator: a communicator object for talking to the leader
         :param system_runner: a system_runner object for actually running the
                               simulations
 
@@ -52,8 +52,8 @@ class SlaveReplicaExchangeRunner:
         minimize = True
         while self._step <= self._max_steps:
             # update simulation conditions
-            new_alpha = communicator.receive_alpha_from_master()
-            state = communicator.receive_state_from_master()
+            new_alpha = communicator.receive_alpha_from_leader()
+            state = communicator.receive_state_from_leader()
 
             my_alpha = new_alpha
             system_runner.prepare_for_timestep(my_alpha, self._step)
@@ -73,6 +73,6 @@ class SlaveReplicaExchangeRunner:
             for state in states:
                 energy = system_runner.get_energy(state)
                 energies.append(energy)
-            communicator.send_energies_to_master(energies)
+            communicator.send_energies_to_leader(energies)
 
             self._step += 1
