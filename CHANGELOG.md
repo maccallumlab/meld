@@ -1,3 +1,9 @@
+## 0.4.15
+
+## Enhancements
+
+- Changed master/slave terminolog to leader/follower
+
 ## 0.4.14
 
 ## Enhancements
