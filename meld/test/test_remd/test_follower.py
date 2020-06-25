@@ -23,15 +23,15 @@ class TestFollowerInitFromLeader(unittest.TestCase):
 
     def test_sets_step(self):
         "creating follower from_leader should set the step"
-        follower = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
+        runner = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
 
-        self.assertEqual(follower.step, 42)
+        self.assertEqual(runner.step, 42)
 
     def test_sets_max_steps(self):
         "creating follower from_leader should set max_steps"
-        follower = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
+        runner = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
 
-        self.assertEqual(follower.max_steps, 43)
+        self.assertEqual(runner.max_steps, 43)
 
 
 class TestFollowerSingle(unittest.TestCase):
