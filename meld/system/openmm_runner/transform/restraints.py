@@ -18,7 +18,7 @@ from meld.system.openmm_runner.transform import TransformerBase
 from simtk import openmm as mm  # type: ignore
 
 try:
-    from meldplugin import MeldForce
+    from meldplugin import MeldForce  # type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "
