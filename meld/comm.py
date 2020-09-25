@@ -473,21 +473,36 @@ HostInfo = namedtuple("HostInfo", "host_name devices")
 # SOFTWARE.
 
 
+is_disabled = os.getenv('INTERRUPTINGCOW_DISABLE_TIMEOUTS') == '1'
+
+
+def disable_timeouts():
+    """Globally disables all new timeouts."""
+    global is_disabled
+    is_disabled = True
+
+
+def enable_timeouts():
+    """Enables all new timeouts"""
+    global is_disabled
+    is_disabled = False
+
+
 class StateException(Exception):
     pass
 
 
-class Quota:
+class Quota(object):
     def __init__(self, seconds):
         if seconds <= 0:
-            raise ValueError("Invalid timeout: %s" % seconds)
+            raise ValueError('Invalid timeout: %s' % seconds)
         else:
             self._timeleft = seconds
         self._depth = 0
         self._starttime = None
 
     def __str__(self):
-        return "<Quota remaining=%s>" % self.remaining()
+        return '<Quota remaining=%s>' % self.remaining()
 
     def _start(self):
         if self._depth is 0:
@@ -511,7 +526,7 @@ class Quota:
 
 
 def _bootstrap():
-    Timer = namedtuple("Timer", "expiration exception")
+    Timer = namedtuple('Timer', 'expiration exception')
     timers = []
 
     def handler(*args):
@@ -530,17 +545,18 @@ def _bootstrap():
         if current == signal.SIG_DFL:
             signal.signal(signal.SIGALRM, handler)
         elif current != handler:
-            raise StateException(
-                "Your process alarm handler is already in "
-                "use! Interruptingcow cannot be used in "
-                "programs that use SIGALRM."
-            )
+            raise StateException('Your process alarm handler is already in '
+                                 'use! Interruptingcow cannot be used in '
+                                 'programs that use SIGALRM.')
 
     def timeout(seconds, exception):
-        if threading.currentThread().name != "MainThread":
-            raise StateException(
-                "Interruptingcow can only be used from the " "MainThread."
-            )
+        if is_disabled:
+            yield
+            return
+
+        if threading.currentThread().name != 'MainThread':
+            raise StateException('Interruptingcow can only be used from the '
+                                 'MainThread.')
         if isinstance(seconds, Quota):
             quota = seconds
         else:
@@ -581,14 +597,30 @@ def _bootstrap():
             finally:
                 quota._stop()
 
-    @contextlib.contextmanager
-    def timeout_context_manager(seconds, exception):
-        t = timeout(seconds, exception)
-        next(t)
-        yield
-        next(t)
+    class Timeout(contextlib.GeneratorContextManager):
+        """This class allows us to use timeout() both as an inline
+        with-statement, as well as a function decorator.
 
-    return timeout_context_manager
+        To this end, it implements both the contextmanager's __enter__() and
+        __exit__() methods, as well as the function decorator class' __call__()
+        method.
+        """
+        def __init__(self, seconds, exception=RuntimeError):
+            super(Timeout, self).__init__(None)
+            self._seconds = seconds
+            self._exception = exception
+
+        def __enter__(self):
+            self.gen = timeout(self._seconds, self._exception)
+            return super(Timeout, self).__enter__()
+
+        def __call__(self, func):
+            def inner(*args, **kwargs):
+                with self:
+                    return func(*args, **kwargs)
+            return inner
+
+    return Timeout
 
 
 timeout = _bootstrap()
