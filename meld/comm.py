@@ -586,7 +586,6 @@ def _bootstrap():
         t = timeout(seconds, exception)
         next(t)
         yield
-        next(t)
 
     return timeout_context_manager
 
