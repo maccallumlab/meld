@@ -1,3 +1,7 @@
+## Bug Fixes
+- `quadratic_cut` option of `get_secondary_structure_restraints` is now interpreted correctly.
+  Previously, this value was interpreted as tens of nanometers, instead of tenths of nanometers.
+
 ## 0.4.14
 
 ## Enhancements
