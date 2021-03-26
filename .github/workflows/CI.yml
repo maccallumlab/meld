@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    banches:
+      - "master"
+  
+jobs:
+  unix:
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
