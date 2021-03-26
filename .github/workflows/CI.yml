@@ -12,3 +12,131 @@ jobs:
   unix:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
+    env:
+      CCACHE_BASEDIR: "${{ github.workspace }}"
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
+      CCACHE_COMPRESS: true
+      CCACHE_COMPRESSLEVEL: 6
+      CCACHE_MAXSIZE: 400M
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Linux CUDA 10.0 Python 3.6"
+            os: ubuntu-latest
+            python-version: "3.6"
+            cuda-version: "10.0"
+            gcc-version: "9"
+            cdt-name: cos6
+            CMAKE_FLAGS: |
+              -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+              -DEXTRA_COMPILE_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath,/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs"
+
+          - name: "Linux CUDA 11.0 Python 3.6"
+            os: ubuntu-latest
+            python-version: "3.6"
+            cuda-version: "11.0"
+            gcc-version: "9"
+            cdt-name: cos7
+            CMAKE_FLAGS: |
+              -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+              -DEXTRA_COMPILE_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath,/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: "Patch conda env (if needed)"
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sed -i -e "s/@CDT_NAME@/${{ matrix.cdt-name }}/g" \
+                 -e "s/@GCC_VERSION@/${{ matrix.gcc-version }}.*/g" \
+                 -e "s/@CUDATOOLKIT_VERSION@/${{ matrix.cuda-version }}.*/g" \
+                 devtools/ci/gh-actions/conda-envs/build-${{ matrix.os }}.yml
+
+      - uses: conda-incubator/setup-miniconda@v2
+        name: "Prepare base dependencies"
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: build
+          environment-file: devtools/ci/gh-actions/conda-envs/build-${{ matrix.os }}.yml
+          auto-activate-base: false
+
+      - name: "Install CUDA on Ubuntu (if needed)"
+        if: matrix.cuda-version != '' && startsWith(matrix.os, 'ubuntu')
+        env:
+          CUDA_VERSION: ${{ matrix.cuda-version }}
+        run: source devtools/ci/gh-actions/scripts/install_cuda.sh
+
+      - name: "Conda info"
+        shell: bash -l {0}
+        run: |
+          conda info -a
+          conda list
+
+      - name: "Prepare ccache"
+        id: prepare-ccache
+        shell: bash -l {0}
+        run: |
+          echo "::set-output name=key::$(echo "${{ matrix.name }}" | tr -d ' .')"
+          echo "::set-output name=timestamp::$(date +%Y%m%d-%H%M%S)"
+          ccache -p
+          ccache -z
+
+      - name: "Restore ccache"
+        uses: actions/cache@v1.1.0
+        with:
+          path: .ccache
+          key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
+          restore-keys: |
+            ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-
+
+      - name: "Configure plugin build with CMake"
+        shell: bash -l {0}
+        run: |
+          mkdir build
+          cd build
+          export EIGEN3_INCLUDE_DIR=${CONDA_PREFIX}/include/eigen3
+          cmake ../plugin \
+            -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+            -DCMAKE_PREFIX_PATH=${CONDA_PREFIX} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DOPENMM_DIR=${CONDA_PREFIX} \
+            ${{ matrix.CMAKE_FLAGS }}
+
+      - name: "Build plugin"
+        shell: bash -l {0}
+        run: |
+          cd build
+          make -j2 install
+
+      - name: "Build plugin Python wrappers"
+        shell: bash -l {0}
+        run: |
+          cd build
+          make -j2 PythonInstall
+
+      - name: "Build MELD"
+        shell: bash -l {0}
+        run: |
+          python setup.py install
+
+      - name: "Check ccache performance"
+        shell: bash -l {0}
+        run: ccache -s
+
+      - name: "Test for presence of shared libraries"
+        shell: bash -l {0}
+        id: testcore
+        run: |
+          test -f ${CONDA_PREFIX}/lib/libMeldPlugin.so
+          test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
+
+      - name: "Test MELD"
+        shell: bash -l {0}
+        if: ${{ !contains(matrix.CMAKE_FLAGS, 'OPENMM_BUILD_PYTHON_WRAPPERS=OFF') && (steps.testcore.outcome == 'failure' || steps.testcore.outcome == 'success') }}
+        run: |
+          set -x
+          python -m unittest discover meld.test
+          mypy meld

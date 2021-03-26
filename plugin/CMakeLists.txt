@@ -8,6 +8,8 @@ CMAKE_POLICY(SET CMP0003 NEW)
 CMAKE_POLICY(SET CMP0005 NEW)
 CMAKE_POLICY(SET CMP0011 NEW)
 
+project(meld)
+
 SET (CMAKE_CXX_STANDARD 11)
 
 # We need to know where OpenMM is installed so we can access the headers and libraries.

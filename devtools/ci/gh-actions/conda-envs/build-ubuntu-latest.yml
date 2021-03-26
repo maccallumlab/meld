@@ -1,0 +1,45 @@
+name: build
+
+channels:
+- conda-forge
+- bioconda
+
+dependencies:
+# build
+- cmake
+- gcc_linux-64 @GCC_VERSION@
+- gxx_linux-64 @GCC_VERSION@
+- make
+- ccache
+- mypy
+- breathe
+- doxygen 1.8.14
+- eigen
+- sphinx
+- sphinx_rtd_theme
+- nvcc_linux-64 @CUDATOOLKIT_VERSION@
+- libx11-common-@CDT_NAME@-x86_64
+- libx11-@CDT_NAME@-x86_64
+- mesa-dri-drivers-@CDT_NAME@-x86_64
+- mesa-libgl-@CDT_NAME@-x86_64
+- mesa-libgl-devel-@CDT_NAME@-x86_64
+
+
+# host
+- python
+- cython
+- swig
+- fftw
+- numpy
+- scipy
+- hdf4
+- netcdf4
+- mpi4py
+- ocl-icd-system
+- ambertools
+- parmed
+- cudatoolkit @CUDATOOLKIT_VERSION@
+- openmm
+
+# test
+- pytest

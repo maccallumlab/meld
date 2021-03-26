@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import numpy as np
+import numpy as np  # type: ignore
 import unittest
 from meld.remd import ladder, adaptor, leader
 from meld import system
