@@ -1,46 +1,51 @@
-## Bug Fixes
+## 0.4.15
+
+### Enhancements
+- Continuous integration now uses github actions.
+
+### Bug Fixes
 - `quadratic_cut` option of `get_secondary_structure_restraints` is now interpreted correctly.
   Previously, this value was interpreted as tens of nanometers, instead of tenths of nanometers.
 
 ## 0.4.14
 
-## Enhancements
+### Enhancements
 
 - Implemented flat-bottom / quadratic / linear RDC restraints
 
 ## 0.4.13
 
-## Enhancements
+### Enhancements
 
 - Much faster handling of RDCs following the approach of Habeck and co-workiers. DOI 10.1007/s10858-007-9215-1
 ## 0.4.12
 
-## Enhancements
+### Enhancements
 
 - You can now specify quadratic_cut for RDC restraints. The energy will increase
   quadratically when |d_obs - d_calc| is less than quadratic cut and linearly
   when it is larger.
 
-## Bug Fixes
+### Bug Fixes
 
 - Fixed a bug where RDC energies were incorrect in mixed precision.
 
 ## 0.4.11
 
-## Bug Fixes
+### Bug Fixes
 
 - Fixed updating of RDC forces. Previously, the RDC forces were not correctly
   updated with alpha and timestep.
 
 ## 0.4.10
 
-## Enhancements
+### Enhancements
 
 - Major improvement in simulation startup time with large numbers of restraints.
 
 ## 0.4.9
 
-## Bug Fixes
+### Bug Fixes
 
 - Fixed inconsistencies in RDC calculations
 
