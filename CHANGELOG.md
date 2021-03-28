@@ -1,3 +1,8 @@
+## 0.4.16
+
+### Bug Fixes
+- Minor changes to plugin build process.
+
 ## 0.4.15
 
 ### Enhancements
