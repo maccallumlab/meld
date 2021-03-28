@@ -24,7 +24,7 @@ This will install MELD and all of its dependencies.
 ### Testing
 
 Test versions of MELD are built automatically. Current status:
-![meld_build](https://github.com/maccallumlab/meld/actions/workflows/CI.yml/badge.svg)
+[![meld_build](https://github.com/maccallumlab/meld/actions/workflows/CI.yml/badge.svg)](https://github.com/maccallumlab/meld/actions)
 
 ## Building from Scratch
 
