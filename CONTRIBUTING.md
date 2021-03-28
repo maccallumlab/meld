@@ -18,3 +18,13 @@ New code should have tests whenever feasible. To run the tests, use `python -m u
 We are also adding python type annotations to the code base. All new code should have type annotations and we aim to add them to existing
 code over time. To run the type checks, use `mypy meld`.
 
+## Tagging a new release
+
+To tag a version for release, do the following:
+- Commit all changes.
+- Run the test suite.
+- Update `CHANGELOG.md` to reflect the changes.
+- Run `bumpversion patch` to increment to the next version.
+- Push the changes:
+  - `git push`
+  - `git push --tags`
