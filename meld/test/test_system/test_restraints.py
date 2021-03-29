@@ -664,15 +664,15 @@ class TestLinearScaler(unittest.TestCase):
             scaler(2)
 
     def test_should_return_1_below_alpha_min(self):
-        scaler = restraints.LinearScaler(0.2, 0.8)
+        scaler = restraints.LinearScaler(0.2, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 1.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.LinearScaler(0.2, 0.8)
+        scaler = restraints.LinearScaler(0.2, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_correct_value_in_middle(self):
-        scaler = restraints.LinearScaler(0.0, 1.0)
+        scaler = restraints.LinearScaler(0.0, 1.0, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.3), 0.7)
 
 
@@ -708,27 +708,27 @@ class TestPlateauLinearScaler(unittest.TestCase):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauLinearScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_correct_value_between_alpha_one_alpha_two_down(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.3), 0.75)
 
     def test_should_return_correct_value_between_alpha_one_alpha_two_down2(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 0.25)
 
     def test_should_return_correct_value_between_alpha_two_alpha_max_up(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.7), 0.75)
 
     def test_should_return_correct_value_between_alpha_two_alpha_max_up2(self):
-        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0)
+        scaler = restraints.PlateauLinearScaler(0.0, 0.4, 0.6, 1.0, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.25)
 
 
@@ -768,15 +768,15 @@ class TestNonLinearScaler(unittest.TestCase):
             scaler(2)
 
     def test_should_return_1_below_alpha_min(self):
-        scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
+        scaler = restraints.NonLinearScaler(0.2, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 1.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
+        scaler = restraints.NonLinearScaler(0.2, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_midpoint_should_return_correct_value(self):
-        scaler = restraints.NonLinearScaler(0.2, 0.8, 4)
+        scaler = restraints.NonLinearScaler(0.2, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.5), 0.119202922)
 
 
@@ -816,23 +816,23 @@ class TestPlateauNonLinearScaler(unittest.TestCase):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_1_between_alpha_one_alpha_two(self):
-        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.2, 0.4, 0.6, 0.8, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.5), 1.0)
 
     def test_midpoint_should_return_correct_value_scaling_up(self):
-        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.95), 0.119202922)
 
     def test_midpoint_should_return_correct_value_scaling_down(self):
-        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4)
+        scaler = restraints.PlateauNonLinearScaler(0.7, 0.8, 0.9, 1.0, 4, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.75), 0.88079708)
 
 
@@ -868,31 +868,31 @@ class TestPlateauSmoothScaler(unittest.TestCase):
             scaler(2)
 
     def test_should_return_0_below_alpha_min(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.1), 0.0)
 
     def test_should_return_0_above_alpha_max(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.5, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.9), 0.0)
 
     def test_should_return_1_between_alpha_one_alpha_two(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.5), 1.0)
 
     def test_should_return_correct_value_middle_up(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.75), 0.15625)
 
     def test_should_return_correct_value_middle_up2(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.65), 0.84375)
 
     def test_should_return_correct_value_middle_down(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.35), 0.84375)
 
     def test_should_return_correct_value_middle_down2(self):
-        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8)
+        scaler = restraints.PlateauSmoothScaler(0.2, 0.4, 0.6, 0.8, 1.0, 0.0)
         self.assertAlmostEqual(scaler(0.25), 0.15625)
 
 

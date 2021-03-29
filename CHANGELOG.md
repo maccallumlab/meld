@@ -1,3 +1,13 @@
+## Coming in next release
+
+### Enhancements
+- Changed default minimum value for restraint scalers
+  - Previously, restraints would be scaled to 0.0 by default when alpha=1.0
+  - This could cause problems with some restraints, like RDCs
+  - The new default scales the restraints down to 1e-3, which is effectively off, but
+    prevents problems with restraints like RDCs
+  - The previous behaviour can be obtained by setting `stregnth_at_alpha_max=0.0`
+
 ### Bug Fixes
 - Fixed error that caused simulations to hang upon completion or upon error
 

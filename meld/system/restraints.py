@@ -135,9 +135,12 @@ References
 
 """
 import math
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 from collections import namedtuple
 from typing import Dict, Any
+
+
+STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
 
 
 class _RestraintRegistry(type):
@@ -625,7 +628,7 @@ class DistProfileRestraint(SelectableRestraint):
         self._check()
 
     def _check(self):
-        assert self.r_min >= 0.
+        assert self.r_min >= 0.0
         assert self.r_max > self.r_min
         assert self.n_bins > 0
         assert self.spline_params.shape[0] == self.n_bins
@@ -844,7 +847,7 @@ class YZCartesianRestraint(NonSelectableRestraint):
 
 
 class AbsoluteCOMRestraint(NonSelectableRestraint):
-    """ Restraint on the distance between a group and a point in space
+    """Restraint on the distance between a group and a point in space
 
     This class implements a restraint on the distance between the
     center of a group and a point in space.
@@ -955,7 +958,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
 
 
 class COMRestraint(NonSelectableRestraint):
-    """ Restraint on the distance between two groups along selected axes
+    """Restraint on the distance between two groups along selected axes
 
     This class implements a restraint on the distance between the center of
     two groups.
@@ -1080,7 +1083,7 @@ class COMRestraint(NonSelectableRestraint):
         if isinstance(distance, Positioner):
             self.positioner = distance
         else:
-            if distance < 0.:
+            if distance < 0.0:
                 raise ValueError("distance cannot be negative")
 
             self.positioner = ConstantPositioner(distance)
@@ -1102,8 +1105,7 @@ class COMRestraint(NonSelectableRestraint):
 
 
 class AlwaysActiveCollection:
-    """
-    """
+    """"""
 
     def __init__(self):
         self._restraints = []
@@ -1121,8 +1123,7 @@ class AlwaysActiveCollection:
 
 
 class SelectivelyActiveCollection:
-    """
-    """
+    """"""
 
     def __init__(self, restraint_list, num_active):
         self._groups = []
@@ -1191,8 +1192,7 @@ class RestraintGroup:
 
 
 class RestraintManager:
-    """
-    """
+    """"""
 
     def __init__(self, system):
         self._system = system
@@ -1302,9 +1302,9 @@ class AlphaMapper(metaclass=ScalerRegistry):
 
     def _handle_boundaries(self, alpha):
         if alpha <= self._alpha_min:
-            return 1.
+            return 1.0
         elif alpha >= self._alpha_max:
-            return 0.
+            return 0.0
         else:
             return None
 
@@ -1347,7 +1347,11 @@ class LinearScaler(RestraintScaler):
     _scaler_key_ = "linear"
 
     def __init__(
-        self, alpha_min, alpha_max, strength_at_alpha_min=1.0, strength_at_alpha_max=0.0
+        self,
+        alpha_min,
+        alpha_max,
+        strength_at_alpha_min=1.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
@@ -1387,7 +1391,7 @@ class PlateauLinearScaler(RestraintScaler):
         alpha_two,
         alpha_max,
         strength_at_alpha_min=1.0,
-        strength_at_alpha_max=0.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
@@ -1436,7 +1440,7 @@ class NonLinearScaler(RestraintScaler):
         alpha_max,
         factor,
         strength_at_alpha_min=1.0,
-        strength_at_alpha_max=0.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
@@ -1475,7 +1479,7 @@ class PlateauNonLinearScaler(RestraintScaler):
         alpha_max,
         factor,
         strength_at_alpha_min=1.0,
-        strength_at_alpha_max=0.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
@@ -1528,7 +1532,7 @@ class PlateauSmoothScaler(RestraintScaler):
         alpha_two,
         alpha_max,
         strength_at_alpha_min=1.0,
-        strength_at_alpha_max=0.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
@@ -1566,12 +1570,16 @@ class GeometricScaler(RestraintScaler):
     _scaler_key_ = "geometric"
 
     def __init__(
-        self, alpha_min, alpha_max, strength_at_alpha_min, strength_at_alpha_max
+        self,
+        alpha_min,
+        alpha_max,
+        strength_at_alpha_min=1.0,
+        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
     ):
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
         self._strength_at_alpha_min = float(strength_at_alpha_min)
-        self._strength_at_alpha_max = float(strength_at_alpha_max)
+        self._strength_at_alpha_max = float(STRENGTH_AT_ALPHA_MAX)
         self._delta_alpha = self._alpha_max - self._alpha_min
         self._check_alpha_min_max()
 
