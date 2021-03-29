@@ -3,7 +3,20 @@
 # All rights reserved
 #
 
-from mpi4py import MPI  # type: ignore
+try:
+    from mpi4py import MPI  # type: ignore
+except ImportError:
+    print()
+    print("****")
+    print("Error importing mpi4py.")
+    print()
+    print("Meld depends on mpi4py, but does not automatically install it")
+    print("as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md")
+    print("for details.")
+    print("****")
+    print()
+    raise
+
 import signal
 import threading
 import time
