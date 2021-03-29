@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+import multiprocessing as mp
 import logging
 import logging.handlers
 import meld
@@ -12,7 +13,6 @@ from meld.system import get_runner
 from simtk.openmm import version as mm_version  # type: ignore
 from meld.remd import multiplex_runner
 import socket
-import multiprocessing as mp
 from typing import Tuple, Union
 
 Handler = Union[logging.StreamHandler, logging.handlers.SocketHandler]
@@ -63,6 +63,7 @@ def launch(
                 target=util.configure_logging_and_launch_listener,
                 args=(hostname, abort_queue, socket_queue),
             )
+            process.daemon = True
             process.start()
             # communicate address to followers
             logger_address = socket_queue.get(block=True, timeout=60)

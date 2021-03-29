@@ -490,12 +490,12 @@ class Quota:
         return "<Quota remaining=%s>" % self.remaining()
 
     def _start(self):
-        if self._depth is 0:
+        if self._depth == 0:
             self._starttime = time.time()
         self._depth += 1
 
     def _stop(self):
-        if self._depth is 1:
+        if self._depth == 1:
             self._timeleft = self.remaining()
             self._starttime = None
         self._depth -= 1

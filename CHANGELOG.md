@@ -1,3 +1,6 @@
+### Bug Fixes
+- Fixed error that caused simulations to hang upon completion or upon error
+
 ## 0.4.16
 
 ### Bug Fixes
