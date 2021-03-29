@@ -16,10 +16,6 @@ meldplugin_library_dir = '@MELDPLUGIN_LIBRARY_DIR@'
 extra_compile_args = []
 extra_link_args = []
 
-if platform.system() == 'Darwin':
-    extra_compile_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
-    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.7', '-Wl', '-rpath', openmm_dir+'/lib']
-
 extension = Extension(name='_meldplugin',
                       version=version,
                       sources=['MeldPluginWrapper.cpp'],
