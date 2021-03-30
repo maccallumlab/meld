@@ -13,6 +13,7 @@ from meld.system import get_runner
 from simtk.openmm import version as mm_version  # type: ignore
 from meld.remd import multiplex_runner
 import socket
+import time
 from typing import Tuple, Union
 
 Handler = Union[logging.StreamHandler, logging.handlers.SocketHandler]
@@ -57,9 +58,10 @@ def launch(
     if not console_log:
         if communicator.is_leader():
             # start logging server
-            abort_queue: mp.Queue[int] = mp.Queue()
-            socket_queue: mp.Queue[Tuple[str, int]] = mp.Queue()
-            process = mp.Process(
+            context = mp.get_context("spawn")
+            abort_queue: mp.Queue[int] = context.Queue()
+            socket_queue: mp.Queue[Tuple[str, int]] = context.Queue()
+            process = context.Process(
                 target=util.configure_logging_and_launch_listener,
                 args=(hostname, abort_queue, socket_queue),
             )
@@ -111,9 +113,12 @@ def launch(
         remd_runner = store.load_remd_runner().to_follower()
         remd_runner.run(communicator, system_runner)
 
+    # close log handler and allow a few seconds to flush
     handler.close()
+    time.sleep(2)
+
+    # the master needs to shutdown the logging process
     if (not console_log) and communicator.is_leader():
-        # pause and then shutdown logging server
         abort_queue.put(1)
         process.join()
 
