@@ -100,6 +100,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
     """
 
     allow_reuse_address = True
+    daemon_threads = True
 
     def __init__(self, host, abort_queue, socket_queue, handler=LogRecordStreamHandler):
         # we request port zero, which should get an unused, non-privileged port
@@ -129,6 +130,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
                 abort = self.abort_queue.get(block=False)
             except queue.Empty:
                 pass
+        self.socket.close()
 
 
 class HostNameContextFilter(logging.Filter):

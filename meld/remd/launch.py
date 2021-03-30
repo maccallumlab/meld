@@ -111,6 +111,7 @@ def launch(
         remd_runner = store.load_remd_runner().to_follower()
         remd_runner.run(communicator, system_runner)
 
+    handler.close()
     if (not console_log) and communicator.is_leader():
         # pause and then shutdown logging server
         abort_queue.put(1)
