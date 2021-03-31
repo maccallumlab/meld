@@ -58,10 +58,9 @@ def launch(
     if not console_log:
         if communicator.is_leader():
             # start logging server
-            context = mp.get_context("spawn")
-            abort_queue: mp.Queue[int] = context.Queue()
-            socket_queue: mp.Queue[Tuple[str, int]] = context.Queue()
-            process = context.Process(
+            abort_queue: mp.Queue[int] = mp.Queue()
+            socket_queue: mp.Queue[Tuple[str, int]] = mp.Queue()
+            process = mp.Process(
                 target=util.configure_logging_and_launch_listener,
                 args=(hostname, abort_queue, socket_queue),
             )
