@@ -1,3 +1,8 @@
+## 0.4.18
+
+### Bug Fixes
+- Fixed race condition in logging.
+
 ## 0.4.17
 
 ### Enhancements
