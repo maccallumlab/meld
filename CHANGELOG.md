@@ -1,3 +1,8 @@
+## 0.4.19
+
+### Enhancements
+- Improved minimization with RDCs
+
 ## 0.4.18
 
 ### Bug Fixes
