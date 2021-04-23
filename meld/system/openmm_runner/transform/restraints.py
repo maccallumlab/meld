@@ -129,7 +129,7 @@ class RDCRestraintTransformer(TransformerBase):
         if self.active:
             rdc_force = mm.CustomCentroidBondForce(
                 5,
-                "Erest + Ez;"
+                "Erest + z_scaler*Ez;"
                 "Erest = (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;"
                 "linear = 0.5 * k_rdc * quadcut^2 + k_rdc * quadcut * (dev - quadcut);"
                 "quad = 0.5 * k_rdc * dev^2;"
@@ -151,6 +151,7 @@ class RDCRestraintTransformer(TransformerBase):
             rdc_force.addPerBondParameter("k_rdc")
             rdc_force.addPerBondParameter("flat")
             rdc_force.addPerBondParameter("quadcut")
+            rdc_force.addPerBondParameter("z_scaler")
 
             for experiment in self.expt_dict:
                 # find the set of all atoms involved in this experiment
@@ -198,7 +199,7 @@ class RDCRestraintTransformer(TransformerBase):
                     g5 = rdc_force.addGroup([r.atom_index_2 - 1])
                     rdc_force.addBond(
                         [g1, g2, g3, g4, g5],
-                        [r.d_obs, r.kappa, 0.0, r.tolerance, r.quadratic_cut],
+                        [r.d_obs, r.kappa, 0.0, r.tolerance, r.quadratic_cut, 0], # z_scaler initial value shouldn't matter
                     )
 
             system.addForce(rdc_force)
@@ -223,6 +224,7 @@ class RDCRestraintTransformer(TransformerBase):
                             scale * r.force_const,
                             r.tolerance,
                             r.quadratic_cut,
+                            r.ramp(timestep) # set z_scaler to value of ramp
                         ],
                     )
                     index = index + 1
