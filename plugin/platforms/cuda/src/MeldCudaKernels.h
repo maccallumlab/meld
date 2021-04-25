@@ -6,7 +6,7 @@
 #ifndef MELD_OPENMM_CUDAKERNELS_H_
 #define MELD_OPENMM_CUDAKERNELS_H_
 
-#include "meldKernels.h"
+#include "MeldKernels.h"
 #include "openmm/kernels.h"
 #include "openmm/System.h"
 #include "openmm/cuda/CudaContext.h"
