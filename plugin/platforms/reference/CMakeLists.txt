@@ -1,6 +1,16 @@
 SET(MELDPLUGINREFERENCE_LIBRARY_NAME MeldPluginReference)
 SET(SHARED_TARGET ${MELDPLUGINREFERENCE_LIBRARY_NAME})
 
+# include Eigen3
+IF( NOT EIGEN3_INCLUDE_DIR )
+        IF( NOT DEFINED ENV{EIGEN3_INCLUDE_DIR} )
+          MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
+        ELSE()
+          SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}")
+        ENDIF()
+ENDIF()
+INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
+
 # These are all the places to search for header files which are
 # to be part of the API.
 SET(API_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/include/internal")
