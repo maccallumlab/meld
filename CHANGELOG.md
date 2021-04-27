@@ -1,3 +1,18 @@
+## 0.5.0
+
+### Enhancements
+- Implented MELD plugin for CPU and Reference plugins
+  - This should allow for improved minimization. When large forces are encountered
+    during minimization, OpenMM switches to the CPU platform. Previously, this would
+    cause calculations using forces in `meldplugin` to crash. With this version,
+    `meldplugin` forces are now supported on the CPU platform, so the minimizer
+    __may__ succeed.
+  - This implmentation is incomplete, as it does not (yet) allow for the whole
+    meld calculation to run on the CPU, but that should be possible in the
+    future.
+  - Only the basic distance and torsion restraints are currently implemented. Use of
+    other restraint types will cause an error on the CPU platform.
+
 ## 0.4.19
 
 ### Enhancements

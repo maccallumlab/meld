@@ -5,7 +5,7 @@
 
 
 #include "internal/MeldForceImpl.h"
-#include "meldKernels.h"
+#include "MeldKernels.h"
 #include "openmm/internal/ContextImpl.h"
 #include "openmm/Platform.h"
 #include <vector>

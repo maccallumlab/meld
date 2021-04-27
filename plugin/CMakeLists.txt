@@ -10,16 +10,17 @@ CMAKE_POLICY(SET CMP0011 NEW)
 
 project(meld)
 
-SET (CMAKE_CXX_STANDARD 11)
-
 # We need to know where OpenMM is installed so we can access the headers and libraries.
 SET(OPENMM_DIR "/usr/local/openmm" CACHE PATH "Where OpenMM is installed")
 INCLUDE_DIRECTORIES("${OPENMM_DIR}/include")
 LINK_DIRECTORIES("${OPENMM_DIR}/lib" "${OPENMM_DIR}/lib/plugins")
 
-# set flags for linking on mac
+# Specify the C++ version we are building for.
+SET (CMAKE_CXX_STANDARD 11)
+
+# Set flags for linking on mac
 IF(APPLE)
-    SET (CMAKE_INSTALL_NAME_DIR "@rpath")
+    SET(CMAKE_INSTALL_NAME_DIR "@rpath")
     SET(EXTRA_COMPILE_FLAGS "-msse2 -stdlib=libc++")
 ENDIF(APPLE)
 
@@ -83,6 +84,8 @@ ENABLE_TESTING()
 ADD_SUBDIRECTORY(serialization/tests)
 
 # Build the implementations for different platforms
+
+ADD_SUBDIRECTORY(platforms/reference)
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 
 FIND_PACKAGE(CUDA QUIET)
