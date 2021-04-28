@@ -297,14 +297,16 @@ void evaluateAndActivate(
 
         // gather the restraint energies into a vector
         auto energies = vector<float>(length, 0);
+        auto sorted_energies = vector<float>(length, 0);
         for (int j = 0; j < length; j++)
         {
             energies[j] = restraintEnergies[groupRestraintIndices[start + j]];
+            sorted_energies[j] = energies[j];
         }
 
         // find the nth largest
-        sort(energies.begin(), energies.end());
-        auto cutoff = energies[groupNumActive[i] - 1];
+        sort(sorted_energies.begin(), sorted_energies.end());
+        auto cutoff = sorted_energies[groupNumActive[i] - 1];
 
         // activate all with energy <= cutoff
         float totalEnergy = 0.0;
@@ -342,14 +344,16 @@ void evaluateAndActivateCollections(
 
         // gather group energies
         auto energies = vector<float>(length, 0);
+        auto sorted_energies = vector<float>(length, 0);
         for (int j = 0; j < length; j++)
         {
             energies[j] = groupEnergies[collectionGroupIndices[start + j]];
+            sorted_energies[j] = energies[j];
         }
 
         // find the nth largest
-        sort(energies.begin(), energies.end());
-        auto cutoff = energies[collectionNumActive[i] - 1];
+        sort(sorted_energies.begin(), sorted_energies.end());
+        auto cutoff = sorted_energies[collectionNumActive[i] - 1];
 
         // activate groups with energy <= cutoff
         for (int j = 0; j < length; j++)
