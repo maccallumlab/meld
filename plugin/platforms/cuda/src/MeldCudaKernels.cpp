@@ -879,7 +879,23 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
     replacements["MAXGROUPSIZE"] = cu.intToString(largestGroup);
+
+    // This should be determined by hardware, rather than hard-coded.
+    const int maxThreadsPerCollection = 1024;
+    const int itemsPerThread = std::max(4, ceil(largestCollection / maxThreadsPerCollection));
+    threadsPerCollection = ceil(largestCollection / itemsPerThread);
+    replacements["NCOLLTHREADS"] = threadsPerCollection;
+    replacements["ITEMS_PER_THREAD"] = itemsPerThread;
+
     replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
+    // figure out max threads per SM
+    // max_threads = 
+    // items_per_thread = max(4, ceil(largestCollection / max_threads))
+    // set threadsPerCollection
+    // threadsPerCollection = ceil(largestCollection / items_per_thread)
+
+    // replace ITEMS_PER_THREAD
+    // replace NCOLLTHREADS
 
     // setup the maximum number of groups calculated in a single block
     // want to maximize occupancy, but need to ensure that we fit
@@ -1037,14 +1053,6 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &groupEnergies->getDevicePointer()};
     cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, groupsPerBlock * 32, groupsPerBlock * sharedSize);
 
-    // the kernel will need to be modified if this value is changed
-    const int threadsPerCollection = 1024;
-    int sharedSizeCollectionEnergies = largestCollection * sizeof(float);
-    int sharedSizeCollectionMinMaxBuffer = threadsPerCollection * 2 * sizeof(float);
-    int sharedSizeCollectionBinCounts = threadsPerCollection * sizeof(int);
-    int sharedSizeCollectionBestBin = sizeof(int);
-    int sharedSizeCollection = sharedSizeCollectionEnergies + sharedSizeCollectionMinMaxBuffer +
-        sharedSizeCollectionBinCounts + sharedSizeCollectionBestBin;
     // set collectionsEncounteredNaN to zero and upload it
     h_collectionEncounteredError[0] = 0;
     collectionEncounteredError->upload(h_collectionEncounteredError);
@@ -1057,7 +1065,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &groupEnergies->getDevicePointer(),
         &groupActive->getDevicePointer(),
         &collectionEncounteredError->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection, sharedSizeCollection);
+    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection);
     // check if we encountered NaN
     collectionEncounteredError->download(h_collectionEncounteredError);
     if (h_collectionEncounteredError[0] == 1) {

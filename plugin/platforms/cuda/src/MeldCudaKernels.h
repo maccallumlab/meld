@@ -58,6 +58,7 @@ private:
     int numCollections;
     int largestGroup;
     int largestCollection;
+    int threadsPerCollection;
     int groupsPerBlock;
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
