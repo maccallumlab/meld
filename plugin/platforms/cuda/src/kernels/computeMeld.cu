@@ -5,7 +5,6 @@
 
 #include <cub/cub.cuh>
 
-#define MAXFLOAT 3.402823466e38f
 #define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }
 
 __device__ float quick_select_float(const volatile float* energy, volatile int *index, int nelems, int select) {
