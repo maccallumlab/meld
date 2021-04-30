@@ -882,8 +882,11 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
 
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerCollection = 1024;
-    const int itemsPerThread = std::max(4, ceil(largestCollection / maxThreadsPerCollection));
-    threadsPerCollection = ceil(largestCollection / itemsPerThread);
+    // Note x / y + (x % y !=0) does integer division and round up
+    const int itemsPerThread = std::max(
+        4,
+        largestCollection / maxThreadsPerCollection + (largestCollection % maxThreadsPerCollection != 0));
+    threadsPerCollection = largestCollection / itemsPerThread + (largestCollection % itemsPerThread!= 0);
     replacements["NCOLLTHREADS"] = cu.intToString(threadsPerCollection);
     replacements["ITEMS_PER_THREAD"] = cu.intiteintToString(itemsPerThread);
     replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
