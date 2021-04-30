@@ -782,7 +782,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         __syncthreads();
 
         // Sort the energies.
-        BlockRadixSortT(sharedScratch.sort)(energyScratch);
+        BlockRadixSortT(sharedScratch.sort).Sort(energyScratch);
         __syncthreads();
 
         // find the nth largest energy and store in scratch
@@ -791,7 +791,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         if((numActive - 1) >= myMin) {
             if((numActive - 1) < myMax) {
                 // only one thread will get here
-                int offset = index - myMin;
+                int offset = numActive - 1 - myMin;
                 sharedScratch.cutoff = energyScratch[offset];
             }
         }
@@ -801,7 +801,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
         float cutoff = (volatile float)sharedScratch.cutoff;
 
         // now we know the cutoff, so apply it to each group
-        for (int i=start + threadIndex.x; i<end; i+=blockDim.x) {
+        for (int i=start + threadIdx.x; i<end; i+=blockDim.x) {
             if (energyArray[indexArray[i]] <= cutoff) {
                 activeArray[indexArray[i]] = 1.0;
             }

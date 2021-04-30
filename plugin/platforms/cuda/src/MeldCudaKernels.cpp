@@ -882,20 +882,11 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
 
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerCollection = 1024;
-    const int itemsPerThread = std::max(4, (int)ceil(largestCollection / maxThreadsPerCollection));
-    threadsPerCollection = (int)ceil(largestCollection / itemsPerThread);
-    replacements["NCOLLTHREADS"] = threadsPerCollection;
-    replacements["ITEMS_PER_THREAD"] = itemsPerThread;
-
+    const int itemsPerThread = std::max(4, ceil(largestCollection / maxThreadsPerCollection));
+    threadsPerCollection = ceil(largestCollection / itemsPerThread);
+    replacements["NCOLLTHREADS"] = cu.intToString(threadsPerCollection);
+    replacements["ITEMS_PER_THREAD"] = cu.intiteintToString(itemsPerThread);
     replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
-    // figure out max threads per SM
-    // max_threads = 
-    // items_per_thread = max(4, ceil(largestCollection / max_threads))
-    // set threadsPerCollection
-    // threadsPerCollection = ceil(largestCollection / items_per_thread)
-
-    // replace ITEMS_PER_THREAD
-    // replace NCOLLTHREADS
 
     // setup the maximum number of groups calculated in a single block
     // want to maximize occupancy, but need to ensure that we fit
