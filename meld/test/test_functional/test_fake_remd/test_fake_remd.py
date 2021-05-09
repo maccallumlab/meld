@@ -9,11 +9,14 @@ import subprocess
 import numpy as np  # type: ignore
 from meld.remd import ladder, adaptor, leader
 from meld.system import state, RunOptions, ConstantTemperatureScaler
+from meld.system.param_sampling import ParameterState
 from meld import comm, vault, pdb_writer
 from meld.test import helper
 
 
 N_ATOMS = 500
+N_DISCRETE = 10
+N_CONTINUOUS = 5
 N_REPLICAS = 4
 N_STEPS = 100
 BACKUP_FREQ = 100
@@ -25,7 +28,10 @@ def gen_state(index):
     alpha = 0.0
     energy = 0.0
     box_vectors = np.zeros(3)
-    return state.SystemState(pos, vel, alpha, energy, box_vectors)
+    discrete = np.zeros(N_DISCRETE, dtype=np.int32)
+    continuous = np.zeros(N_CONTINUOUS, dtype=np.float64)
+    params = ParameterState(discrete, continuous)
+    return state.SystemState(pos, vel, alpha, energy, box_vectors, params)
 
 
 def setup_system():
@@ -33,7 +39,7 @@ def setup_system():
     writer = pdb_writer.PDBWriter(
         range(N_ATOMS), ["CA"] * N_ATOMS, [1] * N_ATOMS, ["ALA"] * N_ATOMS
     )
-    store = vault.DataStore(N_ATOMS, N_REPLICAS, writer, block_size=BACKUP_FREQ)
+    store = vault.DataStore(gen_state(0), N_REPLICAS, writer, block_size=BACKUP_FREQ)
     store.initialize(mode="w")
 
     # create and store the remd_runner
@@ -51,7 +57,7 @@ def setup_system():
 
     # create and store the fake system
     s = helper.FakeSystem()
-    s.temperature_scaler = ConstantTemperatureScaler(300.)
+    s.temperature_scaler = ConstantTemperatureScaler(300.0)
     store.save_system(s)
 
     # create and store the options

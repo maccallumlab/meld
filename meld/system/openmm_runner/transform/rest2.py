@@ -22,13 +22,17 @@ References
 """
 
 from meld.system.openmm_runner.transform import TransformerBase
-from simtk import openmm as mm  #type: ignore
+from simtk import openmm as mm  # type: ignore
 import math
 
 
 class REST2Transformer(TransformerBase):
     def __init__(
-        self, options, always_active_restraints, selectively_active_restraints
+        self,
+        param_manager,
+        options,
+        always_active_restraints,
+        selectively_active_restraints,
     ):
         self.active = False
         self.protein_nonbonded_params = {}
@@ -46,7 +50,7 @@ class REST2Transformer(TransformerBase):
             if options.solvation != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")
 
-    def finalize(self, system, topology):
+    def finalize(self, state, system, topology):
         if self.active:
             nonsolvent_atoms = self._find_nonsolvent_atoms(topology)
             self._find_nb_force(system)
@@ -54,7 +58,7 @@ class REST2Transformer(TransformerBase):
             self._gather_nonbonded_params(nonsolvent_atoms)
             self._gather_dihedral_params(nonsolvent_atoms, topology)
 
-    def update(self, simulation, alpha, timestep):
+    def update(self, state, simulation, alpha, timestep):
         if self.active:
             scale = self.scaler(alpha)
             self._update_nonbonded(simulation, scale)

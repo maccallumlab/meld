@@ -8,6 +8,8 @@ import numpy as np  # type: ignore
 from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
+from meld.system.param_sampling import ParameterManager
+from meld.system.state import SystemState
 from meld.pdb_writer import PDBWriter
 from simtk.unit import atmosphere  # type: ignore
 
@@ -155,6 +157,7 @@ class System:
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = RestraintManager(self)
+        self.param_sampler = ParameterManager()
 
         self.temperature_scaler = None
         self._coordinates = None
@@ -195,6 +198,17 @@ class System:
     @property
     def residue_names(self):
         return self._residue_names
+
+    def get_state_template(self):
+        pos = self._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.0
+        energy = 0.0
+        box_vectors = self._box_vectors
+        if box_vectors is None:
+            box_vectors = np.array([0.0, 0.0, 0.0])
+        params = self.param_sampler.get_initial_state()
+        return SystemState(pos, vel, alpha, energy, box_vectors, params)
 
     def index_of_atom(self, residue_number, atom_name):
         try:
@@ -414,6 +428,7 @@ class RunOptions:
             "solventDielectric",
             "implicitSolventSaltConc",
             "rdc_patcher",
+            "param_mcmc_steps",
         ]
         allowed_attributes += ["_{}".format(item) for item in allowed_attributes]
         if name not in allowed_attributes:
@@ -457,6 +472,7 @@ class RunOptions:
         self._solventDielectric = None
         self._soluteDielectric = None
         self._rdc_patcher = None
+        self._param_mcmc_steps = None
 
     # solvation is a read-only property that must be set
     # when the options are created
@@ -719,10 +735,20 @@ class RunOptions:
     @property
     def rdc_patcher(self):
         return self._rdc_patcher
-    
+
     @rdc_patcher.setter
     def rdc_patcher(self, value):
         self._rdc_patcher = value
+
+    @property
+    def param_mcmc_steps(self):
+        return self._param_mcmc_steps
+
+    @param_mcmc_steps.setter
+    def param_mcmc_steps(self, value):
+        if value < 0:
+            raise RuntimeError("param_mcmc_steps must be positive")
+        self._param_mcmc_steps = value
 
     def sanity_check(self):
         if self._solvation == "implicit":
@@ -741,4 +767,4 @@ class RunOptions:
                     "solvation simulation"
                 )
             if self._use_amap == True:
-                raise ValueError('use_amap cannot be set with explicit solvent')
+                raise ValueError("use_amap cannot be set with explicit solvent")

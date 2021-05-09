@@ -25,7 +25,7 @@ class ReplicaRunner:
     def get_energy(self, state: SystemState) -> float:
         pass
 
-    def prepare_for_timestep(self, alpha, timestep):
+    def prepare_for_timestep(self, state, alpha, timestep):
         pass
 
 
@@ -52,7 +52,7 @@ class FakeSystemRunner(ReplicaRunner):
         return state
 
     def get_energy(self, state: SystemState) -> float:
-        return 0.
+        return 0.0
 
-    def prepare_for_timestep(self, alpha: float, timestep: int) -> None:
+    def prepare_for_timestep(self, state, alpha: float, timestep: int) -> None:
         pass

@@ -5,10 +5,12 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import unittest
 import os
 from meld import vault, comm
+from meld.system.state import SystemState
+from meld.system.param_sampling import ParameterState
 from meld.remd import leader, ladder, adaptor
 from meld import system
 from meld.test.helper import TempDirHelper
@@ -24,13 +26,26 @@ class DataStorePickleTestCase(unittest.TestCase):
     def setUp(self):
         self.N_ATOMS = 500
         self.N_REPLICAS = 4
+        self.N_DISCRETE = 10
+        self.N_CONTINUOUS = 5
+        self.state_template = SystemState(
+            np.zeros((self.N_ATOMS, 3)),
+            np.zeros((self.N_ATOMS, 3)),
+            0.0,
+            0.0,
+            np.zeros(3),
+            ParameterState(
+                np.zeros(self.N_DISCRETE, dtype=np.int32),
+                np.zeros(self.N_CONTINUOUS, dtype=np.float64),
+            ),
+        )
 
     def test_init_mode_w_creates_directories(self):
         "calling initialize should create the Data and Data/Backup directories"
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
 
             self.assertTrue(os.path.exists("Data"), "Data directory does not created")
@@ -43,7 +58,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
 
             self.assertTrue(
@@ -58,7 +73,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             os.mkdir("Data/Backup")
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
 
             with self.assertRaises(RuntimeError):
                 store.initialize(mode="w")
@@ -68,7 +83,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
 
             store.save_data_store()
@@ -84,7 +99,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
             c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
             # set _mpi_comm to something
@@ -103,7 +118,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
             l = ladder.NearestNeighborLadder(n_trials=100)
             policy = adaptor.AdaptationPolicy(1.0, 50, 100)
@@ -125,7 +140,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
             fake_system = object()
 
@@ -139,7 +154,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         with in_temp_dir():
             # dummy pdb writer; can't use a mock because they can't be pickled
             pdb_writer = object()
-            store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+            store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
             fake_run_options = system.RunOptions()
 
@@ -160,10 +175,24 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         # setup data store
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
+        self.N_DISCRETE = 10
+        self.N_CONTINUOUS = 5
+        self.state_template = SystemState(
+            np.zeros((self.N_ATOMS, 3)),
+            np.zeros((self.N_ATOMS, 3)),
+            0.0,
+            0.0,
+            np.zeros(3),
+            ParameterState(
+                np.zeros(self.N_DISCRETE, dtype=np.int32),
+                np.zeros(self.N_CONTINUOUS, dtype=np.float64),
+            ),
+        )
+
         # dummy pdb writer; can't use a mock because they can't be pickled
         pdb_writer = object()
         self.store = vault.DataStore(
-            self.N_ATOMS, self.N_REPLICAS, pdb_writer, block_size=10
+            self.state_template, self.N_REPLICAS, pdb_writer, block_size=10
         )
         self.store.initialize(mode="w")
 
@@ -259,8 +288,11 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
+            continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
+            params = ParameterState(discrete, continuous)
+            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -281,8 +313,11 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
+            continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
+            params = ParameterState(discrete, continuous)
+            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -322,6 +357,19 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
+        self.N_DISCRETE = 10
+        self.N_CONTINUOUS = 5
+        self.state_template = SystemState(
+            np.zeros((self.N_ATOMS, 3)),
+            np.zeros((self.N_ATOMS, 3)),
+            0.0,
+            0.0,
+            np.zeros(3),
+            ParameterState(
+                np.zeros(self.N_DISCRETE, dtype=np.int32),
+                np.zeros(self.N_CONTINUOUS, dtype=np.float64),
+            ),
+        )
 
         # setup objects to save to disk
         c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
@@ -337,8 +385,11 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
+            continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
+            params = ParameterState(discrete, continuous)
+            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = leader.LeaderReplicaExchangeRunner(
@@ -347,7 +398,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
 
         # dummy pdb writer; can't use a mock because they can't be pickled
         pdb_writer = object()
-        self.store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
+        self.store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
         self.store.initialize(mode="w")
 
         # save some stuff
@@ -384,6 +435,19 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
 
         self.N_ATOMS = 500
         self.N_REPLICAS = 16
+        self.N_DISCRETE = 10
+        self.N_CONTINUOUS = 5
+        self.state_template = SystemState(
+            np.zeros((self.N_ATOMS, 3)),
+            np.zeros((self.N_ATOMS, 3)),
+            0.0,
+            0.0,
+            np.zeros(3),
+            ParameterState(
+                np.zeros(self.N_DISCRETE, dtype=np.int32),
+                np.zeros(self.N_CONTINUOUS, dtype=np.float64),
+            ),
+        )
 
         # setup objects to save to disk
         c = comm.MPICommunicator(self.N_ATOMS, self.N_REPLICAS)
@@ -399,8 +463,11 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
+            continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
+            params = ParameterState(discrete, continuous)
+            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
@@ -408,7 +475,7 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
 
         self.pdb_writer = object()
         store = vault.DataStore(
-            self.N_ATOMS, self.N_REPLICAS, self.pdb_writer, block_size=10
+            self.state_template, self.N_REPLICAS, self.pdb_writer, block_size=10
         )
         store.initialize(mode="w")
 

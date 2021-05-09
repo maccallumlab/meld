@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 from meld.remd.reseed import NullReseeder
 import logging
 import math
@@ -84,7 +84,7 @@ class MultiplexReplicaExchangeRunner:
             for state_index in range(self._n_replicas):
                 states[state_index].alpha = self._alphas[state_index]
                 system_runner.prepare_for_timestep(
-                    self._alphas[state_index], self._step
+                    states[state_index], self._alphas[state_index], self._step
                 )
 
                 if self._step == 1:
@@ -99,7 +99,7 @@ class MultiplexReplicaExchangeRunner:
             energies = []
             for state_index in range(self._n_replicas):
                 system_runner.prepare_for_timestep(
-                    self._alphas[state_index], self._step
+                    states[state_index], self._alphas[state_index], self._step
                 )
                 # compute our energy for each state
                 my_energies = self._compute_energies(states, system_runner)

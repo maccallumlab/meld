@@ -10,8 +10,10 @@ from meld.system.system import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,
     FixedTemperatureScaler,
+    GeometricTemperatureScaler,
+    REST2Scaler,
+    RunOptions,
 )
-from meld.system.system import GeometricTemperatureScaler, REST2Scaler, RunOptions
 from meld.system.state import SystemState
 
 

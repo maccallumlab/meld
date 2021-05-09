@@ -51,6 +51,8 @@ class TransformerBase:
 
     Parameters
     ----------
+    param_manager: meld.system.param_sampling.ParameterManager
+        parameter manager to handle sampling of paramters
     options: meld.system.RunOptions
         the options for the runner
     always_active_restraints: list of restraints
@@ -61,11 +63,15 @@ class TransformerBase:
     """
 
     def __init__(
-        self, options, always_active_restraints, selectively_active_restraints
+        self,
+        param_manager,
+        options,
+        always_active_restraints,
+        selectively_active_restraints,
     ):
         raise NotImplementedError("TransformerBase cannot be instantiated.")
 
-    def add_interactions(self, system, topology):
+    def add_interactions(self, state, omm_system, topology):
         """
         Add new interactions to the system.
 
@@ -80,16 +86,18 @@ class TransformerBase:
 
         Parameters
         ----------
-        system: simtk.openmm.System
+        state: meld.system.SystemState
+            State of the meld system being simulated
+        omm_system: simtk.openmm.System
             OpenMM system object to be modified
         topology: simtk.openmm.Topology
             OpenMM topology object to be modified and/or used
             for indexing
 
         """
-        return system
+        return omm_system
 
-    def finalize(self, system, topology):
+    def finalize(self, state, omm_system, topology):
         """
         Finalize the transformer.
 
@@ -101,7 +109,9 @@ class TransformerBase:
 
         Parameters
         ----------
-        system: simtk.openmm.System
+        state: meld.system.SystemState
+            State of the meld system being simulated
+        omm_system: simtk.openmm.System
             OpenMM system object to be modified
         topology: simtk.openmm.Topology
             OpenMM topology object to be modified and/or used
@@ -110,7 +120,7 @@ class TransformerBase:
         """
         pass
 
-    def update(self, simulation, alpha, timestep):
+    def update(self, state, simulation, alpha, timestep):
         """
         Update the system according to alpha and timestep.
 
@@ -119,6 +129,8 @@ class TransformerBase:
 
         Parameters
         ----------
+        state: meld.system.SystemState
+            State of the meld system being simulated
         simulation: simtk.openmm.app.simulation
             OpenMM simulation object to be modified
         alpha: float

@@ -4,12 +4,12 @@
 #
 
 import unittest
-from unittest import mock  #type: ignore
-from unittest.mock import sentinel  #type: ignore
+from unittest import mock  # type: ignore
+from unittest.mock import sentinel  # type: ignore
 from meld.remd import leader, ladder, adaptor
 from meld.system import runner
 from meld import comm, vault
-from numpy.testing import assert_almost_equal  #type: ignore
+from numpy.testing import assert_almost_equal  # type: ignore
 
 
 class TestSingleStep(unittest.TestCase):
@@ -25,7 +25,9 @@ class TestSingleStep(unittest.TestCase):
         )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
-        self.mock_comm.broadcast_states_to_followers.return_value = sentinel.MY_STATE_INIT
+        self.mock_comm.broadcast_states_to_followers.return_value = (
+            sentinel.MY_STATE_INIT
+        )
 
         self.mock_state_1 = mock.Mock()
         self.mock_state_1.positions = sentinel.pos1
@@ -101,7 +103,7 @@ class TestSingleStep(unittest.TestCase):
 
     def test_alpha_begins_uniform(self):
         "alphas should be initialized with uniform spacing"
-        assert_almost_equal(self.runner.alphas, [0., 0.2, 0.4, 0.6, 0.8, 1.])
+        assert_almost_equal(self.runner.alphas, [0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
 
     def test_step_begins_one(self):
         "step should begin at one"
@@ -118,7 +120,9 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         # the leader is always alphas = 0.
-        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(0., 1)
+        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
+            sentinel.MY_STATE_INIT, 0.0, 1
+        )
 
     def test_should_broadcast_alphas(self):
         "calling run should broadcast all of the alpha values"
@@ -244,7 +248,9 @@ class TestFiveSteps(unittest.TestCase):
         )
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.n_replicas = 6
-        self.mock_comm.broadcast_states_to_followers.return_value = sentinel.MY_STATE_INIT
+        self.mock_comm.broadcast_states_to_followers.return_value = (
+            sentinel.MY_STATE_INIT
+        )
 
         self.mock_state_1 = mock.Mock()
         self.mock_state_1.positions = sentinel.pos1

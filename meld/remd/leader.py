@@ -112,13 +112,15 @@ class LeaderReplicaExchangeRunner:
                 "Running replica exchange step %d of %d.", self._step, self._max_steps
             )
 
+            # communicate state
+            my_state = communicator.broadcast_states_to_followers(states)
+
             # update alphas
-            system_runner.prepare_for_timestep(0., self._step)
+            system_runner.prepare_for_timestep(my_state, 0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_followers(self._alphas)
 
             # do one step
-            my_state = communicator.broadcast_states_to_followers(states)
             if minimize:
                 logger.info("First step, minimizing and then running.")
                 my_state = system_runner.minimize_then_run(my_state)

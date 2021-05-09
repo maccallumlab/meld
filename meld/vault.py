@@ -11,6 +11,7 @@ import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
 from meld.system import state
+from meld.system.param_sampling import ParameterState
 
 
 def _load_pickle(data):
@@ -81,8 +82,10 @@ class DataStore:
     traj_path = os.path.join(data_dir, traj_filename)
     traj_backup_path = os.path.join(backup_dir, traj_filename)
 
-    def __init__(self, n_atoms, n_replicas, pdb_writer, block_size=100):
-        self._n_atoms = n_atoms
+    def __init__(self, state_template, n_replicas, pdb_writer, block_size=100):
+        self._n_atoms = state_template.positions.shape[0]
+        self._n_discrete_parameters = state_template.parameters.discrete.shape[0]
+        self._n_continuous_parameters = state_template.parameters.continuous.shape[0]
         self._n_replicas = n_replicas
         self._block_size = block_size
         self._cdf_data_set = None
@@ -105,13 +108,13 @@ class DataStore:
 
     def __del__(self):
         # close the _cdf_data_set when we go out of scope
-        if self._cdf_data_set:
-            self._cdf_data_set.close()
+        if hasattr(self, "_cdf_data_set"):
+            if self._cdf_data_set:
+                self._cdf_data_set.close()
 
     #
     # properties
     #
-
     @property
     def n_replicas(self):
         return self._n_replicas
@@ -371,11 +374,19 @@ class DataStore:
         alphas = np.array([s.alpha for s in states])
         energies = np.array([s.energy for s in states])
         box_vectors = np.array([s.box_vector for s in states])
+        discrete_parameters = np.array(
+            [s.parameters.discrete for s in states], dtype=np.int32
+        )
+        continuous_parameters = np.array(
+            [s.parameters.continuous for s in states], dtype=np.float64
+        )
         self.save_positions(positions, stage)
         self.save_velocities(velocities, stage)
         self.save_box_vectors(box_vectors, stage)
         self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
+        self.save_discrete_parameters(discrete_parameters, stage)
+        self.save_continuous_parameters(continuous_parameters, stage)
 
     def load_states(self, stage):
         """
@@ -392,10 +403,17 @@ class DataStore:
         box_vectors = self.load_box_vectors(stage)
         alphas = self.load_alphas(stage)
         energies = self.load_energies(stage)
+        discrete_parameters = self.load_discrete_parameters(stage)
+        continuous_parameters = self.load_continuous_parameters(stage)
         states = []
         for i in range(self._n_replicas):
             s = state.SystemState(
-                positions[i], velocities[i], alphas[i], energies[i], box_vectors[i]
+                positions[i],
+                velocities[i],
+                alphas[i],
+                energies[i],
+                box_vectors[i],
+                ParameterState(discrete_parameters[i], continuous_parameters[i]),
             )
             states.append(s)
         return states
@@ -591,6 +609,28 @@ class DataStore:
             axis=-1,
         )
 
+    def save_discrete_parameters(self, data, stage):
+        self._can_save()
+        self._handle_save_stage(stage)
+        ds = self._cdf_data_set
+        ds.variables["discrete_parameters"][..., stage] = data
+
+    def load_discrete_parameters(self, stage):
+        self._handle_load_stage(stage)
+        ds = self._cdf_data_set
+        return ds.variables["discrete_parameters"][..., stage]
+
+    def save_continuous_parameters(self, data, stage):
+        self._can_save()
+        self._handle_save_stage(stage)
+        ds = self._cdf_data_set
+        ds.variables["continuous_parameters"][..., stage] = data
+
+    def load_continuous_parameters(self, stage):
+        self._handle_load_stage(stage)
+        ds = self._cdf_data_set
+        return ds.variables["continuous_parameters"][..., stage]
+
     def save_remd_runner(self, runner):
         """Save replica runner to disk"""
         self._can_save()
@@ -666,6 +706,8 @@ class DataStore:
         ds.createDimension("n_atoms", self._n_atoms)
         ds.createDimension("cartesian", 3)
         ds.createDimension("timesteps", None)
+        ds.createDimension("n_discrete_parameters", self._n_discrete_parameters)
+        ds.createDimension("n_continuous_parameters", self._n_continuous_parameters)
 
         # setup variables
         ds.createVariable(
@@ -735,6 +777,24 @@ class DataStore:
             "acceptance_probabilities",
             float,
             ["n_replica_pairs", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "discrete_parameters",
+            int,
+            ["n_replicas", "n_discrete_parameters", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "continuous_parameters",
+            float,
+            ["n_replicas", "n_continuous_parameters", "timesteps"],
             zlib=True,
             fletcher32=True,
             shuffle=True,

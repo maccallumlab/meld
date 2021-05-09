@@ -540,6 +540,14 @@ public:
     int addGroup(std::vector<int> restraint_indices, int n_active);
 
     /**
+     * Modify the number of active restraints in a group.
+     * 
+     * @param index the index of the group to modify
+     * @param n_active the new number of active restraints
+     */
+    void modifyGroupNumActive(int index, int n_active);
+
+    /**
      * Create a new collection of restraint groups.
      *
      * @param group_indices  the indices of the groups in the collection
@@ -547,6 +555,14 @@ public:
      * @return the index of the collection that was created
      */
     int addCollection(std::vector<int> group_indices, int n_active);
+
+    /**
+     * Modify the number of active groups in a collection.
+     * 
+     * @param index the index of the collection to modify
+     * @param n_active the new number of active groups
+     */
+    void modifyCollectionNumActive(int index, int n_active);
 
     bool usesPeriodicBoundaryConditions() const override;
 

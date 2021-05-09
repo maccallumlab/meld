@@ -3,7 +3,9 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+from meld.system.param_sampling import ParameterState
+from typing import Optional
+import numpy as np  # type: ignore
 
 
 class SystemState:
@@ -14,7 +16,7 @@ class SystemState:
     :param velocities: velocities for structure, same as coords
     :param alpha: alpha value, within ``[0, 1]``
     :param energy: total potential energy, including restraints
-
+    :param box_vector: box vectors, ``numpy.array(3)``
     """
 
     def __init__(
@@ -24,6 +26,7 @@ class SystemState:
         alpha: float,
         energy: float,
         box_vector: np.ndarray,
+        parameters: Optional[ParameterState] = None,
     ) -> None:
         self.positions = positions
         self.velocities = velocities
@@ -31,6 +34,13 @@ class SystemState:
         self.n_atoms = positions.shape[0]
         self.alpha = alpha
         self.energy = energy
+        if parameters is None:
+            self.parameters = ParameterState(
+                discrete=np.array([], dtype=np.int32),
+                continuous=np.array([], dtype=np.float64),
+            )
+        else:
+            self.parameters = parameters
 
         self._validate()
 

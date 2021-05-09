@@ -44,6 +44,7 @@ from meld.system.restraints import (
     RdcRestraint,
     HyperbolicDistanceRestraint,
 )
+from meld.system.state import SystemState
 from meld.system.openmm_runner import cmap
 from meld.system.openmm_runner import transform
 import logging
@@ -51,6 +52,8 @@ from meld.util import log_timing
 import numpy as np  # type: ignore
 import tempfile
 from collections import Callable, namedtuple
+import math
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +112,13 @@ class OpenMMRunner(ReplicaRunner):
         self._extra_bonds = system.extra_bonds
         self._extra_restricted_angles = system.extra_restricted_angles
         self._extra_torsions = system.extra_torsions
+        self._parameter_manager = system.param_sampler
 
-    def prepare_for_timestep(self, alpha, timestep):
+    def prepare_for_timestep(self, state, alpha, timestep):
         self._alpha = alpha
         self._timestep = timestep
         self._temperature = self.temperature_scaler(alpha)
-        self._initialize_simulation()
+        self._initialize_simulation(state)
 
     @log_timing(logger)
     def minimize_then_run(self, state):
@@ -125,11 +129,14 @@ class OpenMMRunner(ReplicaRunner):
         return self._run(state, minimize=False)
 
     def get_energy(self, state):
+        # update all of the transformers
+        self._transformers_update(state)
+
         # set the coordinates
         coordinates = Quantity(state.positions, angstrom)
+        self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        self._simulation.context.setPositions(coordinates)
         if self._options.solvation == "explicit":
             box_vector = state.box_vector / 10.0  # Angstrom to nm
             self._simulation.context.setPeriodicBoxVectors(
@@ -148,7 +155,7 @@ class OpenMMRunner(ReplicaRunner):
         )
         return e_potential
 
-    def _initialize_simulation(self):
+    def _initialize_simulation(self, state):
         if self._initialized:
             # update temperature and pressure
             self._integrator.setTemperature(self._temperature)
@@ -158,7 +165,7 @@ class OpenMMRunner(ReplicaRunner):
                 )
 
             # update all of the system transformers
-            self._transformers_update()
+            self._transformers_update(state)
 
         else:
             # we need to set the whole thing from scratch
@@ -223,8 +230,8 @@ class OpenMMRunner(ReplicaRunner):
                     print("\t", r)
                 raise RuntimeError("Not all selectable restraints were handled.")
 
-            sys = self._transformers_add_interactions(sys, prmtop.topology)
-            self._transformers_finalize(sys, prmtop.topology)
+            sys = self._transformers_add_interactions(state, sys, prmtop.topology)
+            self._transformers_finalize(state, sys, prmtop.topology)
 
             # create the integrator
             self._integrator = _create_integrator(
@@ -266,7 +273,7 @@ class OpenMMRunner(ReplicaRunner):
                 prmtop.topology, sys, self._integrator, platform, properties
             )
 
-            self._transformers_update()
+            self._transformers_update(state)
 
     def _transformers_setup(self):
         trans_types = [
@@ -282,22 +289,25 @@ class OpenMMRunner(ReplicaRunner):
 
         for tt in trans_types:
             trans = tt(
-                self._options, self._always_on_restraints, self._selectable_collections
+                self._parameter_manager,
+                self._options,
+                self._always_on_restraints,
+                self._selectable_collections,
             )
             self._transformers.append(trans)
 
-    def _transformers_add_interactions(self, sys, topol):
+    def _transformers_add_interactions(self, state, sys, topol):
         for t in self._transformers:
-            sys = t.add_interactions(sys, topol)
+            sys = t.add_interactions(state, sys, topol)
         return sys
 
-    def _transformers_finalize(self, sys, topol):
+    def _transformers_finalize(self, state, sys, topol):
         for t in self._transformers:
-            t.finalize(sys, topol)
+            t.finalize(state, sys, topol)
 
-    def _transformers_update(self):
+    def _transformers_update(self, state):
         for t in self._transformers:
-            t.update(self._simulation, self._alpha, self._timestep)
+            t.update(state, self._simulation, self._alpha, self._timestep)
 
     def _run_min_mc(self, state):
         if self._options.min_mc is not None:
@@ -318,11 +328,20 @@ class OpenMMRunner(ReplicaRunner):
         return state
 
     def _run(self, state, minimize):
-        assert abs(state.alpha - self._alpha) < 1e-6  # run Monte Carlo
+        # update the transformers to account for sampled parameters
+        # stored in the state
+        self._transformers_update(state)
+
+        assert abs(state.alpha - self._alpha) < 1e-6
+
+        # Run Monte Carlo position updates
         if minimize:
             state = self._run_min_mc(state)
         else:
             state = self._run_mc(state)
+
+        # Run MonteCarlo parameter updates
+        state = self._run_param_mc(state)
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
@@ -393,6 +412,57 @@ class OpenMMRunner(ReplicaRunner):
         state.box_vector = box_vector
 
         return state
+
+    def _run_param_mc(self, state):
+        if not self._parameter_manager.has_parameters():
+            return state
+
+        steps = self._options.param_mcmc_steps
+        steps = steps if steps else 50
+
+        params = state.parameters
+        energy = self.get_energy(state)
+        log_prior = self._parameter_manager.log_prior(params)
+
+        for _ in range(steps):
+            trial_params = self._parameter_manager.sample(params)
+            if not self._parameter_manager.is_valid(trial_params):
+                accept = False
+            else:
+                trial_state = SystemState(
+                    state.positions,
+                    state.velocities,
+                    state.alpha,
+                    state.energy,
+                    state.box_vector,
+                    trial_params,
+                )
+                trial_energy = self.get_energy(trial_state)
+                trial_log_prior = self._parameter_manager.log_prior(trial_params)
+
+                delta = trial_energy - trial_log_prior - (energy - log_prior)
+
+                if delta < 0:
+                    accept = True
+                else:
+                    if random.random() < math.exp(-delta):
+                        accept = True
+                    else:
+                        accept = False
+
+            if accept:
+                params = trial_params
+                energy = trial_energy
+                log_prior = trial_log_prior
+
+        return SystemState(
+            state.positions,
+            state.velocities,
+            state.alpha,
+            state.energy,
+            state.box_vector,
+            params,
+        )
 
 
 def _check_for_nan(coordinates, velocities, rank):
