@@ -1,5 +1,17 @@
 ## Unreleased
 
+## Bug Fixes
+- Previous versions of MELD could give erroneous values for forces and energies
+  - Due to a data race in the CUDA kernels, different threads could calculate
+    different values for the cutoff energy within each collection. This would
+    result in groups occasionally being activated when they shouldn't be and
+    vice versa.
+  - We now use nvidia's cub library to handle the sort operation required for
+    groups and collections.
+  - The new version of the CUDA kernel agrees well with the CPU verion.
+  - Compiling cub library requires the use of nvcc, which must be forced by
+    setting `OPENMM_CUDA_COMPILER`.
+
 ## Enhancements
 - You can now specify the platform to use.
   - Options are: "CUDA", "CPU", "Reference"

@@ -3,59 +3,7 @@
    All rights reserved
 */
 
-#define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }
-
-__device__ float quick_select_float(const volatile float* energy, volatile int *index, int nelems, int select) {
-    int low, high, middle, ll, hh;
-
-    low = 0;
-    high = nelems - 1;
-
-    for (;;) {
-        if (high <= low) { /* One element only */
-            return energy[index[select]];
-        }
-
-        if (high == low + 1) {  /* Two elements only */
-            if (energy[index[low]] > energy[index[high]])
-                ELEM_SWAP(index[low], index[high]);
-            return energy[index[select]];
-        }
-
-        /* Find median of low, middle and high items; swap into position low */
-        middle = (low + high) / 2;
-        if (energy[index[middle]] > energy[index[high]])    ELEM_SWAP(index[middle], index[high]);
-        if (energy[index[low]]    > energy[index[high]])    ELEM_SWAP(index[low],    index[high]);
-        if (energy[index[middle]] > energy[index[low]])     ELEM_SWAP(index[middle], index[low]);
-
-        /* Swap low item (now in position middle) into position (low+1) */
-        ELEM_SWAP(index[middle], index[low+1]);
-
-        /* Nibble from each end towards middle, swapping items when stuck */
-        ll = low + 1;
-        hh = high;
-        for (;;) {
-            do ll++; while (energy[index[low]] > energy[index[ll]]);
-            do hh--; while (energy[index[hh]]  > energy[index[low]]);
-
-            if (hh < ll)
-                break;
-
-            ELEM_SWAP(index[ll], index[hh]);
-        }
-
-        /* Swap middle item (in position low) back into correct position */
-        ELEM_SWAP(index[low], index[hh]);
-
-        /* Re-set active partition */
-        if (hh <= select)
-            low = ll;
-        if (hh >= select)
-            high = hh - 1;
-    }
-}
-#undef ELEM_SWAP
-
+#include <cub/cub.cuh>
 
 __device__ void computeTorsionAngle(const real4* __restrict__ posq, int atom_i, int atom_j, int atom_k, int atom_l,
         float3& r_ij, float3& r_kj, float3& r_kl, float3& m, float3& n,
@@ -635,152 +583,88 @@ extern "C" __global__ void evaluateAndActivate(
         const int numGroups,
         const int* __restrict__ numActiveArray,
         const int2* __restrict__ boundsArray,
-        const int* __restrict__ pristineIndexArray,
-        int* __restrict__ tempIndexArray,
+        const int* __restrict__ indexArray,
         const float* __restrict__ energyArray,
         float* __restrict__ activeArray,
-        float* __restrict__ targetEnergyArray)
+        float* __restrict__ groupEnergyArray)
 {
-    // This kernel computes which restraints are active within each group.
-    // It uses "warp-level" programming to do this, where each warp within
-    // a threadblock computes the results for a single group. All threads
-    // within each group are implicity synchronized at the hardware
-    // level.
+    // Setup type alias for collective operations
+    typedef cub::BlockRadixSort<float, NGROUPTHREADS, RESTS_PER_THREAD> BlockRadixSortT;
+    typedef cub::BlockReduce<float, NGROUPTHREADS> BlockReduceT;
 
-    // These are runtime parameters set tby the C++ code.
-    const int groupsPerBlock = GROUPSPERBLOCK;
-    const int maxGroupSize = MAXGROUPSIZE;
+    // Setup shared memory for sorting.
+    __shared__ union {
+        typename BlockRadixSortT::TempStorage sort;
+        typename BlockReduceT::TempStorage reduce;
+        float cutoff;
+    } sharedScratch;
 
-    // Because each warp is computing a separate interaction, we need to
-    // keep track of which block we are acting on and our index within
-    // that warp.
-    const int groupOffsetInBlock = threadIdx.x / 32;
-    const int threadOffsetInWarp = threadIdx.x % 32;
+    // local storage for energies to be sorted
+    float energyScratch[RESTS_PER_THREAD];
 
-    // We store the energies and indices into scratch buffers. These scratch
-    // buffers are also used for reductions within each warp.
-    extern __shared__ volatile char scratch[];
-    volatile float* warpScratchEnergy = (float*)&scratch[groupOffsetInBlock*maxGroupSize*(sizeof(float)+sizeof(int))];
-    volatile int* warpScratchIndices = (int*)&scratch[groupOffsetInBlock*maxGroupSize*(sizeof(float)+sizeof(int)) +
-                                                      maxGroupSize*sizeof(float)];
-    volatile float* warpReductionBuffer = (float*)&scratch[groupOffsetInBlock*32*sizeof(float)];
+    for (int groupIndex=blockIdx.x; groupIndex<numGroups; groupIndex+=gridDim.x) {
+        int numActive = numActiveArray[groupIndex];
+        int start = boundsArray[groupIndex].x;
+        int end = boundsArray[groupIndex].y;
 
-    // each warp loads the energies and indices for a group
-    for (int groupIndex=groupsPerBlock*blockIdx.x+groupOffsetInBlock; groupIndex<numGroups; groupIndex+=groupsPerBlock*gridDim.x) {
-        const int numActive = numActiveArray[groupIndex];
-        const int start = boundsArray[groupIndex].x;
-        const int end = boundsArray[groupIndex].y;
-        const int length = end - start;
-        const bool applyAll = (numActive == length);
-
-        // copy the energies to shared memory and setup indices
-        if (!applyAll) {
-            for(int i=threadOffsetInWarp; i<length; i+=32) {
-                const float energy = energyArray[pristineIndexArray[i + start]];
-                warpScratchIndices[i] = i;
-                warpScratchEnergy[i] = energy;
-            }
-        }
-
-        // now, we run the quick select algorithm.
-        // this is not parallelized, so we only run it on one thread
-        // per block.
-        if (threadOffsetInWarp==0) {
-            float energyCut = 0.0;
-            if (!applyAll) {
-                energyCut = quick_select_float((const float*)warpScratchEnergy, (int *)warpScratchIndices, length, numActive-1);
-            }
-            else {
-                energyCut = 9.99e99;
-            }
-            warpScratchEnergy[0] = energyCut;
-        }
-
-
-        // now we're back on all threads again
-        float energyCut = warpScratchEnergy[0];
-        float thisActive = 0.0;
-        float thisEnergy = 0.0;
-
-        // we are going to start writing to warpReductionBuffer,
-        // which may overlap with the warpScratch* buffers, so
-        // we need to make sure that all threads are done first.
-        __syncthreads();
-
-        // reset the reduction buffers to zero
-        warpReductionBuffer[threadOffsetInWarp] = 0.0;
-
-        // sum up the energy for each restraint
-        for(int i=threadOffsetInWarp+start; i<end; i+=32) {
-            thisEnergy = energyArray[pristineIndexArray[i]];
-            thisActive = (float)(thisEnergy <= energyCut);
-            activeArray[pristineIndexArray[i]] = thisActive;
-            warpReductionBuffer[threadOffsetInWarp] += thisActive * thisEnergy;
-        }
-
-        // now we do a parallel reduction within each warp
-        int totalThreads = 32;
-        int index2 = 0;
-        while (totalThreads > 1) {
-            int halfPoint = (totalThreads >> 1);
-            if (threadOffsetInWarp < halfPoint) {
-                index2 = threadOffsetInWarp + halfPoint;
-                warpReductionBuffer[threadOffsetInWarp] += warpReductionBuffer[index2];
-            }
-            totalThreads = halfPoint;
-        }
-
-        // now store the energy for this group
-        if (threadOffsetInWarp == 0) {
-            targetEnergyArray[groupIndex] = warpReductionBuffer[0];
-        }
-
-        // make sure we're all done before we start again
-        __syncthreads();
-    }
-}
-
-
-__device__ void findMinMax(int length, volatile float* energyArray, volatile float* minBuffer, volatile float* maxBuffer) {
-    const int tid = threadIdx.x;
-    float energy;
-    float min = 9.9e99;
-    float max = -9.9e99;
-    // Each thread computes the min and max for it's energies and stores them in the buffers
-    for (int i=tid; i<length; i+=blockDim.x) {
-        energy = energyArray[i];
-        if (energy < min) {
-            min = energy;
-        }
-        if (energy > max) {
-            max = energy;
-        }
-    }
-    minBuffer[tid] = min;
-    maxBuffer[tid] = max;
-    __syncthreads();
-
-    // Now we do a parallel reduction
-    int totalThreads = blockDim.x;
-    int index2 = 0;
-    float temp = 0;
-    while (totalThreads > 1) {
-        int halfPoint = (totalThreads >> 1);
-        if (tid < halfPoint) {
-            index2 = tid + halfPoint;
-            temp = minBuffer[index2];
-            if (temp < minBuffer[tid]) {
-                minBuffer[tid] = temp;
-            }
-            temp = maxBuffer[index2];
-            if (temp > maxBuffer[tid]) {
-                maxBuffer[tid] = temp;
+        // Load energies into statically allocated scratch buffer
+        for(int i=0; i<RESTS_PER_THREAD; i++) {
+            int index = threadIdx.x * RESTS_PER_THREAD + start + i;
+            if(index < end) {
+                energyScratch[i] = energyArray[indexArray[index]];
+            } else {
+                energyScratch[i] = MAXFLOAT;
             }
         }
         __syncthreads();
-        totalThreads = halfPoint;
+
+        // Sort the energies.
+        BlockRadixSortT(sharedScratch.sort).Sort(energyScratch);
+        __syncthreads();
+
+        // find the nth largest energy and store in scratch
+        int myMin = threadIdx.x * RESTS_PER_THREAD;
+        int myMax = myMin + RESTS_PER_THREAD;
+        if((numActive - 1) >= myMin) {
+            if((numActive - 1) < myMax) {
+                // only one thread will get here
+                int offset = numActive - 1 - myMin;
+                sharedScratch.cutoff = energyScratch[offset];
+            }
+        }
+        __syncthreads();
+
+        // Read the nth largest energy from shared memory.
+        float cutoff = (volatile float)sharedScratch.cutoff;
+        __syncthreads();
+
+        // now we know the cutoff, so apply it to each group and
+        // load each energy into a scratch buffer.
+        for(int i=0; i<RESTS_PER_THREAD; i++) {
+            int index = threadIdx.x * RESTS_PER_THREAD + start + i;
+            if(index < end) {
+                if (energyArray[indexArray[index]] <= cutoff) {
+                    activeArray[indexArray[index]] = 1.0;
+                    energyScratch[i] = energyArray[indexArray[index]];
+
+                } else {
+                    activeArray[indexArray[index]] = 0.0;
+                    energyScratch[i] = 0.0;
+                }
+            } else {
+                energyScratch[i] = 0.0;
+            }
+        }
+        __syncthreads();
+
+        // Now sum all of the energies to get the total energy
+        // for the group.
+        float totalEnergy = BlockReduceT(sharedScratch.reduce).Sum(energyScratch);
+        if(threadIdx.x == 0) {
+            groupEnergyArray[groupIndex] = totalEnergy;
+        }
+        __syncthreads();
     }
-    __syncthreads();
 }
 
 
@@ -790,200 +674,62 @@ extern "C" __global__ void evaluateAndActivateCollections(
         const int2* __restrict__ boundsArray,
         const int* __restrict__ indexArray,
         const float* __restrict__ energyArray,
-        float* __restrict__ activeArray,
-        int * __restrict__ encounteredError)
+        float* __restrict__ activeArray)
 {
-    const float TOLERANCE = 1e-4;
-    const int maxCollectionSize = MAXCOLLECTIONSIZE;
-    const int tid = threadIdx.x;
-    const int warp = tid / 32;
-    const int lane = tid % 32;  // which thread are we within this warp
+    // Setup type alias for sorting.
+    typedef cub::BlockRadixSort<float, NCOLLTHREADS, GROUPS_PER_THREAD> BlockRadixSortT;
 
-    // shared memory:
-    // energyBuffer: maxCollectionSize floats
-    // min/max Buffer: gridDim.x floats
-    // binCounts: blockDim.x ints
-    extern __shared__ volatile char collectionScratch[];
-    volatile float* energyBuffer = (float*)&collectionScratch[0];
-    volatile float* minBuffer = (float*)&collectionScratch[maxCollectionSize*sizeof(float)];
-    volatile float* maxBuffer = (float*)&collectionScratch[(maxCollectionSize+blockDim.x)*sizeof(float)];
-    volatile int* binCounts = (int*)&collectionScratch[(maxCollectionSize+2*blockDim.x)*sizeof(float)];
-    volatile int* bestBin = (int*)&(collectionScratch[(maxCollectionSize + 2 * blockDim.x) * sizeof(float) +
-                                                      blockDim.x * sizeof(int)]);
+    // Setup shared memory for sorting.
+    __shared__ union {
+        typename BlockRadixSortT::TempStorage sort;
+        float cutoff;
+    } sharedScratch;
+
+    // local storage for energies to be sorted
+    float energyScratch[GROUPS_PER_THREAD];
 
     for (int collIndex=blockIdx.x; collIndex<numCollections; collIndex+=gridDim.x) {
-        // we need to find the value of the cutoff energy below, then we will
-        // activate all groups with lower energy
-        float energyCutoff = 0.0;
-
         int numActive = numActiveArray[collIndex];
         int start = boundsArray[collIndex].x;
         int end = boundsArray[collIndex].y;
-        int length = end - start;
 
-        // load the energy buffer for this collection
-        for (int i=tid; i<length; i+=blockDim.x) {
-            const float energy = energyArray[indexArray[start + i]];
-            energyBuffer[i] = energy;
+        // Load energies into statically allocated scratch buffer
+        for(int i=0; i<GROUPS_PER_THREAD; i++) {
+            int index = threadIdx.x * GROUPS_PER_THREAD + start + i;
+            if(index < end) {
+                energyScratch[i] = energyArray[indexArray[index]];
+            } else {
+                energyScratch[i] = MAXFLOAT;
+            }
         }
         __syncthreads();
 
-        findMinMax(length, energyBuffer, minBuffer, maxBuffer);
-        float min = minBuffer[0];
-        float max = maxBuffer[0];
-        float delta = max - min;
+        // Sort the energies.
+        BlockRadixSortT(sharedScratch.sort).Sort(energyScratch);
+        __syncthreads();
 
-
-        // If all of the energies are the same, they should all be active.
-        // Note: we need to break out here in this case, as otherwise delta
-        // will be zero and bad things will happen
-        if (fabs(max-min) < TOLERANCE) {
-            energyCutoff = max;
-        } else {
-            // Here we need to find the k'th highest energy. We do this using a recursive,
-            // binning and counting strategy. We divide the interval (min, max) into blockDim.x
-            // bins. We assign each energy to a bin, increment the count, and update
-            // the min and max. Then, we find the bin that contains the k'th lowest energy. If
-            // min==max for this bin, then we are done. Otherwise, we set the new (min, max) for
-            // the bins and recompute, assigning energies less than min to bin 0.
-
-            // loop until we break out at convergence
-            for (;;) {
-
-                // check to see if have encountered NaN, which will
-                // result in an infinite loop
-                if(tid==0) {
-                    if (!isfinite(min) || !isfinite(max)) {
-                        *encounteredError = 1;
-                    }
-                }
-                // zero out the buffers
-                binCounts[tid] = 0;
-                minBuffer[tid] = 9.0e99;
-                maxBuffer[tid] = 0.0;
-                __syncthreads();
-
-                // If we hit a NaN then abort early now that encounteredError is set.
-                // This will cause an exception on the C++ side
-                if (*encounteredError) {
-                    return;
-                }
-
-                // loop over all energies
-                for (int i=tid; i<length; i+=blockDim.x) {
-                    float energy = energyBuffer[i];
-                    // compute which bin this energy lies in
-                    int index = float2int(floorf((blockDim.x-1) / delta * (energy - min)));
-
-                    // we only count entries that lie within min and max
-                    if ( (index >= 0) && (index < blockDim.x) ) {
-
-                        // increment the counter using atomic function
-                        atomicAdd(&((int *)binCounts)[index], 1);
-                        // update the min and max bounds for the bin using atomic functions
-                        // note we need to cast to an integer, but floating point values
-                        // still compare correctly when represented as integers
-                        // this assumes that all energies are >0
-                        atomicMin((unsigned int*)&((float *)minBuffer)[index], __float_as_int(energy));
-                        atomicMax((unsigned int*)&((float *)maxBuffer)[index], __float_as_int(energy));
-                    }
-                }
-                // make sure all threads are done
-                __syncthreads();
-
-                // Now we need to perform a cumulative sum, which is surprisingly
-                // hard to get both correct and fast. We use a two pass, in-place
-                // algorithm.
-                //
-                // We use the algorihm given in:
-                // http://cuda.ac.upc.edu/sites/cuda.ac.upc.edu/files/lectures/patc_bsc_scan_2.pdf
-
-                // First, the upsweep.
-                int stride = 1;
-                while(stride < blockDim.x) {
-                    int index = (tid + 1) * stride * 2 - 1;
-                    if(index < blockDim.x) {
-                        binCounts[index] += binCounts[index - stride];
-                    }
-
-                    stride = stride * 2;
-                    __syncthreads();
-                }
-
-                // Now, the downsweep.
-                for(stride=blockDim.x / 4; stride>0; stride /= 2) {
-                    __syncthreads();
-
-                    int index = (tid + 1) * stride * 2 - 1;
-                    if(index + stride < blockDim.x) {
-                        binCounts[index + stride] += binCounts[index];
-                    }
-                }
-                __syncthreads();
-
-
-                // now we need to find the bin containing the k'th highest value
-                // we use a single warp, where each thread looks at a block of 32 entries
-                // to find the smallest index where the cumulative sum is >= numActive
-                // we set flag if we find one
-                // this section uses implicit synchronization between threads in a single warp
-
-                if(tid == 0) {
-                    *bestBin = blockDim.x;
-                }
-                __syncthreads();
-
-                if(binCounts[tid] >= numActive) {
-                    atomicMin((int *)bestBin, tid);
-                }
-                __syncthreads();
-
-                if(tid==0) {
-                    if(*bestBin==blockDim.x) {
-                        *encounteredError = 2;
-                    }
-                }
-                __syncthreads();
-
-                // bail out if we still have an invalid value in bestBin
-                if(*encounteredError) {
-                    return;
-                }
-
-                const float binMin = minBuffer[*bestBin];
-                const float binMax = maxBuffer[*bestBin];
-
-                //  if all energies in this bin are the same, then we are done
-                if (fabs(binMin-binMax) < TOLERANCE) {
-                    energyCutoff = binMax;
-                    break;
-                }
-
-                // if this bin ends exactly on the k'th lowest energy, then we are done
-                if (binCounts[*bestBin] == numActive) {
-                    energyCutoff = binMax;
-                    break;
-                }
-
-                // otherwise, the correct value lies somewhere within this bin
-                // it will between binMin and binMax and we need to find the
-                // binCounts[*bestBin] - numActive 'th element
-                // we loop through again searching with these updated parameters
-                min = binMin;
-                max = binMax;
-                delta = max - min;
-                numActive = binCounts[*bestBin] - numActive;
-                __syncthreads();
+        // find the nth largest energy and store in scratch
+        int myMin = threadIdx.x * GROUPS_PER_THREAD;
+        int myMax = myMin + GROUPS_PER_THREAD;
+        if((numActive - 1) >= myMin) {
+            if((numActive - 1) < myMax) {
+                // only one thread will get here
+                int offset = numActive - 1 - myMin;
+                sharedScratch.cutoff = energyScratch[offset];
             }
         }
+        __syncthreads();
 
-        // now we know the energyCutoff, so apply it to each group
-        for (int i=tid; i<length; i+=blockDim.x) {
-            if (energyBuffer[i] <= energyCutoff) {
-                activeArray[indexArray[i + start]] = 1.0;
+        // Read the nth largest energy from shared memory.
+        float cutoff = (volatile float)sharedScratch.cutoff;
+
+        // now we know the cutoff, so apply it to each group
+        for (int i=start + threadIdx.x; i<end; i+=blockDim.x) {
+            if (energyArray[indexArray[i]] <= cutoff) {
+                activeArray[indexArray[i]] = 1.0;
             }
             else {
-                activeArray[indexArray[i + start]] = 0.0;
+                activeArray[indexArray[i]] = 0.0;
             }
         }
         __syncthreads();

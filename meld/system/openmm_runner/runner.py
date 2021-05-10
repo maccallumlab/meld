@@ -238,13 +238,21 @@ class OpenMMRunner(ReplicaRunner):
                 platform = Platform.getPlatformByName("Reference")
                 properties = {}
             elif self.platform == "CPU":
-                platform = Platform.getPlatformByName("Reference")
+                platform = Platform.getPlatformByName("CPU")
                 properties = {}
             elif self.platform == "CUDA":
                 platform = Platform.getPlatformByName("CUDA")
+                # The plugin currently requires that we use nvcc, as
+                # nvrtc is not able to compile code that uses the cub
+                # library, which we use in the plugin.
+                # We can force the use of nvcc by setting CudaCompiler.
+                # We set it to the default value, which will reflect the
+                # OPENMM_CUDA_COMPILER environmnet variable if set.
+                compiler = platform.getProperyDefaultValue("CudaCompiler")
                 properties = {
                     "CudaDeviceIndex": str(self._device_id),
                     "CudaPrecision": "mixed",
+                    "CudaCompiler": compiler,
                 }
             else:
                 raise RuntimeError(f"Unknown platform {self.platform}.")

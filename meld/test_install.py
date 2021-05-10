@@ -99,11 +99,12 @@ def test_install():
                 if forces[j] is None:
                     continue
 
-                forces_close = np.allclose(forces[i], forces[j])
+                forces_close = np.allclose(forces[i], forces[j], atol=1e-4, rtol=1e-4)
                 median_force_error = np.median(np.abs(forces[i] - forces[j]))
+                max_force_error = np.max(np.abs(forces[i] - forces[j]))
 
                 energies_close = np.allclose(energies[i], energies[j])
-                median_energy_error = np.median(np.abs(energies[i] - energies[j]))
+                energy_error = np.abs(energies[i] - energies[j])
 
                 name_i = mm.Platform.getPlatform(i).getName()
                 name_j = mm.Platform.getPlatform(j).getName()
@@ -114,8 +115,11 @@ def test_install():
                     msg = "** OK **"
 
                 print(f"{name_i} vs {name_j}")
-                print(f"\tenergy diff: {median_energy_error:g}")
+                print(f"\tenergy diff: {energy_error:g}")
+                print(f"\tenegy good: {energies_close}")
                 print(f"\tmedian force diff: {median_force_error:g}")
+                print(f"\tmax force diff: {max_force_error:g}")
+                print(f"\tforce good: {forces_close}")
                 print(f"\t{msg}")
                 print()
 
