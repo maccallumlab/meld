@@ -880,7 +880,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
         4,
         largestGroup / maxThreadsPerGroup + (largestGroup % maxThreadsPerGroup != 0));
     threadsPerGroup = largestGroup / restraintsPerThread + (largestGroup % restraintsPerThread != 0);
-    replacements["NGROUPTHREADS"] = cu.intToString(threadsPerCollection);
+    replacements["NGROUPTHREADS"] = cu.intToString(threadsPerGroup);
     replacements["RESTS_PER_THREAD"] = cu.intToString(restraintsPerThread);
 
     // This should be determined by hardware, rather than hard-coded.
