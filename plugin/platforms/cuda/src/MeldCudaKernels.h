@@ -59,6 +59,7 @@ private:
     int largestGroup;
     int largestCollection;
     int threadsPerCollection;
+    int threadsPerGroup;
     int groupsPerBlock;
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
@@ -250,9 +251,6 @@ private:
     std::vector<int> h_collectionNumActive;
 
     OpenMM::CudaArray* collectionEnergies;
-
-    OpenMM::CudaArray* collectionEncounteredError;   // flag that indicates that we encountered an error when processing collections
-    std::vector<int> h_collectionEncounteredError;
 
     void allocateMemory(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);

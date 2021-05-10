@@ -134,7 +134,6 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     restraintEnergies = nullptr;
     restraintActive = nullptr;
     groupRestraintIndices = nullptr;
-    groupRestraintIndicesTemp = nullptr;
     groupEnergies = nullptr;
     groupActive = nullptr;
     groupBounds = nullptr;
@@ -143,7 +142,6 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     collectionBounds = nullptr;
     collectionNumActive = nullptr;
     collectionEnergies = nullptr;
-    collectionEncounteredError = nullptr;
 }
 
 CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
@@ -189,7 +187,6 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
     delete restraintEnergies;
     delete restraintActive;
     delete groupRestraintIndices;
-    delete groupRestraintIndicesTemp;
     delete groupEnergies;
     delete groupActive;
     delete groupBounds;
@@ -197,7 +194,6 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
     delete collectionBounds;
     delete collectionNumActive;
     delete collectionEnergies;
-    delete collectionEncounteredError;
 }
 
 
@@ -274,7 +270,6 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     restraintEnergies              = CudaArray::create<float>  ( cu, numRestraints,                "restraintEnergies");
     restraintActive                = CudaArray::create<float>  ( cu, numRestraints,                "restraintActive");
     groupRestraintIndices          = CudaArray::create<int>    ( cu, numRestraints,                "groupRestraintIndices");
-    groupRestraintIndicesTemp      = CudaArray::create<int>    ( cu, numRestraints,                "groupRestraintIndicesTemp");
     groupEnergies                  = CudaArray::create<float>  ( cu, numGroups,                    "groupEnergies");
     groupActive                    = CudaArray::create<float>  ( cu, numGroups,                    "groupActive");
     groupBounds                    = CudaArray::create<int2>   ( cu, numGroups,                    "groupBounds");
@@ -283,7 +278,6 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     collectionBounds               = CudaArray::create<int2>   ( cu, numCollections,               "collectionBounds");
     collectionNumActive            = CudaArray::create<int>    ( cu, numCollections,               "collectionNumActive");
     collectionEnergies             = CudaArray::create<int>    ( cu, numCollections,               "collectionEnergies");
-    collectionEncounteredError     = CudaArray::create<int>    ( cu, 1,                            "collectionEncounteredError");
 
     // setup host memory
     h_distanceRestRParams                 = std::vector<float4> (numDistRestraints, make_float4( 0, 0, 0, 0));
@@ -324,7 +318,6 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     h_collectionGroupIndices              = std::vector<int>    (numGroups, -1);
     h_collectionBounds                    = std::vector<int2>   (numCollections, make_int2( -1, -1));
     h_collectionNumActive                 = std::vector<int>    (numCollections, -1);
-    h_collectionEncounteredError          = std::vector<int>    (1, 0);
 }
 
 
@@ -878,31 +871,27 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     std::map<std::string, std::string> defines;
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
-    replacements["MAXGROUPSIZE"] = cu.intToString(largestGroup);
+
+
+    // This should be determined by hardware, rather than hard-coded.
+    const int maxThreadsPerGroup = 1024;
+    // Note x / y + (x % y !=0) does integer division and round up
+    const int restraintsPerThread = std::max(
+        4,
+        largestGroup / maxThreadsPerGroup + (largestGroup % maxThreadsPerGroup != 0));
+    threadsPerGroup = largestGroup / restraintsPerThread + (largestGroup % restraintsPerThread != 0);
+    replacements["NGROUPTHREADS"] = cu.intToString(threadsPerCollection);
+    replacements["RESTS_PER_THREAD"] = cu.intiteintToString(restraintsPerThread);
 
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerCollection = 1024;
     // Note x / y + (x % y !=0) does integer division and round up
-    const int itemsPerThread = std::max(
+    const int groupsPerThread = std::max(
         4,
         largestCollection / maxThreadsPerCollection + (largestCollection % maxThreadsPerCollection != 0));
-    threadsPerCollection = largestCollection / itemsPerThread + (largestCollection % itemsPerThread!= 0);
+    threadsPerCollection = largestCollection / groupsPerThread + (largestCollection % groupsPerThread != 0);
     replacements["NCOLLTHREADS"] = cu.intToString(threadsPerCollection);
-    replacements["ITEMS_PER_THREAD"] = cu.intiteintToString(itemsPerThread);
-    replacements["MAXCOLLECTIONSIZE"] = cu.intToString(largestCollection);
-
-    // setup the maximum number of groups calculated in a single block
-    // want to maximize occupancy, but need to ensure that we fit
-    // into shared memory
-    int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));
-    int sharedSizeThreads = 32 * sizeof(float);
-    int sharedSize = std::max(sharedSizeGroup, sharedSizeThreads);
-    int maxSharedMemory = 48 * 1024;
-    groupsPerBlock = std::min(maxSharedMemory / sharedSize, 32);
-    if (groupsPerBlock < 1) {
-        throw OpenMMException("One of the groups is too large to fit into shared memory.");
-    }
-    replacements["GROUPSPERBLOCK"] = cu.intToString(groupsPerBlock);
+    replacements["GROUPS_PER_THREAD"] = cu.intiteintToString(groupsPerThread);
 
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
@@ -1030,26 +1019,18 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(computeGMMRestKernel, gmmArgs, numGMMRestraints*32, 32*16, 2*16*32*sizeof(float));
     }
 
-
-    // now evaluate and active restraints based on groups
-    int sharedSizeGroup = largestGroup * (sizeof(float) + sizeof(int));
-    int sharedSizeThreads = 32 * sizeof(float);
-    int sharedSize = std::max(sharedSizeGroup, sharedSizeThreads);
-
+    // now evaluate and activate restraints based on groups
     void* groupArgs[] = {
         &numGroups,
         &groupNumActive->getDevicePointer(),
         &groupBounds->getDevicePointer(),
         &groupRestraintIndices->getDevicePointer(),
-        &groupRestraintIndicesTemp->getDevicePointer(),
-        &restraintEnergies->getDevicePointer(),
+        &restraitEnergies->getDevicePointer(),
         &restraintActive->getDevicePointer(),
-        &groupEnergies->getDevicePointer()};
-    cu.executeKernel(evaluateAndActivateKernel, groupArgs, 32 * numGroups, groupsPerBlock * 32, groupsPerBlock * sharedSize);
+        &groupEnergies->getDevicePointer(),
+    };
+    cu.executeKernel(evaluateAndActivateKernel, groupArgs, threadsPerGroup*numGroups, threadsPerGroup);
 
-    // set collectionsEncounteredNaN to zero and upload it
-    h_collectionEncounteredError[0] = 0;
-    collectionEncounteredError->upload(h_collectionEncounteredError);
     // now evaluate and activate groups based on collections
     void* collArgs[] = {
         &numCollections,
@@ -1057,18 +1038,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionBounds->getDevicePointer(),
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
-        &groupActive->getDevicePointer(),
-        &collectionEncounteredError->getDevicePointer()};
+        &groupActive->getDevicePointer()};
     cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection);
-    // check if we encountered NaN
-    collectionEncounteredError->download(h_collectionEncounteredError);
-    if (h_collectionEncounteredError[0] == 1) {
-        throw OpenMMException("Encountered NaN when evaluating collections.");
-    } else if (h_collectionEncounteredError[0] == 2) {
-        throw OpenMMException("Could not find k'th highest element while evaluating collection.");
-    } else if (h_collectionEncounteredError[0]) {
-        throw OpenMMException("Unknown error occurred while handling collection.");
-    }
 
     // Now set the restraints active based on if the groups are active
     void* applyGroupsArgs[] = {

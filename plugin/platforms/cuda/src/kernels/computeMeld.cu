@@ -5,60 +5,6 @@
 
 #include <cub/cub.cuh>
 
-#define ELEM_SWAP(a,b) { int t=(a);(a)=(b);(b)=t; }
-
-__device__ float quick_select_float(const volatile float* energy, volatile int *index, int nelems, int select) {
-    int low, high, middle, ll, hh;
-
-    low = 0;
-    high = nelems - 1;
-
-    for (;;) {
-        if (high <= low) { /* One element only */
-            return energy[index[select]];
-        }
-
-        if (high == low + 1) {  /* Two elements only */
-            if (energy[index[low]] > energy[index[high]])
-                ELEM_SWAP(index[low], index[high]);
-            return energy[index[select]];
-        }
-
-        /* Find median of low, middle and high items; swap into position low */
-        middle = (low + high) / 2;
-        if (energy[index[middle]] > energy[index[high]])    ELEM_SWAP(index[middle], index[high]);
-        if (energy[index[low]]    > energy[index[high]])    ELEM_SWAP(index[low],    index[high]);
-        if (energy[index[middle]] > energy[index[low]])     ELEM_SWAP(index[middle], index[low]);
-
-        /* Swap low item (now in position middle) into position (low+1) */
-        ELEM_SWAP(index[middle], index[low+1]);
-
-        /* Nibble from each end towards middle, swapping items when stuck */
-        ll = low + 1;
-        hh = high;
-        for (;;) {
-            do ll++; while (energy[index[low]] > energy[index[ll]]);
-            do hh--; while (energy[index[hh]]  > energy[index[low]]);
-
-            if (hh < ll)
-                break;
-
-            ELEM_SWAP(index[ll], index[hh]);
-        }
-
-        /* Swap middle item (in position low) back into correct position */
-        ELEM_SWAP(index[low], index[hh]);
-
-        /* Re-set active partition */
-        if (hh <= select)
-            low = ll;
-        if (hh >= select)
-            high = hh - 1;
-    }
-}
-#undef ELEM_SWAP
-
-
 __device__ void computeTorsionAngle(const real4* __restrict__ posq, int atom_i, int atom_j, int atom_k, int atom_l,
         float3& r_ij, float3& r_kj, float3& r_kl, float3& m, float3& n,
         float& len_r_kj, float& len_m, float& len_n, float& phi) {
@@ -637,141 +583,33 @@ extern "C" __global__ void evaluateAndActivate(
         const int numGroups,
         const int* __restrict__ numActiveArray,
         const int2* __restrict__ boundsArray,
-        const int* __restrict__ pristineIndexArray,
-        int* __restrict__ tempIndexArray,
-        const float* __restrict__ energyArray,
-        float* __restrict__ activeArray,
-        float* __restrict__ targetEnergyArray)
-{
-    // This kernel computes which restraints are active within each group.
-    // It uses "warp-level" programming to do this, where each warp within
-    // a threadblock computes the results for a single group. All threads
-    // within each group are implicity synchronized at the hardware
-    // level.
-
-    // These are runtime parameters set tby the C++ code.
-    const int groupsPerBlock = GROUPSPERBLOCK;
-    const int maxGroupSize = MAXGROUPSIZE;
-
-    // Because each warp is computing a separate interaction, we need to
-    // keep track of which block we are acting on and our index within
-    // that warp.
-    const int groupOffsetInBlock = threadIdx.x / 32;
-    const int threadOffsetInWarp = threadIdx.x % 32;
-
-    // We store the energies and indices into scratch buffers. These scratch
-    // buffers are also used for reductions within each warp.
-    extern __shared__ volatile char scratch[];
-    volatile float* warpScratchEnergy = (float*)&scratch[groupOffsetInBlock*maxGroupSize*(sizeof(float)+sizeof(int))];
-    volatile int* warpScratchIndices = (int*)&scratch[groupOffsetInBlock*maxGroupSize*(sizeof(float)+sizeof(int)) +
-                                                      maxGroupSize*sizeof(float)];
-    volatile float* warpReductionBuffer = (float*)&scratch[groupOffsetInBlock*32*sizeof(float)];
-
-    // each warp loads the energies and indices for a group
-    for (int groupIndex=groupsPerBlock*blockIdx.x+groupOffsetInBlock; groupIndex<numGroups; groupIndex+=groupsPerBlock*gridDim.x) {
-        const int numActive = numActiveArray[groupIndex];
-        const int start = boundsArray[groupIndex].x;
-        const int end = boundsArray[groupIndex].y;
-        const int length = end - start;
-        const bool applyAll = (numActive == length);
-
-        // copy the energies to shared memory and setup indices
-        if (!applyAll) {
-            for(int i=threadOffsetInWarp; i<length; i+=32) {
-                const float energy = energyArray[pristineIndexArray[i + start]];
-                warpScratchIndices[i] = i;
-                warpScratchEnergy[i] = energy;
-            }
-        }
-
-        // now, we run the quick select algorithm.
-        // this is not parallelized, so we only run it on one thread
-        // per block.
-        if (threadOffsetInWarp==0) {
-            float energyCut = 0.0;
-            if (!applyAll) {
-                energyCut = quick_select_float((const float*)warpScratchEnergy, (int *)warpScratchIndices, length, numActive-1);
-            }
-            else {
-                energyCut = 9.99e99;
-            }
-            warpScratchEnergy[0] = energyCut;
-        }
-
-
-        // now we're back on all threads again
-        float energyCut = warpScratchEnergy[0];
-        float thisActive = 0.0;
-        float thisEnergy = 0.0;
-
-        // we are going to start writing to warpReductionBuffer,
-        // which may overlap with the warpScratch* buffers, so
-        // we need to make sure that all threads are done first.
-        __syncthreads();
-
-        // reset the reduction buffers to zero
-        warpReductionBuffer[threadOffsetInWarp] = 0.0;
-
-        // sum up the energy for each restraint
-        for(int i=threadOffsetInWarp+start; i<end; i+=32) {
-            thisEnergy = energyArray[pristineIndexArray[i]];
-            thisActive = (float)(thisEnergy <= energyCut);
-            activeArray[pristineIndexArray[i]] = thisActive;
-            warpReductionBuffer[threadOffsetInWarp] += thisActive * thisEnergy;
-        }
-
-        // now we do a parallel reduction within each warp
-        int totalThreads = 32;
-        int index2 = 0;
-        while (totalThreads > 1) {
-            int halfPoint = (totalThreads >> 1);
-            if (threadOffsetInWarp < halfPoint) {
-                index2 = threadOffsetInWarp + halfPoint;
-                warpReductionBuffer[threadOffsetInWarp] += warpReductionBuffer[index2];
-            }
-            totalThreads = halfPoint;
-        }
-
-        // now store the energy for this group
-        if (threadOffsetInWarp == 0) {
-            targetEnergyArray[groupIndex] = warpReductionBuffer[0];
-        }
-
-        // make sure we're all done before we start again
-        __syncthreads();
-    }
-}
-
-
-extern "C" __global__ void evaluateAndActivateCollections(
-        const int numCollections,
-        const int* __restrict__ numActiveArray,
-        const int2* __restrict__ boundsArray,
         const int* __restrict__ indexArray,
         const float* __restrict__ energyArray,
         float* __restrict__ activeArray,
-        int * __restrict__ encounteredError)
+        float* __restrict__ groupEnergyArray)
 {
-    // Setup type alias for sorting.
-    typedef cub::BlockRadixSort<float, NCOLLTHREADS, ITEMS_PER_THREAD> BlockRadixSortT;
+    // Setup type alias for collective operations
+    typedef cub::BlockRadixSort<float, NGROUPTHREADS, RESTS_PER_THREAD> BlockRadixSortT;
+    typedef cub::BlockReduce<float, NGROUPTHREADS> BlockReduceT;
 
     // Setup shared memory for sorting.
     __shared__ union {
         typename BlockRadixSortT::TempStorage sort;
+        typename BlockReduceT::TempStorage reduce;
         float cutoff;
     } sharedScratch;
 
     // local storage for energies to be sorted
-    float energyScratch[ITEMS_PER_THREAD];
+    float energyScratch[RESTS_PER_THREAD];
 
-    for (int collIndex=blockIdx.x; collIndex<numCollections; collIndex+=gridDim.x) {
-        int numActive = numActiveArray[collIndex];
-        int start = boundsArray[collIndex].x;
-        int end = boundsArray[collIndex].y;
+    for (int groupIndex=blockIdx.x; groupIndex<numGroups; groupIndex+=gridDim.x) {
+        int numActive = numActiveArray[groupIndex];
+        int start = boundsArray[groupIndex].x;
+        int end = boundsArray[groupIndex].y;
 
         // Load energies into statically allocated scratch buffer
-        for(int i=0; i<ITEMS_PER_THREAD; i++) {
-            int index = threadIdx.x * ITEMS_PER_THREAD + start + i;
+        for(int i=0; i<RESTS_PER_THREAD; i++) {
+            int index = threadIdx.x * RESTS_PER_THREAD + start + i;
             if(index < end) {
                 energyScratch[i] = energyArray[indexArray[index]];
             } else {
@@ -785,8 +623,94 @@ extern "C" __global__ void evaluateAndActivateCollections(
         __syncthreads();
 
         // find the nth largest energy and store in scratch
-        int myMin = threadIdx.x * ITEMS_PER_THREAD;
-        int myMax = myMin + ITEMS_PER_THREAD;
+        int myMin = threadIdx.x * RESTS_PER_THREAD;
+        int myMax = myMin + RESTS_PER_THREAD;
+        if((numActive - 1) >= myMin) {
+            if((numActive - 1) < myMax) {
+                // only one thread will get here
+                int offset = numActive - 1 - myMin;
+                sharedScratch.cutoff = energyScratch[offset];
+            }
+        }
+        __syncthreads();
+
+        // Read the nth largest energy from shared memory.
+        float cutoff = (volatile float)sharedScratch.cutoff;
+        __syncthreads();
+
+        // now we know the cutoff, so apply it to each group and
+        // load each energy into a scratch buffer.
+        for(int i=0; i<RESTS_PER_THREAD; i++) {
+            int index = threadIdx.x * RESTS_PER_THREAD + start + i;
+            if(index < end) {
+                if (energyArray[indexArray[index]] <= cutoff) {
+                    activeArray[indexArray[index]] = 1.0;
+                    energyScratch[i] = energyArray[indexArray[index]];
+
+                } else {
+                    activeArray[indexArray[index]] = 0.0;
+                    energyScratch[i] = 0.0
+                }
+            } else {
+                energyScratch[i] = 0.0;
+            }
+        }
+        __syncthreads();
+
+        // Now sum all of the energies to get the total energy
+        // for the group.
+        float totalEnergy = BlockReduceT(sharedScratch.reduce).Sum(energyScratch);
+        if(threadIdx.x == 0) {
+            groupEnergyArray[groupIndex] = totalEnergy;
+        }
+        __syncthreads();
+    }
+}
+
+
+extern "C" __global__ void evaluateAndActivateCollections(
+        const int numCollections,
+        const int* __restrict__ numActiveArray,
+        const int2* __restrict__ boundsArray,
+        const int* __restrict__ indexArray,
+        const float* __restrict__ energyArray,
+        float* __restrict__ activeArray)
+{
+    // Setup type alias for sorting.
+    typedef cub::BlockRadixSort<float, NCOLLTHREADS, GROUPS_PER_THREAD> BlockRadixSortT;
+
+    // Setup shared memory for sorting.
+    __shared__ union {
+        typename BlockRadixSortT::TempStorage sort;
+        float cutoff;
+    } sharedScratch;
+
+    // local storage for energies to be sorted
+    float energyScratch[GROUPS_PER_THREAD];
+
+    for (int collIndex=blockIdx.x; collIndex<numCollections; collIndex+=gridDim.x) {
+        int numActive = numActiveArray[collIndex];
+        int start = boundsArray[collIndex].x;
+        int end = boundsArray[collIndex].y;
+
+        // Load energies into statically allocated scratch buffer
+        for(int i=0; i<GROUPS_PER_THREAD; i++) {
+            int index = threadIdx.x * GROUPS_PER_THREAD + start + i;
+            if(index < end) {
+                energyScratch[i] = energyArray[indexArray[index]];
+            } else {
+                energyScratch[i] = MAXFLOAT;
+            }
+        }
+        __syncthreads();
+
+        // Sort the energies.
+        BlockRadixSortT(sharedScratch.sort).Sort(energyScratch);
+        __syncthreads();
+
+        // find the nth largest energy and store in scratch
+        int myMin = threadIdx.x * GROUPS_PER_THREAD;
+        int myMax = myMin + GROUPS_PER_THREAD;
         if((numActive - 1) >= myMin) {
             if((numActive - 1) < myMax) {
                 // only one thread will get here
