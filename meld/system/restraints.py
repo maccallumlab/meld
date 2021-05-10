@@ -1178,11 +1178,17 @@ class RestraintGroup:
         for rest in rest_list:
             self._add_restraint(rest)
 
-        if num_active < 0:
-            raise RuntimeError("num_active must be >= 0.")
         n_rest = len(self._restraints)
-        if num_active > n_rest:
-            raise RuntimeError(f"num_active must be <= n_rest ({n_rest}).")
+        if isinstance(num_active, DiscreteParameter):
+            if num_active.min < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active.max > n_rest:
+                raise RuntimeError(f"num active must be <= num_restraints ({n_rest}).")
+        else:
+            if num_active < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active > n_rest:
+                raise RuntimeError(f"num_active must be <= n_rest ({n_rest}).")
         self._num_active = num_active
 
     @property
