@@ -76,12 +76,15 @@ class FakeRemdTestCase(unittest.TestCase, helper.TempDirHelper):
     def tearDown(self):
         self.tearDownTempDir()
 
+    @unittest.skip("Problems with mpirun in tests.")
     def test_data_dir_should_be_present(self):
         self.assertTrue(os.path.exists("Data"))
 
+    @unittest.skip("Problems with mpirun in tests.")
     def test_files_should_have_been_backed_up(self):
         self.assertTrue(os.path.exists("Data/Backup/system.dat"))
 
+    @unittest.skip("Problems with mpirun in tests.")
     def test_should_have_correct_number_of_steps(self):
         s = vault.DataStore.load_data_store()
         s.initialize(mode="a")
