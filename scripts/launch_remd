@@ -18,12 +18,17 @@ def main():
     parser = argparse.ArgumentParser(description="Launch replica exchange run.")
     parser.add_argument("--debug", default=False, action="store_true")
     parser.add_argument("--console-log", default=False, action="store_true")
+    parser.add_argument(
+        "--platform",
+        default="CUDA",
+        choices=["CUDA", "Reference", "CPU"],
+        help="OpenMM Platform to use",
+    )
     args = parser.parse_args()
 
-    # os.system('ls -l /opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9613.6.1/bin/nvcc')
-
-    launch.launch(console, args.debug, args.console_log)
+    launch.launch(args.platform, console, args.debug, args.console_log)
 
 
 if __name__ == "__main__":
+    __spec__ = None  # Fix error when launching MPI due to python bug
     main()

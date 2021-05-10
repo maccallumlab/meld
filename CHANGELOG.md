@@ -1,3 +1,10 @@
+## Unreleased
+
+## Enhancements
+- You can now specify the platform to use.
+  - Options are: "CUDA", "CPU", "Reference"
+  - E.g. `launch_remd --platform CPU`
+
 ## 0.5.0
 
 ### Enhancements

@@ -61,25 +61,25 @@ class TestLaunchNotLeader(unittest.TestCase):
 
     def test_load_datastore(self):
         "should call vault.DataStore.load_data_store to load the data_store"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.MockDataStore.load_data_store.assert_called_once_with()
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_comm.initialize.assert_called_once_with()
 
     def test_should_call_to_follower(self):
         "should call to_follower on remd_runner"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_remd_leader.to_follower.assert_called_once_with()
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_remd_follower.run.assert_called_once_with(
             self.mock_comm, self.mock_runner
@@ -87,7 +87,7 @@ class TestLaunchNotLeader(unittest.TestCase):
 
     def test_should_not_init_store(self):
         "should not init store"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.assertEqual(self.mock_store.initialize.call_count, 0)
 
@@ -134,25 +134,25 @@ class TestLaunchLeader(unittest.TestCase):
 
     def test_load_datastore(self):
         "should call load the datastore"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.MockDataStore.load_data_store.assert_called_once_with()
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_comm.initialize.assert_called_once_with()
 
     def test_should_init_store(self):
         "should initialize the store"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_store.initialize.assert_called_once_with(mode="a")
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        launch.launch(self.log_handler)
+        launch.launch("Reference", self.log_handler)
 
         self.mock_remd_leader.run.assert_called_once_with(
             self.mock_comm, self.mock_runner, self.mock_store

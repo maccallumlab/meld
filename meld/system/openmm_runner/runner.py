@@ -4,9 +4,9 @@
 #
 
 from meld.system.runner import ReplicaRunner
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  #type: ignore
-from simtk.openmm.app import forcefield as ff  #type: ignore
-from simtk.openmm import (  #type: ignore
+from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
+from simtk.openmm.app import forcefield as ff  # type: ignore
+from simtk.openmm import (  # type: ignore
     LangevinIntegrator,
     Platform,
     CustomExternalForce,
@@ -17,7 +17,7 @@ from simtk.openmm import (  #type: ignore
     PeriodicTorsionForce,
     CustomAngleForce,
 )
-from simtk.unit import (  #type: ignore
+from simtk.unit import (  # type: ignore
     Quantity,
     kelvin,
     picosecond,
@@ -48,14 +48,14 @@ from meld.system.openmm_runner import cmap
 from meld.system.openmm_runner import transform
 import logging
 from meld.util import log_timing
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import tempfile
 from collections import Callable, namedtuple
 
 logger = logging.getLogger(__name__)
 
 try:
-    from meldplugin import MeldForce  #type: ignore
+    from meldplugin import MeldForce  # type: ignore
 except ImportError:
     logger.warning(
         "Could not import meldplugin. "
@@ -75,9 +75,15 @@ PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
 
 
 class OpenMMRunner(ReplicaRunner):
-    def __init__(self, system, options, communicator=None, test=False):
+    def __init__(self, system, options, communicator=None, platform=None):
+        # Default to CUDA platform
+        platform = platform if platform else "CUDA"
+        self.platform = platform
+
         if communicator:
-            self._device_id = communicator.negotiate_device_id()
+            # Only need to figure out device id for CUDA
+            if platform == "CUDA":
+                self._device_id = communicator.negotiate_device_id()
             self._rank = communicator.rank
         else:
             self._device_id = 0
@@ -91,13 +97,12 @@ class OpenMMRunner(ReplicaRunner):
         self._always_on_restraints = system.restraints.always_active
         self._selectable_collections = system.restraints.selectively_active_collections
         self._options = options
-        self._test = test
         self._simulation = None
         self._integrator = None
         self._barostat = None
         self._timestep = None
         self._initialized = False
-        self._alpha = 0.
+        self._alpha = 0.0
         self._temperature = None
         self._force_dict = {}
         self._transformers = []
@@ -126,11 +131,11 @@ class OpenMMRunner(ReplicaRunner):
         # set the box vectors
         self._simulation.context.setPositions(coordinates)
         if self._options.solvation == "explicit":
-            box_vector = state.box_vector / 10.  # Angstrom to nm
+            box_vector = state.box_vector / 10.0  # Angstrom to nm
             self._simulation.context.setPeriodicBoxVectors(
-                [box_vector[0], 0., 0.],
-                [0., box_vector[1], 0.],
-                [0., 0., box_vector[2]],
+                [box_vector[0], 0.0, 0.0],
+                [0.0, box_vector[1], 0.0],
+                [0.0, 0.0, box_vector[2]],
             )
 
         # get the energy
@@ -229,15 +234,20 @@ class OpenMMRunner(ReplicaRunner):
             )
 
             # setup the platform, CUDA by default and Reference for testing
-            if self._test:
+            if self.platform == "Reference":
                 platform = Platform.getPlatformByName("Reference")
                 properties = {}
-            else:
+            elif self.platform == "CPU":
+                platform = Platform.getPlatformByName("Reference")
+                properties = {}
+            elif self.platform == "CUDA":
                 platform = Platform.getPlatformByName("CUDA")
                 properties = {
                     "CudaDeviceIndex": str(self._device_id),
                     "CudaPrecision": "mixed",
                 }
+            else:
+                raise RuntimeError(f"Unknown platform {self.platform}.")
 
             # create the simulation object
             self._simulation = _create_openmm_simulation(
@@ -314,9 +324,9 @@ class OpenMMRunner(ReplicaRunner):
         # if explicit solvent, then set the box vectors
         if self._options.solvation == "explicit":
             self._simulation.context.setPeriodicBoxVectors(
-                [box_vectors[0].value_in_unit(nanometer), 0., 0.],
-                [0., box_vectors[1].value_in_unit(nanometer), 0.],
-                [0., 0., box_vectors[2].value_in_unit(nanometer)],
+                [box_vectors[0].value_in_unit(nanometer), 0.0, 0.0],
+                [0.0, box_vectors[1].value_in_unit(nanometer), 0.0],
+                [0.0, 0.0, box_vectors[2].value_in_unit(nanometer)],
             )
 
         # run energy minimization
@@ -515,7 +525,7 @@ def _create_openmm_system_implicit(
     if cutoff is None:
         logger.info("Using no cutoff")
         cutoff_type = ff.NoCutoff
-        cutoff_dist = 999.
+        cutoff_dist = 999.0
     else:
         logger.info(f"Using a cutoff of {cutoff}")
         cutoff_type = ff.CutoffNonPeriodic
@@ -540,13 +550,12 @@ def _create_openmm_system_implicit(
     else:
         RuntimeError("Should never get here")
 
-
     if implicitSolventSaltConc is None:
         implicitSolventSaltConc = 0.0
     if soluteDielectric is None:
         soluteDielectric = 1.0
     if solventDielectric is None:
-        solventDielectric =78.5
+        solventDielectric = 78.5
     return parm_object.createSystem(
         nonbondedMethod=cutoff_type,
         nonbondedCutoff=cutoff_dist,

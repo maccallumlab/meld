@@ -24,7 +24,7 @@ class TestOpenRunner(unittest.TestCase):
         options = system.RunOptions()
         options.timesteps = 20
 
-        runner = OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, platform="Reference")
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -50,7 +50,7 @@ class TestOpenRunner(unittest.TestCase):
         options.use_amap = True
         options.amap_beta_bias = 10
 
-        runner = OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, platform="Reference")
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -73,7 +73,7 @@ class TestOpenRunner(unittest.TestCase):
         options = system.RunOptions(solvation="explicit")
         options.timesteps = 20
 
-        runner = OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, platform="Reference")
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()
@@ -99,7 +99,7 @@ class TestOpenRunner(unittest.TestCase):
         options.timesteps = 20
         options.use_rest2 = True
 
-        runner = OpenMMRunner(sys, options, test=True)
+        runner = OpenMMRunner(sys, options, platform="Reference")
         runner.prepare_for_timestep(0., 1)
 
         pos = sys._coordinates.copy()

@@ -28,6 +28,7 @@ def log_versions() -> None:
 
 
 def launch(
+    platform: str,
     console_handler: Handler,
     debug: bool = False,
     console_log: bool = False,
@@ -74,7 +75,9 @@ def launch(
             logger_address = communicator.receive_logger_address_from_leader()
 
         # create SocketHandler to write logging over network
-        handler: Handler = logging.handlers.SocketHandler(logger_address[0], logger_address[1])
+        handler: Handler = logging.handlers.SocketHandler(
+            logger_address[0], logger_address[1]
+        )
     else:
         fmt = "%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s"
         fmt = fmt.format(hostid)
@@ -102,7 +105,7 @@ def launch(
     logger.info("Loading run options")
     options = store.load_run_options()
 
-    system_runner = get_runner(system, options, communicator)
+    system_runner = get_runner(system, options, comm=communicator, platform=platform)
 
     if communicator.is_leader():
         store.initialize(mode="a")
@@ -123,7 +126,7 @@ def launch(
 
 
 def launch_multiplex(
-    console_handler: Handler, debug: bool = False
+    platform: str, console_handler: Handler, debug: bool = False
 ) -> None:
     logger.info("Loading data store")
     store = vault.DataStore.load_data_store()
@@ -152,7 +155,7 @@ def launch_multiplex(
     system = store.load_system()
     options = store.load_run_options()
 
-    system_runner = get_runner(system, options, None)
+    system_runner = get_runner(system, options, None, platform)
 
     store.initialize(mode="a")
     remd_runner = store.load_remd_runner()

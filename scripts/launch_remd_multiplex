@@ -17,9 +17,15 @@ from meld.remd import launch
 def main():
     parser = argparse.ArgumentParser(description="Launch replica exchange run.")
     parser.add_argument("--debug", default=False, action="store_true")
+    parser.add_argument(
+        "--platform",
+        default="CUDA",
+        choices=["CUDA", "Reference", "CPU"],
+        help="OpenMM Platform to use",
+    )
     args = parser.parse_args()
 
-    launch.launch_multiplex(console, args.debug)
+    launch.launch_multiplex(args.platform, console, args.debug)
 
 
 if __name__ == "__main__":
