@@ -881,7 +881,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
         largestGroup / maxThreadsPerGroup + (largestGroup % maxThreadsPerGroup != 0));
     threadsPerGroup = largestGroup / restraintsPerThread + (largestGroup % restraintsPerThread != 0);
     replacements["NGROUPTHREADS"] = cu.intToString(threadsPerCollection);
-    replacements["RESTS_PER_THREAD"] = cu.intiteintToString(restraintsPerThread);
+    replacements["RESTS_PER_THREAD"] = cu.intToString(restraintsPerThread);
 
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerCollection = 1024;
@@ -891,7 +891,7 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
         largestCollection / maxThreadsPerCollection + (largestCollection % maxThreadsPerCollection != 0));
     threadsPerCollection = largestCollection / groupsPerThread + (largestCollection % groupsPerThread != 0);
     replacements["NCOLLTHREADS"] = cu.intToString(threadsPerCollection);
-    replacements["GROUPS_PER_THREAD"] = cu.intiteintToString(groupsPerThread);
+    replacements["GROUPS_PER_THREAD"] = cu.intToString(groupsPerThread);
 
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
