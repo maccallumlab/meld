@@ -185,8 +185,6 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
 
         """
         AcceptanceCounter.reset(self)
-        self.accept_probs = None
-        self.t_lens = None
 
     def _compute_accept_probs(self) -> None:
         # default to 50 percent if there hasn't been a trial
@@ -209,7 +207,7 @@ class EqualAcceptanceAdaptor(AcceptanceCounter):
         for dt in delta_ts:
             total += dt
             t_lens.append(total)
-        self.t_lens = t_lens
+        self.t_lens = np.array(t_lens)
 
 
 class FluxAdaptor(AcceptanceCounter):
