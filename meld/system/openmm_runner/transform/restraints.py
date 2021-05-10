@@ -682,7 +682,7 @@ class MeldRestraintTransformer(TransformerBase):
 
     def _handle_num_active(self, value, state):
         if isinstance(value, Parameter):
-            return self.param_manager.extract_value(value, state.parameters)
+            return int(self.param_manager.extract_value(value, state.parameters))
         else:
             return value
 
