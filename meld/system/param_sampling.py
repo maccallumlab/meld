@@ -249,6 +249,20 @@ class ParameterManager:
         else:
             return param_state.continuous[param.index]
 
+    def is_valid(self, param_state: ParameterState) -> bool:
+        valid = True
+        assert len(self._discrete_by_index) == len(param_state.discrete)
+        assert len(self._continuous_by_index) == len(param_state.continuous)
+
+        for i, p_disc in enumerate(self._discrete_by_index):
+            v = param_state.discrete[i]
+            valid = valid and p_disc.is_valid(v)
+
+        for i, p_cont in enumerate(self._continuous_by_index):
+            v = param_state.continuous[i]
+            valid = valid and p_cont.is_valid(v)
+        return valid
+
     def log_prior(self, param_state: ParameterState) -> float:
         total = 0.0
         assert len(self._discrete_by_index) == len(param_state.discrete)
