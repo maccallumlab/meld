@@ -23,9 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: "Linux CUDA 10.0 Python 3.6"
+          - name: "Linux CUDA 10.0 Python 3.8"
             os: ubuntu-latest
-            python-version: "3.6"
+            python-version: "3.8"
             cuda-version: "10.0"
             gcc-version: "9"
             cdt-name: cos6
@@ -33,9 +33,9 @@ jobs:
               -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
               -DEXTRA_COMPILE_FLAGS="-L/usr/local/cuda/lib64/stubs -Wl,-rpath,/usr/local/cuda/lib64/stubs -Wl,-rpath-link,/usr/local/cuda/lib64/stubs"
 
-          - name: "Linux CUDA 11.0 Python 3.6"
+          - name: "Linux CUDA 11.0 Python 3.8"
             os: ubuntu-latest
-            python-version: "3.6"
+            python-version: "3.8"
             cuda-version: "11.0"
             gcc-version: "9"
             cdt-name: cos7
