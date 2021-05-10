@@ -99,7 +99,7 @@ def test_install():
                 if forces[j] is None:
                     continue
 
-                forces_close = np.allclose(forces[i], forces[j])
+                forces_close = np.allclose(forces[i], forces[j], atol=1e-4, rtol=1e-4)
                 median_force_error = np.median(np.abs(forces[i] - forces[j]))
 
                 energies_close = np.allclose(energies[i], energies[j])
