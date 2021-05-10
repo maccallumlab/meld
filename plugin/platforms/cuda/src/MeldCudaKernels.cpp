@@ -872,7 +872,6 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
 
-
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerGroup = 1024;
     // Note x / y + (x % y !=0) does integer division and round up
@@ -1038,7 +1037,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &collectionBounds->getDevicePointer(),
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
-        &groupActive->getDevicePointer()};
+        &groupActive->getDevicePointer()
+    };
     cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection);
 
     // Now set the restraints active based on if the groups are active

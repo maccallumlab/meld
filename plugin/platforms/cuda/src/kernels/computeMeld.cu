@@ -649,7 +649,7 @@ extern "C" __global__ void evaluateAndActivate(
 
                 } else {
                     activeArray[indexArray[index]] = 0.0;
-                    energyScratch[i] = 0.0
+                    energyScratch[i] = 0.0;
                 }
             } else {
                 energyScratch[i] = 0.0;
