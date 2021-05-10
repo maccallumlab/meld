@@ -115,7 +115,9 @@ def test_install():
 
                 print(f"{name_i} vs {name_j}")
                 print(f"\tenergy diff: {median_energy_error:g}")
+                print(f"\tenegy good: {energies_close}")
                 print(f"\tmedian force diff: {median_force_error:g}")
+                print(f"\tforce good: {forces_close}")
                 print(f"\t{msg}")
                 print()
 
