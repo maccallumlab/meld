@@ -134,6 +134,14 @@ class DiscreteParameter(Parameter[int]):
         self._sampler = sampler
         self._prior = prior
 
+    @property
+    def min(self):
+        return self._sampler.min
+
+    @property
+    def max(self):
+        return self._sampler.max
+
     def is_valid(self, value: int) -> bool:
         return self._sampler.is_valid(value)
 
@@ -152,6 +160,14 @@ class ContinuousParameter(Parameter[float]):
         self.index = index
         self._sampler = sampler
         self._prior = prior
+
+    @property
+    def min(self):
+        return self._sampler.min
+
+    @property
+    def max(self):
+        return self._sampler.max
 
     def is_valid(self, value: float) -> bool:
         return self._sampler.is_valid(value)

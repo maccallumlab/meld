@@ -1138,9 +1138,9 @@ class SelectivelyActiveCollection:
         # Do error checking
         n_rest = len(self._groups)
         if isinstance(num_active, DiscreteParameter):
-            if num_active.sampler.min < 0:
+            if num_active.min < 0:
                 raise RuntimeError("num_active must be >= 0.")
-            if num_active.sampler.max > n_rest:
+            if num_active.max > n_rest:
                 raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
         else:
             if num_active < 0:
