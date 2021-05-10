@@ -1025,7 +1025,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &groupNumActive->getDevicePointer(),
         &groupBounds->getDevicePointer(),
         &groupRestraintIndices->getDevicePointer(),
-        &restraitEnergies->getDevicePointer(),
+        &restraintEnergies->getDevicePointer(),
         &restraintActive->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
     };
