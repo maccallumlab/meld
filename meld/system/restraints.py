@@ -138,6 +138,7 @@ import math
 import numpy as np  # type: ignore
 from collections import namedtuple
 from typing import Dict, Any
+from meld.system.param_sampling import DiscreteParameter
 
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
@@ -1105,7 +1106,7 @@ class COMRestraint(NonSelectableRestraint):
 
 
 class AlwaysActiveCollection:
-    """"""
+    """ """
 
     def __init__(self):
         self._restraints = []
@@ -1123,7 +1124,7 @@ class AlwaysActiveCollection:
 
 
 class SelectivelyActiveCollection:
-    """"""
+    """ """
 
     def __init__(self, restraint_list, num_active):
         self._groups = []
@@ -1134,11 +1135,18 @@ class SelectivelyActiveCollection:
         for rest in restraint_list:
             self._add_restraint(rest)
 
-        if num_active < 0:
-            raise RuntimeError("num_active must be >= 0.")
+        # Do error checking
         n_rest = len(self._groups)
-        if num_active > n_rest:
-            raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
+        if isinstance(num_active, DiscreteParameter):
+            if num_active.sampler.min < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active.sampler.max > n_rest:
+                raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
+        else:
+            if num_active < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active > n_rest:
+                raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
         self._num_active = num_active
 
     @property
@@ -1192,7 +1200,7 @@ class RestraintGroup:
 
 
 class RestraintManager:
-    """"""
+    """ """
 
     def __init__(self, system):
         self._system = system
