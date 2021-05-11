@@ -235,12 +235,15 @@ class OpenMMRunner(ReplicaRunner):
 
             # setup the platform, CUDA by default and Reference for testing
             if self.platform == "Reference":
+                logger.info("Using Reference platform.")
                 platform = Platform.getPlatformByName("Reference")
                 properties = {}
             elif self.platform == "CPU":
+                logger.info("Using CPU platform.")
                 platform = Platform.getPlatformByName("CPU")
                 properties = {}
             elif self.platform == "CUDA":
+                logger.info("Using CUDA platform.")
                 platform = Platform.getPlatformByName("CUDA")
                 # The plugin currently requires that we use nvcc, as
                 # nvrtc is not able to compile code that uses the cub
@@ -249,6 +252,7 @@ class OpenMMRunner(ReplicaRunner):
                 # We set it to the default value, which will reflect the
                 # OPENMM_CUDA_COMPILER environmnet variable if set.
                 compiler = platform.getProperyDefaultValue("CudaCompiler")
+                logger.debug(f"Using CUDA compiler {compiler}.")
                 properties = {
                     "CudaDeviceIndex": str(self._device_id),
                     "CudaPrecision": "mixed",
