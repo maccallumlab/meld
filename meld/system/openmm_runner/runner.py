@@ -429,7 +429,7 @@ class OpenMMRunner(ReplicaRunner):
         energy = self.get_energy(state)
 
         for _ in range(self._options.param_mcmc_steps):
-            trial_params = self._parameter_manager.sample(state.params)
+            trial_params = self._parameter_manager.sample(state.parameters)
             if not self._parameter_manager.is_valid(trial_params):
                 accept = False
             else:
