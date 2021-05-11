@@ -153,7 +153,11 @@ class OpenMMRunner(ReplicaRunner):
             / GAS_CONSTANT
             / self._temperature
         )
-        return e_potential
+
+        # get the log_prior for parameters being sampled
+        log_prior = self._parameter_manager.log_prior(state.parameters)
+
+        return e_potential - log_prior
 
     def _initialize_simulation(self, state):
         if self._initialized:
@@ -420,12 +424,10 @@ class OpenMMRunner(ReplicaRunner):
         steps = self._options.param_mcmc_steps
         steps = steps if steps else 50
 
-        params = state.parameters
         energy = self.get_energy(state)
-        log_prior = self._parameter_manager.log_prior(params)
 
         for _ in range(steps):
-            trial_params = self._parameter_manager.sample(params)
+            trial_params = self._parameter_manager.sample(state.params)
             if not self._parameter_manager.is_valid(trial_params):
                 accept = False
             else:
@@ -438,9 +440,8 @@ class OpenMMRunner(ReplicaRunner):
                     trial_params,
                 )
                 trial_energy = self.get_energy(trial_state)
-                trial_log_prior = self._parameter_manager.log_prior(trial_params)
 
-                delta = trial_energy - trial_log_prior - (energy - log_prior)
+                delta = trial_energy - energy
 
                 if delta < 0:
                     accept = True
@@ -451,18 +452,10 @@ class OpenMMRunner(ReplicaRunner):
                         accept = False
 
             if accept:
-                params = trial_params
+                state = trial_state
                 energy = trial_energy
-                log_prior = trial_log_prior
 
-        return SystemState(
-            state.positions,
-            state.velocities,
-            state.alpha,
-            state.energy,
-            state.box_vector,
-            params,
-        )
+        return state
 
 
 def _check_for_nan(coordinates, velocities, rank):
