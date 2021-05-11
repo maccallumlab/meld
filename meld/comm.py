@@ -130,37 +130,6 @@ class MPICommunicator:
             self._mpi_comm.scatter(alphas, root=0)
 
     @log_timing(logger)
-    def broadcast_logger_address_to_followers(self, address: Tuple[str, int]) -> None:
-        """
-        Broadcast the hostname and port of the logger to followers.
-
-        :param address: a tuple (hostname, port)
-        :return: :const: `None`
-        """
-        with timeout(
-            self._timeout,
-            RuntimeError(
-                self._timeout_message.format("broadcast_logger_address_to_followers")
-            ),
-        ):
-            self._mpi_comm.bcast(address, root=0)
-
-    @log_timing(logger)
-    def receive_logger_address_from_leader(self) -> Tuple[str, int]:
-        """
-        Receive the hostname and port of the logger from the leader
-
-        :return: a (hostname, port) tuple
-        """
-        with timeout(
-            self._timeout,
-            RuntimeError(
-                self._timeout_message.format("receive_logger_address_from_leader")
-            ),
-        ):
-            return self._mpi_comm.bcast(None, root=0)
-
-    @log_timing(logger)
     def receive_alpha_from_leader(self) -> float:
         """
         receive_alpha_from_leader()

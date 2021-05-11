@@ -8,7 +8,9 @@ from unittest import mock  #type: ignore
 from meld.remd import follower, leader, launch
 from meld.system.openmm_runner import OpenMMRunner
 from meld import comm, vault
+from meld.util import in_temp_dir
 import logging
+import os
 
 
 class TestLaunchNotLeader(unittest.TestCase):
@@ -27,15 +29,13 @@ class TestLaunchNotLeader(unittest.TestCase):
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
         self.mock_vault.DataStore = self.MockDataStore
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
+        self.mock_store.log_dir = "Logs"
         self.MockDataStore.load_data_store.return_value = self.mock_store
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
         self.mock_comm.is_leader.return_value = False
-        self.mock_comm.receive_logger_address_from_leader.return_value = (
-            "127.0.0.1",
-            32768,
-        )
         self.mock_comm.rank = 0
+
         self.mock_store.load_communicator.return_value = self.mock_comm
 
         self.mock_system = mock.Mock()
@@ -105,6 +105,7 @@ class TestLaunchLeader(unittest.TestCase):
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
         self.mock_vault.DataStore = self.MockDataStore
         self.mock_store = mock.Mock(spec_set=vault.DataStore)
+        self.mock_store.log_dir = "Logs"
         self.MockDataStore.load_data_store.return_value = self.mock_store
 
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
@@ -134,26 +135,38 @@ class TestLaunchLeader(unittest.TestCase):
 
     def test_load_datastore(self):
         "should call load the datastore"
-        launch.launch("Reference", self.log_handler)
+        with in_temp_dir():
+            os.mkdir("Logs")
 
-        self.MockDataStore.load_data_store.assert_called_once_with()
+            launch.launch("Reference", self.log_handler)
+
+            self.MockDataStore.load_data_store.assert_called_once_with()
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        launch.launch("Reference", self.log_handler)
+        with in_temp_dir():
+            os.mkdir("Logs")
 
-        self.mock_comm.initialize.assert_called_once_with()
+            launch.launch("Reference", self.log_handler)
+
+            self.mock_comm.initialize.assert_called_once_with()
 
     def test_should_init_store(self):
         "should initialize the store"
-        launch.launch("Reference", self.log_handler)
+        with in_temp_dir():
+            os.mkdir("Logs")
 
-        self.mock_store.initialize.assert_called_once_with(mode="a")
+            launch.launch("Reference", self.log_handler)
+
+            self.mock_store.initialize.assert_called_once_with(mode="a")
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        launch.launch("Reference", self.log_handler)
+        with in_temp_dir():
+            os.mkdir("Logs")
 
-        self.mock_remd_leader.run.assert_called_once_with(
-            self.mock_comm, self.mock_runner, self.mock_store
-        )
+            launch.launch("Reference", self.log_handler)
+
+            self.mock_remd_leader.run.assert_called_once_with(
+                self.mock_comm, self.mock_runner, self.mock_store
+            )

@@ -3,9 +3,8 @@
 # All rights reserved
 #
 
-import multiprocessing as mp
+import os
 import logging
-import logging.handlers
 import meld
 from meld import util
 from meld import vault
@@ -13,11 +12,10 @@ from meld.system import get_runner
 from simtk.openmm import version as mm_version  # type: ignore
 from meld.remd import multiplex_runner
 import socket
-import time
-from typing import Tuple, Union
+from typing import Union
 
-Handler = Union[logging.StreamHandler, logging.handlers.SocketHandler]
 
+Handler = Union[logging.StreamHandler, logging.FileHandler]
 
 logger = logging.getLogger(__name__)
 
@@ -57,26 +55,11 @@ def launch(
     meld_logger.removeHandler(console_handler)
 
     if not console_log:
-        if communicator.is_leader():
-            # start logging server
-            abort_queue: mp.Queue[int] = mp.Queue()
-            socket_queue: mp.Queue[Tuple[str, int]] = mp.Queue()
-            process = mp.Process(
-                target=util.configure_logging_and_launch_listener,
-                args=(hostname, abort_queue, socket_queue),
-            )
-            process.daemon = True
-            process.start()
-            # communicate address to followers
-            logger_address = socket_queue.get(block=True, timeout=60)
-            communicator.broadcast_logger_address_to_followers(logger_address)
-        else:
-            # get port from leader
-            logger_address = communicator.receive_logger_address_from_leader()
-
-        # create SocketHandler to write logging over network
-        handler: Handler = logging.handlers.SocketHandler(
-            logger_address[0], logger_address[1]
+        # setup file
+        log_path = os.path.join(store.log_dir, f"remd_{communicator.rank:03d}.log")
+        handler: Handler = logging.FileHandler(
+            filename=log_path,
+            mode="a",
         )
     else:
         fmt = "%(hostid)s %(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -115,15 +98,6 @@ def launch(
         remd_runner = store.load_remd_runner().to_follower()
         remd_runner.run(communicator, system_runner)
 
-    # close log handler and allow a few seconds to flush
-    handler.close()
-    time.sleep(2)
-
-    # the master needs to shutdown the logging process
-    if (not console_log) and communicator.is_leader():
-        abort_queue.put(1)
-        process.join()
-
 
 def launch_multiplex(
     platform: str, console_handler: Handler, debug: bool = False
@@ -144,7 +118,9 @@ def launch_multiplex(
     # we can add a new handler below without
     # duplicate logging messages
     meld_logger.removeHandler(console_handler)
-    handler = logging.FileHandler(filename="remd.log", mode="a")
+    handler = logging.FileHandler(
+        filename=os.path.join(store.log_dir, "remd.log"), mode="a"
+    )
     handler.setFormatter(formatter)
     handler.setLevel(level)
     meld_logger.addHandler(handler)
