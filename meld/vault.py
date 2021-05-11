@@ -139,11 +139,14 @@ class DataStore:
         if mode == "w":
             if os.path.exists(self.data_dir):
                 raise RuntimeError("Data directory already exists")
-            os.mkdir(self.data_dir)
-            os.mkdir(self.blocks_dir)
-            os.mkdir(self.backup_dir)
+            else:
+                os.mkdir(self.data_dir)
+                os.mkdir(self.blocks_dir)
+                os.mkdir(self.backup_dir)
             if os.path.exists(self.log_dir):
-                raise RuntimeError("Log directory already exists")
+                raise RuntimeError("Logs directory already exists")
+            else:
+                os.mkdir(self.log_dir)
             self._current_block = 0
             self._current_stage = 0
             self._create_cdf_file()
