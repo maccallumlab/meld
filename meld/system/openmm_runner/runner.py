@@ -421,12 +421,14 @@ class OpenMMRunner(ReplicaRunner):
         if not self._parameter_manager.has_parameters():
             return state
 
-        steps = self._options.param_mcmc_steps
-        steps = steps if steps else 50
+        if self._options.param_mcmc_steps is None:
+            raise RuntimeError(
+                "There are sampled parameters, but param_mcmc_steps is not set."
+            )
 
         energy = self.get_energy(state)
 
-        for _ in range(steps):
+        for _ in range(self._options.param_mcmc_steps):
             trial_params = self._parameter_manager.sample(state.params)
             if not self._parameter_manager.is_valid(trial_params):
                 accept = False
