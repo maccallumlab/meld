@@ -251,7 +251,7 @@ class OpenMMRunner(ReplicaRunner):
                 # We can force the use of nvcc by setting CudaCompiler.
                 # We set it to the default value, which will reflect the
                 # OPENMM_CUDA_COMPILER environmnet variable if set.
-                compiler = platform.getProperyDefaultValue("CudaCompiler")
+                compiler = platform.getPropertyDefaultValue("CudaCompiler")
                 logger.debug(f"Using CUDA compiler {compiler}.")
                 properties = {
                     "CudaDeviceIndex": str(self._device_id),
