@@ -11,11 +11,23 @@
   - The new version of the CUDA kernel agrees well with the CPU verion.
   - Compiling cub library requires the use of nvcc, which must be forced by
     setting `OPENMM_CUDA_COMPILER`.
+- Previous versions could sometimes incorrectly negotiate device ids between
+  nodes which would lead to failure at runtime.
 
 ## Enhancements
 - You can now specify the platform to use.
   - Options are: "CUDA", "CPU", "Reference"
   - E.g. `launch_remd --platform CPU`
+
+## Changes
+- No longer use network logging.
+  - Previous versions used network logging to aggregate all log messages into a
+    single remd.log file.
+  - This required the leader task to spawn an additional process to run the log
+    server. Getting this right was difficult and was the source of many developer
+    headaches.
+  - This feature has now been removed and all worker nodes write to their own log
+    file in the `/Logs` directory.
 
 ## 0.5.0
 

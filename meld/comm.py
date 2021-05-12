@@ -11,7 +11,9 @@ except ImportError:
     print("Error importing mpi4py.")
     print()
     print("Meld depends on mpi4py, but does not automatically install it")
-    print("as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md")
+    print(
+        "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
+    )
     print("for details.")
     print("****")
     print()
@@ -126,37 +128,6 @@ class MPICommunicator:
             RuntimeError(self._timeout_message.format("broadcast_alphas_to_followers")),
         ):
             self._mpi_comm.scatter(alphas, root=0)
-
-    @log_timing(logger)
-    def broadcast_logger_address_to_followers(self, address: Tuple[str, int]) -> None:
-        """
-        Broadcast the hostname and port of the logger to followers.
-
-        :param address: a tuple (hostname, port)
-        :return: :const: `None`
-        """
-        with timeout(
-            self._timeout,
-            RuntimeError(
-                self._timeout_message.format("broadcast_logger_address_to_followers")
-            ),
-        ):
-            self._mpi_comm.bcast(address, root=0)
-
-    @log_timing(logger)
-    def receive_logger_address_from_leader(self) -> Tuple[str, int]:
-        """
-        Receive the hostname and port of the logger from the leader
-
-        :return: a (hostname, port) tuple
-        """
-        with timeout(
-            self._timeout,
-            RuntimeError(
-                self._timeout_message.format("receive_logger_address_from_leader")
-            ),
-        ):
-            return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
     def receive_alpha_from_leader(self) -> float:
@@ -318,7 +289,9 @@ class MPICommunicator:
         """
         with timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("gather_energies_from_followers")),
+            RuntimeError(
+                self._timeout_message.format("gather_energies_from_followers")
+            ),
         ):
             energies = self._mpi_comm.gather(energies_on_leader, root=0)
             return np.array(energies)
@@ -396,20 +369,13 @@ class MPICommunicator:
                         else:
                             available_devices[host.host_name] = host.devices
 
-                    # CUDA numbers the devices from 0 always,
-                    # e.g. if CUDA_VISIBLE_DEVICES=2,3 we still need to ask for
-                    # devices 0 and 1 to get physical devices 2 and 3.
-                    # So, we subtract the minimum value from each each to make
-                    # it zero
-                    # but we don't do this if the device ids are set to -1, which
-                    # allows openmm to choose the gpu
-                    for host in hosts:
-                        min_device_id = min(available_devices[host.host_name])
-                        if min_device_id != -1:
-                            available_devices[host.host_name] = [
-                                device_id - min_device_id
-                                for device_id in available_devices[host.host_name]
-                            ]
+                    # CUDA numbers the devices contiguously, starting from zero.
+                    # For example, if `CUDA_VISIBLE_DEVICES=2,4,5`, we would
+                    # access these as ids 0, 1, 2.
+                    available_devices = {
+                        host_name: list(range(len(devices)))
+                        for host_name, devices in available_devices.items()
+                    }
 
                     # device ids for each node
                     device_ids = []
