@@ -44,6 +44,12 @@
   - Only the basic distance and torsion restraints are currently implemented. Use of
     other restraint types will cause an error on the CPU platform.
 
+## 0.4.20
+
+## Bug Fixes
+- Changed negotiation of device ids, which previously caused problems
+  with startup on some HPC systems.
+
 ## 0.4.19
 
 ### Enhancements
