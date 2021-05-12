@@ -1,6 +1,6 @@
-import simtk.openmm as mm # type: ignore
+import openmm as mm # type: ignore
 import simtk.unit as u # type: ignore
-from simtk.openmm import app # type: ignore
+from openmm import app # type: ignore
 import meld # type: ignore
 import meldplugin # type: ignore
 import numpy as np # type: ignore

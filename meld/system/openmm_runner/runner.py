@@ -4,9 +4,9 @@
 #
 
 from meld.system.runner import ReplicaRunner
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
-from simtk.openmm.app import forcefield as ff  # type: ignore
-from simtk.openmm import (  # type: ignore
+from openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
+from openmm.app import forcefield as ff  # type: ignore
+from openmm import (  # type: ignore
     LangevinIntegrator,
     Platform,
     CustomExternalForce,

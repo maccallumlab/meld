@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from simtk.openmm import CustomExternalForce  # type: ignore
+from openmm import CustomExternalForce  # type: ignore
 from meld.system import restraints
 from meld.system.param_sampling import Parameter
 from collections import OrderedDict, Callable

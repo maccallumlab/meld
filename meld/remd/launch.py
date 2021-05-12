@@ -9,7 +9,7 @@ import meld
 from meld import util
 from meld import vault
 from meld.system import get_runner
-from simtk.openmm import version as mm_version  # type: ignore
+from openmm import version as mm_version  # type: ignore
 from meld.remd import multiplex_runner
 import socket
 from typing import Union

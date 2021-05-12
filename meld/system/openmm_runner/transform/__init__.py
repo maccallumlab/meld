@@ -88,9 +88,9 @@ class TransformerBase:
         ----------
         state: meld.system.SystemState
             State of the meld system being simulated
-        omm_system: simtk.openmm.System
+        omm_system: openmm.System
             OpenMM system object to be modified
-        topology: simtk.openmm.Topology
+        topology: openmm.Topology
             OpenMM topology object to be modified and/or used
             for indexing
 
@@ -111,9 +111,9 @@ class TransformerBase:
         ----------
         state: meld.system.SystemState
             State of the meld system being simulated
-        omm_system: simtk.openmm.System
+        omm_system: openmm.System
             OpenMM system object to be modified
-        topology: simtk.openmm.Topology
+        topology: openmm.Topology
             OpenMM topology object to be modified and/or used
             for indexing
 
@@ -131,7 +131,7 @@ class TransformerBase:
         ----------
         state: meld.system.SystemState
             State of the meld system being simulated
-        simulation: simtk.openmm.app.simulation
+        simulation: openmm.app.simulation
             OpenMM simulation object to be modified
         alpha: float
             Current value of alpha, ranges from 0 to 1
