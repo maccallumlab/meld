@@ -29,7 +29,7 @@ namespace std {
 
 
 %pythoncode %{
-import simtk.unit as unit
+import openmm.unit as unit
 import openmm as mm
 %}
 

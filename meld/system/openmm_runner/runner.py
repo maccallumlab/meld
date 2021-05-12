@@ -17,7 +17,7 @@ from openmm import (  # type: ignore
     PeriodicTorsionForce,
     CustomAngleForce,
 )
-from simtk.unit import (  # type: ignore
+from openmm.unit import (  # type: ignore
     Quantity,
     kelvin,
     picosecond,

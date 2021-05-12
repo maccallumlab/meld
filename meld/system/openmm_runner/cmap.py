@@ -7,7 +7,7 @@ from collections import OrderedDict, namedtuple
 import os
 import math
 
-from simtk import openmm  #type: ignore
+import openmm  #type: ignore
 import numpy as np  #type: ignore
 
 from meld.system.system import ParmTopReader

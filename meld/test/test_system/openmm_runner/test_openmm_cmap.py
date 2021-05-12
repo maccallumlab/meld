@@ -5,7 +5,7 @@
 
 import unittest
 
-from simtk import openmm  #type: ignore
+import openmm  #type: ignore
 from unittest import mock  #type: ignore
 from unittest.mock import ANY  #type: ignore
 import numpy as np  #type: ignore

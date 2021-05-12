@@ -1,5 +1,5 @@
 import openmm as mm # type: ignore
-import simtk.unit as u # type: ignore
+import openmm.unit as u # type: ignore
 from openmm import app # type: ignore
 import meld # type: ignore
 import meldplugin # type: ignore

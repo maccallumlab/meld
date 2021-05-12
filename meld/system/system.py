@@ -11,7 +11,7 @@ from meld.system.restraints import RestraintManager
 from meld.system.param_sampling import ParameterManager
 from meld.system.state import SystemState
 from meld.pdb_writer import PDBWriter
-from simtk.unit import atmosphere  # type: ignore
+from openmm.unit import atmosphere  # type: ignore
 
 
 class TemperatureScaler:

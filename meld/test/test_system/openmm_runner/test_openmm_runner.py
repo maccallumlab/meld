@@ -17,7 +17,7 @@ from meld.system.openmm_runner.runner import (
 from openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  #type: ignore
 from openmm.app import forcefield as ff
 from openmm import LangevinIntegrator, MonteCarloBarostat  #type: ignore
-from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  #type: ignore
+from openmm.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  #type: ignore
 from meld.system.restraints import (
     SelectableRestraint,
     NonSelectableRestraint,

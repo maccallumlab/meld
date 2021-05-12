@@ -16,7 +16,7 @@ from meld.system import restraints
 from meld.system.param_sampling import Parameter
 from collections import OrderedDict, Callable
 from meld.system.openmm_runner.transform import TransformerBase
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 
 try:
     from meldplugin import MeldForce  # type: ignore
