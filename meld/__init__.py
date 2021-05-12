@@ -39,3 +39,6 @@ from .system.system import (
 from .system.protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
 from .system.builder import SystemBuilder
 from .system.state import SystemState
+from .system.patchers import RdcAlignmentPatcher, VirtualSpinLabelPatcher
+from .comm import MPICommunicator
+from .vault import DataStore
