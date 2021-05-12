@@ -1,3 +1,9 @@
+## 0.4.20
+
+## Bug Fixes
+- Changed negotiation of device ids, which previously caused problems
+  with startup on some HPC systems.
+
 ## 0.4.19
 
 ### Enhancements
