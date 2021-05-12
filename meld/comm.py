@@ -3,22 +3,6 @@
 # All rights reserved
 #
 
-try:
-    from mpi4py import MPI  # type: ignore
-except ImportError:
-    print()
-    print("****")
-    print("Error importing mpi4py.")
-    print()
-    print("Meld depends on mpi4py, but does not automatically install it")
-    print(
-        "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
-    )
-    print("for details.")
-    print("****")
-    print()
-    raise
-
 import signal
 import threading
 import time
@@ -31,7 +15,7 @@ import logging
 import sys
 from meld.util import log_timing
 from meld.system.state import SystemState
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +50,7 @@ class MPICommunicator:
         To do that, call :meth:`initialize`.
     """
 
-    _mpi_comm: MPI.Comm
+    _mpi_comm: Any
 
     def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600) -> None:
         # We're not using n_atoms and n_replicas, but if we switch
@@ -411,11 +395,27 @@ class MPICommunicator:
         return self._my_rank
 
 
-def get_mpi_comm_world() -> MPI.Comm:
+def get_mpi_comm_world() -> Any:
     """
     Helper function to return the comm_world.
 
     """
+    try:
+        from mpi4py import MPI  # type: ignore
+    except ImportError:
+        print()
+        print("****")
+        print("Error importing mpi4py.")
+        print()
+        print("Meld depends on mpi4py, but does not automatically install it")
+        print(
+            "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
+        )
+        print("for details.")
+        print("****")
+        print()
+        raise
+
     return MPI.COMM_WORLD
 
 
