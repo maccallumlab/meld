@@ -4,7 +4,7 @@
 #
 
 import unittest
-from unittest import mock  #type: ignore
+from unittest import mock  # type: ignore
 from meld.remd import follower, leader
 from meld.system import runner
 from meld import comm
@@ -96,7 +96,7 @@ class TestFollowerSingle(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
-            sentinel.ALPHA, 1
+            sentinel.STATE, sentinel.ALPHA, 1
         )
 
     def test_calls_receive_state(self):
