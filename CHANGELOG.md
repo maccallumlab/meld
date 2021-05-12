@@ -11,6 +11,8 @@
   - The new version of the CUDA kernel agrees well with the CPU verion.
   - Compiling cub library requires the use of nvcc, which must be forced by
     setting `OPENMM_CUDA_COMPILER`.
+- Previous versions could sometimes incorrectly negotiate device ids between
+  nodes which would lead to failure at runtime.
 
 ## Enhancements
 - You can now specify the platform to use.
