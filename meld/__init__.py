@@ -9,3 +9,10 @@ logger = logging.getLogger("meld")
 logger.addHandler(logging.NullHandler())
 
 __version__ = "0.5.0"
+
+from .parse import (
+    get_sequence_from_AA1,
+    get_sequence_from_AA3,
+    get_secondary_structure_restraints,
+    get_rdc_restraints,
+)
