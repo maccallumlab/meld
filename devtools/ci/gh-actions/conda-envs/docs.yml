@@ -1,0 +1,23 @@
+name: build
+
+channels:
+- conda-forge
+
+dependencies:
+# build
+- cmake
+- ccache
+
+# host
+- python
+- pip
+- numpy
+- cython
+- swig
+- doxygen 1.8.14
+- openmm
+- eigen
+- numpydoc
+- breathe
+- sphinx
+- sphinx_rtd_theme
