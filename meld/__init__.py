@@ -40,5 +40,13 @@ from .system.protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbF
 from .system.builder import SystemBuilder
 from .system.state import SystemState
 from .system.patchers import RdcAlignmentPatcher, VirtualSpinLabelPatcher
+from .system.param_sampling import (
+    UniformDiscretePrior,
+    UniformContinuousPrior,
+    ExponentialDiscretePrior,
+    ExponentialContinuousPrior,
+    DiscreteSampler,
+    ContinuousSampler,
+)
 from .comm import MPICommunicator
 from .vault import DataStore
