@@ -13,19 +13,59 @@ class ChainInfo(NamedTuple):
 # wrap int. This allows us to check elsewhere in the code
 # that we're getting the right type of index.
 class AtomIndex(int):
+    """
+    Zero-based absolute atom index.
+
+    Usually, you should get this through `system.atom_index`,
+    but if you are _sure_ you know what you are doing,
+    you can construct directly via `AtomIndex(index)`.
+    """
+
     pass
 
 
 class ResidueIndex(int):
+    """
+    Zero-based absolute residue index.
+
+    Usually, you should get this through `system.residue_index`,
+    but if you are _sure_ you know what you are doing,
+    you can construct directly via `ResidueIndex(index)`.
+    """
+
     pass
 
 
 class AtomIndexer:
+    """
+    Find AtomIndex for a given resid, name, and (optinally) chain.
+    """
+
     def __init__(self, abs_atom_index, rel_atom_index):
         self.abs_atom_index = abs_atom_index
         self.rel_atom_index = rel_atom_index
 
     def __call__(self, resid, atom_name, chainid=None, one_based=True):
+        """
+        Find the AtomIndex
+
+        The indexing can be either absolute (if `chainid` is `None`),
+        or relative to a chain (if `chainid` is set).
+
+        Both `resid` and `chainid` are one-based if `one_based` is `True`
+        (the default), or both are zero-based if `one_based=False`.
+
+        Parameters
+        ----------
+        resid : int
+        atom_name : str
+        chainid : None or int
+        one_based: bool
+
+        Returns
+        -------
+        AtomIndex
+        """
         if chainid is None:
             if one_based:
                 return AtomIndex(self.abs_atom_index[(resid - 1, atom_name)])
@@ -33,16 +73,40 @@ class AtomIndexer:
                 return AtomIndex(self.abs_atom_index[(resid, atom_name)])
         else:
             if one_based:
-                return AtomIndex(self.rel_atom_index[(chainid - 1, resid - 1, atom_name)])
+                return AtomIndex(
+                    self.rel_atom_index[(chainid - 1, resid - 1, atom_name)]
+                )
             else:
                 return AtomIndex(self.rel_atom_index[(chainid, resid, atom_name)])
 
 
 class ResidueIndexer:
+    """
+    Find ResidueIndex for a given resid and (optinally) chain.
+    """
     def __init__(self, rel_residue_index):
         self.rel_residue_index = rel_residue_index
 
     def __call__(self, resid, chainid=None, one_based=True):
+        """
+        Find the ResidueIndex
+
+        The indexing can be either absolute (if `chainid` is `None`),
+        or relative to a chain (if `chainid` is set).
+
+        Both `resid` and `chainid` are one-based if `one_based` is `True`
+        (the default), or both are zero-based if `one_based=False`.
+
+        Parameters
+        ----------
+        resid : int
+        chainid : None or int
+        one_based: bool
+
+        Returns
+        -------
+        ResidueIndex
+        """
         if chainid is None:
             if one_based:
                 return ResidueIndex(resid - 1)
