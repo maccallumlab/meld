@@ -9,7 +9,7 @@ from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
-from .indexing import _setup_indexing
+from .indexing import _setup_indexing, AtomIndex
 from simtk.unit import atmosphere  # type: ignore
 
 
@@ -199,16 +199,6 @@ class System:
     def residue_names(self):
         return self._residue_names
 
-    def index_of_atom(self, residue_number, atom_name):
-        try:
-            return self.atom_index(residue_number, atom_name) + 1
-        except KeyError:
-            print(
-                f"Could not find atom index for residue_number={residue_number} "
-                f"and atom name={atom_name}."
-            )
-            raise
-
     def get_pdb_writer(self):
         return PDBWriter(
             range(1, len(self._atom_names) + 1),
@@ -218,22 +208,35 @@ class System:
         )
 
     def add_extra_bond(self, i, j, length, force_constant):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
         self.extra_bonds.append(
-            ExtraBondParam(i=i, j=j, length=length, force_constant=force_constant)
+            ExtraBondParam(
+                i=int(i), j=int(j), length=length, force_constant=force_constant
+            )
         )
 
     def add_extra_angle(self, i, j, k, angle, force_constant):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
+        assert isinstance(k, AtomIndex)
         self.extra_restricted_angles.append(
-            ExtraAngleParam(i=i, j=j, k=k, angle=angle, force_constant=force_constant)
+            ExtraAngleParam(
+                i=int(i), j=int(j), k=int(k), angle=angle, force_constant=force_constant
+            )
         )
 
     def add_extra_torsion(self, i, j, k, l, phase, energy, multiplicity):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
+        assert isinstance(k, AtomIndex)
+        assert isinstance(l, AtomIndex)
         self.extra_torsions.append(
             ExtraTorsParam(
-                i=i,
-                j=j,
-                k=k,
-                l=l,
+                i=int(i),
+                j=int(j),
+                k=int(k),
+                l=int(l),
                 phase=phase,
                 energy=energy,
                 multiplicity=multiplicity,
@@ -251,8 +254,6 @@ class System:
 
         self._residue_names = reader.get_residue_names()
         assert len(self._residue_names) == self._n_atoms
-
-        self._atom_index = reader.get_atom_map()
 
     def _setup_coords(self):
         reader = CrdReader(self._mdcrd_string)
@@ -761,7 +762,9 @@ def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
         top, crd = patcher.patch(top, crd)
 
     # Setup indexing
-    atom_indexer, residue_indexer = _setup_indexing(chains, ParmTopReader(top), CrdReader(crd))
+    atom_indexer, residue_indexer = _setup_indexing(
+        chains, ParmTopReader(top), CrdReader(crd)
+    )
 
     # Create the system
     system = System(top, crd, atom_indexer, residue_indexer)

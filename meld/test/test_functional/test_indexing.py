@@ -13,20 +13,20 @@ class TestAtomIndexingOneBased(unittest.TestCase):
         self.system = b.build_system_from_molecules([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.atom_index(1, "CA"), 4)
-        self.assertEqual(self.system.atom_index(2, "CA"), 14)
-        self.assertEqual(self.system.atom_index(3, "CA"), 24)
-        self.assertEqual(self.system.atom_index(4, "CA"), 37)
-        self.assertEqual(self.system.atom_index(5, "CA"), 47)
-        self.assertEqual(self.system.atom_index(6, "CA"), 57)
+        self.assertEqual(self.system.atom_index(1, "CA", one_based=True), 4)
+        self.assertEqual(self.system.atom_index(2, "CA", one_based=True), 14)
+        self.assertEqual(self.system.atom_index(3, "CA", one_based=True), 24)
+        self.assertEqual(self.system.atom_index(4, "CA", one_based=True), 37)
+        self.assertEqual(self.system.atom_index(5, "CA", one_based=True), 47)
+        self.assertEqual(self.system.atom_index(6, "CA", one_based=True), 57)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.atom_index(1, "CA", chainid=1), 4)
-        self.assertEqual(self.system.atom_index(2, "CA", chainid=1), 14)
-        self.assertEqual(self.system.atom_index(3, "CA", chainid=1), 24)
-        self.assertEqual(self.system.atom_index(1, "CA", chainid=2), 37)
-        self.assertEqual(self.system.atom_index(2, "CA", chainid=2), 47)
-        self.assertEqual(self.system.atom_index(3, "CA", chainid=2), 57)
+        self.assertEqual(self.system.atom_index(1, "CA", chainid=1, one_based=True), 4)
+        self.assertEqual(self.system.atom_index(2, "CA", chainid=1, one_based=True), 14)
+        self.assertEqual(self.system.atom_index(3, "CA", chainid=1, one_based=True), 24)
+        self.assertEqual(self.system.atom_index(1, "CA", chainid=2, one_based=True), 37)
+        self.assertEqual(self.system.atom_index(2, "CA", chainid=2, one_based=True), 47)
+        self.assertEqual(self.system.atom_index(3, "CA", chainid=2, one_based=True), 57)
 
 
 class TestAtomIndexingZeroBased(unittest.TestCase):
@@ -71,20 +71,20 @@ class TestResidueIndexingOneBased(unittest.TestCase):
         self.system = b.build_system_from_molecules([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.residue_index(1), 0)
-        self.assertEqual(self.system.residue_index(2), 1)
-        self.assertEqual(self.system.residue_index(3), 2)
-        self.assertEqual(self.system.residue_index(4), 3)
-        self.assertEqual(self.system.residue_index(5), 4)
-        self.assertEqual(self.system.residue_index(6), 5)
+        self.assertEqual(self.system.residue_index(1, one_based=True), 0)
+        self.assertEqual(self.system.residue_index(2, one_based=True), 1)
+        self.assertEqual(self.system.residue_index(3, one_based=True), 2)
+        self.assertEqual(self.system.residue_index(4, one_based=True), 3)
+        self.assertEqual(self.system.residue_index(5, one_based=True), 4)
+        self.assertEqual(self.system.residue_index(6, one_based=True), 5)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.residue_index(1, chainid=1), 0)
-        self.assertEqual(self.system.residue_index(2, chainid=1), 1)
-        self.assertEqual(self.system.residue_index(3, chainid=1), 2)
-        self.assertEqual(self.system.residue_index(1, chainid=2), 3)
-        self.assertEqual(self.system.residue_index(2, chainid=2), 4)
-        self.assertEqual(self.system.residue_index(3, chainid=2), 5)
+        self.assertEqual(self.system.residue_index(1, chainid=1, one_based=True), 0)
+        self.assertEqual(self.system.residue_index(2, chainid=1, one_based=True), 1)
+        self.assertEqual(self.system.residue_index(3, chainid=1, one_based=True), 2)
+        self.assertEqual(self.system.residue_index(1, chainid=2, one_based=True), 3)
+        self.assertEqual(self.system.residue_index(2, chainid=2, one_based=True), 4)
+        self.assertEqual(self.system.residue_index(3, chainid=2, one_based=True), 5)
 
 
 class TestResidueIndexingZeroBased(unittest.TestCase):

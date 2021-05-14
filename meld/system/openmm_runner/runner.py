@@ -473,7 +473,7 @@ def _add_extras(system, bonds, restricted_angles, torsions):
     if bonds:
         f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
         for bond in bonds:
-            f.addBond(bond.i - 1, bond.j - 1, bond.length, bond.force_constant)
+            f.addBond(bond.i, bond.j, bond.length, bond.force_constant)
 
     # add the extra restricted_angles
     if restricted_angles:
@@ -485,9 +485,9 @@ def _add_extras(system, bonds, restricted_angles, torsions):
         f.addPerAngleParameter("theta0_ra")
         for angle in restricted_angles:
             f.addAngle(
-                angle.i - 1,
-                angle.j - 1,
-                angle.k - 1,
+                angle.i,
+                angle.j,
+                angle.k,
                 (angle.force_constant, angle.angle),
             )
         system.addForce(f)
@@ -497,10 +497,10 @@ def _add_extras(system, bonds, restricted_angles, torsions):
         f = [f for f in system.getForces() if isinstance(f, PeriodicTorsionForce)][0]
         for tors in torsions:
             f.addTorsion(
-                tors.i - 1,
-                tors.j - 1,
-                tors.k - 1,
-                tors.l - 1,
+                tors.i,
+                tors.j,
+                tors.k,
+                tors.l,
                 tors.multiplicity,
                 tors.phase,
                 tors.energy,

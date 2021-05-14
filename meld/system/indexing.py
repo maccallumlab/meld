@@ -45,15 +45,15 @@ class AtomIndexer:
         self.abs_atom_index = abs_atom_index
         self.rel_atom_index = rel_atom_index
 
-    def __call__(self, resid, atom_name, chainid=None, one_based=True):
+    def __call__(self, resid, atom_name, chainid=None, one_based=False):
         """
         Find the AtomIndex
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
 
-        Both `resid` and `chainid` are one-based if `one_based` is `True`
-        (the default), or both are zero-based if `one_based=False`.
+        Both `resid` and `chainid` are one-based if `one_based` is `True`,
+        or both are zero-based if `one_based=False` (the default).
 
         Parameters
         ----------
@@ -87,15 +87,15 @@ class ResidueIndexer:
     def __init__(self, rel_residue_index):
         self.rel_residue_index = rel_residue_index
 
-    def __call__(self, resid, chainid=None, one_based=True):
+    def __call__(self, resid, chainid=None, one_based=False):
         """
         Find the ResidueIndex
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
 
-        Both `resid` and `chainid` are one-based if `one_based` is `True`
-        (the default), or both are zero-based if `one_based=False`.
+        Both `resid` and `chainid` are one-based if `one_based` is `True`,
+        or both are zero-based if `one_based=False` (the default).
 
         Parameters
         ----------
