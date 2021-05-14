@@ -9,6 +9,7 @@ from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
+from .indexing import _setup_indexing
 from simtk.unit import atmosphere  # type: ignore
 
 
@@ -151,10 +152,12 @@ ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity
 
 
 class System:
-    def __init__(self, top_string, mdcrd_string):
+    def __init__(self, top_string, mdcrd_string, atom_indexer, residue_indexer):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = RestraintManager(self)
+        self.atom_index = atom_indexer
+        self.residue_index = residue_indexer
 
         self.temperature_scaler = None
         self._coordinates = None
@@ -198,7 +201,7 @@ class System:
 
     def index_of_atom(self, residue_number, atom_name):
         try:
-            return self._atom_index[(residue_number, atom_name)]
+            return self.atom_index(residue_number, atom_name) + 1
         except KeyError:
             print(
                 f"Could not find atom index for residue_number={residue_number} "
@@ -719,7 +722,7 @@ class RunOptions:
     @property
     def rdc_patcher(self):
         return self._rdc_patcher
-    
+
     @rdc_patcher.setter
     def rdc_patcher(self, value):
         self._rdc_patcher = value
@@ -741,4 +744,30 @@ class RunOptions:
                     "solvation simulation"
                 )
             if self._use_amap == True:
-                raise ValueError('use_amap cannot be set with explicit solvent')
+                raise ValueError("use_amap cannot be set with explicit solvent")
+
+
+def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
+    # Load in top and crd files output by leap
+    with open(top_filename, "rt") as topfile:
+        top = topfile.read()
+    with open(crd_filename) as crdfile:
+        crd = crdfile.read()
+
+    # Allow patchers to modify top and crd strings
+    if patchers is None:
+        patchers = []
+    for patcher in patchers:
+        top, crd = patcher.patch(top, crd)
+
+    # Setup indexing
+    atom_indexer, residue_indexer = _setup_indexing(chains, ParmTopReader(top), CrdReader(crd))
+
+    # Create the system
+    system = System(top, crd, atom_indexer, residue_indexer)
+
+    # Allow the patchers to modify the system
+    for patcher in patchers:
+        patcher.finalize(system)
+
+    return system
