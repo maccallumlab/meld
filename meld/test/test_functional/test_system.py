@@ -416,10 +416,10 @@ class TestGetBonds(unittest.TestCase):
         self.bonds = ParmTopReader(sys.top_string).get_bonds()
 
     def test_correct_bonds_should_be_present(self):
-        self.assertIn((1, 5), self.bonds)  # N -CA
-        self.assertIn((5, 11), self.bonds)  # CA-C
-        self.assertIn((11, 13), self.bonds)  # C -N+1
-        self.assertIn((13, 11), self.bonds)  # make sure we can find either order
+        self.assertIn((0, 4), self.bonds)  # N -CA
+        self.assertIn((4, 10), self.bonds)  # CA-C
+        self.assertIn((10, 12), self.bonds)  # C -N+1
+        self.assertIn((12, 10), self.bonds)  # make sure we can find either order
 
     def test_wrong_bonds_should_not_be_present(self):
-        self.assertNotIn((1, 11), self.bonds)  # N-C should not be present
+        self.assertNotIn((0, 10), self.bonds)  # N-C should not be present

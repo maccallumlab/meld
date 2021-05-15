@@ -363,20 +363,21 @@ class ParmTopReader:
         bond_items += self.get_parameter_block("%FLAG BONDS_INC_HYDROGEN", chunksize=8)
         # the bonds section of the amber file is indexed by coordinate
         # to get the atom index we divide by three and add one
-        bond_items = [int(item) / 3 + 1 for item in bond_items]
+        bond_items = [int(item) // 3 + 1 for item in bond_items]
 
         bonds = set()
         # take the items 3 at a time, ignoring the type_index
         for i, j, _ in zip(bond_items[::3], bond_items[1::3], bond_items[2::3]):
-            # add both orders to make life easy for callers
-            bonds.add((i, j))
-            bonds.add((j, i))
+            # Add both orders to make life easy for callers.
+            # Amber is 1-based, but we are 0-based.
+            bonds.add((i - 1, j - 1))
+            bonds.add((j - 1, i - 1))
         return bonds
 
     def get_atom_map(self):
-        residue_numbers = self.get_residue_numbers()
+        residue_numbers = [r - 1 for r in self.get_residue_numbers()]
         atom_names = self.get_atom_names()
-        atom_numbers = range(1, len(atom_names) + 1)
+        atom_numbers = range(len(atom_names))
         return {
             (res_num, atom_name): atom_index
             for res_num, atom_name, atom_index in zip(

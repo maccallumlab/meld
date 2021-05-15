@@ -124,7 +124,7 @@ class RdcAlignmentPatcher(PatcherBase):
             # combine the old system with the new dummy atoms
             comb = base + parm
             last_index = comb.residues[-1].idx
-            self.resids = list(range(last_index - self.n_tensors + 2, last_index + 2))
+            self.resids = list(range(last_index - self.n_tensors + 1, last_index + 1))
 
             comb.write_parm(OUTTOP)
             comb.write_rst7(OUTRST)

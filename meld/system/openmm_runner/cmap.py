@@ -7,8 +7,8 @@ from collections import OrderedDict, namedtuple
 import os
 import math
 
-from simtk import openmm  #type: ignore
-import numpy as np  #type: ignore
+from simtk import openmm  # type: ignore
+import numpy as np  # type: ignore
 
 from meld.system.system import ParmTopReader
 
@@ -82,7 +82,7 @@ class CMAPAdder:
         self._ncap = ncap
         reader = ParmTopReader(self._top_string)
         self._bonds = reader.get_bonds()
-        self._residue_numbers = reader.get_residue_numbers()
+        self._residue_numbers = [r - 1 for r in reader.get_residue_numbers()]
         self._residue_names = reader.get_residue_names()
         self._atom_map = reader.get_atom_map()
         self._ala_map = None
@@ -109,13 +109,11 @@ class CMAPAdder:
             n_res = len(chain)
             for i in range(1, n_res - 1):
                 map_index = self._map_index[chain[i].res_name]
-                # subtract one from all of these to get zero-based indexing,
-                # as in openmm
-                c_prev = chain[i - 1].index_C - 1
-                n = chain[i].index_N - 1
-                ca = chain[i].index_CA - 1
-                c = chain[i].index_C - 1
-                n_next = chain[i + 1].index_N - 1
+                c_prev = chain[i - 1].index_C
+                n = chain[i].index_N
+                ca = chain[i].index_CA
+                c = chain[i].index_C
+                n_next = chain[i + 1].index_N
                 cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
 
