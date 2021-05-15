@@ -3,11 +3,14 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import math
+from abc import ABC, abstractmethod
+from typing import NamedTuple
+from .indexing import ChainInfo
 
 
-class ProteinBase:
+class _ProteinBase(ABC):
     """
     Base class for other Protein classes.
 
@@ -23,6 +26,24 @@ class ProteinBase:
         self._prep_files = []
         self._frcmod_files = []
         self._lib_files = []
+        self._chains = []
+
+    @abstractmethod
+    def prepare_for_tleap(self, mol_id):
+        """
+        Prepare any inputs needed for tleap
+
+        This runs in a temporary directory where tleap
+        will be run.
+        """
+        pass
+
+    @abstractmethod
+    def generate_tleap_input(self, mol_id):
+        """
+        Returns a list of tleap commands to run.
+        """
+        pass
 
     def set_translation(self, translation_vector):
         """
@@ -47,8 +68,8 @@ class ProteinBase:
         """
         theta = theta * 180 / math.pi
         rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
-        a = np.cos(theta / 2.)
-        b, c, d = -rotation_axis * np.sin(theta / 2.)
+        a = np.cos(theta / 2.0)
+        b, c, d = -rotation_axis * np.sin(theta / 2.0)
         self._rotatation_matrix = np.array(
             [
                 [
@@ -171,7 +192,7 @@ class ProteinBase:
         return lib_string
 
 
-class ProteinMoleculeFromSequence(ProteinBase):
+class ProteinMoleculeFromSequence(_ProteinBase):
     """
     Class to create a protein from sequence. This class will create a protein
     molecule from sequence. This class is pretty dumb and relies on AmberTools
@@ -189,6 +210,8 @@ class ProteinMoleculeFromSequence(ProteinBase):
     def __init__(self, sequence):
         super(ProteinMoleculeFromSequence, self).__init__()
         self._sequence = sequence
+        sequence_len = len(sequence.split(" "))
+        self._chains = [ChainInfo(0, sequence_len)]
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -208,7 +231,7 @@ class ProteinMoleculeFromSequence(ProteinBase):
         return leap_cmds
 
 
-class ProteinMoleculeFromPdbFile(ProteinBase):
+class ProteinMoleculeFromPdbFile(_ProteinBase):
     """
     Create a new protein molecule from a pdb file.
     This class is dumb and relies on AmberTools for the heavy lifting.
@@ -226,6 +249,9 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
         super(ProteinMoleculeFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
+
+        # figure out chains
+        raise RuntimeError()
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

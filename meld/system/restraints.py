@@ -138,6 +138,7 @@ import math
 import numpy as np  # type: ignore
 from collections import namedtuple
 from typing import Dict, Any
+from meld.system.indexing import AtomIndex
 
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
@@ -219,14 +220,8 @@ class DistanceRestraint(SelectableRestraint):
              A Scaler to vary the force constant with alpha.
              If ``None``, then a constant 1.0 scaler will
              be used.
-    atom_1_res_index : integer
-                       residue index starting from 1
-    atom_1_name : string
-                  atom name
-    atom_2_res_index : integer
-                       residue index starting from 1
-    atom_2_name : string
-                  atom name
+    atom_1 : AtomIndex
+    atom_2 : AtomIndex
     r1 : float or Positioner
          in nanometers
     r2 : float or Positioner
@@ -249,10 +244,8 @@ class DistanceRestraint(SelectableRestraint):
     ramp : Ramp or None
            A ramp to vary the force constant with simulation time.
            If ``None`` then a constant 1.0 ramp will be used.
-    atom_index_1 : int
-                   atom index starting from 1
-    atom_index_2 : int
-                   atom index starting from 1
+    atom_index_1 : AtomIndex
+    atom_index_2 : AtomIndex
     r1 : Positioner
          in nanometers
     r2 : Positioner
@@ -272,18 +265,19 @@ class DistanceRestraint(SelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
+        atom1,
+        atom2,
         r1,
         r2,
         r3,
         r4,
         k,
     ):
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        assert isinstance(atom1, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        assert isinstance(atom2, AtomIndex)
+        self.atom_index_2 = int(atom2)
+
         if isinstance(r1, Positioner):
             self.r1 = r1
         else:
@@ -365,8 +359,8 @@ class GMMDistanceRestraint(SelectableRestraint):
                   number of distances involved in GMM; max 32
     n_components : int
                    number of mixture components; max 32
-    atoms : [(res_index, atom_name)]
-            a list of (res_index, atom_name) tuples of length 2*n_distances
+    atoms : [AtomIndex]
+            a lit of AtomIndex of length `2 * n_distances`
     weights : array-like, shape(n_components)
               The weights for the mixture components
     means : array-like, shape(n_components, n_distances)
@@ -387,7 +381,7 @@ class GMMDistanceRestraint(SelectableRestraint):
                   number of distances involved in restraint
     n_components : int
                    number of mixture components
-    atoms : [int]
+    atoms : [AtomIndex]
                  a list of atom indices of length 2*n_distances
     weights : array-like, shape(n_components)
               The weights for the mixture components
@@ -439,8 +433,9 @@ class GMMDistanceRestraint(SelectableRestraint):
 
     def _setup_atoms(self, pair_list, system):
         self.atoms = []
-        for res_index, atom_name in pair_list:
-            self.atoms.append(system.index_of_atom(res_index, atom_name))
+        for index in pair_list:
+            assert isinstance(index, AtomIndex)
+            self.atoms.append(int(index))
 
     def _check(self, system):
         if len(self.atoms) != 2 * self.n_distances:
@@ -477,10 +472,8 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
+        atom1,
+        atom2,
         r1,
         r2,
         r3,
@@ -488,8 +481,10 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
         k,
         asymptote,
     ):
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        assert isinstance(atom1, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        assert isinstance(atom2, AtomIndex)
+        self.atom_index_2 = int(atom2)
         self.r1 = r1
         self.r2 = r2
         self.r3 = r3
@@ -549,23 +544,22 @@ class TorsionRestraint(SelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
-        atom_3_res_index,
-        atom_3_name,
-        atom_4_res_index,
-        atom_4_name,
+        atom1,
+        atom2,
+        atom3,
+        atom4,
         phi,
         delta_phi,
         k,
     ):
-
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
-        self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
-        self.atom_index_4 = system.index_of_atom(atom_4_res_index, atom_4_name)
+        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom3, AtomIndex)
+        assert isinstance(atom3, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        self.atom_index_2 = int(atom2)
+        self.atom_index_3 = int(atom3)
+        self.atom_index_4 = int(atom4)
         self.phi = phi
         self.delta_phi = delta_phi
         self.k = k
@@ -606,10 +600,8 @@ class DistProfileRestraint(SelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
+        atom1,
+        atom2,
         r_min,
         r_max,
         n_bins,
@@ -618,8 +610,10 @@ class DistProfileRestraint(SelectableRestraint):
     ):
         self.scaler = scaler
         self.ramp = ramp
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
+        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom2, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        self.atom_index_2 = int(atom2)
         self.r_min = r_min
         self.r_max = r_max
         self.n_bins = n_bins
@@ -643,36 +637,38 @@ class TorsProfileRestraint(SelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
-        atom_3_res_index,
-        atom_3_name,
-        atom_4_res_index,
-        atom_4_name,
-        atom_5_res_index,
-        atom_5_name,
-        atom_6_res_index,
-        atom_6_name,
-        atom_7_res_index,
-        atom_7_name,
-        atom_8_res_index,
-        atom_8_name,
+        atom1,
+        atom2,
+        atom3,
+        atom4,
+        atom5,
+        atom6,
+        atom7,
+        atom8,
         n_bins,
         spline_params,
         scale_factor,
     ):
         self.scaler = scaler
         self.ramp = ramp
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
-        self.atom_index_3 = system.index_of_atom(atom_3_res_index, atom_3_name)
-        self.atom_index_4 = system.index_of_atom(atom_4_res_index, atom_4_name)
-        self.atom_index_5 = system.index_of_atom(atom_5_res_index, atom_5_name)
-        self.atom_index_6 = system.index_of_atom(atom_6_res_index, atom_6_name)
-        self.atom_index_7 = system.index_of_atom(atom_7_res_index, atom_7_name)
-        self.atom_index_8 = system.index_of_atom(atom_8_res_index, atom_8_name)
+
+        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom3, AtomIndex)
+        assert isinstance(atom4, AtomIndex)
+        assert isinstance(atom5, AtomIndex)
+        assert isinstance(atom6, AtomIndex)
+        assert isinstance(atom7, AtomIndex)
+        assert isinstance(atom8, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        self.atom_index_2 = int(atom2)
+        self.atom_index_3 = int(atom3)
+        self.atom_index_4 = int(atom4)
+        self.atom_index_5 = int(atom5)
+        self.atom_index_6 = int(atom6)
+        self.atom_index_7 = int(atom7)
+        self.atom_index_8 = int(atom8)
+
         self.n_bins = n_bins
         self.spline_params = spline_params
         self.scale_factor = scale_factor
@@ -720,10 +716,8 @@ class RdcRestraint(NonSelectableRestraint):
         system,
         scaler,
         ramp,
-        atom_1_res_index,
-        atom_1_name,
-        atom_2_res_index,
-        atom_2_name,
+        atom1,
+        atom2,
         kappa,
         d_obs,
         tolerance,
@@ -733,10 +727,12 @@ class RdcRestraint(NonSelectableRestraint):
         expt_index,
         patcher,
     ):
-        self.atom_index_1 = system.index_of_atom(atom_1_res_index, atom_1_name)
-        self.atom_index_2 = system.index_of_atom(atom_2_res_index, atom_2_name)
-        self.s1_index = system.index_of_atom(patcher.resids[expt_index], "S1")
-        self.s2_index = system.index_of_atom(patcher.resids[expt_index], "S2")
+        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom2, AtomIndex)
+        self.atom_index_1 = int(atom1)
+        self.atom_index_2 = int(atom2)
+        self.s1_index = int(system.atom_index(patcher.resids[expt_index], "S1"))
+        self.s2_index = int(system.atom_index(patcher.resids[expt_index], "S2"))
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)
@@ -767,9 +763,8 @@ class ConfinementRestraint(NonSelectableRestraint):
 
     # :param system: a System object
     # :param scaler: a force scaler
-    # :param res_index: integer, starting from 1
-    # :param atom_name: atom name
-    # :param raidus: calculed couplings within tolerance (in Hz) of d_obs will
+    # :param atom_index: AtomIndex
+    # :param radius: calculed couplings within tolerance (in Hz) of d_obs will
     #                have zero energy and force
     # :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
 
@@ -782,8 +777,9 @@ class ConfinementRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "confine"
 
-    def __init__(self, system, scaler, ramp, res_index, atom_name, radius, force_const):
-        self.atom_index = system.index_of_atom(res_index, atom_name)
+    def __init__(self, system, scaler, ramp, atom_index, radius, force_const):
+        assert isinstance(atom_index, AtomIndex)
+        self.atom_index = int(atom_index)
         self.radius = float(radius)
         self.force_const = float(force_const)
         self.scaler = scaler
@@ -802,10 +798,9 @@ class CartesianRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "cartesian"
 
-    def __init__(
-        self, system, scaler, ramp, res_index, atom_name, x, y, z, delta, force_const
-    ):
-        self.atom_index = system.index_of_atom(res_index, atom_name)
+    def __init__(self, system, scaler, ramp, atom_index, x, y, z, delta, force_const):
+        assert isinstance(atom_index, AtomIndex)
+        self.atom_index = int(atom_index)
         self.x = x
         self.y = y
         self.z = z
@@ -827,10 +822,9 @@ class YZCartesianRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "yzcartesian"
 
-    def __init__(
-        self, system, scaler, ramp, res_index, atom_name, y, z, delta, force_const
-    ):
-        self.atom_index = system.index_of_atom(res_index, atom_name)
+    def __init__(self, system, scaler, ramp, atom_index, y, z, delta, force_const):
+        assert isinstance(atom_index, AtomIndex)
+        self.atom_index = int(atom_index)
         self.y = y
         self.z = z
         self.delta = delta
@@ -879,8 +873,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
              scaler for force constant
     ramp : Ramp or None
            ramp for force constant
-    group : list of tuple
-            [(res_index, atom_name), (res_index, atom_name)...]
+    group : list of AtomIndex
     weights : array_like
               Weights to use when calculating the COM. If ``None``, then
               the masses will be used.
@@ -932,7 +925,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
             raise ValueError("position should be an array of [x, y, z]")
 
         self.weights = weights
-        self.indices = self._get_indices(system, group)
+        self.indices = self._get_indices(group)
         self._check_weights()
 
     def _check_weights(self):
@@ -951,10 +944,12 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
             if self.dims.count(c) > 1:
                 raise ValueError(f"{c} occurs more than once in dims")
 
-    def _get_indices(self, system, group):
-        return [
-            system.index_of_atom(res_ind, atom_name) for (res_ind, atom_name) in group
-        ]
+    def _get_indices(self, group):
+        indices = []
+        for g in group:
+            assert isinstance(g, AtomIndex)
+            indices.append(int(g))
+        return indices
 
 
 class COMRestraint(NonSelectableRestraint):
@@ -991,10 +986,8 @@ class COMRestraint(NonSelectableRestraint):
              scaler for force constant
     ramp : Ramp or None
            ramp for force constant
-    group1 : list of tuple
-             [(res_index, atom_name), (res_index, atom_name)...]
-    group2 : list of tuple
-             [(res_index, atom_name), (res_index, atom_name)...]
+    group1 : list of AtomIndex
+    group2 : list of AtomIndex
     weights1 : array_like
                Weights to use when calculating the COM. If ``None``,
                then the atom masses will be used.
@@ -1053,8 +1046,8 @@ class COMRestraint(NonSelectableRestraint):
         self.scaler = scaler
         self.ramp = ramp
 
-        self.indices1 = self._get_indices(system, group1)
-        self.indices2 = self._get_indices(system, group2)
+        self.indices1 = self._get_indices(group1)
+        self.indices2 = self._get_indices(group2)
 
         # setup the weights
         self.weights1 = weights1
@@ -1088,10 +1081,12 @@ class COMRestraint(NonSelectableRestraint):
 
             self.positioner = ConstantPositioner(distance)
 
-    def _get_indices(self, system, group):
-        return [
-            system.index_of_atom(res_ind, atom_name) for (res_ind, atom_name) in group
-        ]
+    def _get_indices(self, group):
+        indices = []
+        for g in group:
+            assert isinstance(g, AtomIndex)
+            indices.append(int(g))
+        return indices
 
     def _check_dims(self):
         # check for non 'xyz'
@@ -1105,7 +1100,7 @@ class COMRestraint(NonSelectableRestraint):
 
 
 class AlwaysActiveCollection:
-    """"""
+    """ """
 
     def __init__(self):
         self._restraints = []
@@ -1123,7 +1118,7 @@ class AlwaysActiveCollection:
 
 
 class SelectivelyActiveCollection:
-    """"""
+    """ """
 
     def __init__(self, restraint_list, num_active):
         self._groups = []
@@ -1192,7 +1187,7 @@ class RestraintGroup:
 
 
 class RestraintManager:
-    """"""
+    """ """
 
     def __init__(self, system):
         self._system = system

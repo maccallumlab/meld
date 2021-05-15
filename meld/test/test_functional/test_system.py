@@ -49,12 +49,9 @@ class TestCreateFromSequence(unittest.TestCase):
             len(self.system.residue_names), self.system.coordinates.shape[0]
         )
 
-    def test_index_works(self):
-        self.assertEqual(self.system.index_of_atom(1, "N"), 1)
-        self.assertEqual(self.system.index_of_atom(3, "OXT"), 33)
-
     def test_temperature_scaler_defaults_to_none(self):
         self.assertEqual(self.system.temperature_scaler, None)
+
 
 class TestCreateFromSequenceExplicit(TestCreateFromSequence):
     def setUp(self):
@@ -90,12 +87,12 @@ class TestCreateFromSequenceExplicit(TestCreateFromSequence):
             len(self.system.residue_names), self.system.coordinates.shape[0]
         )
 
+
 class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
     def setUp(self):
         p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder(
-            explicit_solvent=True, explicit_ions=True,
-            p_ioncount=3, n_ioncount=3
+            explicit_solvent=True, explicit_ions=True, p_ioncount=3, n_ioncount=3
         )
         self.system = b.build_system_from_molecules([p])
 
@@ -129,12 +126,11 @@ class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
             len(self.system.residue_names), self.system.coordinates.shape[0]
         )
 
+
 class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
     def setUp(self):
         p = protein.ProteinMoleculeFromSequence("NALA GLU CALA")
-        b = builder.SystemBuilder(
-            explicit_solvent=True, explicit_ions=True
-        )
+        b = builder.SystemBuilder(explicit_solvent=True, explicit_ions=True)
         self.system = b.build_system_from_molecules([p])
 
     def test_has_correct_number_of_atoms(self):
@@ -166,21 +162,18 @@ class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
             len(self.system.residue_names), self.system.coordinates.shape[0]
         )
 
-    def test_index_works(self):
-        self.assertEqual(self.system.index_of_atom(1, "N"), 1)
-        self.assertEqual(self.system.index_of_atom(3, "OXT"), 38)
 
 class TestConstantTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = ConstantTemperatureScaler(300.)
+        self.s = ConstantTemperatureScaler(300.0)
 
     def test_returns_constant_when_alpha_is_zero(self):
-        t = self.s(0.)
-        self.assertAlmostEqual(t, 300.)
+        t = self.s(0.0)
+        self.assertAlmostEqual(t, 300.0)
 
     def test_returns_constant_when_alpha_is_one(self):
-        t = self.s(1.)
-        self.assertAlmostEqual(t, 300.)
+        t = self.s(1.0)
+        self.assertAlmostEqual(t, 300.0)
 
     def test_raises_when_alpha_below_zero(self):
         with self.assertRaises(RuntimeError):
@@ -190,21 +183,22 @@ class TestConstantTemperatureScaler(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.s(2)
 
+
 class TestLinearTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = LinearTemperatureScaler(0.2, 0.8, 300., 500.)
+        self.s = LinearTemperatureScaler(0.2, 0.8, 300.0, 500.0)
 
     def test_returns_min_when_alpha_is_low(self):
         t = self.s(0)
-        self.assertAlmostEqual(t, 300.)
+        self.assertAlmostEqual(t, 300.0)
 
     def test_returns_max_when_alpha_is_high(self):
         t = self.s(1)
-        self.assertAlmostEqual(t, 500.)
+        self.assertAlmostEqual(t, 500.0)
 
     def test_returns_mid_when_alpha_is_half(self):
         t = self.s(0.5)
-        self.assertAlmostEqual(t, 400.)
+        self.assertAlmostEqual(t, 400.0)
 
     def test_raises_when_alpha_below_zero(self):
         with self.assertRaises(RuntimeError):
@@ -216,31 +210,31 @@ class TestLinearTemperatureScaler(unittest.TestCase):
 
     def test_raises_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(-0.1, 0.8, 300., 500.)
+            LinearTemperatureScaler(-0.1, 0.8, 300.0, 500.0)
 
     def test_raises_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(1.1, 0.8, 300., 500.)
+            LinearTemperatureScaler(1.1, 0.8, 300.0, 500.0)
 
     def test_raises_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, -0.1, 300., 500.)
+            LinearTemperatureScaler(0.0, -0.1, 300.0, 500.0)
 
     def test_raises_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.1, 300., 500.)
+            LinearTemperatureScaler(0.0, 1.1, 300.0, 500.0)
 
     def test_raises_when_alpha_min_above_alpha_max(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(1.0, 0.0, 300., 500.)
+            LinearTemperatureScaler(1.0, 0.0, 300.0, 500.0)
 
     def test_raises_when_temp_min_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.0, -300., 500.)
+            LinearTemperatureScaler(0.0, 1.0, -300.0, 500.0)
 
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.0, 300., -500.)
+            LinearTemperatureScaler(0.0, 1.0, 300.0, -500.0)
 
 
 class TestFixedTemperatureScaler(unittest.TestCase):
@@ -249,15 +243,15 @@ class TestFixedTemperatureScaler(unittest.TestCase):
 
     def test_returns_min_when_alpha_is_low(self):
         t = self.s(0)
-        self.assertAlmostEqual(t, 300.)
+        self.assertAlmostEqual(t, 300.0)
 
     def test_returns_max_when_alpha_is_high(self):
         t = self.s(1)
-        self.assertAlmostEqual(t, 403.)
+        self.assertAlmostEqual(t, 403.0)
 
     def test_returns_mid_when_alpha_is_half(self):
         t = self.s(0.50)
-        self.assertAlmostEqual(t, 380.)
+        self.assertAlmostEqual(t, 380.0)
 
     def test_raises_when_alpha_below_zero(self):
         with self.assertRaises(RuntimeError):
@@ -290,15 +284,15 @@ class TestFixedTemperatureScaler(unittest.TestCase):
 
 class TestGeometricTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = GeometricTemperatureScaler(0.2, 0.8, 300., 500.)
+        self.s = GeometricTemperatureScaler(0.2, 0.8, 300.0, 500.0)
 
     def test_returns_min_when_alpha_is_low(self):
         t = self.s(0)
-        self.assertAlmostEqual(t, 300.)
+        self.assertAlmostEqual(t, 300.0)
 
     def test_returns_max_when_alpha_is_high(self):
         t = self.s(1)
-        self.assertAlmostEqual(t, 500.)
+        self.assertAlmostEqual(t, 500.0)
 
     def test_returns_mid_when_alpha_is_half(self):
         t = self.s(0.5)
@@ -314,31 +308,31 @@ class TestGeometricTemperatureScaler(unittest.TestCase):
 
     def test_raises_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(-0.1, 0.8, 300., 500.)
+            GeometricTemperatureScaler(-0.1, 0.8, 300.0, 500.0)
 
     def test_raises_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(1.1, 0.8, 300., 500.)
+            GeometricTemperatureScaler(1.1, 0.8, 300.0, 500.0)
 
     def test_raises_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, -0.1, 300., 500.)
+            GeometricTemperatureScaler(0.0, -0.1, 300.0, 500.0)
 
     def test_raises_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.1, 300., 500.)
+            GeometricTemperatureScaler(0.0, 1.1, 300.0, 500.0)
 
     def test_raises_when_alpha_min_above_alpha_max(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(1.0, 0.0, 300., 500.)
+            GeometricTemperatureScaler(1.0, 0.0, 300.0, 500.0)
 
     def test_raises_when_temp_min_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.0, -300., 500.)
+            GeometricTemperatureScaler(0.0, 1.0, -300.0, 500.0)
 
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.0, 300., -500.)
+            GeometricTemperatureScaler(0.0, 1.0, 300.0, -500.0)
 
 
 class TestOptions(unittest.TestCase):
@@ -383,18 +377,19 @@ class TestOptions(unittest.TestCase):
 
     def test_cutoff_should_raise_with_non_positive_value(self):
         with self.assertRaises(RuntimeError):
-            self.options.cutoff = 0.
+            self.options.cutoff = 0.0
 
     def test_use_big_timestep_defaults_to_false(self):
         self.assertEqual(self.options.use_big_timestep, False)
 
     def test_use_amap_defaults_to_false(self):
         self.assertEqual(self.options.use_amap, False)
-    
+
+
 class TestOptionsImplicitSanityCheck(unittest.TestCase):
     def setUp(self):
         self.options = RunOptions(solvation="implicit")
-    
+
     def test_setting_enable_pme_should_raise(self):
         with self.assertRaises(ValueError):
             self.options.enable_pme = True
@@ -403,14 +398,14 @@ class TestOptionsImplicitSanityCheck(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.options.enable_pressure_coupling = True
 
+
 class TestOptionsExplicitSanityCheck(unittest.TestCase):
     def setUp(self):
         self.options = RunOptions(solvation="explicit")
-    
+
     def test_setting_usse_amap_should_riase(self):
         with self.assertRaises(ValueError):
             self.options.use_amap = True
-
 
 
 class TestGetBonds(unittest.TestCase):
@@ -421,10 +416,10 @@ class TestGetBonds(unittest.TestCase):
         self.bonds = ParmTopReader(sys.top_string).get_bonds()
 
     def test_correct_bonds_should_be_present(self):
-        self.assertIn((1, 5), self.bonds)  # N -CA
-        self.assertIn((5, 11), self.bonds)  # CA-C
-        self.assertIn((11, 13), self.bonds)  # C -N+1
-        self.assertIn((13, 11), self.bonds)  # make sure we can find either order
+        self.assertIn((0, 4), self.bonds)  # N -CA
+        self.assertIn((4, 10), self.bonds)  # CA-C
+        self.assertIn((10, 12), self.bonds)  # C -N+1
+        self.assertIn((12, 10), self.bonds)  # make sure we can find either order
 
     def test_wrong_bonds_should_not_be_present(self):
-        self.assertNotIn((1, 11), self.bonds)  # N-C should not be present
+        self.assertNotIn((0, 10), self.bonds)  # N-C should not be present

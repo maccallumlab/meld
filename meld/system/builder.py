@@ -4,34 +4,24 @@
 #
 
 from meld import util
-from meld.system.system import System
+from meld.system.system import _load_amber_system 
+from .indexing import ChainInfo
 import subprocess
 
 
-def load_amber_system(top_filename, crd_filename, patchers=None):
-    if patchers is None:
-        patchers = []
-
-    with open(top_filename, "rt") as topfile:
-        top = topfile.read()
-    with open(crd_filename) as crdfile:
-        crd = crdfile.read()
-
-    for patcher in patchers:
-        top, crd = patcher.patch(top, crd)
-
-    system = System(top, crd)
-
-    for patcher in patchers:
-        patcher.finalize(system)
-
-    return system
-
-
 class SystemBuilder:
-    def __init__(self, forcefield="ff14sbside", gb_radii="mbondi3",
-        explicit_solvent=False, solvent_forcefield="tip3p", solvent_distance=6,
-        explicit_ions=False, p_ion="Na+", p_ioncount=0, n_ion="Cl-", n_ioncount=0
+    def __init__(
+        self,
+        forcefield="ff14sbside",
+        gb_radii="mbondi3",
+        explicit_solvent=False,
+        solvent_forcefield="tip3p",
+        solvent_distance=6,
+        explicit_ions=False,
+        p_ion="Na+",
+        p_ioncount=0,
+        n_ion="Cl-",
+        n_ioncount=0,
     ):
         self._forcefield = None
         self._set_forcefield(forcefield)
@@ -61,15 +51,26 @@ class SystemBuilder:
             leap_header_cmds = [leap_header_cmds]
 
         with util.in_temp_dir():
-            leap_cmds = []
             mol_ids = []
+            chains = []
+            current_res_index = 0
+            leap_cmds = []
             leap_cmds.extend(self._generate_leap_header())
             leap_cmds.extend(leap_header_cmds)
             for index, mol in enumerate(molecules):
+                # First we'll update the indexing for this molecule
+                for chain in mol._chains:
+                    start = chain.start + current_res_index
+                    end = chain.end + current_res_index
+                    chains.append(ChainInfo(start, end))
+                current_res_index += max(chain.end for chain in mol._chains)
+
+                # now add the leap commands for this molecule
                 mol_id = f"mol_{index}"
                 mol_ids.append(mol_id)
                 mol.prepare_for_tleap(mol_id)
                 leap_cmds.extend(mol.generate_tleap_input(mol_id))
+
             if self._explicit_solvent:
                 leap_cmds.extend(self._generate_solvent(mol_ids))
                 leap_cmds.extend(self._generate_leap_footer([f"solute"]))
@@ -81,7 +82,7 @@ class SystemBuilder:
                 tleap_file.write(tleap_string)
             subprocess.check_call("tleap -f tleap.in > tleap.out", shell=True)
 
-            return load_amber_system("system.top", "system.mdcrd", patchers)
+            return _load_amber_system("system.top", "system.mdcrd", chains, patchers)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {
@@ -105,14 +106,14 @@ class SystemBuilder:
         ff_dict = {
             "spce": "leaprc.water.spce",
             "spceb": "leaprc.water.spceb",
-            "opc":  "leaprc.water.opc",
+            "opc": "leaprc.water.opc",
             "tip3p": "leaprc.water.tip3p",
             "tip4pew": "leaprc.water.tip4pew",
         }
         box_dict = {
             "spce": "SPCBOX",
             "spceb": "SPCBOX",
-            "opc":  "OPCBOX",
+            "opc": "OPCBOX",
             "tip3p": "TIP3PBOX",
             "tip4pew": "TIP4PEWBOX",
         }
@@ -120,7 +121,7 @@ class SystemBuilder:
             self._solvent_forcefield = ff_dict[solvent_forcefield]
             self._solvent_box = box_dict[solvent_forcefield]
         except KeyError:
-            raise RuntimeError(f"Unknown solvent_model: {solvent_model}")
+            raise RuntimeError(f"Unknown solvent_model: {solvent_forcefield}")
 
     def _set_positive_ion_type(self, ion_type):
         allowed = ["Na+", "K+", "Li+", "Rb+", "Cs+", "Mg+"]

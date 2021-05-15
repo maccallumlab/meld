@@ -3,6 +3,7 @@ This module implements `Patcher` classes that can modify
 the system to include new atoms and/or paramters.
 """
 
+from meld.system.indexing import ResidueIndex
 import parmed as pmd  # type: ignore
 from meld import util
 from parmed import unit as u
@@ -123,7 +124,7 @@ class RdcAlignmentPatcher(PatcherBase):
             # combine the old system with the new dummy atoms
             comb = base + parm
             last_index = comb.residues[-1].idx
-            self.resids = list(range(last_index - self.n_tensors + 2, last_index + 2))
+            self.resids = list(range(last_index - self.n_tensors + 1, last_index + 1))
 
             comb.write_parm(OUTTOP)
             comb.write_rst7(OUTRST)
@@ -152,8 +153,8 @@ class VirtualSpinLabelPatcher(PatcherBase):
 
         Parameters
         ----------
-        params : {int: string}
-            A dictionary with 1-based resdiue indices
+        params : {ResidueIndex: string}
+            A dictionary of resdiue indices
             and corresponding spin label types.
         explicit_solvent : bool
             A flag indicating if this is an explicit
@@ -165,6 +166,10 @@ class VirtualSpinLabelPatcher(PatcherBase):
         taken from:
         Islam, Stein, Mchaourab, and Roux, J. Phys. Chem. B 2013, 117, 4740-4754.
         """
+        for key in params:
+            assert isinstance(key, ResidueIndex)
+            assert params[key] in self.ALLOWED_TYPES
+
         self.params = params
         self.explicit = explicit_solvent
 
@@ -199,10 +204,10 @@ class VirtualSpinLabelPatcher(PatcherBase):
             site_type = self.params[res_index]
 
             # find the atoms
-            n_index = system.index_of_atom(res_index, "N")
-            ca_index = system.index_of_atom(res_index, "CA")
-            cb_index = system.index_of_atom(res_index, "CB")
-            ond_index = system.index_of_atom(res_index, "OND")
+            n_index = system.atom_index(int(res_index), "N")
+            ca_index = system.atom_index(int(res_index), "CA")
+            cb_index = system.atom_index(int(res_index), "CB")
+            ond_index = system.atom_index(int(res_index), "OND")
 
             # add the extra parameters
             system.add_extra_bond(
@@ -250,12 +255,12 @@ class VirtualSpinLabelPatcher(PatcherBase):
                 atom.screen = screen
 
             # add to system
-            topol.add_atom_to_residue(atom, topol.residues[key - 1])
+            topol.add_atom_to_residue(atom, topol.residues[int(key)])
 
             # find the other atoms
-            ca = topol.view[f":{key},@CA"].atoms[0]
-            cb = topol.view[f":{key},@CB"].atoms[0]
-            n = topol.view[f":{key},@N"].atoms[0]
+            ca = topol.view[f":{int(key)+1},@CA"].atoms[0]
+            cb = topol.view[f":{int(key)+1},@CB"].atoms[0]
+            n = topol.view[f":{int(key)+1},@N"].atoms[0]
 
             # Mark that the spin label and CA are connected.
             # This will not actually add a bond to the potential,

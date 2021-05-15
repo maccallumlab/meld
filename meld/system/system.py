@@ -9,6 +9,7 @@ from collections import namedtuple
 
 from meld.system.restraints import RestraintManager
 from meld.pdb_writer import PDBWriter
+from .indexing import _setup_indexing, AtomIndex
 from simtk.unit import atmosphere  # type: ignore
 
 
@@ -151,10 +152,12 @@ ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity
 
 
 class System:
-    def __init__(self, top_string, mdcrd_string):
+    def __init__(self, top_string, mdcrd_string, atom_indexer, residue_indexer):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = RestraintManager(self)
+        self.atom_index = atom_indexer
+        self.residue_index = residue_indexer
 
         self.temperature_scaler = None
         self._coordinates = None
@@ -196,16 +199,6 @@ class System:
     def residue_names(self):
         return self._residue_names
 
-    def index_of_atom(self, residue_number, atom_name):
-        try:
-            return self._atom_index[(residue_number, atom_name)]
-        except KeyError:
-            print(
-                f"Could not find atom index for residue_number={residue_number} "
-                f"and atom name={atom_name}."
-            )
-            raise
-
     def get_pdb_writer(self):
         return PDBWriter(
             range(1, len(self._atom_names) + 1),
@@ -215,22 +208,35 @@ class System:
         )
 
     def add_extra_bond(self, i, j, length, force_constant):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
         self.extra_bonds.append(
-            ExtraBondParam(i=i, j=j, length=length, force_constant=force_constant)
+            ExtraBondParam(
+                i=int(i), j=int(j), length=length, force_constant=force_constant
+            )
         )
 
     def add_extra_angle(self, i, j, k, angle, force_constant):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
+        assert isinstance(k, AtomIndex)
         self.extra_restricted_angles.append(
-            ExtraAngleParam(i=i, j=j, k=k, angle=angle, force_constant=force_constant)
+            ExtraAngleParam(
+                i=int(i), j=int(j), k=int(k), angle=angle, force_constant=force_constant
+            )
         )
 
     def add_extra_torsion(self, i, j, k, l, phase, energy, multiplicity):
+        assert isinstance(i, AtomIndex)
+        assert isinstance(j, AtomIndex)
+        assert isinstance(k, AtomIndex)
+        assert isinstance(l, AtomIndex)
         self.extra_torsions.append(
             ExtraTorsParam(
-                i=i,
-                j=j,
-                k=k,
-                l=l,
+                i=int(i),
+                j=int(j),
+                k=int(k),
+                l=int(l),
                 phase=phase,
                 energy=energy,
                 multiplicity=multiplicity,
@@ -248,8 +254,6 @@ class System:
 
         self._residue_names = reader.get_residue_names()
         assert len(self._residue_names) == self._n_atoms
-
-        self._atom_index = reader.get_atom_map()
 
     def _setup_coords(self):
         reader = CrdReader(self._mdcrd_string)
@@ -359,20 +363,21 @@ class ParmTopReader:
         bond_items += self.get_parameter_block("%FLAG BONDS_INC_HYDROGEN", chunksize=8)
         # the bonds section of the amber file is indexed by coordinate
         # to get the atom index we divide by three and add one
-        bond_items = [int(item) / 3 + 1 for item in bond_items]
+        bond_items = [int(item) // 3 + 1 for item in bond_items]
 
         bonds = set()
         # take the items 3 at a time, ignoring the type_index
         for i, j, _ in zip(bond_items[::3], bond_items[1::3], bond_items[2::3]):
-            # add both orders to make life easy for callers
-            bonds.add((i, j))
-            bonds.add((j, i))
+            # Add both orders to make life easy for callers.
+            # Amber is 1-based, but we are 0-based.
+            bonds.add((i - 1, j - 1))
+            bonds.add((j - 1, i - 1))
         return bonds
 
     def get_atom_map(self):
-        residue_numbers = self.get_residue_numbers()
+        residue_numbers = [r - 1 for r in self.get_residue_numbers()]
         atom_names = self.get_atom_names()
-        atom_numbers = range(1, len(atom_names) + 1)
+        atom_numbers = range(len(atom_names))
         return {
             (res_num, atom_name): atom_index
             for res_num, atom_name, atom_index in zip(
@@ -719,7 +724,7 @@ class RunOptions:
     @property
     def rdc_patcher(self):
         return self._rdc_patcher
-    
+
     @rdc_patcher.setter
     def rdc_patcher(self, value):
         self._rdc_patcher = value
@@ -741,4 +746,32 @@ class RunOptions:
                     "solvation simulation"
                 )
             if self._use_amap == True:
-                raise ValueError('use_amap cannot be set with explicit solvent')
+                raise ValueError("use_amap cannot be set with explicit solvent")
+
+
+def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
+    # Load in top and crd files output by leap
+    with open(top_filename, "rt") as topfile:
+        top = topfile.read()
+    with open(crd_filename) as crdfile:
+        crd = crdfile.read()
+
+    # Allow patchers to modify top and crd strings
+    if patchers is None:
+        patchers = []
+    for patcher in patchers:
+        top, crd = patcher.patch(top, crd)
+
+    # Setup indexing
+    atom_indexer, residue_indexer = _setup_indexing(
+        chains, ParmTopReader(top), CrdReader(crd)
+    )
+
+    # Create the system
+    system = System(top, crd, atom_indexer, residue_indexer)
+
+    # Allow the patchers to modify the system
+    for patcher in patchers:
+        patcher.finalize(system)
+
+    return system

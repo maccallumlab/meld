@@ -66,12 +66,14 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner(self):
-        # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
+        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        b = system.SystemBuilder(explicit_solvent=True)
+        sys = b.build_system_from_molecules([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions(solvation="explicit")
-        options.timesteps = 20
+        options.minimize_steps = 100
+        options.timesteps = 2
 
         runner = OpenMMRunner(sys, options, platform="Reference")
         runner.prepare_for_timestep(0., 1)
@@ -89,14 +91,16 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner_scaler(self):
-        # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
+        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        b = system.SystemBuilder(explicit_solvent=True)
+        sys = b.build_system_from_molecules([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
         rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300., 350.)
 
         options = system.RunOptions(solvation="explicit")
         options.rest2_scaler = system.REST2Scaler(300., rest2_scaler)
-        options.timesteps = 20
+        options.minimize_steps = 100
+        options.timesteps = 2
         options.use_rest2 = True
 
         runner = OpenMMRunner(sys, options, platform="Reference")

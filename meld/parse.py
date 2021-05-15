@@ -22,6 +22,7 @@ from meld.system.restraints import (
     RestraintScaler,
 )
 from meld.system.patchers import RdcAlignmentPatcher
+from meld.system.indexing import ResidueIndex
 
 SequenceString = NewType("SequenceString", str)
 SecondaryString = NewType("SecondaryString", str)
@@ -220,7 +221,7 @@ def get_secondary_structure_restraints(
     torsion_force_constant: float = 2.48,
     distance_force_constant: float = 2.48,
     quadratic_cut: float = 2.0,
-    first_residue: int = 1,
+    first_residue: Optional[ResidueIndex] = None,
     min_secondary_match: int = 4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
@@ -245,8 +246,8 @@ def get_secondary_structure_restraints(
         Switch from quadratic to linear beyond this distance, Angstrom
     min_secondary_match : int
         Minimum number of elements to match in secondary structure,
-    first_residue : int
-        Residue at which to delineate peptide vs. protein,
+    first_residue : Optional[ResidueIndex]
+        Residue at which these secondary structure restraints start
     filename : string
         Filename to open
     content : string
@@ -267,6 +268,11 @@ def get_secondary_structure_restraints(
     if ramp is None:
         ramp = ConstantRamp()
 
+    if first_residue is None:
+        first_residue = ResidueIndex(0)
+    else:
+        assert isinstance(first_residue, ResidueIndex)
+
     if min_secondary_match > 5:
         raise RuntimeError(
             "Minimum number of elements to match in secondary structure "
@@ -275,9 +281,9 @@ def get_secondary_structure_restraints(
     min_secondary_match = int(min_secondary_match)
 
     contents = _get_secondary_sequence(filename, content, file)
-    torsion_force_constant /= 100.
-    distance_force_constant *= 100.
-    quadratic_cut /= 10.
+    torsion_force_constant /= 100.0
+    distance_force_constant *= 100.0
+    quadratic_cut /= 10.0
 
     groups = []
 
@@ -291,14 +297,10 @@ def get_secondary_structure_restraints(
                 system,
                 scaler,
                 ramp,
-                index - 1,
-                "C",
-                index,
-                "N",
-                index,
-                "CA",
-                index,
-                "C",
+                system.atom_index(index - 1, "C"),
+                system.atom_index(index, "N"),
+                system.atom_index(index, "CA"),
+                system.atom_index(index, "C"),
                 -62.5,
                 17.5,
                 torsion_force_constant,
@@ -307,14 +309,10 @@ def get_secondary_structure_restraints(
                 system,
                 scaler,
                 ramp,
-                index,
-                "N",
-                index,
-                "CA",
-                index,
-                "C",
-                index + 1,
-                "N",
+                system.atom_index(index, "N"),
+                system.atom_index(index, "CA"),
+                system.atom_index(index, "C"),
+                system.atom_index(index + 1, "N"),
                 -42.5,
                 17.5,
                 torsion_force_constant,
@@ -325,10 +323,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            helix.start,
-            "CA",
-            helix.start + 3,
-            "CA",
+            system.atom_index(helix.start, "CA"),
+            system.atom_index(helix.start + 3, "CA"),
             0,
             0.485,
             0.561,
@@ -339,10 +335,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            helix.start + 1,
-            "CA",
-            helix.start + 4,
-            "CA",
+            system.atom_index(helix.start + 1, "CA"),
+            system.atom_index(helix.start + 4, "CA"),
             0,
             0.485,
             0.561,
@@ -353,10 +347,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            helix.start,
-            "CA",
-            helix.start + 4,
-            "CA",
+            system.atom_index(helix.start, "CA"),
+            system.atom_index(helix.start + 4, "CA"),
             0,
             0.581,
             0.684,
@@ -379,14 +371,10 @@ def get_secondary_structure_restraints(
                 system,
                 scaler,
                 ramp,
-                index - 1,
-                "C",
-                index,
-                "N",
-                index,
-                "CA",
-                index,
-                "C",
+                system.atom_index(index - 1, "C"),
+                system.atom_index(index, "N"),
+                system.atom_index(index, "CA"),
+                system.atom_index(index, "C"),
                 -117.5,
                 27.5,
                 torsion_force_constant,
@@ -395,14 +383,10 @@ def get_secondary_structure_restraints(
                 system,
                 scaler,
                 ramp,
-                index,
-                "N",
-                index,
-                "CA",
-                index,
-                "C",
-                index + 1,
-                "N",
+                system.atom_index(index, "N"),
+                system.atom_index(index, "CA"),
+                system.atom_index(index, "C"),
+                system.atom_index(index + 1, "N"),
                 145,
                 25.0,
                 torsion_force_constant,
@@ -413,10 +397,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            ext.start,
-            "CA",
-            ext.start + 3,
-            "CA",
+            system.atom_index(ext.start, "CA"),
+            system.atom_index(ext.start + 3, "CA"),
             0,
             0.785,
             1.063,
@@ -427,10 +409,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            ext.start + 1,
-            "CA",
-            ext.start + 4,
-            "CA",
+            system.atom_index(ext.start + 1, "CA"),
+            system.atom_index(ext.start + 4, "CA"),
             0,
             0.785,
             1.063,
@@ -441,10 +421,8 @@ def get_secondary_structure_restraints(
             system,
             scaler,
             ramp,
-            ext.start,
-            "CA",
-            ext.start + 4,
-            "CA",
+            system.atom_index(ext.start, "CA"),
+            system.atom_index(ext.start + 4, "CA"),
             0,
             1.086,
             1.394,
@@ -498,7 +476,7 @@ def _extract_secondary_runs(
 
     # At this point, the runs are zero-based relative to the start of the
     # secondary structure string. Now, we'll add the offset to make them
-    # one-based and relative to the first residue
+    # relative to the first residue
     results = [
         SecondaryRun(s.start + first_residue, s.end + first_residue) for s in results
     ]
@@ -527,7 +505,7 @@ def get_rdc_restraints(
     patcher: RdcAlignmentPatcher,
     scaler: RestraintScaler,
     ramp: Optional[TimeRamp] = None,
-    quadratic_cut: float = 99999.,
+    quadratic_cut: float = 99999.0,
     scale_factor: float = 1.0e4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
@@ -590,18 +568,19 @@ def get_rdc_restraints(
         obs = float(cols[4])
         expt = int(cols[5])
         tolerance = float(cols[6])
-        kappa = float(cols[7]) / scale_factor / 1000.  # convert Hz A^3 to Hz nm^3
+        kappa = float(cols[7]) / scale_factor / 1000.0  # convert Hz A^3 to Hz nm^3
         force_const = float(cols[8])
         weight = float(cols[9])
+
+        atom_index_i = system.atom_index(res_i, atom_i, one_based=True)
+        atom_index_j = system.atom_index(res_j, atom_j, one_based=True)
 
         rest = RdcRestraint(
             system,
             scaler,
             ramp,
-            res_i,
-            atom_i,
-            res_j,
-            atom_j,
+            atom_index_i,
+            atom_index_j,
             kappa,
             obs,
             tolerance,
