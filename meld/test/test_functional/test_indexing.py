@@ -62,6 +62,23 @@ class TestAtomIndexingZeroBased(unittest.TestCase):
             self.system.atom_index(2, "CA", chainid=1, one_based=False), 57
         )
 
+    def test_expected_resname_mismatch_should_raise(self):
+        with self.assertRaises(KeyError):
+            # This residue is an alanine
+            self.system.atom_index(1, "CA", expected_resname="CYS")
+
+    def test_expected_resname_should_handle_n_term(self):
+        self.assertEqual(
+            self.system.atom_index(0, "CA", expected_resname="ALA", chainid=0, one_based=False),
+            4,
+        )
+
+    def test_expected_resname_should_handle_c_term(self):
+        self.assertEqual(
+            self.system.atom_index(2, "CA", expected_resname="ALA", chainid=0, one_based=False),
+            24,
+        )
+
 
 class TestResidueIndexingOneBased(unittest.TestCase):
     def setUp(self):
@@ -109,3 +126,72 @@ class TestResidueIndexingZeroBased(unittest.TestCase):
         self.assertEqual(self.system.residue_index(0, chainid=1, one_based=False), 3)
         self.assertEqual(self.system.residue_index(1, chainid=1, one_based=False), 4)
         self.assertEqual(self.system.residue_index(2, chainid=1, one_based=False), 5)
+
+class TestResidueIndexingExpectedResname(unittest.TestCase):
+    def setUp(self):
+        p1 = protein.SubSystemFromSequence("NALA CYS CLYS")
+        p2 = protein.SubSystemFromSequence("NARG TRP CTYR")
+        b = builder.SystemBuilder()
+        self.system = b.build_system([p1, p2])
+
+    def test_expected_resname_mismatch_should_raise(self):
+        with self.assertRaises(KeyError):
+            # This residue is CYS, not a VAL
+            self.system.residue_index(1, expected_resname="VAL", one_based=False)
+
+    def test_expected_resname_should_match(self):
+        self.system.residue_index(0, expected_resname="ALA", one_based=False)
+        self.system.residue_index(1, expected_resname="CYS", one_based=False)
+        self.system.residue_index(2, expected_resname="LYS", one_based=False)
+        self.system.residue_index(3, expected_resname="ARG", one_based=False)
+        self.system.residue_index(4, expected_resname="TRP", one_based=False)
+        self.system.residue_index(5, expected_resname="TYR", one_based=False)
+
+class TestResidueIndexingHistidine(unittest.TestCase):
+    def test_hid_should_match_his(self):
+        p1 = protein.SubSystemFromSequence("NALA HID CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="HIS", one_based=False)
+
+    def test_hie_should_match_his(self):
+        p1 = protein.SubSystemFromSequence("NALA HIE CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="HIS", one_based=False)
+
+    def test_hip_should_match_his(self):
+        p1 = protein.SubSystemFromSequence("NALA HIP CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="HIS", one_based=False)
+
+class TestResidueIndexingAsparticAcid(unittest.TestCase):
+    def test_ash_should_match_asp(self):
+        p1 = protein.SubSystemFromSequence("NALA ASH CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="ASP", one_based=False)
+
+class TestResidueIndexingGlutamicAcid(unittest.TestCase):
+    def test_ash_should_match_asp(self):
+        p1 = protein.SubSystemFromSequence("NALA GLH CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="GLU", one_based=False)
+
+class TestResidueIndexingLysine(unittest.TestCase):
+    def test_lyn_should_match_lys(self):
+        p1 = protein.SubSystemFromSequence("NALA LYN CLYS")
+        b = builder.SystemBuilder()
+        system = b.build_system([p1])
+        system.residue_index(1, expected_resname="LYS", one_based=False)
+
+class TestResidueIndexingDisulfide(unittest.TestCase):
+    def test_lyn_should_match_lys(self):
+        p = protein.SubSystemFromSequence("NCYX ALA CCYX")
+        p.add_disulfide(0, 2)
+        b = builder.SystemBuilder()
+        system = b.build_system([p])
+        system.residue_index(0, expected_resname="CYS", one_based=False)
+        system.residue_index(2, expected_resname="CYS", one_based=False)

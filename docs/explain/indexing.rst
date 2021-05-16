@@ -27,8 +27,8 @@ Functions for indexing
 
 The two primary ways for indexing are both methods of the sytem object:
 
-- :code:`system.atom_index(resid, atom_name, res_name=None, chainid=None, one_based=False)`
-- :code:`system.residue_index(resid, res_name=None, chainid=None, one_based=False)`
+- :code:`system.atom_index(resid, atom_name, expected_resname=None, chainid=None, one_based=False)`
+- :code:`system.residue_index(resid, expected_resname=None, chainid=None, one_based=False)`
 
 Calls to :code:`atom_index` will return a zero-based absolute :code:`AtomIndex`.
 Calls to :code:`residue_index` will return a zero-based absolute :code:`ResidueIndex`.
@@ -39,9 +39,14 @@ Specifying :code:`resname` to catch errors
 Indexing can be tricky and errors can result in strange behavior, as e.g. restraints
 may be created between the wrong atoms.
 
-To help catch errors, it is possible to specify :code:`res_name`. When :code:`res_name`
-is specified, calls to :code:`atom_index` and :code:`residue_index` will check that
-actual residue name that is found matches :code:`res_name`.
+To help catch errors, it is possible to specify :code:`expected_resname`. When
+:code:`rexpcected_resname` is specified, calls to :code:`atom_index` and 
+:code:`residue_index` will check that actual residue name that is found
+matches :code:`expected_resname`.
+
+Note that the residue names will be those after processing by ``tleap``, so they may not correspond
+exactly to those in a pdb file. Normally, the :code:`expected_resname` will be three characters in all-caps,
+e.g. :code:`"ALA"`.
 
 Using one-based indexing
 ------------------------

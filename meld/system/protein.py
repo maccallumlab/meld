@@ -94,14 +94,14 @@ class _SubSystem(ABC):
         """
         Add a general bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
+        :param res_index_i: zero-based index of residue i
+        :param res_index_j: zero-based index of residue j
         :param atom_name_i: string name of i
         :param atom_name_j: string name of j
         :param bond_type:   string specifying the "S", "D","T"... bond
 
         .. note::
-            indexing starts from one and the residue numbering from the
+            indexing starts from zero and the residue numbering from the
             PDB file is ignored.
 
         """
@@ -113,11 +113,11 @@ class _SubSystem(ABC):
         """
         Add a disulfide bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
+        :param res_index_i: zero-based index of residue i
+        :param res_index_j: zero-based index of residue j
 
         .. note::
-            indexing starts from one and the residue numbering from the
+            indexing starts from zero and the residue numbering from the
             PDB file is ignored. When loading from a PDB or creating a
             sequence, residue name must be CYX, not CYS.
 
@@ -162,14 +162,14 @@ class _SubSystem(ABC):
     def _gen_bond_string(self, mol_id):
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
-            d = f'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'
+            d = f'bond {mol_id}.{i+1}.{a} {mol_id}.{j+1}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
     def _gen_disulfide_string(self, mol_id):
         disulfide_strings = []
         for i, j in self._disulfide_list:
-            d = f"bond {mol_id}.{i}.SG {mol_id}.{j}.SG"
+            d = f"bond {mol_id}.{i+1}.SG {mol_id}.{j+1}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
@@ -195,7 +195,7 @@ class _SubSystem(ABC):
 class SubSystemFromSequence(_SubSystem):
     """
     Class to create a sub-system from sequence.
-    
+
     This class will create a sub-system from sequence. This class is
     pretty dumb and relies on AmberTools to do all of the heavy lifting.
 
