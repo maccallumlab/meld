@@ -40,8 +40,8 @@ class SystemBuilder:
                 self._set_negative_ion_type(n_ion)
                 self._n_ioncount = n_ioncount
 
-    def build_system_from_molecules(
-        self, molecules, patchers=None, leap_header_cmds=None
+    def build_system(
+        self, subsystems, patchers=None, leap_header_cmds=None
     ):
         if patchers is None:
             patchers = []
@@ -57,19 +57,19 @@ class SystemBuilder:
             leap_cmds = []
             leap_cmds.extend(self._generate_leap_header())
             leap_cmds.extend(leap_header_cmds)
-            for index, mol in enumerate(molecules):
-                # First we'll update the indexing for this molecule
-                for chain in mol._chains:
+            for index, sub in enumerate(subsystems):
+                # First we'll update the indexing for this subsystem
+                for chain in sub._chains:
                     start = chain.start + current_res_index
                     end = chain.end + current_res_index
                     chains.append(ChainInfo(start, end))
-                current_res_index += max(chain.end for chain in mol._chains)
+                current_res_index += max(chain.end for chain in sub._chains)
 
-                # now add the leap commands for this molecule
+                # now add the leap commands for this subsystem
                 mol_id = f"mol_{index}"
                 mol_ids.append(mol_id)
-                mol.prepare_for_tleap(mol_id)
-                leap_cmds.extend(mol.generate_tleap_input(mol_id))
+                sub.prepare_for_tleap(mol_id)
+                leap_cmds.extend(sub.generate_tleap_input(mol_id))
 
             if self._explicit_solvent:
                 leap_cmds.extend(self._generate_solvent(mol_ids))

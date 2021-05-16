@@ -17,9 +17,9 @@ from meld.system.openmm_runner.cmap import CMAPAdder
 class TestAddCMAPTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
         # create eight 24x24 maps filled with 0, 1, ..7
         self.maps = [np.zeros((24, 24)) + i for i in range(8)]
@@ -87,9 +87,9 @@ class TestAddCMAPTriAla(unittest.TestCase):
 class TestAddCMAPDoubleTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p, p])
+        self.system = b.build_system([p, p])
 
         # mock openmm system to recieve the new cmap torsion force
         self.mock_openmm_system = mock.Mock(spec=openmm.System)
@@ -138,9 +138,9 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
     def make_system(self, restype):
         sequence = f"NALA {restype} CALA"
-        p = protein.ProteinMoleculeFromSequence(sequence)
+        p = protein.SubSystemFromSequence(sequence)
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_correct_map_used_for_GLY(self):
         self.make_system("GLY")

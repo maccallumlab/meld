@@ -10,9 +10,9 @@ from typing import NamedTuple
 from .indexing import ChainInfo
 
 
-class _ProteinBase(ABC):
+class _SubSystem(ABC):
     """
-    Base class for other Protein classes.
+    Base class for other SubSystem classes.
 
     Provides functionality for translation/rotation and adding H-bonds.
 
@@ -192,13 +192,14 @@ class _ProteinBase(ABC):
         return lib_string
 
 
-class ProteinMoleculeFromSequence(_ProteinBase):
+class SubSystemFromSequence(_SubSystem):
     """
-    Class to create a protein from sequence. This class will create a protein
-    molecule from sequence. This class is pretty dumb and relies on AmberTools
-    to do all of the heavy lifting.
+    Class to create a sub-system from sequence.
+    
+    This class will create a sub-system from sequence. This class is
+    pretty dumb and relies on AmberTools to do all of the heavy lifting.
 
-    :param sequence: sequence of the protein to create
+    :param sequence: sequence create
 
     The sequence is specified in Amber/Leap format. There are special NRES and
     CRES variants for the N- and C-termini. Different protonation states are
@@ -208,7 +209,7 @@ class ProteinMoleculeFromSequence(_ProteinBase):
     """
 
     def __init__(self, sequence):
-        super(ProteinMoleculeFromSequence, self).__init__()
+        super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
         self._chains = [ChainInfo(0, sequence_len)]
@@ -231,9 +232,10 @@ class ProteinMoleculeFromSequence(_ProteinBase):
         return leap_cmds
 
 
-class ProteinMoleculeFromPdbFile(_ProteinBase):
+class SubSystemFromPdbFile(_SubSystem):
     """
-    Create a new protein molecule from a pdb file.
+    Create a new susbsystem from a pdb file.
+
     This class is dumb and relies on AmberTools for the heavy lifting.
 
     :param pdb_path: string path to the pdb file
@@ -246,7 +248,7 @@ class ProteinMoleculeFromPdbFile(_ProteinBase):
     """
 
     def __init__(self, pdb_path):
-        super(ProteinMoleculeFromPdbFile, self).__init__()
+        super(SubSystemFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
 

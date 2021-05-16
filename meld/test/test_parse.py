@@ -171,11 +171,11 @@ class TestExtractSecondaryRuns(unittest.TestCase):
 
 class TestGetSecondaryStructures(unittest.TestCase):
     def setUp(self):
-        p = system.protein.ProteinMoleculeFromSequence(
+        p = system.protein.SubSystemFromSequence(
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.ss = "HHHHHEEEEE"
         self.scaler = restraints.LinearScaler(0, 1)
 
@@ -197,13 +197,13 @@ class TestGetSecondaryStructures(unittest.TestCase):
 
 class TestGetRdcRestraints(unittest.TestCase):
     def setUp(self):
-        p = system.protein.ProteinMoleculeFromSequence(
+        p = system.protein.SubSystemFromSequence(
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()
         self.scaler = restraints.LinearScaler(0, 1)
         self.patcher = patchers.RdcAlignmentPatcher(n_tensors=1)
-        self.system = b.build_system_from_molecules([p], patchers=[self.patcher])
+        self.system = b.build_system([p], patchers=[self.patcher])
 
 
     def test_ignores_comment_lines(self):

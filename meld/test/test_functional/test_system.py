@@ -18,9 +18,9 @@ from meld.system.system import ParmTopReader
 
 class TestCreateFromSequence(unittest.TestCase):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
         self.assertEqual(self.system.n_atoms, 33)
@@ -55,9 +55,9 @@ class TestCreateFromSequence(unittest.TestCase):
 
 class TestCreateFromSequenceExplicit(TestCreateFromSequence):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder(explicit_solvent=True)
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
         self.assertEqual(self.system.n_atoms, 861)
@@ -90,11 +90,11 @@ class TestCreateFromSequenceExplicit(TestCreateFromSequence):
 
 class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder(
             explicit_solvent=True, explicit_ions=True, p_ioncount=3, n_ioncount=3
         )
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
         self.assertEqual(self.system.n_atoms, 849)
@@ -129,9 +129,9 @@ class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
 
 class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA GLU CALA")
+        p = protein.SubSystemFromSequence("NALA GLU CALA")
         b = builder.SystemBuilder(explicit_solvent=True, explicit_ions=True)
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
         self.assertEqual(self.system.n_atoms, 948)
@@ -410,9 +410,9 @@ class TestOptionsExplicitSanityCheck(unittest.TestCase):
 
 class TestGetBonds(unittest.TestCase):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        sys = b.build_system_from_molecules([p])
+        sys = b.build_system([p])
         self.bonds = ParmTopReader(sys.top_string).get_bonds()
 
     def test_correct_bonds_should_be_present(self):

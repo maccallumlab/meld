@@ -32,9 +32,9 @@ from meld.system.restraints import (
 
 class TestOpenMMRunner(unittest.TestCase):
     def setUp(self):
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = protein.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.system.temperature_scaler = ConstantTemperatureScaler(300.)
 
     def test_raises_when_system_has_no_temperature_scaler(self):

@@ -33,9 +33,9 @@ def setup_system():
     sequence = "AAAAAAAAAAAAAAAA"
     sequence = parse.get_sequence_from_AA1(contents=sequence)
     # create the system
-    p = system.ProteinMoleculeFromSequence(sequence)
+    p = system.SubSystemFromSequence(sequence)
     b = system.SystemBuilder()
-    s = b.build_system_from_molecules([p])
+    s = b.build_system([p])
     s.temperature_scaler = system.LinearTemperatureScaler(0, 1, 300, 310)
 
     rest_scaler = s.restraints.create_scaler(
