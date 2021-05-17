@@ -35,7 +35,7 @@ def main():
     state = generate_state(c.rank)
 
     if c.is_leader():
-        all_states = c.gather_states_from_followers(state)
+        all_states = c.gather_states_from_workers(state)
         check_state(all_states[0], 0)
         check_state(all_states[1], 1)
         check_state(all_states[2], 2)

@@ -93,7 +93,7 @@ def launch(
     if communicator.is_leader():
         logger.info("Launching replica exchange on leader")
     else:
-        logger.info("Launching replica exchange on follower")
+        logger.info("Launching replica exchange on worker")
     log_versions()
 
     logger.info("Loading system")
@@ -109,7 +109,7 @@ def launch(
         remd_runner = store.load_remd_runner()
         remd_runner.run(communicator, system_runner, store)
     else:
-        remd_runner = store.load_remd_runner().to_follower()
+        remd_runner = store.load_remd_runner().to_worker()
         remd_runner.run(communicator, system_runner)
 
 

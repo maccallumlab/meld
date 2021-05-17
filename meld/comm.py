@@ -60,7 +60,7 @@ sys.excepthook = _mpi_excepthook
 
 class MPICommunicator:
     """
-    Class to handle communications between leader and followers using MPI.
+    Class to handle communications between leader and workers using MPI.
 
     .. note::
         creating an MPI communicator will not actually initialize MPI.
@@ -123,9 +123,9 @@ class MPICommunicator:
             self._mpi_comm.barrier()
 
     @log_timing(logger)
-    def broadcast_alphas_to_followers(self, alphas: List[float]) -> None:
+    def broadcast_alphas_to_workers(self, alphas: List[float]) -> None:
         """
-        Send the alpha values to the followers.
+        Send the alpha values to the workers.
 
         Args:
             alphas: a list of alpha values, one for each replica.
@@ -136,7 +136,7 @@ class MPICommunicator:
         """
         with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_alphas_to_followers")),
+            RuntimeError(self._timeout_message.format("broadcast_alphas_to_workers")),
         ):
             self._mpi_comm.scatter(alphas, root=0)
 
@@ -155,9 +155,9 @@ class MPICommunicator:
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def broadcast_states_to_followers(self, states: List[SystemState]) -> SystemState:
+    def broadcast_states_to_workers(self, states: List[SystemState]) -> SystemState:
         """
-        Send a state to each follower.
+        Send a state to each worker.
 
         Args:
             states: a list of states.
@@ -170,7 +170,7 @@ class MPICommunicator:
         """
         with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_states_to_followers")),
+            RuntimeError(self._timeout_message.format("broadcast_states_to_workers")),
         ):
             return self._mpi_comm.scatter(states, root=0)
 
@@ -189,11 +189,11 @@ class MPICommunicator:
             return self._mpi_comm.scatter(None, root=0)
 
     @log_timing(logger)
-    def gather_states_from_followers(
+    def gather_states_from_workers(
         self, state_on_leader: SystemState
     ) -> List[SystemState]:
         """
-        Receive states from all followers
+        Receive states from all workers
 
         Args:
             state_on_leader: the state on the leader after simulating
@@ -202,7 +202,7 @@ class MPICommunicator:
         """
         with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("gather_states_from_followers")),
+            RuntimeError(self._timeout_message.format("gather_states_from_workers")),
         ):
             return self._mpi_comm.gather(state_on_leader, root=0)
 
@@ -221,13 +221,13 @@ class MPICommunicator:
             self._mpi_comm.gather(state, root=0)
 
     @log_timing(logger)
-    def broadcast_states_for_energy_calc_to_followers(
+    def broadcast_states_for_energy_calc_to_workers(
         self, states: List[SystemState]
     ) -> None:
         """
-        Broadcast states to all followers.
+        Broadcast states to all workers.
         
-        Send all results from this step to every follower so that we can
+        Send all results from this step to every worker so that we can
         calculate the energies and do replica exchange.
 
         Args:
@@ -237,7 +237,7 @@ class MPICommunicator:
             self._timeout,
             RuntimeError(
                 self._timeout_message.format(
-                    "broadcast_states_for_energy_calc_to_followers"
+                    "broadcast_states_for_energy_calc_to_workers"
                 )
             ),
         ):
@@ -281,11 +281,11 @@ class MPICommunicator:
             return self._mpi_comm.bcast(None, root=0)
 
     @log_timing(logger)
-    def gather_energies_from_followers(
+    def gather_energies_from_workers(
         self, energies_on_leader: List[float]
     ) -> np.ndarray:
         """
-        Receive a list of energies from each follower.
+        Receive a list of energies from each worker.
 
         Args:
             energies_on_leader: a list of energies from the leader
@@ -296,7 +296,7 @@ class MPICommunicator:
         with _timeout(
             self._timeout,
             RuntimeError(
-                self._timeout_message.format("gather_energies_from_followers")
+                self._timeout_message.format("gather_energies_from_workers")
             ),
         ):
             energies = self._mpi_comm.gather(energies_on_leader, root=0)

@@ -4,17 +4,17 @@
 #
 
 """
-A module for replica exchange followers
+A module for replica exchange workers
 """
 
-class FollowerReplicaExchangeRunner:
+class WorkerReplicaExchangeRunner:
     """
-    This class coordinates running replica exchange on the follwers.
+    This class coordinates running replica exchange on the workers.
     """
 
     def __init__(self, step, max_steps):
         """
-        Initialize a FollowerReplicaExchangeRunner
+        Initialize a WorkerReplicaExchangeRunner
 
         Args:
             step: current step
@@ -26,16 +26,16 @@ class FollowerReplicaExchangeRunner:
     @classmethod
     def from_leader(cls, leader):
         """
-        Initialize a new follower from a leader.
+        Initialize a new worker from a leader.
 
         Args:
             leader: a leader to serve as a template
         
         Returns:
-            a follower based on the leader template
+            a worker based on the leader template
         """
-        new_follower = cls(leader.step, leader.max_steps)
-        return new_follower
+        new_worker = cls(leader.step, leader.max_steps)
+        return new_worker
 
     @property
     def step(self):
@@ -49,7 +49,7 @@ class FollowerReplicaExchangeRunner:
 
     def run(self, communicator, system_runner):
         """
-        Continue running follower jobs until done.
+        Continue running worker jobs until done.
 
         Args:
             communicator: a communicator object for talking to the leader

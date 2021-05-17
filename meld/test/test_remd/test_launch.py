@@ -5,7 +5,7 @@
 
 import unittest
 from unittest import mock  #type: ignore
-from meld.remd import follower, leader, launch
+from meld.remd import worker, leader, launch
 from meld.system.openmm_runner import OpenMMRunner
 from meld import comm, vault
 from meld.util import in_temp_dir
@@ -44,10 +44,10 @@ class TestLaunchNotLeader(unittest.TestCase):
         self.mock_remd_leader = mock.Mock(
             spec_set=leader.LeaderReplicaExchangeRunner
         )
-        self.mock_remd_follower = mock.Mock(
-            spec_set=follower.FollowerReplicaExchangeRunner
+        self.mock_remd_worker = mock.Mock(
+            spec_set=worker.WorkerReplicaExchangeRunner
         )
-        self.mock_remd_leader.to_follower.return_value = self.mock_remd_follower
+        self.mock_remd_leader.to_worker.return_value = self.mock_remd_worker
         self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
         self.mock_store.load_run_options.return_value.runner = "openmm"
@@ -71,17 +71,17 @@ class TestLaunchNotLeader(unittest.TestCase):
 
         self.mock_comm.initialize.assert_called_once_with()
 
-    def test_should_call_to_follower(self):
-        "should call to_follower on remd_runner"
+    def test_should_call_to_worker(self):
+        "should call to_worker on remd_runner"
         launch.launch("Reference", self.log_handler)
 
-        self.mock_remd_leader.to_follower.assert_called_once_with()
+        self.mock_remd_leader.to_worker.assert_called_once_with()
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
         launch.launch("Reference", self.log_handler)
 
-        self.mock_remd_follower.run.assert_called_once_with(
+        self.mock_remd_worker.run.assert_called_once_with(
             self.mock_comm, self.mock_runner
         )
 
@@ -119,10 +119,10 @@ class TestLaunchLeader(unittest.TestCase):
         self.mock_remd_leader = mock.Mock(
             spec_set=leader.LeaderReplicaExchangeRunner
         )
-        self.mock_remd_follower = mock.Mock(
-            spec_set=follower.FollowerReplicaExchangeRunner
+        self.mock_remd_worker = mock.Mock(
+            spec_set=worker.WorkerReplicaExchangeRunner
         )
-        self.mock_remd_leader.to_follower.return_value = self.mock_remd_follower
+        self.mock_remd_leader.to_worker.return_value = self.mock_remd_worker
         self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
         self.mock_store.load_run_options.return_value.runner = "openmm"

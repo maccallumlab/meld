@@ -9,7 +9,7 @@ Module for replica exchange leader
 
 from meld.vault import DataStore
 from meld.system.state import SystemState
-from meld.remd import follower
+from meld.remd import worker
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.adaptor import Adaptor
 from meld.system.runner import ReplicaRunner
@@ -76,11 +76,11 @@ class LeaderReplicaExchangeRunner:
         self.adaptor = adaptor
         self._setup_alphas()
 
-    def to_follower(self) -> follower.FollowerReplicaExchangeRunner:
+    def to_worker(self) -> worker.WorkerReplicaExchangeRunner:
         """
-        Convert leader to follower
+        Convert leader to worker
         """
-        return follower.FollowerReplicaExchangeRunner.from_leader(self)
+        return worker.WorkerReplicaExchangeRunner.from_leader(self)
 
     def run(
         self,
@@ -92,7 +92,7 @@ class LeaderReplicaExchangeRunner:
         Run replica exchange until finished
 
         Args:
-            communicator: a communicator object to talk with followers
+            communicator: a communicator object to talk with workers
             system_runner: a ReplicaRunner object to run the simulations
             store: a store object to handle storing data to disk
         """
@@ -116,10 +116,10 @@ class LeaderReplicaExchangeRunner:
             # update alphas
             system_runner.prepare_for_timestep(0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
-            communicator.broadcast_alphas_to_followers(self._alphas)
+            communicator.broadcast_alphas_to_workers(self._alphas)
 
             # do one step
-            my_state = communicator.broadcast_states_to_followers(states)
+            my_state = communicator.broadcast_states_to_workers(states)
             if minimize:
                 logger.info("First step, minimizing and then running.")
                 my_state = system_runner.minimize_then_run(my_state)
@@ -133,7 +133,7 @@ class LeaderReplicaExchangeRunner:
 
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
-            energies = communicator.gather_energies_from_followers(my_energies)
+            energies = communicator.gather_energies_from_workers(my_energies)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)

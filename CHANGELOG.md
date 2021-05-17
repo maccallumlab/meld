@@ -38,6 +38,7 @@
     - Returns a `ResidueIndex`, which is a zero-based absolute residue index.
   - All functions defining restraints now take `AtomIndex` rather sets of residues and
     atom names.
+  - "follower" changed to "worker"
 
 ## Changes
 - No longer use network logging.
