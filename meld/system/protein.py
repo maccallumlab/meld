@@ -5,9 +5,11 @@
 
 import numpy as np  # type: ignore
 import math
+from collections import defaultdict
 from abc import ABC, abstractmethod
 from typing import NamedTuple
-from .indexing import ChainInfo
+from .indexing import ChainInfo, SubSystemInfo
+import parmed  # type: ignore
 
 
 class _SubSystem(ABC):
@@ -26,7 +28,7 @@ class _SubSystem(ABC):
         self._prep_files = []
         self._frcmod_files = []
         self._lib_files = []
-        self._chains = []
+        self._info = []
 
     @abstractmethod
     def prepare_for_tleap(self, mol_id):
@@ -212,7 +214,8 @@ class SubSystemFromSequence(_SubSystem):
         super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
-        self._chains = [ChainInfo(0, sequence_len)]
+        chain_info = ChainInfo({i: i for i in range(sequence_len)})
+        self._info = SubSystemInfo(sequence_len, [chain_info])
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -253,7 +256,23 @@ class SubSystemFromPdbFile(_SubSystem):
             self._pdb_contents = pdb_file.read()
 
         # figure out chains
-        raise RuntimeError()
+        pdb = parmed.load_file(pdb_path)
+        n_residues = len(pdb.residues)
+
+        # get list of chainids
+        chainids = []
+        chain_to_res = defaultdict(list)
+        for i, residue in enumerate(pdb.residues):
+            chainids.append(residue.chain)
+            chain_to_res[residue.chain].append(i)
+        chainids = set(chainids)
+
+        # loop over the chainids in alphabetical order
+        chains = []
+        for chainid in sorted(chainids):
+            chain = ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chains.append(chain)
+        self._info = SubSystemInfo(n_residues, chains)
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

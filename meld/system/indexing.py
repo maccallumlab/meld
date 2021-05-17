@@ -1,11 +1,13 @@
-from typing import NamedTuple
+from typing import NamedTuple, List, Dict
 
 
 class ChainInfo(NamedTuple):
-    # The 0-based start index for this chain
-    start: int
-    # One past the end of this chain
-    end: int
+    residues: Dict[int, int]
+
+
+class SubSystemInfo(NamedTuple):
+    n_residues: int
+    chains: List[ChainInfo]
 
 
 #
@@ -50,17 +52,67 @@ cannonicalize = {
 }
 
 
-class AtomIndexer:
-    """
-    Find AtomIndex for a given resid, name, and (optinally) chain.
-    """
-
-    def __init__(self, abs_atom_index, rel_atom_index, res_names):
+class Indexer:
+    def __init__(
+        self, abs_atom_index, rel_residue_index, residue_names, abs_resid_to_resname
+    ):
         self.abs_atom_index = abs_atom_index
-        self.rel_atom_index = rel_atom_index
-        self.res_names = res_names
+        self.rel_residue_index = rel_residue_index
+        self.residue_names = residue_names
+        self.abs_resid_to_resname = abs_resid_to_resname
 
-    def __call__(
+    def residue_index(
+        self, resid, expected_resname=None, chainid=None, one_based=False
+    ):
+        """
+        Find the ResidueIndex
+
+        The indexing can be either absolute (if `chainid` is `None`),
+        or relative to a chain (if `chainid` is set).
+
+        Both `resid` and `chainid` are one-based if `one_based` is `True`,
+        or both are zero-based if `one_based=False` (the default).
+
+        If `expected_resname` is specified, error checking will be performed to
+        ensure that the returned atom has the expected residue name. Note
+        that the residue names are those after processing with `tleap`,
+        so some residue names may not match their value in an input pdb file.
+
+        Parameters
+        ----------
+        resid : int
+        expected_resname: str
+            The expected residue name, usually three characters in all caps. E.g. "ALA".
+        chainid : None or int
+        one_based: bool
+
+        Returns
+        -------
+        ResidueIndex
+        """
+        if chainid is None:
+            if one_based:
+                res_index = resid - 1
+            else:
+                res_index = resid
+        else:
+            if one_based:
+                res_index = self.rel_residue_index[(chainid - 1, resid - 1)]
+            else:
+                res_index = self.rel_residue_index[(chainid, resid)]
+
+        if expected_resname is not None:
+            actual_resname = self.abs_resid_to_resname[res_index]
+            if actual_resname in cannonicalize:
+                actual_resname = cannonicalize[actual_resname]
+            if actual_resname != expected_resname:
+                raise KeyError(
+                    f"expected_resname={expected_resname}, but found res_name={actual_resname}."
+                )
+
+        return ResidueIndex(res_index)
+
+    def atom_index(
         self, resid, atom_name, expected_resname=None, chainid=None, one_based=False
     ):
         """
@@ -90,89 +142,8 @@ class AtomIndexer:
         -------
         AtomIndex
         """
-        if chainid is None:
-            if one_based:
-                atom_index = AtomIndex(self.abs_atom_index[(resid - 1, atom_name)])
-            else:
-                atom_index = AtomIndex(self.abs_atom_index[(resid, atom_name)])
-        else:
-            if one_based:
-                atom_index = AtomIndex(
-                    self.rel_atom_index[(chainid - 1, resid - 1, atom_name)]
-                )
-            else:
-                atom_index = AtomIndex(self.rel_atom_index[(chainid, resid, atom_name)])
-
-        # Ensure that the resname matches what is expected
-        if expected_resname is not None:
-            actual_resname = self.res_names[int(atom_index)]
-            if expected_resname != actual_resname:
-                raise KeyError(
-                    f"expected_resname={expected_resname}, but found res_name={actual_resname}."
-                )
-
-        return atom_index
-
-
-class ResidueIndexer:
-    """
-    Find ResidueIndex for a given resid and (optinally) chain.
-    """
-
-    def __init__(self, rel_residue_index, resid_to_resname):
-        self.rel_residue_index = rel_residue_index
-        self.res_id_to_resname = resid_to_resname
-
-    def __call__(self, resid, expected_resname=None, chainid=None, one_based=False):
-        """
-        Find the ResidueIndex
-
-        The indexing can be either absolute (if `chainid` is `None`),
-        or relative to a chain (if `chainid` is set).
-
-        Both `resid` and `chainid` are one-based if `one_based` is `True`,
-        or both are zero-based if `one_based=False` (the default).
-
-        If `expected_resname` is specified, error checking will be performed to
-        ensure that the returned atom has the expected residue name. Note
-        that the residue names are those after processing with `tleap`,
-        so some residue names may not match their value in an input pdb file.
-
-        Parameters
-        ----------
-        resid : int
-        expected_resname: str
-            The expected residue name, usually three characters in all caps. E.g. "ALA".
-        chainid : None or int
-        one_based: bool
-
-        Returns
-        -------
-        ResidueIndex
-        """
-        if chainid is None:
-            if one_based:
-                res_index = ResidueIndex(resid - 1)
-            else:
-                res_index = ResidueIndex(resid)
-        else:
-            if one_based:
-                res_index = ResidueIndex(
-                    self.rel_residue_index[(chainid - 1, resid - 1)]
-                )
-            else:
-                res_index = ResidueIndex(self.rel_residue_index[(chainid, resid)])
-
-        if expected_resname is not None:
-            actual_resname = self.res_id_to_resname[int(res_index)]
-            if actual_resname in cannonicalize:
-                actual_resname = cannonicalize[actual_resname]
-            if actual_resname != expected_resname:
-                raise KeyError(
-                    f"expected_resname={expected_resname}, but found res_name={actual_resname}."
-                )
-
-        return res_index
+        resindex = self.residue_index(resid, expected_resname, chainid, one_based)
+        return AtomIndex(self.abs_atom_index[resindex, atom_name])
 
 
 def _setup_indexing(chains, top, crd):
@@ -203,40 +174,17 @@ def _setup_indexing(chains, top, crd):
     # calculated, e.g. through the RdcPatcher or through tleap
     # adding explicit solvent and ions. If present, we will add
     # these extra residues to a final group.
-    max_chain_resid = max(chain.end for chain in chains)  # max resid + 1
+    max_chain_resid = max(max(chain.residues.values()) for chain in chains)
     max_resid = max(residue_numbers)
-    if max_resid >= max_chain_resid:
-        last_chain = ChainInfo(max_chain_resid, max_resid + 1)
+    if max_resid > max_chain_resid:
+        resids = list(range(max_chain_resid + 1, max_resid + 1))
+        last_chain = ChainInfo({i: j for i, j in enumerate(resids)})
         chains.append(last_chain)
 
-    # Setup mapping between abs_resid and chainid
-    abs_resid_to_chainid = {}
+    rel_residue_index = {}
     for i, chain in enumerate(chains):
-        for j in range(chain.start, chain.end):
-            if j in abs_resid_to_chainid:
-                raise RuntimeError()
-            abs_resid_to_chainid[j] = i
-
-    # Setup mapping between abs_resid and offset
-    abs_resid_to_offset = {}
-    for chain in chains:
-        for i in range(chain.start, chain.end):
-            if i in abs_resid_to_offset:
-                raise RuntimeError()
-            abs_resid_to_offset[i] = chain.start
-
-    # Now setup relative indexing.
-    # This maps from (chain_id, rel_resid, name): atom_index
-    rel_atom_index = {}
-    for res_num, atom_name, atom_index in zip(
-        residue_numbers, atom_names, atom_numbers
-    ):
-        chainid = abs_resid_to_chainid[res_num]
-        offset = abs_resid_to_offset[res_num]
-        rel_atom_index[(chainid, res_num - offset, atom_name)] = atom_index
-
-    # Setup our atom indexer based on absolute and relative indexing.
-    atom_indexer = AtomIndexer(abs_atom_index, rel_atom_index, residue_names)
+        for rel_index, abs_index in chain.residues.items():
+            rel_residue_index[(i, rel_index)] = abs_index
 
     # Setup mapping of resid to resname
     resid_to_resname = {}
@@ -247,14 +195,4 @@ def _setup_indexing(chains, top, crd):
         else:
             resid_to_resname[resid] = resname
 
-    # Setup relative indexing for resids
-    unique_res = set(residue_numbers)
-    rel_residue_index = {}
-    for res_num in unique_res:
-        chainid = abs_resid_to_chainid[res_num]
-        offset = abs_resid_to_offset[res_num]
-        rel_residue_index[(chainid, res_num - offset)] = res_num
-
-    residue_indexer = ResidueIndexer(rel_residue_index, resid_to_resname)
-
-    return atom_indexer, residue_indexer
+    return Indexer(abs_atom_index, rel_residue_index, residue_names, resid_to_resname)

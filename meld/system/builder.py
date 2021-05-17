@@ -4,7 +4,7 @@
 #
 
 from meld import util
-from meld.system.system import _load_amber_system 
+from meld.system.system import _load_amber_system
 from .indexing import ChainInfo
 import subprocess
 
@@ -40,9 +40,10 @@ class SystemBuilder:
                 self._set_negative_ion_type(n_ion)
                 self._n_ioncount = n_ioncount
 
-    def build_system(
-        self, subsystems, patchers=None, leap_header_cmds=None
-    ):
+    def build_system(self, subsystems, patchers=None, leap_header_cmds=None):
+        if not subsystems:
+            raise ValueError("len(subsystems) must be > 0")
+
         if patchers is None:
             patchers = []
         if leap_header_cmds is None:
@@ -59,11 +60,12 @@ class SystemBuilder:
             leap_cmds.extend(leap_header_cmds)
             for index, sub in enumerate(subsystems):
                 # First we'll update the indexing for this subsystem
-                for chain in sub._chains:
-                    start = chain.start + current_res_index
-                    end = chain.end + current_res_index
-                    chains.append(ChainInfo(start, end))
-                current_res_index += max(chain.end for chain in sub._chains)
+                for chain in sub._info.chains:
+                    residues_with_offset = {
+                        k: v + current_res_index for k, v in chain.residues.items()
+                    }
+                    chains.append(ChainInfo(residues_with_offset))
+                current_res_index += sub._info.n_residues
 
                 # now add the leap commands for this subsystem
                 mol_id = f"mol_{index}"
@@ -80,7 +82,35 @@ class SystemBuilder:
             with open("tleap.in", "w") as tleap_file:
                 tleap_string = "\n".join(leap_cmds)
                 tleap_file.write(tleap_string)
-            subprocess.check_call("tleap -f tleap.in > tleap.out", shell=True)
+            try:
+                subprocess.check_call("tleap -f tleap.in > tleap.out", shell=True)
+            except subprocess.CalledProcessError:
+                print("Call to tleap failed.")
+                print()
+                print()
+                print()
+                print("=========")
+                print("tleap.in")
+                print("=========")
+                print(open("tleap.in").read())
+                print()
+                print()
+                print()
+                print("=========")
+                print("tleap.out")
+                print("=========")
+                print(open("tleap.out").read())
+                print()
+                print()
+                print()
+                print("========")
+                print("leap.log")
+                print("========")
+                print(open("leap.log").read())
+                print()
+                print()
+                print()
+                raise
 
             return _load_amber_system("system.top", "system.mdcrd", chains, patchers)
 
