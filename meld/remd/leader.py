@@ -3,16 +3,20 @@
 # All rights reserved
 #
 
+"""
+Module for replica exchange leader
+"""
+
 from meld.vault import DataStore
 from meld.system.state import SystemState
 from meld.remd import follower
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.adaptor import Adaptor
-from meld.remd.reseed import NullReseeder
 from meld.system.runner import ReplicaRunner
 from meld.comm import MPICommunicator
 import logging
 import math
+import numpy as np
 from typing import List, Union
 
 
@@ -25,37 +29,27 @@ class LeaderReplicaExchangeRunner:
 
     This class doesn't really know much about the calculation that
     is happening, but it's the glue that holds everything together.
-
-    :param n_replicas: number of replicas
-    :param max_steps: maximum number of steps to run
-    :param ladder: Ladder object to handle exchanges
-    :param adaptor: Adaptor object to handle alphas adaptation
-
     """
-
-    #
-    # read only properties
-    #
 
     @property
     def n_replicas(self) -> int:
+        """number of replicas"""
         return self._n_replicas
 
     @property
     def alphas(self) -> List[float]:
+        """current values of alpha"""
         return self._alphas
 
     @property
     def step(self) -> int:
+        """current step"""
         return self._step
 
     @property
     def max_steps(self) -> int:
+        """number of steps to run"""
         return self._max_steps
-
-    #
-    # public methods
-    #
 
     _alphas: List[float]
 
@@ -66,18 +60,25 @@ class LeaderReplicaExchangeRunner:
         ladder: NearestNeighborLadder,
         adaptor: Adaptor,
     ) -> None:
+        """
+        Initialize a LeaderReplicaExchangeRunner
+
+        Args:
+            n_replicas: number of replicas
+            max_steps: maximum number of steps to run
+            ladder: ladder object to handle exchanges
+            adaptor: adaptor object to handle alphas adaptation
+        """
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
         self._setup_alphas()
-        self.reseeder = NullReseeder()
 
     def to_follower(self) -> follower.FollowerReplicaExchangeRunner:
         """
-        Return a FollowerReplicaExchangeRunner based on self.
-
+        Convert leader to follower
         """
         return follower.FollowerReplicaExchangeRunner.from_leader(self)
 
@@ -90,10 +91,10 @@ class LeaderReplicaExchangeRunner:
         """
         Run replica exchange until finished
 
-        :param communicator: A communicator object to talk with followers
-        :param system_runner: a ReplicaRunner object to run the simulations
-        :param store: a Store object to handle storing data to disk
-
+        Args:
+            communicator: a communicator object to talk with followers
+            system_runner: a ReplicaRunner object to run the simulations
+            store: a store object to handle storing data to disk
         """
         logger.info("Beginning replica exchange")
         # check to make sure n_replicas matches
@@ -113,7 +114,7 @@ class LeaderReplicaExchangeRunner:
             )
 
             # update alphas
-            system_runner.prepare_for_timestep(0., self._step)
+            system_runner.prepare_for_timestep(0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_followers(self._alphas)
 
@@ -138,13 +139,10 @@ class LeaderReplicaExchangeRunner:
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states, system_runner)
 
-            # perform reseeding if it is time
-            self.reseeder.reseed(self.step, states, store)
-
             # store everything
             store.save_states(states, self.step)
             store.append_traj(states[0], self.step)
-            store.save_alphas(self._alphas, self.step)
+            store.save_alphas(np.array(self._alphas), self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
             store.save_acceptance_probabilities(

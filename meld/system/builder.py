@@ -5,7 +5,7 @@
 
 from meld import util
 from meld.system.system import _load_amber_system
-from .indexing import ChainInfo
+from .indexing import _ChainInfo
 import subprocess
 
 
@@ -64,7 +64,7 @@ class SystemBuilder:
                     residues_with_offset = {
                         k: v + current_res_index for k, v in chain.residues.items()
                     }
-                    chains.append(ChainInfo(residues_with_offset))
+                    chains.append(_ChainInfo(residues_with_offset))
                 current_res_index += sub._info.n_residues
 
                 # now add the leap commands for this subsystem

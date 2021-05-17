@@ -3,6 +3,10 @@
 # All rights reserved
 #
 
+"""
+Module to handle replica exchange swaps
+"""
+
 import random
 import math
 import logging
@@ -17,24 +21,27 @@ logger = logging.getLogger(__name__)
 class NearestNeighborLadder:
     """
     Class to compute replica exchange swaps between neighboring replicas.
-
-    :param n_trials: total number of replica exchange swaps to attempt
-
     """
 
     def __init__(self, n_trials: int) -> None:
+        """
+        Initialize a NearestNeighborLadder
+
+        Args:
+            n_trials: number of swaps to attempt
+        """
         self.n_trials = n_trials
 
     @log_timing(logger)
     def compute_exchanges(self, energies: np.ndarray, adaptor: Adaptor) -> List[int]:
         """
-        compute_exchanges(energies, adaptor)
-        Compute the exchanges given an energy matrix.
+        Compute the exchanges from a given energy matrix.
 
-        :param energies: numpy array of energies (see below for details)
-        :param adaptor: replica exchange adaptor that is updated every
-                        attempted swap
-        :return: a permutation vector (see below for details)
+        Args:
+            energies: numpy array of energies (see below for details)
+            adaptor: replica exchange adaptor that is updated every attempted swap
+        Returns:
+            a permutation vector (see below for details)
 
         The energy matrix should be an n_rep x n_rep numpy array. All energies
         are in dimensionless units (unit of kT). Each column represents a
@@ -54,7 +61,6 @@ class NearestNeighborLadder:
 
         The adaptor object is called once for each attempted exchange with the
         indices of the attempted swap and the success or failure of the swap.
-
         """
         assert len(energies.shape) == 2
         assert energies.shape[0] == energies.shape[1]

@@ -1,14 +1,18 @@
-import simtk.openmm as mm # type: ignore
-import simtk.unit as u # type: ignore
-from simtk.openmm import app # type: ignore
-import meld # type: ignore
-import meldplugin # type: ignore
-import numpy as np # type: ignore
-import random # type: ignore
-import sys # type: ignore
+"""
+Test MELD installation
+"""
+
+import simtk.openmm as mm  # type: ignore
+import simtk.unit as u  # type: ignore
+from simtk.openmm import app  # type: ignore
+import meld  # type: ignore
+import meldplugin  # type: ignore
+import numpy as np  # type: ignore
+import random  # type: ignore
+import sys  # type: ignore
 
 
-def create_test_system_and_coords():
+def _create_test_system_and_coords():
     force = meldplugin.MeldForce()
 
     n_particles = random.randint(4, 256)
@@ -33,7 +37,7 @@ def create_test_system_and_coords():
             for k in range(n_rests):
                 if random.random() < 5:  # distance
                     i, j = random.sample(indices, 2)
-                    force_const = random.uniform(0., 2500.)
+                    force_const = random.uniform(0.0, 2500.0)
                     r1, r2, r3, r4 = sorted([random.uniform(0, 10) for _ in range(4)])
                     rest = force.addDistanceRestraint(i, j, r1, r2, r3, r4, force_const)
                     restraints.append(rest)
@@ -49,16 +53,22 @@ def create_test_system_and_coords():
 
 
 def test_install():
-    eps = np.finfo(float).eps
+    """
+    Test this installation of MELD.
+
+    This script will test the installation of MELD by constructing
+    a random system and using it to compare forces on all
+    available platforms.
+    """
 
     print()
     print("openmm version:", mm.Platform.getOpenMMVersion())
-    print('openmm git revision:', mm.version.git_revision)
+    print("openmm git revision:", mm.version.git_revision)
     print("Meld Version:", meld.__version__)
     print("meldplugin version:", meldplugin.__version__)
     print()
 
-    system, coords = create_test_system_and_coords()
+    system, coords = _create_test_system_and_coords()
 
     n_platform = mm.Platform.getNumPlatforms()
     print("There are", n_platform, "platforms available:")
@@ -70,14 +80,16 @@ def test_install():
 
     for i in range(n_platform):
         platform = mm.Platform.getPlatform(i)
-        print(i+1, platform.getName(), end=" ")
-        integrator = mm.LangevinIntegrator(300., 1.0, 0.002)
+        print(i + 1, platform.getName(), end=" ")
+        integrator = mm.LangevinIntegrator(300.0, 1.0, 0.002)
 
         try:
             context = mm.Context(system, integrator, platform)
             context.setPositions(coords)
             state = context.getState(getForces=True, getEnergy=True)
-            forces[i] = state.getForces(asNumpy=True).value_in_unit(u.kilojoule_per_mole / u.nanometer)
+            forces[i] = state.getForces(asNumpy=True).value_in_unit(
+                u.kilojoule_per_mole / u.nanometer
+            )
             energies[i] = state.getPotentialEnergy().value_in_unit(u.kilojoule_per_mole)
             print("- successfully computed forces.")
         except:
@@ -95,7 +107,7 @@ def test_install():
         for i in range(n_platform):
             if forces[i] is None:
                 continue
-            for j in range(i+1, n_platform):
+            for j in range(i + 1, n_platform):
                 if forces[j] is None:
                     continue
 

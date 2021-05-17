@@ -24,9 +24,7 @@ Indices and tables
    * :ref:`genindex`
    * :ref:`modindex`
    * :ref:`search`
-   * :ref:`glossary`
 
 .. only:: not builder_html
 
    * :ref:`modindex`
-   * :ref:`glossary`

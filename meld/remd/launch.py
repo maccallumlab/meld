@@ -3,6 +3,10 @@
 # All rights reserved
 #
 
+"""
+A module for launching replica exchange runs
+"""
+
 import os
 import logging
 import meld
@@ -21,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def log_versions() -> None:
+    """Record version numbers to log"""
     logger.info("Meld version is %s", meld.__version__)
     logger.info("OpenMM_Meld version is %s", mm_version.full_version)
 
@@ -31,6 +36,15 @@ def launch(
     debug: bool = False,
     console_log: bool = False,
 ) -> None:
+    """
+    Launch a replica exchange run
+
+    Args:
+        platform: platform to run on [Reference, CPU, CUDA]
+        console_handler: log handler for console logging
+        debug: log debugging information
+        console_log: display logging on console
+    """
     logger.info("loading data store")
     store = vault.DataStore.load_data_store()
 
@@ -102,6 +116,14 @@ def launch(
 def launch_multiplex(
     platform: str, console_handler: Handler, debug: bool = False
 ) -> None:
+    """
+    Launch a replica exchange run on a single worker
+
+    Args:
+        platform: platform to run on [Reference, CPU, CUDA]
+        console_handler: log handler for console logging
+        debug: log debugging information
+    """
     logger.info("Loading data store")
     store = vault.DataStore.load_data_store()
 

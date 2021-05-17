@@ -3,7 +3,7 @@ Reference
 =========
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 6
 
    python-api
    c++-api

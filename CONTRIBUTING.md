@@ -29,8 +29,11 @@ documentation is broken into:
 
 We use [black](https://github.com/ambv/black) for automatic code formatting. Just let it do its thing and live with the output.
 
-We have settled on the [numpydoc](https://numpydoc.readthedocs.io/en/latest/) format for docstrings. All new code should have full
-docstrings using this convention. The existing docstrings are a mix of formats and need to be updated. There is an
+We have settled on the
+[google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
+format for docstrings. All new code should have full docstrings using this convention.
+The existing docstrings are a mix of formats and need to be updated.
+There is an
 [open issue](https://github.com/maccallumlab/meld/issues/48) for this.
 
 ## Testing

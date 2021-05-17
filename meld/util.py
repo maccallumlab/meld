@@ -3,6 +3,10 @@
 # All rights reserved
 #
 
+"""
+Miscellaneous utilities
+"""
+
 import os
 import shutil
 import tempfile
@@ -15,7 +19,12 @@ import logging.handlers
 
 @contextlib.contextmanager
 def in_temp_dir():
-    """Context manager to run in temporary directory"""
+    """
+    Context manager to run in temporary directory
+
+    This is used to run certain operations, e.g. tleap, in a temporary
+    directory. It is also used during the unit tests.
+    """
     try:
         cwd = os.getcwd()
         tmpdir = tempfile.mkdtemp()
@@ -28,6 +37,13 @@ def in_temp_dir():
 
 
 def log_timing(dest_logger):
+    """
+    A function decorator to record timing
+
+    Args:
+        dest_logger: the logger to record timings to
+    """
+
     def wrap(func):
         @wraps(func)
         def wrapper(*args, **kwds):
@@ -43,9 +59,17 @@ def log_timing(dest_logger):
 
 
 class HostNameContextFilter(logging.Filter):
-    """Filter class that adds hostid information to logging records."""
+    """
+    Filter class that adds hostid information to logging records.
+    """
 
-    def __init__(self, hostid):
+    def __init__(self, hostid: str):
+        """
+        Initialize a HostNameContextFilter
+
+        Args:
+            hostid: the host id to add to logging output
+        """
         logging.Filter.__init__(self)
         self.hostid = hostid
 

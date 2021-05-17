@@ -3,10 +3,15 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
-from meld.remd.reseed import NullReseeder
+import numpy as np  # type: ignore
 import logging
 import math
+from meld.remd.ladder import NearestNeighborLadder
+from meld.remd.adaptor import Adaptor
+
+"""
+A module for running a replica exchange simulation on a single worker
+"""
 
 
 logger = logging.getLogger(__name__)
@@ -14,40 +19,47 @@ logger = logging.getLogger(__name__)
 
 class MultiplexReplicaExchangeRunner:
     """
-    Class to coordinate running of replica exchange
-
-    :param n_replicas: number of replicas
-    :param max_steps: maximum number of steps to run
-    :param ladder: Ladder object to handle exchanges
-    :param adaptor: Adaptor object to handle alphas adaptation
-
+    Class to coordinate running of replica exchange on a single worker
     """
-
-    #
-    # read only properties
-    #
 
     @property
     def n_replicas(self):
+        """number of replicas"""
         return self._n_replicas
 
     @property
     def alphas(self):
+        """current alpha values"""
         return self._alphas
 
     @property
     def step(self):
+        """current step"""
         return self._step
 
     @property
     def max_steps(self):
+        """number of steps to run"""
         return self._max_steps
 
-    #
-    # public methods
-    #
+    def __init__(
+        self,
+        n_replicas: int,
+        max_steps: int,
+        ladder: NearestNeighborLadder,
+        adaptor: Adaptor,
+        step: int,
+    ):
+        """
+        Initialize a MultiplexReplicaExchangeRunner
 
-    def __init__(self, n_replicas, max_steps, ladder, adaptor, step):
+        Args:
+            n_replicas: number of replicas
+            max_steps: maximum number of steps to run
+            ladder: Ladder object to handle exchanges
+            adaptor: Adaptor object to handle alphas adaptation
+            step: current step
+        """
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = step
@@ -57,15 +69,13 @@ class MultiplexReplicaExchangeRunner:
         self._alphas = None
         self._setup_alphas()
 
-        self.reseeder = NullReseeder()
-
     def run(self, system_runner, store):
         """
         Run replica exchange until finished
 
-        :param system_runner: a ReplicaRunner object to run the simulations
-        :param store: a Store object to handle storing data to disk
-
+        Args:
+            system_runner: a replica runner to run the simulations
+            store: a store object to handle storing data to disk
         """
         logger.info("Beginning replica exchange")
         # check to make sure n_replicas matches
@@ -110,9 +120,6 @@ class MultiplexReplicaExchangeRunner:
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states, system_runner)
 
-            # perform reseeding if it is time
-            self.reseeder.reseed(self.step, states, store)
-
             # store everything
             store.save_states(states, self.step)
             store.append_traj(states[0], self.step)
@@ -131,10 +138,6 @@ class MultiplexReplicaExchangeRunner:
         logger.info(
             "Finished %d steps of replica exchange successfully.", self._max_steps
         )
-
-    #
-    # private helper methods
-    #
 
     @staticmethod
     def _compute_energies(states, system_runner):

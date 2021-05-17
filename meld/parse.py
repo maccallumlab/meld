@@ -4,7 +4,7 @@
 #
 
 """
-Functions to read in sequences, secondary structures, and RDCs.
+Functions to read in sequences, secondary structures, and RDCs
 
 """
 
@@ -78,41 +78,23 @@ def get_sequence_from_AA1(
     cter: Optional[str] = None,
 ) -> SequenceString:
     """
-    Get the sequence from a list of 1-letter amino acid codes.
+    Get the sequence from 1-letter amino acid codes.
 
-    Parameters
-    ----------
-    filename : string
-        Filename to open
-    content : string
-        Contents
-    file : file-like
-        Object to read from
-    capped
-        Will know that there are caps. Specify which in nter and cter
-    nter
-        Specify capping residue at the N terminus if not specified
+    Args:
+        filename: filename to open
+        content: contents
+        file: object to read from
+        capped: Will know that there are caps. Specify which in nter and cter
+        nter: specify capping residue at the N terminus if not specified
            in sequence
-    cter
-        Specify capping residue at the C terminus if not specified
+        cter: specify capping residue at the C terminus if not specified
            in sequence
 
-    Returns
-    -------
-    string
-        Used to initialize a system
+    Returns:
+        string representation that can be used to create a :class:`SubSystem`
 
-    Raises
-    ------
-    RuntimeError
-        Error raised on bad input
-
-    Notes
-    -----
-    Specify exactly one of filename, contents, file
-
-    Will have to set options in setup script to skip cmap assignment
-
+    .. note::
+       Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
@@ -155,39 +137,23 @@ def get_sequence_from_AA3(
     cter: Optional[str] = None,
 ) -> SequenceString:
     """
-    Get the sequence from a list of 3-letter amino acid codes.
+    Get the sequence from a 3-letter amino acid codes.
 
-    Parameters
-    ----------
-    filename : string
-        Filename to open
-    content : string
-        Contains contents
-    file : file-like object
-        Object to read from
-    capped
-        Will know that there are caps. Specify which in nter and cter
-    nter
-        Specify capping residue at the N terminus if not specified
+    Args:
+        filename: filename to open
+        content: contents
+        file: object to read from
+        capped: Will know that there are caps. Specify which in nter and cter
+        nter: specify capping residue at the N terminus if not specified
            in sequence
-    cter
-        Specify capping residue at the C terminus if not specified
+        cter: specify capping residue at the C terminus if not specified
            in sequence
 
-    Returns
-    -------
-    string
-        Used to initialize a system
+    Returns:
+        string representation that can be used to create a :class:`SubSystem`
 
-    Raises
-    ------
-    RuntimeError
-        Error on based input
-
-    Notes
-    -----
-    Specify exactly one of filename, contents, file
-
+    .. note::
+       Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
@@ -230,40 +196,24 @@ def get_secondary_structure_restraints(
     """
     Get a list of secondary structure restraints.
 
-    Parameters
-    ----------
-    system : a System object
-        The system
-    scaler : a force scaler
-        The force
-    ramp:
-        The ramp, default is ConstantRamp
-    torsion_force_constant : float
-        Force constant for torsions, in kJ/mol/(10 degree)^2
-    distance_force_constant : float
-        Force constant for distances, in kJ/mol/Angstrom^2
-    quadratic_cut : float
-        Switch from quadratic to linear beyond this distance, Angstrom
-    min_secondary_match : int
-        Minimum number of elements to match in secondary structure,
-    first_residue : Optional[ResidueIndex]
-        Residue at which these secondary structure restraints start
-    filename : string
-        Filename to open
-    content : string
-        Contents to process
-    file : file-like object
-        Object to read from
+    Args:
+        system: the system
+        scaler: the force scaler
+        ramp: the ramp, default is ConstantRamp
+        torsion_force_constant: force constant for torsions, in kJ/mol/(10 degree)^2
+        distance_force_constant: force constant for distances, in kJ/mol/Angstrom^2
+        quadratic_cut: switch from quadratic to linear beyond this distance, Angstrom
+        min_secondary_match: minimum number of elements to match in secondary structure
+        first_residue: residue at which these secondary structure restraints start
+        filename: filename to open
+        content: contents to process
+        file: object to read from
 
     Returns
-    -------
-    groups : list
-        A list of RestraintGroups
+        A list of :class:`RestraintGroups`
 
-    Notes
-    -----
-    Specify exactly one of filename, contents, file.
-
+    .. note::
+       Specify exactly one of filename, contents, file.
     """
     if ramp is None:
         ramp = ConstantRamp()
@@ -453,12 +403,12 @@ def _get_secondary_sequence(
     return SecondaryString(sequence)
 
 
-SecondaryRun = namedtuple("SecondaryRun", "start end")
+_SecondaryRun = namedtuple("_SecondaryRun", "start end")
 
 
 def _extract_secondary_runs(
     content: str, ss_type: str, run_length: int, at_least: int, first_residue: int
-) -> List[SecondaryRun]:
+) -> List[_SecondaryRun]:
     # mark the elements that have the correct type
     has_correct_type = [1 if ss == ss_type else 0 for ss in content]
 
@@ -472,13 +422,13 @@ def _extract_secondary_runs(
     results = []
     for index in range(len(totals)):
         if totals[index] >= at_least:
-            results.append(SecondaryRun(index, index + run_length))
+            results.append(_SecondaryRun(index, index + run_length))
 
     # At this point, the runs are zero-based relative to the start of the
     # secondary structure string. Now, we'll add the offset to make them
     # relative to the first residue
     results = [
-        SecondaryRun(s.start + first_residue, s.end + first_residue) for s in results
+        _SecondaryRun(s.start + first_residue, s.end + first_residue) for s in results
     ]
 
     return results
@@ -514,42 +464,28 @@ def get_rdc_restraints(
     """
     Reads restraints from file and returns as RdcRestraint object.
 
-    Parameters
-    ----------
-    system : meld.system.System
-        The system object for the restraints to be added to.
-    patcher: meld.system.patchers.RdcAlignmentPatcher
-        The patcher that was used to add alignment tensor dummy atoms
-    scaler : meld.system.restraints.RestraintScaler
-        Object to scale the force constant.
-    ramp : meld.system.restraints.TimeRamp
-        Ramp, default is ConstantRamp()
-    quadratic_cut : float
-        Restraints become linear beyond this deviation s^-1
-    scale_factor: float
-        Scale factor for kappa and alignment tensor
-    filename : string
-        Filename to open
-    content : string
-        Contents to process
-    file : a file_like object
-        Object to read from
+    Args:
+        system: the system object for the restraints to be added to.
+        patcher: the patcher that was used to add alignment tensor dummy atoms
+        scaler: object to scale the force constant.
+        ramp: ramp, default is ConstantRamp()
+        quadratic_cut: restraints become linear beyond this deviation s^-1
+        scale_factor: scale factor for kappa and alignment tensor
+        filename : filename to open
+        content : contents to process
+        file : object to read from
 
-    Returns
-    -------
-    restraints: RdcREstraint object
-        Restraints from file
+    Returns:
+        list of restraints from input
 
-    Notes
-    -----
-
-    The value of `kappa` will be scaled down by `scale_factor`. This will
-    result in the alignment tensor being scaled up by `scale_factor`.
-    Ideally, the largest values of the scaled alignment tensor should be
-    approximately 1. As typical values of the alignment are on the order
-    of 1e-4, the default value of 1e4 is a reasonable guess. The value
-    of `scale_factor` must be the same for all experiments that share the
-    same alignment.
+    .. note::
+       The value of `kappa` will be scaled down by `scale_factor`. This will
+       result in the alignment tensor being scaled up by `scale_factor`.
+       Ideally, the largest values of the scaled alignment tensor should be
+       approximately 1. As typical values of the alignment are on the order
+       of 1e-4, the default value of 1e4 is a reasonable guess. The value
+       of `scale_factor` must be the same for all experiments that share the
+       same alignment.
     """
     if ramp is None:
         ramp = ConstantRamp()

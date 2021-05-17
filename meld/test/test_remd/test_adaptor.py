@@ -11,7 +11,7 @@ from meld.remd import adaptor
 
 class TestAcceptanceCounter(unittest.TestCase):
     def setUp(self):
-        self.counter = adaptor.AcceptanceCounter(3)
+        self.counter = adaptor._AcceptanceCounter(3)
     
     def test_should_give_zero_with_no_success(self):
         result = self.counter.get_acceptance_probabilities()

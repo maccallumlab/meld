@@ -1,13 +1,27 @@
-from typing import NamedTuple, List, Dict
+"""
+Look up atom and residue indices.
+
+The :class:`Indexer` class is the main object for performing
+indexing look ups.
+
+An :class:`AtomIndex` is a zero-based absolute atom index.
+A :class:`ResidueIndex` is a zero-based absolute residue index.
+
+"""
+
+from typing import NamedTuple, List, Dict, Tuple, Optional
 
 
-class ChainInfo(NamedTuple):
+class _ChainInfo(NamedTuple):
     residues: Dict[int, int]
+    "maps from index_within_chain to global_index"
 
 
-class SubSystemInfo(NamedTuple):
+class _SubSystemInfo(NamedTuple):
     n_residues: int
-    chains: List[ChainInfo]
+    "number of residues in this subsystem"
+    chains: List[_ChainInfo]
+    "a list of chains in the subsystem"
 
 
 #
@@ -53,19 +67,40 @@ cannonicalize = {
 
 
 class Indexer:
+    """
+    An object for performing atom and residue index lookups.
+    """
+
     def __init__(
-        self, abs_atom_index, rel_residue_index, residue_names, abs_resid_to_resname
+        self,
+        abs_atom_index: Dict[Tuple[int, str], int],
+        rel_residue_index: Dict[Tuple[int, int], int],
+        residue_names: List[str],
+        abs_resid_to_resname: Dict[int, str],
     ):
+        """
+        Initialize an Indexer object.
+
+        Args:
+            abs_atom_index: maps (resid, atom_name) to atomid
+            rel_residue_index: maps (chainid, rel_resid) to resid
+            residue_names: residue name for each atom
+            abs_resid_to_resname: maps resid to resname
+        """
         self.abs_atom_index = abs_atom_index
         self.rel_residue_index = rel_residue_index
         self.residue_names = residue_names
         self.abs_resid_to_resname = abs_resid_to_resname
 
     def residue_index(
-        self, resid, expected_resname=None, chainid=None, one_based=False
-    ):
+        self,
+        resid: int,
+        expected_resname: Optional[str] = None,
+        chainid: Optional[int] = None,
+        one_based: bool = False,
+    ) -> ResidueIndex:
         """
-        Find the ResidueIndex
+        Find the :class:`ResidueIndex`
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
@@ -78,17 +113,15 @@ class Indexer:
         that the residue names are those after processing with `tleap`,
         so some residue names may not match their value in an input pdb file.
 
-        Parameters
-        ----------
-        resid : int
-        expected_resname: str
-            The expected residue name, usually three characters in all caps. E.g. "ALA".
-        chainid : None or int
-        one_based: bool
+        Args:
+            resid: the residue index to lookup
+            expected_resname: the expected residue name, usually three all-caps characters,
+                e.g. "ALA".
+            chainid: the chain id to lookup
+            one_based: use one-based indexing
 
-        Returns
-        -------
-        ResidueIndex
+        Returns:
+            zero-based absolute residue index
         """
         if chainid is None:
             if one_based:
@@ -113,10 +146,15 @@ class Indexer:
         return ResidueIndex(res_index)
 
     def atom_index(
-        self, resid, atom_name, expected_resname=None, chainid=None, one_based=False
-    ):
+        self,
+        resid: int,
+        atom_name: str,
+        expected_resname: Optional[str] = None,
+        chainid: Optional[int] = None,
+        one_based: bool = False,
+    ) -> AtomIndex:
         """
-        Find the AtomIndex
+        Find the :class:`AtomIndex`
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
@@ -129,18 +167,16 @@ class Indexer:
         that the residue names are those after processing with `tleap`,
         so some residue names may not match their value in an input pdb file.
 
-        Parameters
-        ----------
-        resid : int
-        atom_name : str
-        expected_resname: str
-            The expected residue name, usually three characters in all caps. E.g. "ALA".
-        chainid : None or int
-        one_based: bool
+        Args:
+            resid: the residue index to lookup
+            atom_name: the name of the atom to lookup
+            expected_resname: the expected residue name, usually three all-caps characters,
+                e.g. "ALA".
+            chainid: the chain id to lookup
+            one_based: use one-based indexing
 
-        Returns
-        -------
-        AtomIndex
+        Returns:
+            zero-based absolute atom index
         """
         resindex = self.residue_index(resid, expected_resname, chainid, one_based)
         return AtomIndex(self.abs_atom_index[resindex, atom_name])
@@ -178,7 +214,7 @@ def _setup_indexing(chains, top, crd):
     max_resid = max(residue_numbers)
     if max_resid > max_chain_resid:
         resids = list(range(max_chain_resid + 1, max_resid + 1))
-        last_chain = ChainInfo({i: j for i, j in enumerate(resids)})
+        last_chain = _ChainInfo({i: j for i, j in enumerate(resids)})
         chains.append(last_chain)
 
     rel_residue_index = {}

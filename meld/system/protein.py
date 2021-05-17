@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from typing import NamedTuple
-from .indexing import ChainInfo, SubSystemInfo
+from .indexing import _ChainInfo, _SubSystemInfo
 import parmed  # type: ignore
 
 
@@ -214,8 +214,8 @@ class SubSystemFromSequence(_SubSystem):
         super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
-        chain_info = ChainInfo({i: i for i in range(sequence_len)})
-        self._info = SubSystemInfo(sequence_len, [chain_info])
+        chain_info = _ChainInfo({i: i for i in range(sequence_len)})
+        self._info = _SubSystemInfo(sequence_len, [chain_info])
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -270,9 +270,9 @@ class SubSystemFromPdbFile(_SubSystem):
         # loop over the chainids in alphabetical order
         chains = []
         for chainid in sorted(chainids):
-            chain = ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chain = _ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
             chains.append(chain)
-        self._info = SubSystemInfo(n_residues, chains)
+        self._info = _SubSystemInfo(n_residues, chains)
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

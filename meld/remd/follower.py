@@ -3,14 +3,23 @@
 # All rights reserved
 #
 
+"""
+A module for replica exchange followers
+"""
 
 class FollowerReplicaExchangeRunner:
     """
     This class coordinates running replica exchange on the follwers.
-
     """
 
     def __init__(self, step, max_steps):
+        """
+        Initialize a FollowerReplicaExchangeRunner
+
+        Args:
+            step: current step
+            max_steps: number of steps to run
+        """
         self._step = step
         self._max_steps = max_steps
 
@@ -19,31 +28,32 @@ class FollowerReplicaExchangeRunner:
         """
         Initialize a new follower from a leader.
 
-        :param leader: a :class:`meld.remd.leader.
-                                 LeaderReplicaExchangeRunner`
-                       to serve as a template
-        :return: a :class:`FollwerReplicaExchangeRunner`
-
+        Args:
+            leader: a leader to serve as a template
+        
+        Returns:
+            a follower based on the leader template
         """
         new_follower = cls(leader.step, leader.max_steps)
         return new_follower
 
     @property
     def step(self):
+        """current step"""
         return self._step
 
     @property
     def max_steps(self):
+        """number of steps to run"""
         return self._max_steps
 
     def run(self, communicator, system_runner):
         """
         Continue running follower jobs until done.
 
-        :param communicator: a communicator object for talking to the leader
-        :param system_runner: a system_runner object for actually running the
-                              simulations
-
+        Args:
+            communicator: a communicator object for talking to the leader
+            system_runner: a system runner object for actually running the simulations
         """
         # we always minimize when we first start, either on the first
         # stage or the first stage after a restart
