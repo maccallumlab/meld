@@ -7,13 +7,13 @@
 Module to handle replica exchange swaps
 """
 
+from .adaptor import Adaptor
+from meld.util import log_timing
 import random
 import math
 import logging
 import numpy as np  # type: ignore
 from typing import List
-from meld.remd.adaptor import Adaptor
-from meld.util import log_timing
 
 logger = logging.getLogger(__name__)
 

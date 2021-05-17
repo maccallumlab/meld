@@ -23,7 +23,7 @@ Setting up the system
 MELD runs can start from a PDB file, fasta sequence file with no header or sequence chain:
 ::
 
-   p = protein.SubSystemFromSequence("NALA ALA CALA")        
+   p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
    
    p = system.SubSystemFromPdbFile("example.pdb")
 

@@ -10,14 +10,14 @@ from unittest import mock  #type: ignore
 from unittest.mock import ANY  #type: ignore
 import numpy as np  #type: ignore
 
-from meld.system import protein, builder
+from meld.system import subsystem, builder
 from meld.system.openmm_runner.cmap import CMAPAdder
 
 
 class TestAddCMAPTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p])
 
@@ -87,7 +87,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
 class TestAddCMAPDoubleTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p, p])
 
@@ -138,7 +138,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
     def make_system(self, restype):
         sequence = f"NALA {restype} CALA"
-        p = protein.SubSystemFromSequence(sequence)
+        p = subsystem.SubSystemFromSequence(sequence)
         b = builder.SystemBuilder()
         self.system = b.build_system([p])
 

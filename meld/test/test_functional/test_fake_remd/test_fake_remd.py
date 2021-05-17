@@ -8,7 +8,9 @@ import os
 import subprocess
 import numpy as np  # type: ignore
 from meld.remd import ladder, adaptor, leader
-from meld.system import state, RunOptions, ConstantTemperatureScaler
+from meld.system import state
+from meld.system.options import RunOptions
+from meld.system.temperature import ConstantTemperatureScaler
 from meld import comm, vault, pdb_writer
 from meld.test import helper
 

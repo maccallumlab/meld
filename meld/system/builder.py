@@ -3,26 +3,52 @@
 # All rights reserved
 #
 
+"""
+Module to build a System from SubSystems
+"""
+
 from meld import util
-from meld.system.system import _load_amber_system
+from .system import _load_amber_system, System
 from .indexing import _ChainInfo
+from .subsystem import _SubSystem
+from .patchers import PatcherBase
+from typing import List, Optional
 import subprocess
 
 
 class SystemBuilder:
+    r"""
+    Class to handle building a System from SubSystems.
+    """
+
     def __init__(
         self,
-        forcefield="ff14sbside",
-        gb_radii="mbondi3",
-        explicit_solvent=False,
-        solvent_forcefield="tip3p",
-        solvent_distance=6,
-        explicit_ions=False,
-        p_ion="Na+",
-        p_ioncount=0,
-        n_ion="Cl-",
-        n_ioncount=0,
+        forcefield: str = "ff14sbside",
+        gb_radii: str = "mbondi3",
+        explicit_solvent: bool = False,
+        solvent_forcefield: str = "tip3p",
+        solvent_distance: float = 6,
+        explicit_ions: bool = False,
+        p_ion: str = "Na+",
+        p_ioncount: int = 0,
+        n_ion: str = "Cl-",
+        n_ioncount: int = 0,
     ):
+        """
+        Initialize a SystemBuilder
+
+        Args:
+            forcefield: the forcefield to use [ff12sb, ff14sb, ff14sbside]
+            gb_radii: the generalized Born radii [mbondi2, mbondi3]
+            explicit_solvent: use explicit solvent?
+            solvent_forcefield: explicit force field [spce, spceb, opc, tip3p, tip4pew]
+            solvent_distance: distance between protein and edge of solvent box, Angstrom
+            explicit_ions: include explicit ions?
+            p_ion: name of positive ion [Na+, K+, Li+, Rb+, Cs+, Mg+]
+            p_ioncount: number of positive ions
+            n_ion: name of negative ion [Cl-, I-, Br-, F-]
+            n_ioncount: number of negative ions
+        """
         self._forcefield = None
         self._set_forcefield(forcefield)
         self._gb_radii = None
@@ -40,7 +66,23 @@ class SystemBuilder:
                 self._set_negative_ion_type(n_ion)
                 self._n_ioncount = n_ioncount
 
-    def build_system(self, subsystems, patchers=None, leap_header_cmds=None):
+    def build_system(
+        self,
+        subsystems: List[_SubSystem],
+        patchers: Optional[List[PatcherBase]] = None,
+        leap_header_cmds: Optional[List[str]] = None,
+    ) -> System:
+        """
+        Build the system from SubSystems
+
+        Args:
+            subsystems: component subsystems that make up the system
+            patchers: an optional list of patchers to modify system
+            leap_header_cmds: an optional list of leap commands
+
+        Returns:
+            the MELD system
+        """
         if not subsystems:
             raise ValueError("len(subsystems) must be > 0")
 

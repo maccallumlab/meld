@@ -3,9 +3,24 @@
 # All rights reserved
 #
 
+"""
+A module to implement basic Monte Carlo moves.
+
+These are primarily useful during initialization to
+remove bad geometry.
+"""
+
 import random
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import math
+from .state import SystemState
+from .runner import ReplicaRunner
+from .indexing import AtomIndex
+from typing import Tuple, List
+
+
+class Mover:
+    pass
 
 
 class MonteCarloScheduler:
@@ -13,12 +28,18 @@ class MonteCarloScheduler:
     Weighted random selection of Monte Carlo moves
     """
 
-    def __init__(self, movers_with_weights, update_trials):
+    def __init__(
+        self, movers_with_weights: List[Tuple[Mover, float]], update_trials: int
+    ):
         """
-        Parameters
-        ----------
-        movers_with_weights : [(mover, weight)]
-            List of (mover, weight) tuples. Weights do not need to be normalized.
+        Initialize a MonteCarloscheduler
+
+        Args:
+            movers_with_weights: a list of tuples of moves and weights
+            update_trials: number of trials to perform
+
+        .. note::
+           Weights do not need to be normalized.
         """
         self.update_trials = update_trials
         self._movers_with_weights = movers_with_weights
@@ -26,23 +47,20 @@ class MonteCarloScheduler:
         self.trial_counts = np.zeros(len(self._movers_with_weights))
         self.accepted_counts = np.zeros(len(self._movers_with_weights))
 
-    def update(self, starting_state, runner):
+    def update(
+        self,
+        starting_state: SystemState,
+        runner: ReplicaRunner,
+    ) -> SystemState:
         """
         Perform a series of Monte Carlo moves
 
-        Parameters
-        ----------
-        starting_state : SystemState
-            Initial state of system
-        runner : OpenMMRunner
-            Runner to evaluate energies
-        n_trials : int
-            Number of trials to run
+        Args:
+            starting_state: initial state of system
+            runner: runner to evaluate energies
 
-        Returns
-        -------
-        SystemState
-            The system state after Monte Carlo trials
+        Returns:
+            the system state after Monte Carlo trials
         """
         current_state = starting_state
 
@@ -69,48 +87,52 @@ class MonteCarloScheduler:
         assert False, "Should never get here"
 
 
-class RandomTorsionMover:
+class RandomTorsionMover(Mover):
     """
     Rotate a torsion to a random angle
     """
 
-    def __init__(self, index1, index2, atom_indices):
+    def __init__(
+        self,
+        index1: AtomIndex,
+        index2: AtomIndex,
+        atom_indices: List[AtomIndex],
+    ):
         """
-        Parameters
-        ----------
-        index1 : int
-            Index of atom to rotate around
-        index2 : int
-            Index of second atom to rotate around
-        atom_indices : [int]
-            List of atom indices that should be rotated
+        Initialize a RandomTorsionMover
+
+        Args:
+            index1: index of atom to rotate around
+            index2: index of second atom to rotate around
+            atom_indices: list of atom indices that should be rotated
         """
+        assert isinstance(index1, AtomIndex)
+        assert isinstance(index2, AtomIndex)
         self.index1 = index1
         self.index2 = index2
+        for atom in atom_indices:
+            assert isinstance(atom, AtomIndex)
         self.atom_indices = atom_indices
 
-    def trial(self, state, runner):
+    def trial(
+        self, state: SystemState, runner: ReplicaRunner
+    ) -> Tuple[SystemState, bool]:
         """
         Perform a Metropolis trial
 
-        Parameters
-        ----------
-        state: SystemState
-            Initial state of the system
-        runner: OpenMMRunner
-            Runner to evaluate the energies
+        Args:
+            starting_state: initial state of system
+            runner: runner to evaluate energies
 
-        Returns
-        -------
-        SystemState, boolean
-            System state after trial and indiciator if trial was accepted
+        Returns:
+            the system state after Monte Carlo trials
         """
         starting_positions = state.positions.copy()
         starting_energy = state.energy
 
-        angle = generate_uniform_angle()
+        angle = _generate_uniform_angle()
         trial_positions = starting_positions.copy()
-        trial_positions[self.atom_indices, :] = rotate_around_vector(
+        trial_positions[self.atom_indices, :] = _rotate_around_vector(
             starting_positions[self.index1, :],
             starting_positions[self.index2, :],
             angle,
@@ -119,7 +141,7 @@ class RandomTorsionMover:
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
 
-        accepted = metropolis(starting_energy, trial_energy, 0.0)
+        accepted = _metropolis(starting_energy, trial_energy, 0.0)
         if accepted:
             state.energy = trial_energy
             state.positions = trial_positions
@@ -130,20 +152,39 @@ class RandomTorsionMover:
         return state, accepted
 
 
-class DoubleTorsionMover:
+class DoubleTorsionMover(Mover):
+    """
+    A class to move pairs of torsions
+    """
+
     def __init__(
-        self, index1a, index1b, atom_indices1, index2a, index2b, atom_indices2
+        self,
+        index1a: AtomIndex,
+        index1b: AtomIndex,
+        atom_indices1: List[AtomIndex],
+        index2a: AtomIndex,
+        index2b: AtomIndex,
+        atom_indices2: List[AtomIndex],
     ):
         """
-        Parameters
-        ----------
-        index1a : int
-        index1b : int
-        atom_indices1 : [int]
-        index2a : int
-        index2b : int
-        atom_indices2 : [int]
+        Initialize a DoubleTorsionMover
+
+        Args:
+            index1a: first atom of first bond
+            index1b: second atom of first bond
+            atom_indices1: atoms to rotate around first bond
+            index2a: first atom of second bond
+            index2b: second atom of second bond
+            atom_indices2 : atoms to rotate around second bond
         """
+        assert isinstance(index1a, AtomIndex)
+        assert isinstance(index1b, AtomIndex)
+        assert isinstance(index2a, AtomIndex)
+        assert isinstance(index2b, AtomIndex)
+        for atom in atom_indices1:
+            assert isinstance(atom, AtomIndex)
+        for atom in atom_indices2:
+            assert isinstance(atom, AtomIndex)
         self.index1a = index1a
         self.index1b = index1b
         self.atom_indices1 = atom_indices1
@@ -151,36 +192,33 @@ class DoubleTorsionMover:
         self.index2b = index2b
         self.atom_indices2 = atom_indices2
 
-    def trial(self, state, runner):
+    def trial(
+        self, state: SystemState, runner: ReplicaRunner
+    ) -> Tuple[SystemState, bool]:
         """
         Perform a Metropolis trial
 
-        Parameters
-        ----------
-        state : SystemState
-            Initial state of the system
-        runner: OpenMMRunner
-            Runner to evaluate the energies
+        Args:
+            starting_state: initial state of system
+            runner: runner to evaluate energies
 
-        Returns
-        -------
-        SystemState, boolean
-            System state after trial and indiciator if trial was accepted
+        Returns:
+            the system state after Monte Carlo trials
         """
         starting_positions = state.positions.copy()
         starting_energy = state.energy
 
-        angle1 = generate_uniform_angle()
-        angle2 = generate_uniform_angle()
+        angle1 = _generate_uniform_angle()
+        angle2 = _generate_uniform_angle()
 
         trial_positions = starting_positions.copy()
-        trial_positions[self.atom_indices1, :] = rotate_around_vector(
+        trial_positions[self.atom_indices1, :] = _rotate_around_vector(
             starting_positions[self.index1a, :],
             starting_positions[self.index1b, :],
             angle1,
             starting_positions[self.atom_indices1, :],
         )
-        trial_positions[self.atom_indices2, :] = rotate_around_vector(
+        trial_positions[self.atom_indices2, :] = _rotate_around_vector(
             trial_positions[self.index2a, :],
             trial_positions[self.index2b, :],
             angle2,
@@ -190,7 +228,7 @@ class DoubleTorsionMover:
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
 
-        accepted = metropolis(starting_energy, trial_energy, 0.0)
+        accepted = _metropolis(starting_energy, trial_energy, 0.0)
         if accepted:
             state.energy = trial_energy
             state.positions = trial_positions
@@ -201,30 +239,36 @@ class DoubleTorsionMover:
         return state, accepted
 
 
-class TranslationMover:
+class TranslationMover(Mover):
     """
     Translate a chain
     """
 
-    def __init__(self, atom_indices, move_size=0.1):
+    def __init__(
+        self, atom_indices: List[AtomIndex], move_size: float = 0.1
+    ):
         """
-        Parameters
-        ----------
-        atom_indices: [int]
-            List of atoms to translate
-        move_size: float
-            Standard deviation of random move in nanometers
+        Initialize a TranslationMover
+
+        Args:
+            atom_indices: atom indices to move
+            move_size: standard deviation of random move in nanometers
         """
         self.atom_indices = atom_indices
         self.move_size = move_size
 
-    def trial(self, state, runner):
+    def trial(
+        self, state: SystemState, runner: ReplicaRunner
+    ) -> Tuple[SystemState, bool]:
         """
-        Perform a metropolis trial
+        Perform a Metropolis trial
 
-        :param state: initial `SystemState`
-        :param runner: `OpenMMRunner` to evaluate the energies
-        :return: updated `SystemState`
+        Args:
+            starting_state: initial state of system
+            runner: runner to evaluate energies
+
+        Returns:
+            the system state after Monte Carlo trials
         """
         starting_positions = state.positions.copy()
         starting_energy = state.energy
@@ -235,7 +279,7 @@ class TranslationMover:
         state.positions = trial_positions
         trial_energy = runner.get_energy(state)
 
-        accepted = metropolis(starting_energy, trial_energy, bias=0.0)
+        accepted = _metropolis(starting_energy, trial_energy, bias=0.0)
         if accepted:
             state.energy = trial_energy
             state.positions = trial_positions
@@ -246,46 +290,37 @@ class TranslationMover:
         return state, accepted
 
 
-def rotate_around_vector(p1, p2, angle, points):
+def _rotate_around_vector(
+    p1: np.ndarray, p2: np.ndarray, angle: float, points: np.ndarray
+) -> np.ndarray:
     """
-    Parameters
-    ----------
-    p1 : ndarray
-        First point on axis to rotate around
-    p2 : ndarray
-        Second point on axis to rotate around
-    angle : float
-        Angle in degrees
-    points : ndarray
-        Numpy array of shape (n_atoms, 3)
+    Rotate points around a vector
 
-    Returns
-    -------
-    ndarray
-        Rotate array of shape (n_atoms, 3)
+    Args:
+        p1: first point on axis to rotate around
+        p2: second point on axis to rotate around
+        angle: angle in degrees
+        points: array of shape (n_atoms, 3)
+
+    Returns:
+        rotated array of shape (n_atoms, 3)
     """
     direction = p2 - p1
-    angle = angle / 180. * math.pi
+    angle = angle / 180.0 * math.pi
     rot_mat = _rotation_matrix(angle, direction, point=p1)
     return _covert_from_homogeneous(np.dot(_convert_to_homogeneous(points), rot_mat))
 
 
-def metropolis(current_energy, trial_energy, bias):
+def _metropolis(current_energy: float, trial_energy: float, bias: float) -> bool:
     """
     Perform a Metropolis accept/reject step.
 
-    Parameters
-    ----------
-    current_energy : float
-        Current energy in units of kT
-    trial_energy : float
-        Energy of trial in units of kT
-    bias : float
-        Negative log of ratio of forward and reverse move probabilities
+    Args:
+        current_energy: current energy in units of kT
+        trial_energy: energy of trial in units of kT
+        bias: negative log of ratio of forward and reverse move probabilities
 
-    Returns
-    -------
-    boolean
+    Returns:
         Indicates if step should be accepted
     """
     total_trial = trial_energy + bias
@@ -301,14 +336,14 @@ def metropolis(current_energy, trial_energy, bias):
             return False
 
 
-def generate_uniform_angle():
+def _generate_uniform_angle() -> float:
     """
     Generate a uniform angle in (0, 360]
-    Returns
-    -------
-    float
+
+    Returns:
+        a random angle
     """
-    return 360. * random.random()
+    return 360.0 * random.random()
 
 
 def _rotation_matrix(angle, direction, point=None):

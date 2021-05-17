@@ -4,22 +4,17 @@
 #
 
 import unittest
-from meld.system import (
-    protein,
-    builder,
-    ConstantTemperatureScaler,
-    LinearTemperatureScaler,
-    FixedTemperatureScaler,
-    GeometricTemperatureScaler,
-    RunOptions,
-)
+from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
+from meld.system.builder import SystemBuilder
+from meld.system.temperature import ConstantTemperatureScaler, LinearTemperatureScaler, GeometricTemperatureScaler
+from meld.system.options import RunOptions
 from meld.system.system import ParmTopReader
 
 
 class TestCreateFromSequence(unittest.TestCase):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
-        b = builder.SystemBuilder()
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder()
         self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
@@ -55,8 +50,8 @@ class TestCreateFromSequence(unittest.TestCase):
 
 class TestCreateFromSequenceExplicit(TestCreateFromSequence):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
-        b = builder.SystemBuilder(explicit_solvent=True)
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder(explicit_solvent=True)
         self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
@@ -90,8 +85,8 @@ class TestCreateFromSequenceExplicit(TestCreateFromSequence):
 
 class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
-        b = builder.SystemBuilder(
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder(
             explicit_solvent=True, explicit_ions=True, p_ioncount=3, n_ioncount=3
         )
         self.system = b.build_system([p])
@@ -129,8 +124,8 @@ class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
 
 class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA GLU CALA")
-        b = builder.SystemBuilder(explicit_solvent=True, explicit_ions=True)
+        p = SubSystemFromSequence("NALA GLU CALA")
+        b = SystemBuilder(explicit_solvent=True, explicit_ions=True)
         self.system = b.build_system([p])
 
     def test_has_correct_number_of_atoms(self):
@@ -235,51 +230,6 @@ class TestLinearTemperatureScaler(unittest.TestCase):
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
             LinearTemperatureScaler(0.0, 1.0, 300.0, -500.0)
-
-
-class TestFixedTemperatureScaler(unittest.TestCase):
-    def setUp(self):
-        self.s = FixedTemperatureScaler(0.2, 0.8, [300, 350, 380, 395, 403])
-
-    def test_returns_min_when_alpha_is_low(self):
-        t = self.s(0)
-        self.assertAlmostEqual(t, 300.0)
-
-    def test_returns_max_when_alpha_is_high(self):
-        t = self.s(1)
-        self.assertAlmostEqual(t, 403.0)
-
-    def test_returns_mid_when_alpha_is_half(self):
-        t = self.s(0.50)
-        self.assertAlmostEqual(t, 380.0)
-
-    def test_raises_when_alpha_below_zero(self):
-        with self.assertRaises(RuntimeError):
-            self.s(-1)
-
-    def test_raises_when_alpha_above_one(self):
-        with self.assertRaises(RuntimeError):
-            self.s(2)
-
-    def test_raises_when_alpha_min_below_zero(self):
-        with self.assertRaises(RuntimeError):
-            FixedTemperatureScaler(-0.1, 0.8, [300, 350, 380, 395, 403])
-
-    def test_raises_when_alpha_min_above_one(self):
-        with self.assertRaises(RuntimeError):
-            FixedTemperatureScaler(1.1, 0.8, [300, 350, 380, 395, 403])
-
-    def test_raises_when_alpha_max_below_zero(self):
-        with self.assertRaises(RuntimeError):
-            FixedTemperatureScaler(0.0, -0.1, [300, 350, 380, 395, 403])
-
-    def test_raises_when_alpha_max_above_one(self):
-        with self.assertRaises(RuntimeError):
-            FixedTemperatureScaler(0.0, 1.1, [300, 350, 380, 395, 403])
-
-    def test_raises_when_alpha_min_above_alpha_max(self):
-        with self.assertRaises(RuntimeError):
-            FixedTemperatureScaler(1.0, 0.0, [300, 350, 380, 395, 403])
 
 
 class TestGeometricTemperatureScaler(unittest.TestCase):
@@ -410,8 +360,8 @@ class TestOptionsExplicitSanityCheck(unittest.TestCase):
 
 class TestGetBonds(unittest.TestCase):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
-        b = builder.SystemBuilder()
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder()
         sys = b.build_system([p])
         self.bonds = ParmTopReader(sys.top_string).get_bonds()
 

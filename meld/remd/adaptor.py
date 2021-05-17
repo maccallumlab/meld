@@ -4,7 +4,6 @@
 #
 
 import numpy as np  # type: ignore
-from scipy import interpolate  # type: ignore
 import math
 from collections import namedtuple
 from typing import List, Union, Tuple, Optional

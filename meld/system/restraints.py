@@ -3,7 +3,8 @@
 # All rights reserved
 #
 
-"""Implements all of the restraints available in MELD.
+"""
+Implements all of the restraints available in MELD.
 
 This file implements restraints and related classes for MELD.
 Restraints are the primary way that "extra" forces are added
@@ -20,17 +21,17 @@ MELD simulation. There are many different types of restraints.
 Each restraint object has a variety of parameters that describe
 the strength of the force, the atoms involved, and so on.
 
-There are two main types of restraints, ``SelectableRestraint``
-and ``NonSelectableRestraint``, which have substantially different
+There are two main types of restraints, :class:`SelectableRestraint`
+and :class:`NonSelectableRestraint`, which have substantially different
 behavior.
 
-``NonSelectableRestraint`` are "always on". They may be scaled by
-scalers and ramps, but the force from each ``NonSelectableRestraint``
+:class:`NonSelectableRestraint` are "always on". They may be scaled by
+scalers and ramps, but the force from each :class:`NonSelectableRestraint`
 is independent of other restraints.
 
-``SelectableRestraint`` have forces and energies that depend on
-other ``SelectableRestraint``. They may be combined into
-``RestraintGroup``s, which allows for the ``n_active`` lowest
+:class:`SelectableRestraint` have forces and energies that depend on
+other :class:`SelectableRestraint`. They may be combined into
+:class:`RestraintGroup` objects, which allows for the ``n_active`` lowest
 energy restraints to be active at each timestep. The remaining
 restraints are inactive and do not contribute their forces or
 energy to the system for that timestep. This selectable nature
@@ -39,7 +40,7 @@ strategies useful for a variety of problems in structural
 biology [1]_, [2]_.
 
 The standard way to create a restraint is using their
-``RestraintMangaer.create_restraint`` with the appropriate
+:meth:`RestraintManager.create_restraint` with the appropriate
 restraint key:
 
 >>> r = system.restraints.create_restraint(rest_key, params...)
@@ -47,13 +48,13 @@ restraint key:
 
 Groups
 ------
-``SelectableRestraint`` must be part of a ``RestraintGroup``. Each
+:class:`SelectableRestraint` must be part of a :class:`RestraintGroup`. Each
 timestep, the restraints are sorted by energy and the ``num_active``
 restraints with the lowest energy are activated for the timestep,
 while the rest are ignored. It is not possible to add a
-``NonSelectableRestraint`` to a ``RestraintGroup``.
+:class:`NonSelectableRestraint` to a :class:`RestraintGroup`.
 
-RestraintGroups are created by:
+:class:`RestraintGroups` are created by:
 
 >>> g = system.restraints.create_restraint(list_of_restraints, num_active)
 
@@ -62,14 +63,14 @@ Collections
 There are two types of collection: always on, and selectively active.
 
 Restraints that will always be active are added to a single always on
-collection. The standard ways to do this is:
+collection. The standard ways to do this are:
 
 >>> system.restraints.add_as_always_active(restraint)
 >>> system.restraints.add_as_always_active_list(list_of_restraints)
 
 Restraints or groups of restraints that will be selected are added
 to selectively active collections. A mix of bare
-``SelectableRestraint`` or ``RestraintGroup`` objects may be added.
+:class:`SelectableRestraint` or :class:`RestraintGroup` objects may be added.
 When bare restraints are added, they are automatically placed into
 a group containing only that with restraint with ``num_active=1``.
 The standard way to create a restraint group is:
@@ -80,7 +81,7 @@ The standard way to create a restraint group is:
 Scalers
 -------
 Each replica in a MELD simulation has a value ``alpha`` that
-runs from 0.0 to 1.0, inclusive. The lowest replica always
+runs from ``0.0`` to ``1.0``, inclusive. The lowest replica always
 has ``alpha=0``, while the highest has ``alpha=1``. The strength
 of restraints can be scaled by specifying a Scaler that maps
 alpha into a scaling of the force constant.
@@ -101,12 +102,13 @@ Ramps are created and added to a restraint by:
 >>> ramp = system.restraints.create_scaler(ramp_key, params...)
 >>> r = system.restraints.create_restraint(rest_key, ramp=ramp, params...)
 
-**Note:** Ramps are created with the ``create_scaler`` method.
+.. note::
+   Despite the name, ramps are created with the :meth:`create_scaler` method.
 
 Positioners
 -----------
 Positioners are used to control the position or distance in a restraint. They
-function similar to Scalers, but rather than returning a value in [0, 1], they
+function similar to Scalers, but rather than returning a value in ``[0, 1]``, they
 return a value from a defined range.
 
 Positioners are created and added to a restraint by:
@@ -115,13 +117,14 @@ Positioners are created and added to a restraint by:
 >>> r = system.restraints.create_restraint(
         rest_key, param=positioner, params...)
 
-**Note:** Positioners are created with the ``create_scaler`` method.
+.. note::
+   Despite the name, positioners are created with the ``create_scaler`` method.
 
 Restraint Manager
 -----------------
-The ``System`` object maintains a ``RestraintManager`` object, which is the
+The :class:`System` object maintains a :class:`RestraintManager` object, which is the
 primary means for interacting with restraints. Generally, restraints, groups,
-scalers, etc are created through the ``RestraintManager``, rather than
+scalers, etc are created through the :class:`RestraintManager`, rather than
 by direct construction.
 
 References
@@ -132,13 +135,16 @@ References
 .. [2] A. Perez, J.L. MacCallum, and K.A. Dill, Accelerating molecular simulations
        of proteins using Bayesian inference on weak information, PNAS, 2015,
        112(38), pp. 11846--11851.
-
 """
+
+
+from __future__ import annotations
 import math
 import numpy as np  # type: ignore
+from numpy.typing import ArrayLike
 from collections import namedtuple
-from typing import Dict, Any
-from meld.system.indexing import AtomIndex
+from .indexing import AtomIndex
+from typing import Dict, Any, Optional, Union, List
 
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
@@ -206,56 +212,6 @@ class NonSelectableRestraint(Restraint):
 class DistanceRestraint(SelectableRestraint):
     """
     Restrain the distance between two groups
-
-    The energy is zero between ``r2`` and ``r3``. It increases
-    quadratically between ``r1`` and ``r2`` and between
-    ``r3`` and ``r4``. The energy increases linearly below ``r1``
-    and above ``r4``.
-
-    Parameters
-    ----------
-    system : meld.system.System
-             system object that restraint belongs to
-    scaler : Scaler or None
-             A Scaler to vary the force constant with alpha.
-             If ``None``, then a constant 1.0 scaler will
-             be used.
-    atom_1 : AtomIndex
-    atom_2 : AtomIndex
-    r1 : float or Positioner
-         in nanometers
-    r2 : float or Positioner
-         in nanometers
-    r3 : float or Positioner
-         in nanometers
-    r4 : float or Positioner
-         in nanometers
-    k : float or Positioner
-        in :math:`kJ/mol/nm^2`
-
-    Attributes
-    ----------
-    system : meld.system.System
-             system object that restraint belongs to
-    scaler : Scaler or None
-             A Scaler to vary the force constant with alpha.
-             If ``None``, then a constant 1.0 scaler will
-             be used.
-    ramp : Ramp or None
-           A ramp to vary the force constant with simulation time.
-           If ``None`` then a constant 1.0 ramp will be used.
-    atom_index_1 : AtomIndex
-    atom_index_2 : AtomIndex
-    r1 : Positioner
-         in nanometers
-    r2 : Positioner
-         in nanometers
-    r3 : Positioner
-         in nanometers
-    r4 : Positioner
-         in nanometers
-    k : float
-        in :math:`kJ/mol/nm^2`
     """
 
     _restraint_key_ = "distance"
@@ -263,16 +219,38 @@ class DistanceRestraint(SelectableRestraint):
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        r1,
-        r2,
-        r3,
-        r4,
-        k,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        r1: Union[float, Positioner],
+        r2: Union[float, Positioner],
+        r3: Union[float, Positioner],
+        r4: Union[float, Positioner],
+        k: Union[float, Positioner],
     ):
+        """
+        Initialize a DistanceRestraint
+
+        The energy is zero between ``r2`` and ``r3``. It increases
+        quadratically between ``r1`` and ``r2`` and between
+        ``r3`` and ``r4``. The energy increases linearly below ``r1``
+        and above ``r4``.
+
+        Args:
+            system: system object that restraint belongs to
+            scaler: a Scaler to vary the force constant with alpha.
+                If ``None``, then a constant 1.0 scaler will
+                be used.
+            ramp: a time ramp to turn restraints on a beginning of simulation
+            atom_1: index of atom 1
+            atom_2: index of atom 2
+            r1: in nanometers
+            r2: in nanometers
+            r3: in nanometers
+            r4: in nanometers
+            k: in :math:`kJ/mol/nm^2`
+        """
         assert isinstance(atom1, AtomIndex)
         self.atom_index_1 = int(atom1)
         assert isinstance(atom2, AtomIndex)
@@ -346,49 +324,6 @@ class GMMDistanceRestraint(SelectableRestraint):
        r is the vector of distances for the atom pairs
        u1, u2, ... are the mean vectors for each component
        P1, P2, ... are the precision (inverse covariance) matrices for each component
-
-    Parameters
-    ----------
-    system : meld.system.System
-             system object that restraint belongs to
-    scaler : Scaler or None
-             A Scaler to vary the force constant with alpha.
-             If ``None``, then a constant 1.0 scaler will
-             be used.
-    n_distances : int
-                  number of distances involved in GMM; max 32
-    n_components : int
-                   number of mixture components; max 32
-    atoms : [AtomIndex]
-            a lit of AtomIndex of length `2 * n_distances`
-    weights : array-like, shape(n_components)
-              The weights for the mixture components
-    means : array-like, shape(n_components, n_distances)
-            The means of each mixture component
-    precisions : array-like, shape(n_components, n_distances, n_distances)
-                 The precision (i.e. inverse covariance) of each mixture component
-
-    Attributes
-    ----------
-    scaler : Scaler or None
-             A Scaler to vary the force constant with alpha.
-             If ``None``, then a constant 1.0 scaler will
-             be used.
-    ramp : Ramp or None
-           A ramp to vary the force constant with simulation time.
-           If ``None`` then a constant 1.0 ramp will be used.
-    n_distances : int
-                  number of distances involved in restraint
-    n_components : int
-                   number of mixture components
-    atoms : [AtomIndex]
-                 a list of atom indices of length 2*n_distances
-    weights : array-like, shape(n_components)
-              The weights for the mixture components
-    means : array-like, shape(n_components, n_distances)
-            The means of each mixture component, in nm
-    precisions : array-like, shape(n_components, n_distances, n_distances)
-                 The precision (i.e. inverse covariance) of each mixture component, in nm^(-2)
     """
 
     _restraint_key_ = "gmm"
@@ -396,15 +331,32 @@ class GMMDistanceRestraint(SelectableRestraint):
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        n_distances,
-        n_components,
-        atoms,
-        weights,
-        means,
-        precisions,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        n_distances: int,
+        n_components: int,
+        atoms: List[AtomIndex],
+        weights: ArrayLike,
+        means: ArrayLike,
+        precisions: ArrayLike,
     ):
+        """
+        Initialize a GMMDistanceRestraint
+
+        Args:
+            system: system object that restraint belongs to
+            scaler: A Scaler to vary the force constant with alpha.
+                If ``None``, then a constant 1.0 scaler will
+                be used.
+            ramp: a time ramp to turn restraints on a beginning of simulation
+            n_distances: number of distances involved in GMM; max 32
+            n_components: number of mixture components; max 32
+            atoms: a lit of length `2 * n_distances`
+            weights: the weights for the mixture components, shape(n_components)
+            means : the means of each mixture component, shape(n_components, n_distances)
+            precisions: the precision (i.e. inverse covariance) of each mixture component,
+                    shape(n_components, n_distances, n_distances)
+        """
         self.scaler = scaler
         self.ramp = ramp
         self.n_distances = n_distances
@@ -417,8 +369,24 @@ class GMMDistanceRestraint(SelectableRestraint):
         self._check(system)
 
     @classmethod
-    def from_params(cls, system, scaler, ramp, params):
-        """Create a GMMDistanceRestraint from a GMMParams object."""
+    def from_params(
+        cls,
+        system,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        params: GMMParams,
+    ) -> GMMDistanceRestraint:
+        """
+        Create a GMMDistanceRestraint from a GMMParams object.
+
+        Args:
+            system: system object that restraint belongs to
+            scaler: A Scaler to vary the force constant with alpha.
+                If ``None``, then a constant 1.0 scaler will
+                be used.
+            ramp: a time ramp to turn restraints on a beginning of simulation
+            params: object to build restraint from
+        """
         return cls(
             system,
             scaler,
@@ -465,22 +433,41 @@ class GMMDistanceRestraint(SelectableRestraint):
 
 
 class HyperbolicDistanceRestraint(SelectableRestraint):
+    """
+    Hyperbolic distance restraint between two atoms
+    """
+
     _restraint_key_ = "hyperbolic"
 
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        r1,
-        r2,
-        r3,
-        r4,
-        k,
-        asymptote,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        r1: float,
+        r2: float,
+        r3: float,
+        r4: float,
+        k: float,
+        asymptote: float,
     ):
+        """
+        Initialize a HyperbolicDistanceRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force constant with alpha
+            ramp: ramp up restraint over time
+            atom1: first atom in bond
+            atom2: second atom in bond
+            r1: distance in nm
+            r2: distance in nm
+            r3: distance in nm
+            r4: distance in nm
+            asymptote: maximum energy in kT
+        """
         assert isinstance(atom1, AtomIndex)
         self.atom_index_1 = int(atom1)
         assert isinstance(atom2, AtomIndex)
@@ -519,39 +506,40 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
 
 
 class TorsionRestraint(SelectableRestraint):
-    # """
-    # A torsion restraint
-
-    # :param system: System
-    # :param scaler:  force scaler
-    # :param atom_1_res_index: integer, starting from 1
-    # :param atom_1_name: atom name
-    # :param atom_2_res_index: integer, starting from 1
-    # :param atom_2_name: atom name
-    # :param atom_3_res_index: integer, starting from 1
-    # :param atom_3_name: atom name
-    # :param atom_4_res_index: integer, starting from 1
-    # :param atom_4_name: atom name
-    # :param phi: equilibrium value, degrees
-    # :param delta_phi: flat within delta_phi, degrees
-    # :param k: :math:`kJ/mol/degree^2`
-    # """
+    """
+    A Torsion restraint between four atoms
+    """
 
     _restraint_key_ = "torsion"
 
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        atom3,
-        atom4,
-        phi,
-        delta_phi,
-        k,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        atom3: AtomIndex,
+        atom4: AtomIndex,
+        phi: float,
+        delta_phi: float,
+        k: float,
     ):
+        """
+        Initialize a TorsionRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: ramp up the force over time
+            atom1: index of first atom
+            atom2: index of second atom
+            atom3: index of third atom
+            atom4: index of fourth atom
+            phi: equilibrium angle in degrees
+            delta_phi: flat within delta_phi, degrees
+            k: force constant in :math:`kJ/mol/deg^2`
+        """
         assert isinstance(atom1, AtomIndex)
         assert isinstance(atom2, AtomIndex)
         assert isinstance(atom3, AtomIndex)
@@ -593,21 +581,40 @@ class TorsionRestraint(SelectableRestraint):
 
 
 class DistProfileRestraint(SelectableRestraint):
+    """
+    A spline-based distance profile restraint between two atoms
+    """
+
     _restraint_key_ = "dist_prof"
 
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        r_min,
-        r_max,
-        n_bins,
-        spline_params,
-        scale_factor,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        r_min: float,
+        r_max: float,
+        n_bins: int,
+        spline_params: np.ndarray,
+        scale_factor: float,
     ):
+        """
+        Initialize a DistProfileRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp; scale the force over time
+            atom1: the first atom in the bond
+            atom2: the second atom in the bond
+            r_min: the minimum distance in the lookup table
+            r_max: the maximum distance in the lookup table
+            n_bins: the number of bins in the lookup table
+            spline_params: the spline coefficient lookup table, shape(n_bins, 4)
+            scale_factor: scale the energy
+        """
         self.scaler = scaler
         self.ramp = ramp
         assert isinstance(atom1, AtomIndex)
@@ -630,25 +637,48 @@ class DistProfileRestraint(SelectableRestraint):
 
 
 class TorsProfileRestraint(SelectableRestraint):
+    """
+    A spline-based restraint between two torsions over eight atoms
+    """
+
     _restraint_key_ = "tors_prof"
 
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        atom3,
-        atom4,
-        atom5,
-        atom6,
-        atom7,
-        atom8,
-        n_bins,
-        spline_params,
-        scale_factor,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        atom3: AtomIndex,
+        atom4: AtomIndex,
+        atom5: AtomIndex,
+        atom6: AtomIndex,
+        atom7: AtomIndex,
+        atom8: AtomIndex,
+        n_bins: int,
+        spline_params: np.ndarray,
+        scale_factor: float,
     ):
+        """
+        Initialize a TorsProfileRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: ramp the strength of the force over time
+            atom1: first atom of first torsion
+            atom2: second atom of first torsion
+            atom3: third atom of first torsion
+            atom4: fourth atom of first torsion
+            atom5: first atom of second torsion
+            atom6: second atom of second torsion
+            atom7: third atom of second torsion
+            atom8: fourth atom of second torsion
+            n_bins: number of bins in lookup
+            spline_params: the spline coefficient lookup table, shape(n_bins, 16)
+            scale_factor: scale the energy
+        """
         self.scaler = scaler
         self.ramp = ramp
 
@@ -682,51 +712,54 @@ class TorsProfileRestraint(SelectableRestraint):
 
 
 class RdcRestraint(NonSelectableRestraint):
-    # """
-    # Residual Dipolar Coupling Restraint
-
-    # :param system: a System object
-    # :param scaler: a force scaler
-    # :param atom_1_res_index: integer, starting from 1
-    # :param atom_1_name: atom name
-    # :param atom_2_res_index:  integer, starting from 1
-    # :param atom_2_name: atom name
-    # :param kappa: prefactor for RDC calculation in :math:`Hz / Angstrom^3`
-    # :param d_obs: observed dipolar coupling in Hz
-    # :param tolerance: calculed couplings within tolerance (in Hz) of d_obs
-    #                   will have zero energy and force
-    # :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
-    # :param quadratic_cut: force onstant becomes linear bond this deviation s^-1
-    # :param weight: dimensionless weight to place on this restraint
-    # :param expt_index: integer experiment id
-    # :param patcher: meld.system.patchers.RdcAlignmentPatcher
-
-    # Typical values for kappa are:
-
-    # - 1H - 1H: :math:`-360300 \ Hz / Angstrom^3`
-    # - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
-    # - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
-
-    # """
+    """
+    Residual Dipolar Coupling Restraint
+    """
 
     _restraint_key_ = "rdc"
 
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        atom1,
-        atom2,
-        kappa,
-        d_obs,
-        tolerance,
-        force_const,
-        quadratic_cut,
-        weight,
-        expt_index,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom1: AtomIndex,
+        atom2: AtomIndex,
+        kappa: float,
+        d_obs: float,
+        tolerance: float,
+        force_const: float,
+        quadratic_cut: float,
+        weight: float,
+        expt_index: int,
         patcher,
     ):
+        """
+        Initialize an RdcRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            atom1: the first atom in the RDC
+            atom2: the second atom in the RDC
+            kappa: prefactor for RDC calculation in :math:`Hz / Angstrom^3`
+            d_obs: observed dipolar coupling in Hz
+            tolerance: calculed couplings within tolerance (in Hz) of d_obs
+                will have zero energy and force
+            force_const: force constant in :math:`kJ/mol/Hz^2`
+            quadratic_cut: force constant becomes linear bond this deviation s^-1
+            weight: dimensionless weight to place on this restraint
+            expt_index: integer experiment id
+            patcher: the :class:`RdcAlignmentPatcher` used to create the alignment tensor
+
+        .. note::
+           Typical values for kappa are:
+
+           - 1H - 1H: :math:`-360300 \ Hz / Angstrom^3`
+           - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
+           - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
+        """
         assert isinstance(atom1, AtomIndex)
         assert isinstance(atom2, AtomIndex)
         self.atom_index_1 = int(atom1)
@@ -758,26 +791,37 @@ class RdcRestraint(NonSelectableRestraint):
 
 
 class ConfinementRestraint(NonSelectableRestraint):
-    # """
-    # Confinement restraint
+    """
+    Confinement restraint from origin
 
-    # :param system: a System object
-    # :param scaler: a force scaler
-    # :param atom_index: AtomIndex
-    # :param radius: calculed couplings within tolerance (in Hz) of d_obs will
-    #                have zero energy and force
-    # :param force_const: force sonstant in :math:`kJ/mol/Hz^2`
-
-    # Confines an atom to be within radius of the origin. These restraints are
-    # typically set to somewhat larger than the expected radius of gyration of
-    # the protein and help to keep the structures comapact even when the protein
-    # is unfolded. Typically used with a ConstantScaler.
-
-    # """
+    Confines an atom to be within radius of the origin. These restraints are
+    typically set to somewhat larger than the expected radius of gyration of
+    the protein and help to keep the structures comapact even when the protein
+    is unfolded. Typically used with a :class:`ConstantScaler`.
+    """
 
     _restraint_key_ = "confine"
 
-    def __init__(self, system, scaler, ramp, atom_index, radius, force_const):
+    def __init__(
+        self,
+        system,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom_index: AtomIndex,
+        radius: float,
+        force_const: float,
+    ):
+        """
+        Initialize a ConfinementRestraint
+
+        Args:
+            system: the system that this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            atom_index: the index of the restrained atom
+            radius: the distance to confine to
+            force_const: strength of confinement
+        """
         assert isinstance(atom_index, AtomIndex)
         self.atom_index = int(atom_index)
         self.radius = float(radius)
@@ -798,7 +842,32 @@ class CartesianRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "cartesian"
 
-    def __init__(self, system, scaler, ramp, atom_index, x, y, z, delta, force_const):
+    def __init__(
+        self,
+        system,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom_index: AtomIndex,
+        x: float,
+        y: float,
+        z: float,
+        delta: float,
+        force_const: float,
+    ):
+        """
+        Initialize a CartesianRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            atom_index: the atom to restrain
+            x: equilibrium x-coordinate, in nm
+            y: equilibrium y-coordinate, in nm
+            z: equilibrium z-coordinate, in nm
+            delta: energy is zero within delta, in nm
+            force_const: force constant in :math:`kJ/mol/nm^2`
+        """
         assert isinstance(atom_index, AtomIndex)
         self.atom_index = int(atom_index)
         self.x = x
@@ -818,11 +887,26 @@ class CartesianRestraint(NonSelectableRestraint):
 
 
 class YZCartesianRestraint(NonSelectableRestraint):
-    """Cartesian restraint on yz coordinates only"""
+    """
+    Cartesian restraint on yz coordinates only
+    """
 
     _restraint_key_ = "yzcartesian"
 
     def __init__(self, system, scaler, ramp, atom_index, y, z, delta, force_const):
+        """
+        Initialize a YZCartesianRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            atom_index: the atom to restrain
+            x: equilibrium x-coordinate, in nm
+            y: equilibrium y-coordinate, in nm
+            delta: energy is zero within delta, in nm
+            force_const: force constant in :math:`kJ/mol/nm^2`
+        """
         assert isinstance(atom_index, AtomIndex)
         self.atom_index = int(atom_index)
         self.y = y
@@ -841,7 +925,8 @@ class YZCartesianRestraint(NonSelectableRestraint):
 
 
 class AbsoluteCOMRestraint(NonSelectableRestraint):
-    """Restraint on the distance between a group and a point in space
+    """
+    Restraint on the distance between a group and a point in space
 
     This class implements a restraint on the distance between the
     center of a group and a point in space.
@@ -864,52 +949,36 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
                                                dims=dims,
                                                force_const=force_const,
                                                position=position)
-
-    Parameters
-    ----------
-    system : meld.system.System
-             system object used for indexing
-    scaler : Scaler or None
-             scaler for force constant
-    ramp : Ramp or None
-           ramp for force constant
-    group : list of AtomIndex
-    weights : array_like
-              Weights to use when calculating the COM. If ``None``, then
-              the masses will be used.
-    dims : string
-           combination of x, y, z that determines which dimensions
-           are used when calculating the distance
-    force_const : float
-                  force constant in kJ/mol/nm^2
-    point : array_like
-            location in space to restrain to
-
-    Attributes
-    ----------
-    scaler : Scaler
-             scaler for the force constant
-    ramp : Ramp
-           ramp for the force
-    indices : list
-              index of atoms in group
-    weights : array_like or None
-              Weights used in COM calculation. If ``None``, then the
-              masses will be used.
-    dims : string
-           combination of xyz dimensions used for distance calculation
-    force_const : float
-                  force constant
-    position : array_like
-               point in space that group is restrained to
-
     """
 
     _restraint_key_ = "abs_com"
 
     def __init__(
-        self, system, scaler, ramp, group, weights, dims, force_const, position
+        self,
+        system,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        group: List[AtomIndex],
+        weights: ArrayLike,
+        dims: str,
+        force_const: float,
+        position: ArrayLike,
     ):
+        """
+        Initialize an AbsoluteCOMRestraint
+
+        Args:
+            system: system object used for indexing
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            group: atoms to restrain COM
+            weights: Weights to use when calculating the COM. If ``None``,
+                then the masses will be used.
+            dims: combination of x, y, z that determines which dimensions
+                are used when calculating the distance
+            force_const: force constant in kJ/mol/nm^2
+            point: location in space to restrain to
+        """
         self.scaler = scaler
         self.ramp = ramp
 
@@ -953,7 +1022,8 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
 
 
 class COMRestraint(NonSelectableRestraint):
-    """Restraint on the distance between two groups along selected axes
+    """
+    Restraint on the distance between two groups along selected axes
 
     This class implements a restraint on the distance between the center of
     two groups.
@@ -977,54 +1047,6 @@ class COMRestraint(NonSelectableRestraint):
                                                dims=dims,
                                                force_const=force_const,
                                                distance=distance)
-
-    Parameters
-    ----------
-    system : meld.system.System
-             system object used for indexing
-    scaler : Scaler or None
-             scaler for force constant
-    ramp : Ramp or None
-           ramp for force constant
-    group1 : list of AtomIndex
-    group2 : list of AtomIndex
-    weights1 : array_like
-               Weights to use when calculating the COM. If ``None``,
-               then the atom masses will be used.
-    weights2 : array_like
-               Weights to use when calculating the COM. If ``None``,
-               then the atom masses will be used.
-    dims : string
-           combination of x, y, z that determines which dimensions
-           are used when calculating the distance
-    force_const : float
-                  force constant in kJ/mol/nm^2
-    distance : float or Positioner
-               distance between groups
-
-    Attributes
-    ----------
-    scaler : Scaler
-             scaler for the force constant
-    ramp : Ramp
-           ramp for the force
-    indices1 : list
-               index of atoms in group 1
-    indices2 : list
-               index of atoms in group 2
-    weights1 : array_like
-               Weights to use when calculating the COM. If ``None``,
-               then the atom masses will be used.
-    weights2 : array_like
-               Weights to use when calculating the COM. If ``None``,
-               then the atom masses will be used.
-    dims : string
-           combination of xyz dimensions used for distance calculation
-    force_const : float
-                  force constant
-    positioner : Positioner
-                 controls the distance between groups
-
     """
 
     _restraint_key_ = "com"
@@ -1032,16 +1054,34 @@ class COMRestraint(NonSelectableRestraint):
     def __init__(
         self,
         system,
-        scaler,
-        ramp,
-        group1,
-        group2,
-        weights1,
-        weights2,
-        dims,
-        force_const,
-        distance,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        group1: List[AtomIndex],
+        group2: List[AtomIndex],
+        weights1: List[float],
+        weights2: List[float],
+        dims: str,
+        force_const: float,
+        distance: Union[float, Positioner],
     ):
+        """
+        Initialize a COMRestraint
+
+        Args:
+            system: the system this restraint belongs to
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            group1: atoms in group1
+            group2: atoms in group2
+            weights1: Weights to use when calculating the COM. If ``None``,
+                then the atom masses will be used.
+            weights2: Weights to use when calculating the COM. If ``None``,
+                then the atom masses will be used.
+            dims: combination of x, y, z that determines which dimensions
+                are used when calculating the distance
+            force_const: force constant in kJ/mol/nm^2
+            distance: distance between groups
+        """
         # setup indices
         self.scaler = scaler
         self.ramp = ramp
@@ -1100,7 +1140,9 @@ class COMRestraint(NonSelectableRestraint):
 
 
 class AlwaysActiveCollection:
-    """ """
+    """
+    A collection of restraints that are always on
+    """
 
     def __init__(self):
         self._restraints = []
@@ -1109,7 +1151,13 @@ class AlwaysActiveCollection:
     def restraints(self):
         return self._restraints
 
-    def add_restraint(self, restraint):
+    def add_restraint(self, restraint: Restraint):
+        """
+        Add a restraint
+
+        Args:
+            restraint: restraint to add
+        """
         if not isinstance(restraint, Restraint):
             raise RuntimeError(
                 f"Tried to add unknown restraint of type {str(type(restraint))}."
@@ -1118,10 +1166,30 @@ class AlwaysActiveCollection:
 
 
 class SelectivelyActiveCollection:
-    """ """
+    """
+    A collection of :class:`RestraintGroup` that are selectively active
 
-    def __init__(self, restraint_list, num_active):
-        self._groups = []
+    Each time step the ``num_active`` lowest energy groups will be active.
+    """
+
+    def __init__(
+        self,
+        restraint_list: List[Union[RestraintGroup, SelectableRestraint]],
+        num_active: int,
+    ):
+        """
+        Initialize a SelectivelyActiveCollection
+
+        Args
+            restraint_list: list of restraints to add to collection
+            num_active: number active each time step
+
+        .. note::
+           ``restraint_list`` can contain both :class:`RestraintGroup` and
+           :class:`SelectableRestraint`. Any :class:`SelectableRestraints`
+           will be put into a singleton :class:`RestraintGroup`.
+        """
+        self._groups: List[RestraintGroup] = []
         if not restraint_list:
             raise RuntimeError(
                 "SelectivelyActiveCollection cannot have empty" "restraint list."
@@ -1138,10 +1206,16 @@ class SelectivelyActiveCollection:
 
     @property
     def groups(self):
+        """
+        Number of groups in collection
+        """
         return self._groups
 
     @property
     def num_active(self):
+        """
+        Number active in collection
+        """
         return self._num_active
 
     def _add_restraint(self, restraint):
@@ -1158,8 +1232,21 @@ class SelectivelyActiveCollection:
 
 
 class RestraintGroup:
-    def __init__(self, rest_list, num_active):
-        self._restraints = []
+    """
+    A group of selectable restraints
+
+    Each timestep the lowest ``num_active`` energy restraints will be active.
+    """
+
+    def __init__(self, rest_list: List[SelectableRestraint], num_active: int):
+        """
+        Initialize a RestraintGroup
+
+        Args:
+            rest_list: list of :class:`SelectableRestraint` in this group
+            num_active: number active each timestep
+        """
+        self._restraints: List[SelectableRestraint] = []
         if not rest_list:
             raise RuntimeError("rest_list cannot be empty.")
         for rest in rest_list:
@@ -1174,10 +1261,16 @@ class RestraintGroup:
 
     @property
     def restraints(self):
+        """
+        Restraints in the group
+        """
         return self._restraints
 
     @property
     def num_active(self):
+        """
+        Number of active restraints
+        """
         return self._num_active
 
     def _add_restraint(self, rest):
@@ -1187,34 +1280,90 @@ class RestraintGroup:
 
 
 class RestraintManager:
-    """ """
+    """
+    A class to manage restraints for a System
+    """
 
     def __init__(self, system):
+        """
+        Initialize a RestraintManager
+
+        Args:
+            system: the System to manage restraints for
+        """
         self._system = system
         self._always_active = AlwaysActiveCollection()
         self._selective_collections = []
 
     @property
     def always_active(self):
+        """
+        Always active restraints
+        """
         return self._always_active.restraints
 
     @property
     def selectively_active_collections(self):
+        """
+        Selectively active collections
+        """
         return self._selective_collections
 
-    def add_as_always_active(self, restraint):
+    def add_as_always_active(
+        self, restraint: Union[NonSelectableRestraint, SelectableRestraint]
+    ):
+        """
+        Add a restraint as always active
+
+        Args:
+            restraint: the restraint to add
+        """
         self._always_active.add_restraint(restraint)
 
-    def add_as_always_active_list(self, restraint_list):
+    def add_as_always_active_list(
+        self, restraint_list: List[Union[NonSelectableRestraint, SelectableRestraint]]
+    ):
+        """
+        Add a list of restraints as always active
+
+        Args:
+            restraint_list: the restraints to add
+        """
         for r in restraint_list:
             self.add_as_always_active(r)
 
-    def add_selectively_active_collection(self, rest_list, num_active):
+    def add_selectively_active_collection(
+        self,
+        rest_list: List[Union[RestraintGroup, SelectableRestraint]],
+        num_active: int,
+    ):
+        """
+        Add a selectively active collection
+
+        Args:
+            rest_list: list of restraints or restraint groups to add
+            num_active: number of active groups in collection
+        """
         self._selective_collections.append(
             SelectivelyActiveCollection(rest_list, num_active)
         )
 
-    def create_restraint(self, rest_type, scaler=None, ramp=None, **kwargs):
+    def create_restraint(
+        self,
+        rest_type: str,
+        scaler: Optional[RestraintScaler] = None,
+        ramp: Optional[TimeRamp] = None,
+        **kwargs,
+    ):
+        r"""
+        Create a restraint
+
+        Args:
+            rest_type: type of restraint to add
+            scaler: scale the force with alpha
+            ramp: scale the force over time
+            \**kwargs: passed along to restraint creation functions
+        """
         if scaler is None:
             scaler = ConstantScaler()
         else:
@@ -1245,16 +1394,17 @@ class RestraintManager:
 
 
 class ScalerRegistry(type):
-    # '''
-    # Metaclass that maintains a registry of scaler types.
+    """
+    Metaclass that maintains a registry of scaler types.
 
-    # All classes that decend from Scaler inherit ScalerRegistry as their
-    # metaclass. ScalerRegistry will automatically maintain a map between
-    # the class attribute '_scaler_key_' and all scaler types.
+    All classes that decend from Scaler inherit ScalerRegistry as their
+    metaclass. ScalerRegistry will automatically maintain a map between
+    the class attribute '_scaler_key_' and all scaler types.
 
-    # The function get_constructor_for_key is used to get the class for the
-    # corresponding key.
-    # '''
+    The function get_constructor_for_key is used to get the class for the
+    corresponding key.
+    """
+
     _scaler_registry: Dict[str, type] = {}
 
     def __init__(cls, name, bases, attrs):
@@ -1336,18 +1486,28 @@ class ConstantScaler(RestraintScaler):
 
 
 class LinearScaler(RestraintScaler):
-    """This scaler linearly interpolates between 0 and 1 from alpha_min
-    to alpha_max."""
+    """
+    This scaler linearly interpolates from alpha_min to alpha_max.
+    """
 
     _scaler_key_ = "linear"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_max,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_max: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Initialize a LinearScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_max: maximum alpha value
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
         self._strength_at_alpha_min = strength_at_alpha_min
@@ -1367,27 +1527,41 @@ class LinearScaler(RestraintScaler):
 
 
 class PlateauLinearScaler(RestraintScaler):
-    # r'''This scaler linearly interpolates between 0 and 1 from alpha_min to
-    # alpha_one, keeps the value of 1 until alpha_two and then decreases
-    # linearly until 0 in alpha_max.
+    r"""
+    A scaler with a plateau shape
 
-    #     ------   strength alpha_min --> between two and one
-    #   /        \
-    #  /          \ strength alpha_max --> > alpha_max and
-    #                                        below alphamin
-    # '''
+    This scaler linearly interpolates between 0 and 1 from alpha_min to
+    alpha_one, keeps the value of 1 until alpha_two and then decreases
+    linearly until 0 in alpha_max.
+
+        ------   strength alpha_min --> between two and one
+      /        \
+     /          \ strength alpha_max --> > alpha_max and
+                                           below alphamin
+    """
 
     _scaler_key_ = "plateau"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_one,
-        alpha_two,
-        alpha_max,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_one: float,
+        alpha_two: float,
+        alpha_max: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Initialize a PlateauLinearScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_one: lower range of plateau
+            alpha_two: upper range of plateau
+            alpha_max: maximum alpha value
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
         self._alpha_two = float(alpha_two)
@@ -1427,16 +1601,30 @@ class PlateauLinearScaler(RestraintScaler):
 
 
 class NonLinearScaler(RestraintScaler):
+    """
+    A restraint scaler with a non-linear shape
+    """
+
     _scaler_key_ = "nonlinear"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_max,
-        factor,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_max: float,
+        factor: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Intialize a NonLinearScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_max: maximum alpha value
+            factor: controls the non-linear shape, must be >= 0
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = alpha_min
         self._alpha_max = alpha_max
         self._strength_at_alpha_min = strength_at_alpha_min
@@ -1460,22 +1648,38 @@ class NonLinearScaler(RestraintScaler):
 
 
 class PlateauNonLinearScaler(RestraintScaler):
-    # '''This scaler linearly interpolates between 0 and 1 from alpha_min
-    # to alpha_one, keeps the value of 1 until alpha_two and then decreases
-    # linearly until 0 in alpha_max.'''
+    """
+    Nonlinear scaler with a plateau shape
+
+    This scaler linearly interpolates between 0 and 1 from alpha_min
+    to alpha_one, keeps the value of 1 until alpha_two and then decreases
+    linearly until 0 in alpha_max.
+    """
 
     _scaler_key_ = "plateaunonlinear"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_one,
-        alpha_two,
-        alpha_max,
-        factor,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_one: float,
+        alpha_two: float,
+        alpha_max: float,
+        factor: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Initialize a PlateauNonlinearScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_one: lower range of plateau
+            alpha_two: upper range of plateau
+            alpha_max: maximum alpha value
+            factor: controls the non-linear shape, must be >= 0
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
         self._alpha_two = float(alpha_two)
@@ -1515,20 +1719,36 @@ class PlateauNonLinearScaler(RestraintScaler):
 
 
 class PlateauSmoothScaler(RestraintScaler):
-    # '''This scaler linearly interpolates between 0 and 1 from alpha_min
-    # to alpha_one, keeps the value of 1 until alpha_two and then decreases
-    # linearly until 0 in alpha_max.'''
+    """
+    A scaler with a plateau shape
+
+    This scaler linearly interpolates between 0 and 1 from alpha_min
+    to alpha_one, keeps the value of 1 until alpha_two and then decreases
+    linearly until 0 in alpha_max.
+    """
+
     _scaler_key_ = "plateausmooth"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_one,
-        alpha_two,
-        alpha_max,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_one: float,
+        alpha_two: float,
+        alpha_max: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Initialize a PlateauSmoothScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_one: lower range of plateau
+            alpha_two: upper range of plateau
+            alpha_max: maximum alpha value
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = float(alpha_min)
         self._alpha_one = float(alpha_one)
         self._alpha_two = float(alpha_two)
@@ -1562,19 +1782,32 @@ class PlateauSmoothScaler(RestraintScaler):
 
 
 class GeometricScaler(RestraintScaler):
+    """
+    Scale restraints geometrically
+    """
+
     _scaler_key_ = "geometric"
 
     def __init__(
         self,
-        alpha_min,
-        alpha_max,
-        strength_at_alpha_min=1.0,
-        strength_at_alpha_max=STRENGTH_AT_ALPHA_MAX,
+        alpha_min: float,
+        alpha_max: float,
+        strength_at_alpha_min: float = 1.0,
+        strength_at_alpha_max: float = STRENGTH_AT_ALPHA_MAX,
     ):
+        """
+        Initialize a GeometricScaler
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_max: maximum alpha value
+            strength_at_alpha_min: strength when alpha <= alpha_min
+            strength_at_alpha_max: strength when alpha >= alpha_max
+        """
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
         self._strength_at_alpha_min = float(strength_at_alpha_min)
-        self._strength_at_alpha_max = float(STRENGTH_AT_ALPHA_MAX)
+        self._strength_at_alpha_max = float(strength_at_alpha_max)
         self._delta_alpha = self._alpha_max - self._alpha_min
         self._check_alpha_min_max()
 
@@ -1618,7 +1851,18 @@ class LinearRamp(TimeRamp):
 
     _scaler_key_ = "linear_ramp"
 
-    def __init__(self, start_time, end_time, start_weight, end_weight):
+    def __init__(
+        self, start_time: float, end_time: float, start_weight: float, end_weight: float
+    ):
+        """
+        Initialize a LinearTimeRamp
+
+        Args:
+            start_time: time to start ramping up
+            end_time: time to finish ramping up
+            start_weight: weight when time <= start_time
+            end_weight: weight when time >= end_time
+        """
         self.t_start = float(start_time)
         self.t_end = float(end_time)
         self.w_start = float(start_weight)
@@ -1638,11 +1882,30 @@ class LinearRamp(TimeRamp):
 
 
 class NonLinearRamp(TimeRamp):
-    """TimeRamp that interpolates non-linearly"""
+    """
+    TimeRamp that interpolates non-linearly
+    """
 
     _scaler_key_ = "nonlinear_ramp"
 
-    def __init__(self, start_time, end_time, start_weight, end_weight, factor):
+    def __init__(
+        self,
+        start_time: float,
+        end_time: float,
+        start_weight: float,
+        end_weight: float,
+        factor: float,
+    ):
+        """
+        Initialize a NonLinearTimeRamp
+
+        Args:
+            start_time: time to start ramping up
+            end_time: time to finish ramping up
+            start_weight: weight when time <= start_time
+            end_weight: weight when time >= end_time
+            factor: controls the shape of the non-linear ramp, must be >= 1
+        """
         if end_time <= start_time:
             raise ValueError("end_time must be > start_time")
         if factor < 1.0:
@@ -1684,16 +1947,26 @@ class NonLinearRamp(TimeRamp):
 
 
 class TimeRampSwitcher(TimeRamp):
-    # '''
-    # Switches between two TimeRamp objects.
+    """
+    Switches between two TimeRamp objects.
 
-    # Class first_ramp before switching time. At the switching
-    # time it switches to second_ramp, which it uses thereafter.
-    # '''
+    Class first_ramp before switching time. At the switching
+    time it switches to second_ramp, which it uses thereafter.
+    """
 
     _scaler_key_ = "ramp_switcher"
 
-    def __init__(self, first_ramp, second_ramp, switching_time):
+    def __init__(
+        self, first_ramp: TimeRamp, second_ramp: TimeRamp, switching_time: float
+    ):
+        """
+        Initialize a TimeRampSwitcher
+
+        Args:
+            first_ramp: active when time < switching_time
+            second_ramp: active when time >= switching_time
+            switching_time: when to switch
+        """
         self.first_ramp = first_ramp
         self.second_ramp = second_ramp
         self.switching_time = switching_time
@@ -1727,11 +2000,24 @@ class ConstantPositioner(Positioner):
 
 
 class LinearPositioner(Positioner):
-    """Position restraints linearly within a range"""
+    """
+    Position restraints linearly within a range
+    """
 
     _scaler_key_ = "linear_positioner"
 
-    def __init__(self, alpha_min, alpha_max, pos_min, pos_max):
+    def __init__(
+        self, alpha_min: float, alpha_max: float, pos_min: float, pos_max: float
+    ):
+        """
+        Initialize a LinearPositioner
+
+        Args:
+            alpha_min: minimum alpha value
+            alpha_max: maximum alpha value
+            pos_min: value at alpha_min
+            pos_max: value at alpha_max
+        """
         if alpha_max <= alpha_min:
             raise ValueError("alpha_max must be > alpha_min")
 

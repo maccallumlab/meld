@@ -13,8 +13,8 @@ import meld
 from meld import util
 from meld import vault
 from meld.system import get_runner
+from .multiplex_runner import MultiplexReplicaExchangeRunner
 from simtk.openmm import version as mm_version  # type: ignore
-from meld.remd import multiplex_runner
 import socket
 from typing import Union
 
@@ -157,7 +157,7 @@ def launch_multiplex(
 
     store.initialize(mode="a")
     remd_runner = store.load_remd_runner()
-    runner = multiplex_runner.MultiplexReplicaExchangeRunner(
+    runner = MultiplexReplicaExchangeRunner(
         remd_runner.n_replicas,
         remd_runner.max_steps,
         remd_runner.ladder,

@@ -1,8 +1,9 @@
 import unittest
 from meld.system import (
-    protein,
+    subsystem,
     builder,
 )
+from meld.system.indexing import ResidueIndex
 from meld.util import in_temp_dir
 
 pdb_string = """ATOM      1  N   ALA A   1       3.326   1.548  -0.000
@@ -169,8 +170,8 @@ TER
 
 class TestAtomIndexingOneBased(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA ALA CALA")
-        p2 = protein.SubSystemFromSequence("NALA ALA CALA")
+        p1 = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        p2 = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -193,8 +194,8 @@ class TestAtomIndexingOneBased(unittest.TestCase):
 
 class TestAtomIndexingZeroBased(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA ALA CALA")
-        p2 = protein.SubSystemFromSequence("NALA ALA CALA")
+        p1 = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        p2 = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -248,8 +249,8 @@ class TestAtomIndexingZeroBased(unittest.TestCase):
 
 class TestAtomIndexingExpectedResname(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA CYS CLYS")
-        p2 = protein.SubSystemFromSequence("NARG TRP CTYR")
+        p1 = subsystem.SubSystemFromSequence("NALA CYS CLYS")
+        p2 = subsystem.SubSystemFromSequence("NARG TRP CTYR")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -269,19 +270,19 @@ class TestAtomIndexingExpectedResname(unittest.TestCase):
 
 class TestAtomIndexingHistidine(unittest.TestCase):
     def test_hid_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HID CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HID CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HIE CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HIE CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HIP CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HIP CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
@@ -289,7 +290,7 @@ class TestAtomIndexingHistidine(unittest.TestCase):
 
 class TestAtomIndexingAsparticAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
-        p1 = protein.SubSystemFromSequence("NALA ASH CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA ASH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="ASP", one_based=False)
@@ -297,7 +298,7 @@ class TestAtomIndexingAsparticAcid(unittest.TestCase):
 
 class TestAtomIndexingGlutamicAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
-        p1 = protein.SubSystemFromSequence("NALA GLH CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA GLH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="GLU", one_based=False)
@@ -305,7 +306,7 @@ class TestAtomIndexingGlutamicAcid(unittest.TestCase):
 
 class TestAtomIndexingLysine(unittest.TestCase):
     def test_lyn_should_match_lys(self):
-        p1 = protein.SubSystemFromSequence("NALA LYN CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA LYN CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.atom_index(1, "CA", expected_resname="LYS", one_based=False)
@@ -313,8 +314,8 @@ class TestAtomIndexingLysine(unittest.TestCase):
 
 class TestAtomIndexingDisulfide(unittest.TestCase):
     def test_lyn_should_match_lys(self):
-        p = protein.SubSystemFromSequence("NCYX ALA CCYX")
-        p.add_disulfide(0, 2)
+        p = subsystem.SubSystemFromSequence("NCYX ALA CCYX")
+        p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
         b = builder.SystemBuilder()
         system = b.build_system([p])
         system.atom_index(0, "CA", expected_resname="CYS", one_based=False)
@@ -323,8 +324,8 @@ class TestAtomIndexingDisulfide(unittest.TestCase):
 
 class TestResidueIndexingOneBased(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA ALA CALA")
-        p2 = protein.SubSystemFromSequence("NALA ALA CALA")
+        p1 = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        p2 = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -347,8 +348,8 @@ class TestResidueIndexingOneBased(unittest.TestCase):
 
 class TestResidueIndexingZeroBased(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA ALA CALA")
-        p2 = protein.SubSystemFromSequence("NALA ALA CALA")
+        p1 = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        p2 = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -371,8 +372,8 @@ class TestResidueIndexingZeroBased(unittest.TestCase):
 
 class TestResidueIndexingExpectedResname(unittest.TestCase):
     def setUp(self):
-        p1 = protein.SubSystemFromSequence("NALA CYS CLYS")
-        p2 = protein.SubSystemFromSequence("NARG TRP CTYR")
+        p1 = subsystem.SubSystemFromSequence("NALA CYS CLYS")
+        p2 = subsystem.SubSystemFromSequence("NARG TRP CTYR")
         b = builder.SystemBuilder()
         self.system = b.build_system([p1, p2])
 
@@ -392,19 +393,19 @@ class TestResidueIndexingExpectedResname(unittest.TestCase):
 
 class TestResidueIndexingHistidine(unittest.TestCase):
     def test_hid_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HID CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HID CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HIE CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HIE CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
-        p1 = protein.SubSystemFromSequence("NALA HIP CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA HIP CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="HIS", one_based=False)
@@ -412,7 +413,7 @@ class TestResidueIndexingHistidine(unittest.TestCase):
 
 class TestResidueIndexingAsparticAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
-        p1 = protein.SubSystemFromSequence("NALA ASH CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA ASH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="ASP", one_based=False)
@@ -420,7 +421,7 @@ class TestResidueIndexingAsparticAcid(unittest.TestCase):
 
 class TestResidueIndexingGlutamicAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
-        p1 = protein.SubSystemFromSequence("NALA GLH CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA GLH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="GLU", one_based=False)
@@ -428,7 +429,7 @@ class TestResidueIndexingGlutamicAcid(unittest.TestCase):
 
 class TestResidueIndexingLysine(unittest.TestCase):
     def test_lyn_should_match_lys(self):
-        p1 = protein.SubSystemFromSequence("NALA LYN CLYS")
+        p1 = subsystem.SubSystemFromSequence("NALA LYN CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
         system.residue_index(1, expected_resname="LYS", one_based=False)
@@ -436,8 +437,8 @@ class TestResidueIndexingLysine(unittest.TestCase):
 
 class TestResidueIndexingDisulfide(unittest.TestCase):
     def test_lyn_should_match_lys(self):
-        p = protein.SubSystemFromSequence("NCYX ALA CCYX")
-        p.add_disulfide(0, 2)
+        p = subsystem.SubSystemFromSequence("NCYX ALA CCYX")
+        p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
         b = builder.SystemBuilder()
         system = b.build_system([p])
         system.residue_index(0, expected_resname="CYS", one_based=False)
@@ -449,7 +450,7 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
         with in_temp_dir():
             with open("pdb.pdb", "w") as outfile:
                 outfile.write(pdb_string)
-            p = protein.SubSystemFromPdbFile("pdb.pdb")
+            p = subsystem.SubSystemFromPdbFile("pdb.pdb")
             b = builder.SystemBuilder()
             self.system = b.build_system([p])
 
@@ -566,7 +567,7 @@ class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
         with in_temp_dir():
             with open("pdb.pdb", "w") as outfile:
                 outfile.write(pdb_string)
-            p = protein.SubSystemFromPdbFile("pdb.pdb")
+            p = subsystem.SubSystemFromPdbFile("pdb.pdb")
             b = builder.SystemBuilder(explicit_solvent=True)
             self.system = b.build_system([p])
 

@@ -3,7 +3,11 @@
 # All rights reserved
 #
 
-from meld import system
+from meld.system.subsystem import SubSystemFromSequence
+from meld.system.builder import SystemBuilder
+from meld.system.temperature import ConstantTemperatureScaler, GeometricTemperatureScaler, REST2Scaler
+from meld.system.options import RunOptions
+from meld.system.state import SystemState
 from meld.system.openmm_runner import OpenMMRunner
 import numpy as np  # type: ignore
 import unittest
@@ -16,12 +20,12 @@ class TestOpenRunner(unittest.TestCase):
         self.mdcrd_path = os.path.join(os.path.dirname(__file__), "system.mdcrd")
 
     def test_implicit_runner(self):
-        p = system.SubSystemFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder()
         sys = b.build_system([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
+        sys.temperature_scaler = ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions()
+        options = RunOptions()
         options.timesteps = 20
 
         runner = OpenMMRunner(sys, options, platform="Reference")
@@ -32,7 +36,7 @@ class TestOpenRunner(unittest.TestCase):
         alpha = 0.
         energy = 0.
         box_vectors = np.zeros(3)
-        state = system.SystemState(pos, vel, alpha, energy, box_vectors)
+        state = SystemState(pos, vel, alpha, energy, box_vectors)
 
         state = runner.minimize_then_run(state)
         state = runner.run(state)
@@ -40,12 +44,12 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_implicit_runner_amap(self):
-        p = system.SubSystemFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder()
         sys = b.build_system([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
+        sys.temperature_scaler = ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions()
+        options = RunOptions()
         options.timesteps = 20
         options.use_amap = True
         options.amap_beta_bias = 10
@@ -58,7 +62,7 @@ class TestOpenRunner(unittest.TestCase):
         alpha = 0.
         energy = 0.
         box_vectors = np.zeros(3)
-        state = system.SystemState(pos, vel, alpha, energy, box_vectors)
+        state = SystemState(pos, vel, alpha, energy, box_vectors)
 
         state = runner.minimize_then_run(state)
         state = runner.run(state)
@@ -66,12 +70,12 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner(self):
-        p = system.SubSystemFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder(explicit_solvent=True)
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder(explicit_solvent=True)
         sys = b.build_system([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
+        sys.temperature_scaler = ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions(solvation="explicit")
+        options = RunOptions(solvation="explicit")
         options.minimize_steps = 100
         options.timesteps = 2
 
@@ -83,7 +87,7 @@ class TestOpenRunner(unittest.TestCase):
         alpha = 0.
         energy = 0.
         box_vectors = sys._box_vectors
-        state = system.SystemState(pos, vel, alpha, energy, box_vectors)
+        state = SystemState(pos, vel, alpha, energy, box_vectors)
 
         state = runner.minimize_then_run(state)
         state = runner.run(state)
@@ -91,14 +95,14 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner_scaler(self):
-        p = system.SubSystemFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder(explicit_solvent=True)
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder(explicit_solvent=True)
         sys = b.build_system([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
-        rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300., 350.)
+        sys.temperature_scaler = ConstantTemperatureScaler(300.)
+        rest2_scaler = GeometricTemperatureScaler(0, 1, 300., 350.)
 
-        options = system.RunOptions(solvation="explicit")
-        options.rest2_scaler = system.REST2Scaler(300., rest2_scaler)
+        options = RunOptions(solvation="explicit")
+        options.rest2_scaler = REST2Scaler(300., rest2_scaler)
         options.minimize_steps = 100
         options.timesteps = 2
         options.use_rest2 = True
@@ -111,7 +115,7 @@ class TestOpenRunner(unittest.TestCase):
         alpha = 0.
         energy = 0.
         box_vectors = sys._box_vectors
-        state = system.SystemState(pos, vel, alpha, energy, box_vectors)
+        state = SystemState(pos, vel, alpha, energy, box_vectors)
 
         state = runner.minimize_then_run(state)
         state = runner.run(state)

@@ -10,10 +10,10 @@ Functions to read in sequences, secondary structures, and RDCs
 
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
-from meld.system import System
+from meld.system.system import System
 from meld.system.restraints import (
     RestraintGroup,
-    Restraint,
+    SelectableRestraint,
     TorsionRestraint,
     DistanceRestraint,
     RdcRestraint,
@@ -241,7 +241,7 @@ def get_secondary_structure_restraints(
         contents, "H", 5, min_secondary_match, first_residue
     )
     for helix in helices:
-        rests: List[Restraint] = []
+        rests: List[SelectableRestraint] = []
         for index in range(helix.start + 1, helix.end - 1):
             phi = TorsionRestraint(
                 system,

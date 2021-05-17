@@ -13,7 +13,7 @@ From Sequence
 A simple explicit solvent model can be built in the setup.py script by first generating a protein sequence and setting up an explicit solvent SystemBuilder that defines the system:
 ::
 
-   p = protein.SubSystemFromSequence("NALA ALA CALA")        
+   p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
    b = builder.SystemBuilder(explicit_solvent=True)
 
 The system is then built from the molecular sequence according to the specifications of the builder:

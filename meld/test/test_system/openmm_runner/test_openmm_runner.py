@@ -6,7 +6,10 @@
 import unittest
 from unittest import mock  #type: ignore
 from meld.system.openmm_runner import OpenMMRunner
-from meld.system import protein, builder, ConstantTemperatureScaler, RunOptions
+from meld.system.subsystem import SubSystemFromSequence
+from meld.system.builder import SystemBuilder
+from meld.system.temperature import ConstantTemperatureScaler
+from meld.system.options import RunOptions
 from meld.system.openmm_runner.runner import (
     _parm_top_from_string,
     _create_openmm_system,
@@ -32,8 +35,8 @@ from meld.system.restraints import (
 
 class TestOpenMMRunner(unittest.TestCase):
     def setUp(self):
-        p = protein.SubSystemFromSequence("NALA ALA CALA")
-        b = builder.SystemBuilder()
+        p = SubSystemFromSequence("NALA ALA CALA")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.system.temperature_scaler = ConstantTemperatureScaler(300.)
 

@@ -8,9 +8,9 @@ import unittest
 from unittest import mock  # type: ignore
 
 
-from meld import system
 from meld.system import restraints
-from meld.system import patchers
+from meld.system.subsystem import SubSystemFromSequence
+from meld.system.builder import SystemBuilder
 
 
 class TestAlwaysActiveCollection(unittest.TestCase):
@@ -114,8 +114,8 @@ class TestRestraintGroup(unittest.TestCase):
 
 class TestRestraintManager(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.rest_manager = restraints.RestraintManager(self.system)
 
@@ -164,8 +164,8 @@ class TestRestraintManager(unittest.TestCase):
 
 class TestDistanceRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
@@ -248,8 +248,8 @@ class TestDistanceRestraint(unittest.TestCase):
 
 class TestHyperbolicDistanceRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
@@ -369,8 +369,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
 
 class TestTorsionRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.scaler = mock.Mock()
         self.ramp = mock.Mock()
@@ -752,8 +752,8 @@ class TestPlateauSmoothScaler(unittest.TestCase):
 
 class TestCreateRestraintsAndScalers(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.manager = restraints.RestraintManager(self.system)
 
@@ -976,8 +976,8 @@ class TestLinearPositioner(unittest.TestCase):
 
 class TestCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
@@ -1121,8 +1121,8 @@ class TestCOMRestraint(unittest.TestCase):
 
 class TestAbsoluteCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
-        b = system.SystemBuilder()
+        p = SubSystemFromSequence("GLY GLY GLY GLY")
+        b = SystemBuilder()
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()

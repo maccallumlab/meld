@@ -3,15 +3,15 @@
 # All rights reserved
 #
 
-import numpy as np  # type: ignore
-import logging
-import math
-from meld.remd.ladder import NearestNeighborLadder
-from meld.remd.adaptor import Adaptor
-
 """
 A module for running a replica exchange simulation on a single worker
 """
+
+import numpy as np  # type: ignore
+import logging
+import math
+from .ladder import NearestNeighborLadder
+from .adaptor import Adaptor
 
 
 logger = logging.getLogger(__name__)

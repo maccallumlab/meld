@@ -3,12 +3,16 @@
 # All rights reserved
 #
 
+"""
+Module to build SubSystems from sequence or PDB file
+"""
+
 import numpy as np  # type: ignore
 import math
 from collections import defaultdict
 from abc import ABC, abstractmethod
-from typing import NamedTuple
-from .indexing import _ChainInfo, _SubSystemInfo
+from typing import NamedTuple, List
+from .indexing import _ChainInfo, _SubSystemInfo, ResidueIndex
 import parmed  # type: ignore
 
 
@@ -17,7 +21,6 @@ class _SubSystem(ABC):
     Base class for other SubSystem classes.
 
     Provides functionality for translation/rotation and adding H-bonds.
-
     """
 
     def __init__(self):
@@ -31,9 +34,12 @@ class _SubSystem(ABC):
         self._info = []
 
     @abstractmethod
-    def prepare_for_tleap(self, mol_id):
+    def prepare_for_tleap(self, mol_id: str):
         """
         Prepare any inputs needed for tleap
+
+        Args:
+            mol_id: identifier for this moleule
 
         This runs in a temporary directory where tleap
         will be run.
@@ -41,32 +47,40 @@ class _SubSystem(ABC):
         pass
 
     @abstractmethod
-    def generate_tleap_input(self, mol_id):
+    def generate_tleap_input(self, mol_id: str) -> List[str]:
         """
         Returns a list of tleap commands to run.
+
+        Args:
+            mol_id: identifier for this moleule
+
+        Returns:
+            a list of telap commands
         """
         pass
 
-    def set_translation(self, translation_vector):
+    def set_translation(self, translation_vector: np.ndarray):
         """
         Set the translation vector.
 
-        :param translation_vector: ``numpy.array(3)`` in nanometers
+        Args:
+            translation_vector: in nanometers
 
-        Translation happens after rotation.
-
+        .. note::
+           Translation happens after rotation.
         """
         self._translation_vector = np.array(translation_vector)
 
-    def set_rotation(self, rotation_axis, theta):
+    def set_rotation(self, rotation_axis: np.ndarray, theta: float):
         """
         Set the rotation.
 
-        :param rotation_axis: ``numpy.array(3)`` in nanometers
-        :param theta: angle of rotation in degrees
+        Args:
+            rotation_axis: in nanometers
+            theta: angle of rotation in degrees
 
-        Rotation happens after translation.
-
+        .. note::
+           Rotation happens after translation.
         """
         theta = theta * 180 / math.pi
         rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
@@ -92,61 +106,75 @@ class _SubSystem(ABC):
             ]
         )
 
-    def add_bond(self, res_index_i, res_index_j, atom_name_i, atom_name_j, bond_type):
+    def add_bond(
+        self,
+        res_index_i: ResidueIndex,
+        res_index_j: ResidueIndex,
+        atom_name_i: str,
+        atom_name_j: str,
+        bond_type: str,
+    ):
         """
         Add a general bond.
 
-        :param res_index_i: zero-based index of residue i
-        :param res_index_j: zero-based index of residue j
-        :param atom_name_i: string name of i
-        :param atom_name_j: string name of j
-        :param bond_type:   string specifying the "S", "D","T"... bond
-
-        .. note::
-            indexing starts from zero and the residue numbering from the
-            PDB file is ignored.
-
+        Args:
+            res_index_i: index of residue i
+            res_index_j: index of residue j
+            atom_name_i: name of i
+            atom_name_j: name of j
+            bond_type:   type of bond ["S", "D", "T"...]
         """
+        assert isinstance(res_index_i, ResidueIndex)
+        assert isinstance(res_index_j, ResidueIndex)
         self._general_bond.append(
-            (res_index_i, res_index_j, atom_name_i, atom_name_j, bond_type)
+            (int(res_index_i), int(res_index_j), atom_name_i, atom_name_j, bond_type)
         )
 
     def add_disulfide(self, res_index_i, res_index_j):
         """
         Add a disulfide bond.
 
-        :param res_index_i: zero-based index of residue i
-        :param res_index_j: zero-based index of residue j
-
-        .. note::
-            indexing starts from zero and the residue numbering from the
-            PDB file is ignored. When loading from a PDB or creating a
-            sequence, residue name must be CYX, not CYS.
-
+        Args:
+            res_index_i: index of residue i
+            res_index_j: index of residue j
         """
-        self._disulfide_list.append((res_index_i, res_index_j))
+        assert isinstance(res_index_i, ResidueIndex)
+        assert isinstance(res_index_j, ResidueIndex)
+        self._disulfide_list.append((int(res_index_i), int(res_index_j)))
 
-    def add_prep_file(self, fname):
+    def add_prep_file(self, fname: str):
         """
         Add a prep file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: filename of prep file
         """
         self._prep_files.append(fname)
 
-    def add_frcmod_file(self, fname):
+    def add_frcmod_file(self, fname: str):
         """
         Add a frcmod file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: name of frcmod file
         """
         self._frcmod_files.append(fname)
 
-    def add_lib_file(self, fname):
+    def add_lib_file(self, fname: str):
         """
         Add a lib file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: name of lib file
         """
         self._lib_files.append(fname)
 
@@ -201,16 +229,19 @@ class SubSystemFromSequence(_SubSystem):
     This class will create a sub-system from sequence. This class is
     pretty dumb and relies on AmberTools to do all of the heavy lifting.
 
-    :param sequence: sequence create
-
     The sequence is specified in Amber/Leap format. There are special NRES and
     CRES variants for the N- and C-termini. Different protonation states are
     also available via different residue names. E.g. ASH
     for neutral ASP.
-
     """
 
-    def __init__(self, sequence):
+    def __init__(self, sequence: str):
+        """
+        Initialize a SubSystemFromSequence
+
+        Args:
+            sequence: the sequence to build
+        """
         super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
@@ -250,7 +281,13 @@ class SubSystemFromPdbFile(_SubSystem):
 
     """
 
-    def __init__(self, pdb_path):
+    def __init__(self, pdb_path: str):
+        """
+        Initialize a SubSystemFromPdbFile
+
+        Args:
+            pdb_path: path to pdb file
+        """
         super(SubSystemFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
@@ -265,11 +302,11 @@ class SubSystemFromPdbFile(_SubSystem):
         for i, residue in enumerate(pdb.residues):
             chainids.append(residue.chain)
             chain_to_res[residue.chain].append(i)
-        chainids = set(chainids)
+        chainid_set = set(chainids)
 
         # loop over the chainids in alphabetical order
         chains = []
-        for chainid in sorted(chainids):
+        for chainid in sorted(chainid_set):
             chain = _ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
             chains.append(chain)
         self._info = _SubSystemInfo(n_residues, chains)

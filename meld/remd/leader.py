@@ -7,13 +7,13 @@
 Module for replica exchange leader
 """
 
-from meld.vault import DataStore
-from meld.system.state import SystemState
-from meld.remd import worker
-from meld.remd.ladder import NearestNeighborLadder
-from meld.remd.adaptor import Adaptor
-from meld.system.runner import ReplicaRunner
-from meld.comm import MPICommunicator
+from ..vault import DataStore
+from ..system.state import SystemState
+from .worker import WorkerReplicaExchangeRunner
+from .ladder import NearestNeighborLadder
+from .adaptor import Adaptor
+from ..system.runner import ReplicaRunner
+from ..comm import MPICommunicator
 import logging
 import math
 import numpy as np
@@ -76,11 +76,11 @@ class LeaderReplicaExchangeRunner:
         self.adaptor = adaptor
         self._setup_alphas()
 
-    def to_worker(self) -> worker.WorkerReplicaExchangeRunner:
+    def to_worker(self) -> WorkerReplicaExchangeRunner:
         """
         Convert leader to worker
         """
-        return worker.WorkerReplicaExchangeRunner.from_leader(self)
+        return WorkerReplicaExchangeRunner.from_leader(self)
 
     def run(
         self,
@@ -181,6 +181,7 @@ class LeaderReplicaExchangeRunner:
         old_velocities = [s.velocities for s in states]
         old_box_vectors = [s.box_vector for s in states]
         old_energy = [s.energy for s in states]
+        assert system_runner.temperature_scaler is not None
         temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
 
         for i, index in enumerate(permutation_matrix):

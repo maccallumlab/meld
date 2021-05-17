@@ -3,18 +3,16 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+"""
+A module to define the SystemState
+"""
+
+import numpy as np  # type: ignore
 
 
 class SystemState:
     """
     Class to hold the state of a system.
-
-    :param positions: coordinates of structure, ``numpy.array(n_atoms, 3)``
-    :param velocities: velocities for structure, same as coords
-    :param alpha: alpha value, within ``[0, 1]``
-    :param energy: total potential energy, including restraints
-
     """
 
     def __init__(
@@ -25,6 +23,16 @@ class SystemState:
         energy: float,
         box_vector: np.ndarray,
     ) -> None:
+        """
+        Initialize a SystemState
+
+        Params:
+            positions: coordinates of structure, shape(n_atoms, 3)
+            velocities: velocities for structure, shape(n_atoms, 3)
+            alpha: alpha value, within ``[0, 1]``
+            energy: total potential energy, including restraints, in kJ/mol
+            box_vector: the box vectors, shape(3, 3) in nm
+        """
         self.positions = positions
         self.velocities = velocities
         self.box_vector = box_vector

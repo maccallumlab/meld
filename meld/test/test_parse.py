@@ -171,7 +171,7 @@ class TestExtractSecondaryRuns(unittest.TestCase):
 
 class TestGetSecondaryStructures(unittest.TestCase):
     def setUp(self):
-        p = system.protein.SubSystemFromSequence(
+        p = system.subsystem.SubSystemFromSequence(
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()
@@ -197,7 +197,7 @@ class TestGetSecondaryStructures(unittest.TestCase):
 
 class TestGetRdcRestraints(unittest.TestCase):
     def setUp(self):
-        p = system.protein.SubSystemFromSequence(
+        p = system.subsystem.SubSystemFromSequence(
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()

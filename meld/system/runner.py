@@ -3,15 +3,21 @@
 # All rights reserved
 #
 
-from meld.system.state import SystemState
-from meld.system.system import TemperatureScaler, System
-from meld.system import RunOptions
-from meld.comm import MPICommunicator
+"""
+A module that defines a base class for ReplicaRunners
+"""
+
+from .state import SystemState
+from .temperature import TemperatureScaler
 from typing import Optional
 
 
 class ReplicaRunner:
-    temperature_scaler: TemperatureScaler
+    """
+    Base ReplicaRunner
+    """
+
+    temperature_scaler: Optional[TemperatureScaler]
 
     def initialize(self) -> None:
         pass
@@ -36,9 +42,9 @@ class FakeSystemRunner(ReplicaRunner):
 
     def __init__(
         self,
-        system: System,
-        options: RunOptions,
-        communicator: Optional[MPICommunicator] = None,
+        system,
+        options,
+        communicator,
     ) -> None:
         self.temperature_scaler = system.temperature_scaler
 
@@ -52,7 +58,7 @@ class FakeSystemRunner(ReplicaRunner):
         return state
 
     def get_energy(self, state: SystemState) -> float:
-        return 0.
+        return 0.0
 
     def prepare_for_timestep(self, alpha: float, timestep: int) -> None:
         pass

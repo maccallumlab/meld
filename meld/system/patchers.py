@@ -1,74 +1,72 @@
 """
-This module implements `Patcher` classes that can modify
+This module implements Patcher classes that can modify
 the system to include new atoms and/or paramters.
 """
 
 from meld.system.indexing import ResidueIndex
+from .system import System
 import parmed as pmd  # type: ignore
 from meld import util
 from parmed import unit as u
 import numpy as np  # type: ignore
+from typing import Tuple, Dict, List
 
 
 class PatcherBase:
-    def patch(self, top_string, crd_string):
+    """
+    Base class for Patcher objects
+    """
+    def patch(self, top_string: str, crd_string: str) -> Tuple[str, str]:
         """
         Called before `System` is created.
 
-        Parameters
-        ----------
-        top_string : string
-            The output topology from tleap or the previous Patcher
-        crd_string : string
-            The output mdcrd string from tleap or the previous Patcher
+        Args:
+            top_string: the output topology from tleap or the previous Patcher
+            crd_string: the output mdcrd string from tleap or the previous Patcher
 
-        Returns
-        -------
-        (new_top, new_crd) : (string, string)
+        Returns:
             Returns new topology and mdcrd strings that will be used
             by the next Patcher and eventually to create the System.
 
-        Notes
-        -----
-        This method is called with the topology and mdcrd strings before
-        the system is created. It can add new atoms, bonds, etc, and
-        modify an parameters present in the topology. The Patchers
-        are chained together to produce a final topology and crd
-        that are used to instantiate the System.
+        .. note::
+           This method is called with the topology and mdcrd strings before
+           the system is created. It can add new atoms, bonds, etc, and
+           modify an parameters present in the topology. The Patchers
+           are chained together to produce a final topology and crd
+           that are used to instantiate the System.
         """
         pass
 
-    def finalize(self, system):
+    def finalize(self, system: System):
         """
         Called after `System` is created.
 
-        Parameters
-        ----------
-        system : meld.system.System
-            The system to be patched
+        Args:
+            system: the system to be patched
 
-        Notes
-        -----
-        This method is called after the system has been created. It can
-        modify the system object in any way, for example by adding restraints.
+        .. note::
+           This method is called after the system has been created. It can
+           modify the system object in any way, for example by adding restraints.
         """
         pass
 
 
 class RdcAlignmentPatcher(PatcherBase):
-    def __init__(self, n_tensors):
-        """
-        Patch system to include extra dummy atoms to encode RDC alignment tensors.
+    """
+    Patch system to include extra dummy atoms to encode RDC alignment tensors.
+    """
 
-        Parameters
-        ----------
-        n_tensors: int
-            number of unique RDC tensors
+    def __init__(self, n_tensors: int):
+        """
+        Initialize an RdcAlignmentPatcher
+
+        Args:
+            n_tensors: number of alignment tensors to add
         """
         self.n_tensors = n_tensors
-        self.resids = []
+        self.resids: List[int] = []
 
-    def patch(self, top_string, crd_string):
+    def patch(self, top_string: str, crd_string: str) -> Tuple[str, str]:
         INTOP = "in.top"
         INRST = "in.rst"
         OUTTOP = "out.top"
@@ -136,6 +134,10 @@ class RdcAlignmentPatcher(PatcherBase):
 
 
 class VirtualSpinLabelPatcher(PatcherBase):
+    """
+    Patch residues to include virtual spin label sites.
+    """
+
     ALLOWED_TYPES = ["OND"]
 
     bond_params = {
@@ -147,24 +149,18 @@ class VirtualSpinLabelPatcher(PatcherBase):
     tors_params = {"OND": (1.9 * u.kilocalorie_per_mole, 1, 240.0 * u.degrees)}
     lj_params = {"OND": (4.0 * u.angstrom / 2.0, 0.05 * u.kilocalorie_per_mole)}
 
-    def __init__(self, params, explicit_solvent=False):
+    def __init__(self, params: Dict[ResidueIndex, str], explicit_solvent: bool = False):
         """
-        Patch residues to include virtual spin label sites.
+        Initialize a VirtualSpinLabelPatcher
 
-        Parameters
-        ----------
-        params : {ResidueIndex: string}
-            A dictionary of resdiue indices
-            and corresponding spin label types.
-        explicit_solvent : bool
-            A flag indicating if this is an explicit
-            solvent simulation.
+        Args:
+            params: A dictionary of resdiue indices and corresponding spin label types.
+            explicit_solvent: A flag indicating if this is an explicit solvent simulation.
 
-        Notes
-        -----
-        Currently, 'OND' is the only supported spin label type, with parameters
-        taken from:
-        Islam, Stein, Mchaourab, and Roux, J. Phys. Chem. B 2013, 117, 4740-4754.
+        .. note::
+           Currently, 'OND' is the only supported spin label type, with parameters
+           taken from:
+           Islam, Stein, Mchaourab, and Roux, J. Phys. Chem. B 2013, 117, 4740-4754.
         """
         for key in params:
             assert isinstance(key, ResidueIndex)
@@ -173,7 +169,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
         self.params = params
         self.explicit = explicit_solvent
 
-    def patch(self, top_string, crd_string):
+    def patch(self, top_string: str, crd_string: str) -> Tuple[str, str]:
         INTOP = "in.top"
         INRST = "in.rst"
         OUTTOP = "out.top"
@@ -199,7 +195,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
                 crd_string = infile.read()
         return top_string, crd_string
 
-    def finalize(self, system):
+    def finalize(self, system: System):
         for res_index in self.params:
             site_type = self.params[res_index]
 

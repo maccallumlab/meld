@@ -204,8 +204,6 @@ class OpenMMRunner(ReplicaRunner):
                     self._parm_string,
                     self._options.amap_alpha_bias,
                     self._options.amap_beta_bias,
-                    self._options.ccap,
-                    self._options.ncap,
                 )
                 adder.add_to_openmm(sys)
 

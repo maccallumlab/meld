@@ -5,12 +5,13 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+import numpy as np  # type: ignore
 import unittest
 import os
 from meld import vault, comm
 from meld.remd import leader, ladder, adaptor
-from meld import system
+from meld.system.options import RunOptions
+from meld.system.state import SystemState
 from meld.test.helper import TempDirHelper
 from meld.util import in_temp_dir
 from meld.pdb_writer import PDBWriter
@@ -141,7 +142,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             pdb_writer = object()
             store = vault.DataStore(self.N_ATOMS, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
-            fake_run_options = system.RunOptions()
+            fake_run_options = RunOptions()
 
             store.save_run_options(fake_run_options)
             store.load_run_options()
@@ -259,8 +260,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            return SystemState(pos, vel, lam, energy, np.zeros(3))
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -281,8 +282,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            return SystemState(pos, vel, lam, energy, np.zeros(3))
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -337,8 +338,8 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            return SystemState(pos, vel, lam, energy, np.zeros(3))
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = leader.LeaderReplicaExchangeRunner(
@@ -399,8 +400,8 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
-            lam = index / 100.
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3))
+            lam = index / 100.0
+            return SystemState(pos, vel, lam, energy, np.zeros(3))
 
         runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a

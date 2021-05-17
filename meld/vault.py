@@ -17,7 +17,8 @@ import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
 from .system import state
-from .system import System, RunOptions
+from .system.system import System
+from .system.options import RunOptions
 from .pdb_writer import PDBWriter
 from typing import List, Iterator, Optional
 
