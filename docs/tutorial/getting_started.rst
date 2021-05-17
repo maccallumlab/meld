@@ -23,12 +23,12 @@ Setting up the system
 MELD runs can start from a PDB file, fasta sequence file with no header or sequence chain:
 ::
 
-   p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")        
+   p = protein.SubSystemFromSequence("NALA ALA CALA")        
    
-   p = system.ProteinMoleculeFromPdbFile("example.pdb")
+   p = system.SubSystemFromPdbFile("example.pdb")
 
    sequence = parse.get_sequence_from_AA1(filename='sequence.dat')
-   p = system.ProteinMoleculeFromSequence(sequence)
+   p = system.SubSystemFromSequence(sequence)
 
 Once we have the protein system we have to specify a force field. Current options are ff12sb, ff14sbside (ff99backbone) or ff14sb:
 ::
@@ -36,7 +36,7 @@ Once we have the protein system we have to specify a force field. Current option
 
 Now we generate the topoloty/coordinate files to start simulations:
 ::
-   s = b.build_system_from_molecules([p])
+   s = b.build_system([p])
 
 
 At this point we can start defining different ways to setup the replica ladders. In MELD we have a parameter called alpha, with values between [0,1] which map on to the replica ladder. 1 will correspond to the highest replican and 0 to the lowest replica. Given an alpha value we can map all the restraints and the temperature that replica should have. We will use a geometric scaling of the temperatures. As an initial example let us setup a temparature replica ladder that will expand the whole replica space going from 300K to 450K.

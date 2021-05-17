@@ -16,9 +16,9 @@ class TestOpenRunner(unittest.TestCase):
         self.mdcrd_path = os.path.join(os.path.dirname(__file__), "system.mdcrd")
 
     def test_implicit_runner(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = system.SubSystemFromSequence("NALA ALA CALA")
         b = system.SystemBuilder()
-        sys = b.build_system_from_molecules([p])
+        sys = b.build_system([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions()
@@ -40,9 +40,9 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_implicit_runner_amap(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = system.SubSystemFromSequence("NALA ALA CALA")
         b = system.SystemBuilder()
-        sys = b.build_system_from_molecules([p])
+        sys = b.build_system([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions()
@@ -66,9 +66,9 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = system.SubSystemFromSequence("NALA ALA CALA")
         b = system.SystemBuilder(explicit_solvent=True)
-        sys = b.build_system_from_molecules([p])
+        sys = b.build_system([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
 
         options = system.RunOptions(solvation="explicit")
@@ -91,9 +91,9 @@ class TestOpenRunner(unittest.TestCase):
         assert state
 
     def test_explicit_runner_scaler(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = system.SubSystemFromSequence("NALA ALA CALA")
         b = system.SystemBuilder(explicit_solvent=True)
-        sys = b.build_system_from_molecules([p])
+        sys = b.build_system([p])
         sys.temperature_scaler = system.ConstantTemperatureScaler(300.)
         rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300., 350.)
 

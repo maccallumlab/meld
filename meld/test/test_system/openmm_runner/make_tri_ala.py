@@ -11,9 +11,9 @@ from meld import system
 
 def main():
     # create the system
-    p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
+    p = system.SubSystemFromSequence("NALA ALA CALA")
     b = system.SystemBuilder()
-    s = b.build_system_from_molecules([p])
+    s = b.build_system([p])
     with open("tri_ala.top", "w") as outfile:
         outfile.write(s._top_string)
 

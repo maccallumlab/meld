@@ -5,14 +5,16 @@
 
 import numpy as np  # type: ignore
 import math
+from collections import defaultdict
 from abc import ABC, abstractmethod
 from typing import NamedTuple
-from .indexing import ChainInfo
+from .indexing import ChainInfo, SubSystemInfo
+import parmed  # type: ignore
 
 
-class _ProteinBase(ABC):
+class _SubSystem(ABC):
     """
-    Base class for other Protein classes.
+    Base class for other SubSystem classes.
 
     Provides functionality for translation/rotation and adding H-bonds.
 
@@ -26,7 +28,7 @@ class _ProteinBase(ABC):
         self._prep_files = []
         self._frcmod_files = []
         self._lib_files = []
-        self._chains = []
+        self._info = []
 
     @abstractmethod
     def prepare_for_tleap(self, mol_id):
@@ -94,14 +96,14 @@ class _ProteinBase(ABC):
         """
         Add a general bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
+        :param res_index_i: zero-based index of residue i
+        :param res_index_j: zero-based index of residue j
         :param atom_name_i: string name of i
         :param atom_name_j: string name of j
         :param bond_type:   string specifying the "S", "D","T"... bond
 
         .. note::
-            indexing starts from one and the residue numbering from the
+            indexing starts from zero and the residue numbering from the
             PDB file is ignored.
 
         """
@@ -113,11 +115,11 @@ class _ProteinBase(ABC):
         """
         Add a disulfide bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
+        :param res_index_i: zero-based index of residue i
+        :param res_index_j: zero-based index of residue j
 
         .. note::
-            indexing starts from one and the residue numbering from the
+            indexing starts from zero and the residue numbering from the
             PDB file is ignored. When loading from a PDB or creating a
             sequence, residue name must be CYX, not CYS.
 
@@ -162,14 +164,14 @@ class _ProteinBase(ABC):
     def _gen_bond_string(self, mol_id):
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
-            d = f'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'
+            d = f'bond {mol_id}.{i+1}.{a} {mol_id}.{j+1}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
     def _gen_disulfide_string(self, mol_id):
         disulfide_strings = []
         for i, j in self._disulfide_list:
-            d = f"bond {mol_id}.{i}.SG {mol_id}.{j}.SG"
+            d = f"bond {mol_id}.{i+1}.SG {mol_id}.{j+1}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
@@ -192,13 +194,14 @@ class _ProteinBase(ABC):
         return lib_string
 
 
-class ProteinMoleculeFromSequence(_ProteinBase):
+class SubSystemFromSequence(_SubSystem):
     """
-    Class to create a protein from sequence. This class will create a protein
-    molecule from sequence. This class is pretty dumb and relies on AmberTools
-    to do all of the heavy lifting.
+    Class to create a sub-system from sequence.
 
-    :param sequence: sequence of the protein to create
+    This class will create a sub-system from sequence. This class is
+    pretty dumb and relies on AmberTools to do all of the heavy lifting.
+
+    :param sequence: sequence create
 
     The sequence is specified in Amber/Leap format. There are special NRES and
     CRES variants for the N- and C-termini. Different protonation states are
@@ -208,10 +211,11 @@ class ProteinMoleculeFromSequence(_ProteinBase):
     """
 
     def __init__(self, sequence):
-        super(ProteinMoleculeFromSequence, self).__init__()
+        super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
-        self._chains = [ChainInfo(0, sequence_len)]
+        chain_info = ChainInfo({i: i for i in range(sequence_len)})
+        self._info = SubSystemInfo(sequence_len, [chain_info])
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -231,9 +235,10 @@ class ProteinMoleculeFromSequence(_ProteinBase):
         return leap_cmds
 
 
-class ProteinMoleculeFromPdbFile(_ProteinBase):
+class SubSystemFromPdbFile(_SubSystem):
     """
-    Create a new protein molecule from a pdb file.
+    Create a new susbsystem from a pdb file.
+
     This class is dumb and relies on AmberTools for the heavy lifting.
 
     :param pdb_path: string path to the pdb file
@@ -246,12 +251,28 @@ class ProteinMoleculeFromPdbFile(_ProteinBase):
     """
 
     def __init__(self, pdb_path):
-        super(ProteinMoleculeFromPdbFile, self).__init__()
+        super(SubSystemFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
 
         # figure out chains
-        raise RuntimeError()
+        pdb = parmed.load_file(pdb_path)
+        n_residues = len(pdb.residues)
+
+        # get list of chainids
+        chainids = []
+        chain_to_res = defaultdict(list)
+        for i, residue in enumerate(pdb.residues):
+            chainids.append(residue.chain)
+            chain_to_res[residue.chain].append(i)
+        chainids = set(chainids)
+
+        # loop over the chainids in alphabetical order
+        chains = []
+        for chainid in sorted(chainids):
+            chain = ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chains.append(chain)
+        self._info = SubSystemInfo(n_residues, chains)
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

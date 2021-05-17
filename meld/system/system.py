@@ -152,12 +152,13 @@ ExtraTorsParam = namedtuple("ExtraTorsParam", "i j k l phase energy multiplicity
 
 
 class System:
-    def __init__(self, top_string, mdcrd_string, atom_indexer, residue_indexer):
+    def __init__(self, top_string, mdcrd_string, indexer):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = RestraintManager(self)
-        self.atom_index = atom_indexer
-        self.residue_index = residue_indexer
+        self._indexer = indexer
+        self.atom_index = self._indexer.atom_index
+        self.residue_index = self._indexer.residue_index
 
         self.temperature_scaler = None
         self._coordinates = None
@@ -763,12 +764,12 @@ def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
         top, crd = patcher.patch(top, crd)
 
     # Setup indexing
-    atom_indexer, residue_indexer = _setup_indexing(
+    indexer = _setup_indexing(
         chains, ParmTopReader(top), CrdReader(crd)
     )
 
     # Create the system
-    system = System(top, crd, atom_indexer, residue_indexer)
+    system = System(top, crd, indexer)
 
     # Allow the patchers to modify the system
     for patcher in patchers:

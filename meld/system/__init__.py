@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-from meld.system.protein import ProteinMoleculeFromSequence, ProteinMoleculeFromPdbFile
+from meld.system.protein import SubSystemFromSequence, SubSystemFromPdbFile
 from meld.system.builder import SystemBuilder
 from meld.system.system import (
     System,

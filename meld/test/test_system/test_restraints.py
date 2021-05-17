@@ -114,9 +114,9 @@ class TestRestraintGroup(unittest.TestCase):
 
 class TestRestraintManager(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.rest_manager = restraints.RestraintManager(self.system)
 
     def test_can_add_as_always_active_non_selectable_restraint(self):
@@ -164,9 +164,9 @@ class TestRestraintManager(unittest.TestCase):
 
 class TestDistanceRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
 
@@ -248,9 +248,9 @@ class TestDistanceRestraint(unittest.TestCase):
 
 class TestHyperbolicDistanceRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
 
@@ -369,9 +369,9 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
 
 class TestTorsionRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.scaler = mock.Mock()
         self.ramp = mock.Mock()
 
@@ -752,9 +752,9 @@ class TestPlateauSmoothScaler(unittest.TestCase):
 
 class TestCreateRestraintsAndScalers(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.manager = restraints.RestraintManager(self.system)
 
     def test_can_create_constant_scaler(self):
@@ -976,9 +976,9 @@ class TestLinearPositioner(unittest.TestCase):
 
 class TestCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
 
@@ -1121,9 +1121,9 @@ class TestCOMRestraint(unittest.TestCase):
 
 class TestAbsoluteCOMRestraint(unittest.TestCase):
     def setUp(self):
-        p = system.ProteinMoleculeFromSequence("GLY GLY GLY GLY")
+        p = system.SubSystemFromSequence("GLY GLY GLY GLY")
         b = system.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
 
