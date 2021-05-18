@@ -3,14 +3,13 @@
 # All rights reserved
 #
 
+from meld.system import amber
+from simtk import openmm  # type: ignore
+
 from collections import OrderedDict, namedtuple
 import os
 import math
-
-from simtk import openmm  # type: ignore
 import numpy as np  # type: ignore
-
-from meld.system.meld_system import ParmTopReader
 
 
 CMAPResidue = namedtuple("CMAPResidue", "res_num res_name index_N index_CA index_C")
@@ -86,7 +85,7 @@ class CMAPAdder:
         self._beta_bias = beta_bias
         self._ccap = ccap
         self._ncap = ncap
-        reader = ParmTopReader(self._top_string)
+        reader = amber.ParmTopReader(self._top_string)
         self._bonds = reader.get_bonds()
         self._residue_numbers = [r - 1 for r in reader.get_residue_numbers()]
         self._residue_names = reader.get_residue_names()
