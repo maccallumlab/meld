@@ -221,7 +221,7 @@ class DistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -333,7 +333,7 @@ class GMMDistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         n_distances: int,
@@ -374,7 +374,7 @@ class GMMDistanceRestraint(SelectableRestraint):
     @classmethod
     def from_params(
         cls,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         params: GMMParams,
@@ -444,7 +444,7 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -517,7 +517,7 @@ class TorsionRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -592,7 +592,7 @@ class DistProfileRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -648,7 +648,7 @@ class TorsProfileRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -723,7 +723,7 @@ class RdcRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
@@ -807,7 +807,7 @@ class ConfinementRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom_index: indexing.AtomIndex,
@@ -847,7 +847,7 @@ class CartesianRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom_index: indexing.AtomIndex,
@@ -896,7 +896,17 @@ class YZCartesianRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "yzcartesian"
 
-    def __init__(self, system, scaler, ramp, atom_index, y, z, delta, force_const):
+    def __init__(
+        self,
+        system: interfaces.ISystem,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom_index: indexing.AtomIndex,
+        y: float,
+        z: float,
+        delta: float,
+        force_const: float,
+    ):
         """
         Initialize a YZCartesianRestraint
 
@@ -958,7 +968,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         group: List[indexing.AtomIndex],
@@ -1056,7 +1066,7 @@ class COMRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         group1: List[indexing.AtomIndex],

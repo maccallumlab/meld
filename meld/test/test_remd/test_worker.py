@@ -13,27 +13,6 @@ from meld import comm
 sentinel = mock.sentinel
 
 
-class TestWorkerInitFromLeader(unittest.TestCase):
-    "Initialize worker runner from leader runner"
-
-    def setUp(self):
-        self.mock_leader = mock.Mock(spec_set=leader.LeaderReplicaExchangeRunner)
-        self.mock_leader.step = 42
-        self.mock_leader.max_steps = 43
-
-    def test_sets_step(self):
-        "creating worker from_leader should set the step"
-        runner = worker.WorkerReplicaExchangeRunner.from_leader(self.mock_leader)
-
-        self.assertEqual(runner.step, 42)
-
-    def test_sets_max_steps(self):
-        "creating worker from_leader should set max_steps"
-        runner = worker.WorkerReplicaExchangeRunner.from_leader(self.mock_leader)
-
-        self.assertEqual(runner.max_steps, 43)
-
-
 class TestWorkerSingle(unittest.TestCase):
     "Make sure the WorkerReplicaExchangeRunner works for a single round"
 
@@ -96,7 +75,7 @@ class TestWorkerSingle(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
-            sentinel.STATE, sentinel.ALPHA, 1
+            sentinel.ALPHA, 1
         )
 
     def test_calls_receive_state(self):

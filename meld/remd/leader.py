@@ -79,7 +79,7 @@ class LeaderReplicaExchangeRunner:
         """
         Convert leader to worker
         """
-        return worker.WorkerReplicaExchangeRunner.from_leader(self)
+        return worker.WorkerReplicaExchangeRunner(self.step, self.max_steps)
 
     def run(
         self,
