@@ -11,7 +11,6 @@ The main class is :class:`DataStore` which handles all IO for a MELD run.
 
 from meld import interfaces
 from meld.system import state
-from meld.system import system
 from meld.system import options
 from meld.system import pdb_writer
 
@@ -771,7 +770,7 @@ class DataStore:
         with open(path, "rb") as runner_file:
             return _load_pickle(runner_file)
 
-    def save_system(self, system: system.System):
+    def save_system(self, system: interfaces.ISystem):
         """
         Save MELD system to disk
 
@@ -782,7 +781,7 @@ class DataStore:
         with open(self._system_path, "wb") as system_file:
             pickle.dump(system, system_file)
 
-    def load_system(self) -> system.System:
+    def load_system(self) -> interfaces.ISystem:
         """Load MELD system from disk"""
         path = self._system_backup_path if self._readonly_mode else self._system_path
         with open(path, "rb") as system_file:

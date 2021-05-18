@@ -140,6 +140,7 @@ References
 
 from __future__ import annotations
 
+from meld import interfaces
 from meld.system import indexing
 
 import math
@@ -1286,7 +1287,7 @@ class RestraintManager:
     A class to manage restraints for a System
     """
 
-    def __init__(self, system):
+    def __init__(self, system: interfaces.ISystem):
         """
         Initialize a RestraintManager
 
@@ -1295,7 +1296,7 @@ class RestraintManager:
         """
         self._system = system
         self._always_active = AlwaysActiveCollection()
-        self._selective_collections = []
+        self._selective_collections: List[SelectivelyActiveCollection] = []
 
     @property
     def always_active(self):

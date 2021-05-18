@@ -66,14 +66,20 @@ class CMAPAdder:
     }
 
     def __init__(
-        self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False
+        self,
+        top_string: str,
+        alpha_bias: float = 1.0,
+        beta_bias: float = 1.0,
+        ccap: bool = False,
+        ncap: bool = False,
     ):
         """
         Initialize a new CMAPAdder object
 
-        :param top_string: an Amber new-style topology in string form
-        :param alpha_bias: strength of alpha correction, default=1.0
-        :param beta_bias: strength of beta correction, default=1.0
+        Args:
+            top_string: an Amber new-style topology in string form
+            alpha_bias: strength of alpha correction
+            beta_bias: strength of beta correction
         """
         self._top_string = top_string
         self._alpha_bias = alpha_bias

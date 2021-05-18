@@ -8,11 +8,10 @@ Functions to read in sequences, secondary structures, and RDCs
 
 """
 
+from meld import interfaces
 from meld.system import restraints
 from meld.system import patchers
 from meld.system import indexing
-from meld.system import system
-from meld.system.system import System
 
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
@@ -174,7 +173,7 @@ def get_sequence_from_AA3(
 
 
 def get_secondary_structure_restraints(
-    system: system.System,
+    system: interfaces.ISystem,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
     torsion_force_constant: float = 2.48,
@@ -444,7 +443,7 @@ def _handle_arguments(
 
 
 def get_rdc_restraints(
-    system: system.System,
+    system: interfaces.ISystem,
     patcher: patchers.RdcAlignmentPatcher,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,

@@ -4,8 +4,8 @@ the system to include new atoms and/or paramters.
 """
 
 from meld import util
+from meld import interfaces
 from meld.system import indexing
-from meld.system import system
 import parmed as pmd  # type: ignore
 from parmed import unit as u
 
@@ -38,7 +38,7 @@ class PatcherBase:
         """
         pass
 
-    def finalize(self, system: system.System):
+    def finalize(self, system: interfaces.ISystem):
         """
         Called after `System` is created.
 
@@ -196,7 +196,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
                 crd_string = infile.read()
         return top_string, crd_string
 
-    def finalize(self, system: system.System):
+    def finalize(self, system: interfaces.ISystem):
         for res_index in self.params:
             site_type = self.params[res_index]
 

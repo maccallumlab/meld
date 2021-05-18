@@ -11,7 +11,7 @@ from typing import Optional
 def get_runner(
     system: interfaces.ISystem,
     options: options.RunOptions,
-    comm: Optional[interfaces.ISystem],
+    comm: Optional[interfaces.ICommunicator],
     platform: str,
 ):
     """

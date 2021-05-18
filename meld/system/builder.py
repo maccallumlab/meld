@@ -8,6 +8,7 @@ Module to build a System from SubSystems
 """
 
 from meld import util
+from meld import interfaces
 from meld.system import system
 from meld.system import indexing
 from meld.system import subsystem
@@ -72,7 +73,7 @@ class SystemBuilder:
         subsystems: List[subsystem._SubSystem],
         patchers: Optional[List[patchers.PatcherBase]] = None,
         leap_header_cmds: Optional[List[str]] = None,
-    ) -> system.System:
+    ) -> interfaces.ISystem:
         """
         Build the system from SubSystems
 
