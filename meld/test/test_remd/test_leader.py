@@ -7,7 +7,7 @@ import unittest
 from unittest import mock  #type: ignore
 from unittest.mock import sentinel  #type: ignore
 from meld.remd import leader, ladder, adaptor
-from meld.system import runner
+from meld import interfaces
 from meld import comm, vault
 from numpy.testing import assert_almost_equal  #type: ignore
 
@@ -65,7 +65,7 @@ class TestSingleStep(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1,
@@ -283,7 +283,7 @@ class TestFiveSteps(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = sentinel.MY_STATE
         self.mock_system_runner.run.return_value = sentinel.MY_STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [

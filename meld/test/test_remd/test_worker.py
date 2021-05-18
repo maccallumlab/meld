@@ -6,7 +6,7 @@
 import unittest
 from unittest import mock  # type: ignore
 from meld.remd import worker, leader
-from meld.system import runner
+from meld import interfaces
 from meld import comm
 
 
@@ -69,7 +69,7 @@ class TestWorkerSingle(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec_set=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = mock.sentinel.STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1,
@@ -170,7 +170,7 @@ class TestWorkerMultiple(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec_set=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = mock.sentinel.STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1,

@@ -13,8 +13,7 @@ remove bad geometry.
 import random
 import numpy as np  # type: ignore
 import math
-from .state import SystemState
-from .runner import ReplicaRunner
+from meld import interfaces
 from .indexing import AtomIndex
 from typing import Tuple, List
 
@@ -49,9 +48,9 @@ class MonteCarloScheduler:
 
     def update(
         self,
-        starting_state: SystemState,
-        runner: ReplicaRunner,
-    ) -> SystemState:
+        starting_state: interfaces.IState,
+        runner: interfaces.IRunner,
+    ) -> interfaces.IState:
         """
         Perform a series of Monte Carlo moves
 
@@ -115,8 +114,8 @@ class RandomTorsionMover(Mover):
         self.atom_indices = atom_indices
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 
@@ -193,8 +192,8 @@ class DoubleTorsionMover(Mover):
         self.atom_indices2 = atom_indices2
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 
@@ -258,8 +257,8 @@ class TranslationMover(Mover):
         self.move_size = move_size
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 

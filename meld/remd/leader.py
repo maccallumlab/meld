@@ -8,16 +8,14 @@ Module for replica exchange leader
 """
 
 from ..vault import DataStore
-from ..system.state import SystemState
 from .worker import WorkerReplicaExchangeRunner
 from .ladder import NearestNeighborLadder
 from .adaptor import Adaptor
-from ..system.runner import ReplicaRunner
-from ..comm import MPICommunicator
+from meld import interfaces
 import logging
 import math
 import numpy as np
-from typing import List, Union
+from typing import List, Sequence
 
 
 logger = logging.getLogger(__name__)
@@ -84,8 +82,8 @@ class LeaderReplicaExchangeRunner:
 
     def run(
         self,
-        communicator: MPICommunicator,
-        system_runner: ReplicaRunner,
+        communicator: interfaces.ICommunicator,
+        system_runner: interfaces.IRunner,
         store: DataStore,
     ):
         """
@@ -93,7 +91,7 @@ class LeaderReplicaExchangeRunner:
 
         Args:
             communicator: a communicator object to talk with workers
-            system_runner: a ReplicaRunner object to run the simulations
+            system_runner: a interfaces.IRunner object to run the simulations
             store: a store object to handle storing data to disk
         """
         logger.info("Beginning replica exchange")
@@ -164,7 +162,7 @@ class LeaderReplicaExchangeRunner:
 
     @staticmethod
     def _compute_energies(
-        states: List[SystemState], system_runner: ReplicaRunner
+        states: Sequence[interfaces.IState], system_runner: interfaces.IRunner
     ) -> List[float]:
         my_energies = []
         for state in states:
@@ -174,9 +172,9 @@ class LeaderReplicaExchangeRunner:
     @staticmethod
     def _permute_states(
         permutation_matrix: List[int],
-        states: List[SystemState],
-        system_runner: ReplicaRunner,
-    ) -> List[SystemState]:
+        states: Sequence[interfaces.IState],
+        system_runner: interfaces.IRunner,
+    ) -> Sequence[interfaces.IState]:
         old_coords = [s.positions for s in states]
         old_velocities = [s.velocities for s in states]
         old_box_vectors = [s.box_vector for s in states]

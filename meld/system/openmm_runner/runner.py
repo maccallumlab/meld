@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-from meld.system.runner import ReplicaRunner
+from meld import interfaces
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore
 from simtk.openmm import (  # type: ignore
@@ -74,7 +74,7 @@ PressureCouplingParams = namedtuple(
 PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
 
 
-class OpenMMRunner(ReplicaRunner):
+class OpenMMRunner(interfaces.IRunner):
     def __init__(self, system, options, communicator=None, platform=None):
         # Default to CUDA platform
         platform = platform if platform else "CUDA"

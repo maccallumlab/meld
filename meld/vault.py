@@ -16,11 +16,12 @@ import pickle
 import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
+from meld import interfaces
 from .system import state
 from .system.system import System
 from .system.options import RunOptions
 from .pdb_writer import PDBWriter
-from typing import List, Iterator, Optional
+from typing import Sequence, Iterator, Optional
 
 
 def _load_pickle(data):
@@ -212,13 +213,13 @@ class DataStore:
         with open(path, "rb") as store_file:
             return _load_pickle(store_file)
 
-    def save_communicator(self, comm):
+    def save_communicator(self, comm: interfaces.ICommunicator):
         """Save the communicator to disk"""
         self._can_save()
         with open(self._communicator_path, "wb") as comm_file:
             pickle.dump(comm, comm_file)
 
-    def load_communicator(self):
+    def load_communicator(self) -> interfaces.ICommunicator:
         """Load the communicator from disk"""
         if self._readonly_mode:
             path = self._communicator_backup_path
@@ -440,7 +441,7 @@ class DataStore:
         for i in range(start, end):
             yield self.load_box_vectors(i)
 
-    def save_states(self, states: List[state.SystemState], stage: int):
+    def save_states(self, states: Sequence[interfaces.IState], stage: int):
         """
         Save states to disk.
 
@@ -461,7 +462,7 @@ class DataStore:
         self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
 
-    def load_states(self, stage: int) -> List[state.SystemState]:
+    def load_states(self, stage: int) -> Sequence[interfaces.IState]:
         """
         Load states from disk
 
@@ -485,7 +486,7 @@ class DataStore:
             states.append(s)
         return states
 
-    def append_traj(self, state: state.SystemState, stage: int):
+    def append_traj(self, state: interfaces.IState, stage: int):
         """
         Append structure from state to end of trajectory
 

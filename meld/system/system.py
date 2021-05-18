@@ -10,7 +10,7 @@ A module to define MELD Systems
 from .restraints import RestraintManager
 from ..pdb_writer import PDBWriter
 from .indexing import _setup_indexing, AtomIndex, ResidueIndex, Indexer
-from .temperature import TemperatureScaler
+from meld import interfaces
 import numpy as np  # type: ignore
 from typing import NamedTuple, List, Optional, Any, Set, Tuple, Dict
 
@@ -50,7 +50,7 @@ class System:
     restraints: RestraintManager
     _indexer: Indexer
 
-    temperature_scaler: Optional[TemperatureScaler]
+    temperature_scaler: Optional[interfaces.ITemperatureScaler]
     _coordinates: np.ndarray
     _box_vectors: np.ndarray
     _n_atoms: int
