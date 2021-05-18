@@ -15,32 +15,7 @@ from meld.system import indexing
 from meld.system import temperature
 
 import numpy as np  # type: ignore
-from typing import NamedTuple, List, Optional, Any, Set, Tuple, Dict
-
-
-class _ExtraBondParam(NamedTuple):
-    i: int
-    j: int
-    length: float
-    force_constant: float
-
-
-class _ExtraAngleParam(NamedTuple):
-    i: int
-    j: int
-    k: int
-    angle: float
-    force_constant: float
-
-
-class _ExtraTorsParam(NamedTuple):
-    i: int
-    j: int
-    k: int
-    l: int
-    phase: float
-    energy: float
-    multiplicity: int
+from typing import List, Optional, Any
 
 
 class System(interfaces.ISystem):
@@ -77,14 +52,14 @@ class System(interfaces.ISystem):
         self.restraints = restraints.RestraintManager(self)
         self._indexer = indexer
 
+        self.extra_bonds = []
+        self.extra_restricted_angles = []
+        self.extra_torsions = []
+
         self.temperature_scaler = None
         self._setup_coords()
 
         self._setup_indexing()
-
-        self.extra_bonds: List[_ExtraBondParam] = []
-        self.extra_restricted_angles: List[_ExtraAngleParam] = []
-        self.extra_torsions: List[_ExtraTorsParam] = []
 
     def atom_index(
         self,
@@ -228,7 +203,7 @@ class System(interfaces.ISystem):
         assert isinstance(i, indexing.AtomIndex)
         assert isinstance(j, indexing.AtomIndex)
         self.extra_bonds.append(
-            _ExtraBondParam(
+            interfaces.ExtraBondParam(
                 i=int(i), j=int(j), length=length, force_constant=force_constant
             )
         )
@@ -255,7 +230,7 @@ class System(interfaces.ISystem):
         assert isinstance(j, indexing.AtomIndex)
         assert isinstance(k, indexing.AtomIndex)
         self.extra_restricted_angles.append(
-            _ExtraAngleParam(
+            interfaces.ExtraAngleParam(
                 i=int(i), j=int(j), k=int(k), angle=angle, force_constant=force_constant
             )
         )
@@ -287,7 +262,7 @@ class System(interfaces.ISystem):
         assert isinstance(k, indexing.AtomIndex)
         assert isinstance(l, indexing.AtomIndex)
         self.extra_torsions.append(
-            _ExtraTorsParam(
+            interfaces.ExtraTorsParam(
                 i=int(i),
                 j=int(j),
                 k=int(k),

@@ -15,7 +15,7 @@ from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import temperature
 
-from typing import Sequence, Optional, List
+from typing import Sequence, Optional, List, NamedTuple
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -250,6 +250,31 @@ class IRunner(ABC):
     def prepare_for_timestep(self, alpha: float, timestep: int):
         pass
 
+class ExtraBondParam(NamedTuple):
+    i: int
+    j: int
+    length: float
+    force_constant: float
+
+
+class ExtraAngleParam(NamedTuple):
+    i: int
+    j: int
+    k: int
+    angle: float
+    force_constant: float
+
+
+class ExtraTorsParam(NamedTuple):
+    i: int
+    j: int
+    k: int
+    l: int
+    phase: float
+    energy: float
+    multiplicity: int
+
+
 
 class ISystem(ABC):
     """
@@ -258,6 +283,10 @@ class ISystem(ABC):
 
     restraints: restraints.RestraintManager
     temperature_scaler: Optional[temperature.TemperatureScaler]
+
+    extra_bonds: List[ExtraBondParam]
+    extra_restricted_angles: List[ExtraAngleParam]
+    extra_torsions: List[ExtraTorsParam]
 
     @abstractmethod
     def atom_index(

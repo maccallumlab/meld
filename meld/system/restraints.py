@@ -1161,7 +1161,7 @@ class AlwaysActiveCollection:
         self._restraints = []
 
     @property
-    def restraints(self):
+    def restraints(self) -> List[Restraint]:
         return self._restraints
 
     def add_restraint(self, restraint: Restraint):
@@ -1218,14 +1218,14 @@ class SelectivelyActiveCollection:
         self._num_active = num_active
 
     @property
-    def groups(self):
+    def groups(self) -> List[RestraintGroup]:
         """
         Number of groups in collection
         """
         return self._groups
 
     @property
-    def num_active(self):
+    def num_active(self) -> int:
         """
         Number active in collection
         """
@@ -1273,14 +1273,14 @@ class RestraintGroup:
         self._num_active = num_active
 
     @property
-    def restraints(self):
+    def restraints(self) -> List[SelectableRestraint]:
         """
         Restraints in the group
         """
         return self._restraints
 
     @property
-    def num_active(self):
+    def num_active(self) -> int:
         """
         Number of active restraints
         """
@@ -1309,14 +1309,14 @@ class RestraintManager:
         self._selective_collections: List[SelectivelyActiveCollection] = []
 
     @property
-    def always_active(self):
+    def always_active(self) -> List[Restraint]:
         """
         Always active restraints
         """
         return self._always_active.restraints
 
     @property
-    def selectively_active_collections(self):
+    def selectively_active_collections(self) -> List[SelectivelyActiveCollection]:
         """
         Selectively active collections
         """
@@ -1324,7 +1324,7 @@ class RestraintManager:
 
     def add_as_always_active(
         self, restraint: Union[NonSelectableRestraint, SelectableRestraint]
-    ):
+    ) -> None:
         """
         Add a restraint as always active
 
@@ -1335,7 +1335,7 @@ class RestraintManager:
 
     def add_as_always_active_list(
         self, restraint_list: List[Union[NonSelectableRestraint, SelectableRestraint]]
-    ):
+    ) -> None:
         """
         Add a list of restraints as always active
 
@@ -1349,7 +1349,7 @@ class RestraintManager:
         self,
         rest_list: List[Union[RestraintGroup, SelectableRestraint]],
         num_active: int,
-    ):
+    ) -> None:
         """
         Add a selectively active collection
 
@@ -1367,7 +1367,7 @@ class RestraintManager:
         scaler: Optional[RestraintScaler] = None,
         ramp: Optional[TimeRamp] = None,
         **kwargs,
-    ):
+    ) -> Restraint:
         r"""
         Create a restraint
 
@@ -1399,10 +1399,32 @@ class RestraintManager:
             self._system, scaler, ramp, **kwargs
         )
 
-    def create_restraint_group(self, rest_list, num_active):
+    def create_restraint_group(
+        self, rest_list: List[SelectableRestraint], num_active: int
+    ) -> RestraintGroup:
+        """
+        Create a restraint group
+
+        Args:
+            rest_list: restraints to include in group
+            num_active: number of restraints active at each timestep
+
+        Returns:
+            the new restraint group
+        """
         return RestraintGroup(rest_list, num_active)
 
-    def create_scaler(self, scaler_type, **kwargs):
+    def create_scaler(self, scaler_type: str, **kwargs) -> RestraintScaler:
+        r"""
+        Create a restraint scaler
+
+        Args:
+            scaler_type: the type a scaler to create
+            \**kwargs: passed along to the scaler creattion functions
+
+        Returns:
+            the new restraint scaler
+        """
         return ScalerRegistry.get_constructor_for_key(scaler_type)(**kwargs)
 
 

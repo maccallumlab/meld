@@ -32,7 +32,7 @@ class TestOpenMMRunner(unittest.TestCase):
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
         with mock.patch(
-            "meld.runner.openmm_runner.AmberPrmtopFile"
+            "meld.runner.openmm_runner.app.AmberPrmtopFile"
         ) as mock_parm:
             openmm_runner._parm_top_from_string("ABCD")
 
@@ -474,7 +474,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
         pme_params = openmm_runner.PMEParams(enable=True, tolerance=0.0005)
 
         with mock.patch(
-            "meld.runner.openmm_runner.MonteCarloBarostat",
+            "meld.runner.openmm_runner.mm.MonteCarloBarostat",
             spec=MonteCarloBarostat,
         ) as mock_baro:
             mock_baro.return_value = mock.sentinel.baro_force
@@ -506,7 +506,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
 class TestCreateIntegrator(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch(
-            "meld.runner.openmm_runner.LangevinIntegrator",
+            "meld.runner.openmm_runner.mm.LangevinIntegrator",
             spec=LangevinIntegrator,
         )
         self.MockIntegrator = self.patcher.start()
