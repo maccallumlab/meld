@@ -9,7 +9,7 @@ from meld import util
 from meld.remd import worker
 from meld.remd import leader
 from meld.remd import launch
-from meld.system import openmm_runner
+from meld.system.runner import openmm_runner
 
 import unittest
 from unittest import mock  # type: ignore
@@ -27,7 +27,7 @@ class TestLaunchNotLeader(unittest.TestCase):
         log_patcher.start()
         self.addCleanup(log_patcher.stop)
 
-        get_runner_patcher = mock.patch("meld.remd.launch.runners.get_runner")
+        get_runner_patcher = mock.patch("meld.remd.launch.runner.get_runner")
         self.mock_get_runner = get_runner_patcher.start()
         self.addCleanup(get_runner_patcher.stop)
         self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)
@@ -96,7 +96,7 @@ class TestLaunchLeader(unittest.TestCase):
         self.mock_vault = vault_patcher.start()
         self.addCleanup(vault_patcher.stop)
 
-        get_runner_patcher = mock.patch("meld.remd.launch.runners.get_runner")
+        get_runner_patcher = mock.patch("meld.remd.launch.runner.get_runner")
         self.mock_get_runner = get_runner_patcher.start()
         self.addCleanup(get_runner_patcher.stop)
         self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)

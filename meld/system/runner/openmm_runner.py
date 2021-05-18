@@ -4,16 +4,16 @@
 #
 
 from meld import interfaces
+from meld.system.runner import cmap
+from meld.system.runner import transform
+from meld.util import log_timing
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore
 from simtk.openmm import (  # type: ignore
     LangevinIntegrator,
     Platform,
-    CustomExternalForce,
-    CustomCentroidBondForce,
     MonteCarloBarostat,
     HarmonicBondForce,
-    HarmonicAngleForce,
     PeriodicTorsionForce,
     CustomAngleForce,
 )
@@ -27,27 +27,8 @@ from simtk.unit import (  # type: ignore
     mole,
     gram,
     nanometer,
-    atmosphere,
 )
-from meld.system.restraints import (
-    SelectableRestraint,
-    NonSelectableRestraint,
-    DistanceRestraint,
-    TorsionRestraint,
-    ConfinementRestraint,
-    DistProfileRestraint,
-    TorsProfileRestraint,
-    CartesianRestraint,
-    YZCartesianRestraint,
-    COMRestraint,
-    AbsoluteCOMRestraint,
-    RdcRestraint,
-    HyperbolicDistanceRestraint,
-)
-from meld.system.openmm_runner import cmap
-from meld.system.openmm_runner import transform
 import logging
-from meld.util import log_timing
 import numpy as np  # type: ignore
 import tempfile
 from collections import Callable, namedtuple

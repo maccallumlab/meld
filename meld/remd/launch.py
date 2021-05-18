@@ -10,7 +10,7 @@ A module for launching replica exchange runs
 import meld
 from meld import util
 from meld import vault
-from meld.system import runners
+from meld.system import runner
 from meld.remd import multiplex_runner
 from simtk.openmm import version as mm_version  # type: ignore
 
@@ -103,7 +103,7 @@ def launch(
     logger.info("Loading run options")
     options = store.load_run_options()
 
-    system_runner = runners.get_runner(system, options, comm=communicator, platform=platform)
+    system_runner = runner.get_runner(system, options, comm=communicator, platform=platform)
 
     if communicator.is_leader():
         store.initialize(mode="a")
@@ -154,7 +154,7 @@ def launch_multiplex(
     system = store.load_system()
     options = store.load_run_options()
 
-    system_runner = runners.get_runner(system, options, None, platform)
+    system_runner = runner.get_runner(system, options, None, platform)
 
     store.initialize(mode="a")
     remd_runner = store.load_remd_runner()

@@ -3,14 +3,12 @@
 # All rights reserved
 #
 
-import unittest
-from unittest import mock  #type: ignore
-from meld.system.openmm_runner import OpenMMRunner
-from meld.system.subsystem import SubSystemFromSequence
-from meld.system.builder import SystemBuilder
-from meld.system.temperature import ConstantTemperatureScaler
-from meld.system.options import RunOptions
-from meld.system.openmm_runner.runner import (
+from meld.system.runner import openmm_runner
+from meld.system import subsystem
+from meld.system import builder
+from meld.system import temperature
+from meld.system import options
+from meld.system.runner.openmm_runner import (
     _parm_top_from_string,
     _create_openmm_system,
     _create_integrator,
@@ -21,35 +19,27 @@ from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  #type: ignore
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  #type: ignore
 from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  #type: ignore
-from meld.system.restraints import (
-    SelectableRestraint,
-    NonSelectableRestraint,
-    DistanceRestraint,
-    TorsionRestraint,
-    LinearScaler,
-    RestraintGroup,
-    SelectivelyActiveCollection,
-    ConstantRamp,
-)
 
+import unittest
+from unittest import mock  #type: ignore
 
 class TestOpenMMRunner(unittest.TestCase):
     def setUp(self):
-        p = SubSystemFromSequence("NALA ALA CALA")
-        b = SystemBuilder()
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder()
         self.system = b.build_system([p])
-        self.system.temperature_scaler = ConstantTemperatureScaler(300.)
+        self.system.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
 
     def test_raises_when_system_has_no_temperature_scaler(self):
         self.system.temperature_scaler = None
         with self.assertRaises(RuntimeError):
-            OpenMMRunner(self.system, RunOptions())
+            openmm_runner.OpenMMRunner(self.system, options.RunOptions())
 
 
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
         with mock.patch(
-            "meld.system.openmm_runner.runner.AmberPrmtopFile"
+            "meld.system.runner.openmm_runner.AmberPrmtopFile"
         ) as mock_parm:
             _parm_top_from_string("ABCD")
 
@@ -491,7 +481,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
         pme_params = PMEParams(enable=True, tolerance=0.0005)
 
         with mock.patch(
-            "meld.system.openmm_runner.runner.MonteCarloBarostat",
+            "meld.system.runner.openmm_runner.MonteCarloBarostat",
             spec=MonteCarloBarostat,
         ) as mock_baro:
             mock_baro.return_value = mock.sentinel.baro_force
@@ -523,7 +513,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
 class TestCreateIntegrator(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.runner.LangevinIntegrator",
+            "meld.system.runner.openmm_runner.LangevinIntegrator",
             spec=LangevinIntegrator,
         )
         self.MockIntegrator = self.patcher.start()

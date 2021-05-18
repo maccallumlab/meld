@@ -11,11 +11,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from simtk.openmm import CustomExternalForce  # type: ignore
 from meld.system import restraints
-from collections import OrderedDict, Callable
-from meld.system.openmm_runner.transform import TransformerBase
+from meld.system.runner.transform import TransformerBase
+from simtk.openmm import CustomExternalForce  # type: ignore
 from simtk import openmm as mm  # type: ignore
+
+from collections import OrderedDict, Callable
 
 try:
     from meldplugin import MeldForce  # type: ignore
