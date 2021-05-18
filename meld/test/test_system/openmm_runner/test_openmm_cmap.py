@@ -7,7 +7,7 @@ import unittest
 
 from meld.system import subsystem
 from meld.system import builder
-from meld.system.runner import cmap
+from meld.runner import cmap
 
 from simtk import openmm  #type: ignore
 from unittest import mock  #type: ignore
@@ -30,7 +30,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.openmm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -41,7 +41,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_adds_maps_to_force(self):
-        with mock.patch("meld.system.runner.cmap.np.loadtxt") as mock_loadtxt:
+        with mock.patch("meld.runner.cmap.np.loadtxt") as mock_loadtxt:
             # this is a bit hacky and depends on what order the maps are loaded in
             expected_gly = 3.0 * 0. + 7.0 * 1. + np.zeros((24, 24)).flatten()
             expected_pro = 3.0 * 2. + 7.0 * 3. + np.zeros((24, 24)).flatten()
@@ -97,7 +97,7 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.openmm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -127,7 +127,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.openmm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()

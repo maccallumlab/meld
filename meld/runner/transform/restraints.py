@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from meld.system import restraints
-from meld.system.runner.transform import TransformerBase
+from meld.runner.transform import TransformerBase
 from simtk.openmm import CustomExternalForce  # type: ignore
 from simtk import openmm as mm  # type: ignore
 

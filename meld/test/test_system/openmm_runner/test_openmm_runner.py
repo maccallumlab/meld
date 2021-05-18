@@ -3,18 +3,11 @@
 # All rights reserved
 #
 
-from meld.system.runner import openmm_runner
+from meld.runner import openmm_runner
 from meld.system import subsystem
 from meld.system import builder
 from meld.system import temperature
 from meld.system import options
-from meld.system.runner.openmm_runner import (
-    _parm_top_from_string,
-    _create_openmm_system,
-    _create_integrator,
-    PressureCouplingParams,
-    PMEParams,
-)
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  #type: ignore
 from simtk.openmm.app import forcefield as ff
 from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  #type: ignore
@@ -39,9 +32,9 @@ class TestOpenMMRunner(unittest.TestCase):
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
         with mock.patch(
-            "meld.system.runner.openmm_runner.AmberPrmtopFile"
+            "meld.runner.openmm_runner.AmberPrmtopFile"
         ) as mock_parm:
-            _parm_top_from_string("ABCD")
+            openmm_runner._parm_top_from_string("ABCD")
 
             self.assertEqual(mock_parm.call_count, 1)
 
@@ -50,13 +43,13 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
     def setUp(self):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
         self.TEMP = 300 * kelvin
-        self.pcouple_params = PressureCouplingParams(
+        self.pcouple_params = openmm_runner.PressureCouplingParams(
             temperature=300 * kelvin, pressure=1.0 * atmosphere, steps=25, enable=False
         )
-        self.pme_params = PMEParams(enable=False, tolerance=0.005)
+        self.pme_params = openmm_runner.PMEParams(enable=False, tolerance=0.005)
 
     def test_no_cutoff_should_set_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=None,
@@ -87,7 +80,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_cutoff_sets_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=1.5,
@@ -118,7 +111,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_salt_shielding_sets_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=1.5,
@@ -149,7 +142,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_soulte_dielectric_sets_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=1.5,
@@ -180,7 +173,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_solvent_dielectric_sets_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=1.5,
@@ -211,7 +204,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_salt_concentration_sets_correct_method(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=1.5,
@@ -242,7 +235,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_big_timestep_sets_allbonds_and_hydrogen_masses(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=None,
@@ -273,7 +266,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_gbneck_sets_correct_solvent_model(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=None,
@@ -304,7 +297,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         )
 
     def test_gbneck2_sets_correct_solvent_model(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="implicit",
             cutoff=None,
@@ -339,15 +332,15 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
     def setUp(self):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
         self.TEMP = 450.
-        self.pcouple_params = PressureCouplingParams(
+        self.pcouple_params = openmm_runner.PressureCouplingParams(
             temperature=300 * kelvin, pressure=1.0 * atmosphere, steps=25, enable=False
         )
-        self.pme_params = PMEParams(enable=True, tolerance=0.0001)
+        self.pme_params = openmm_runner.PMEParams(enable=True, tolerance=0.0001)
 
     def test_no_pme_uses_cutoffs(self):
-        pme_params = PMEParams(enable=False, tolerance=0.0001)
+        pme_params = openmm_runner.PMEParams(enable=False, tolerance=0.0001)
 
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="explicit",
             cutoff=1.0,
@@ -377,7 +370,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
         )
 
     def test_enables_pme_and_cutoffs(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="explicit",
             cutoff=1.0,
@@ -407,7 +400,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
         )
 
     def test_big_timestep_sets_allbonds_and_hydrogen_masses(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="explicit",
             cutoff=1.0,
@@ -437,7 +430,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
         )
 
     def test_bigger_timestep_sets_allbonds_and_hydrogen_masses(self):
-        _create_openmm_system(
+        openmm_runner._create_openmm_system(
             self.mock_parm,
             solvation_type="explicit",
             cutoff=1.0,
@@ -475,18 +468,18 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
     def test_pressure_coupling_should_add_barostat(self):
         PRESS = 2.0 * atmosphere
         STEPS = 50
-        pcouple_params = PressureCouplingParams(
+        pcouple_params = openmm_runner.PressureCouplingParams(
             enable=True, temperature=self.TEMP, pressure=PRESS, steps=STEPS
         )
-        pme_params = PMEParams(enable=True, tolerance=0.0005)
+        pme_params = openmm_runner.PMEParams(enable=True, tolerance=0.0005)
 
         with mock.patch(
-            "meld.system.runner.openmm_runner.MonteCarloBarostat",
+            "meld.runner.openmm_runner.MonteCarloBarostat",
             spec=MonteCarloBarostat,
         ) as mock_baro:
             mock_baro.return_value = mock.sentinel.baro_force
 
-            _create_openmm_system(
+            openmm_runner._create_openmm_system(
                 self.mock_parm,
                 solvation_type="explicit",
                 cutoff=1.0,
@@ -513,7 +506,7 @@ class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
 class TestCreateIntegrator(unittest.TestCase):
     def setUp(self):
         self.patcher = mock.patch(
-            "meld.system.runner.openmm_runner.LangevinIntegrator",
+            "meld.runner.openmm_runner.LangevinIntegrator",
             spec=LangevinIntegrator,
         )
         self.MockIntegrator = self.patcher.start()
@@ -522,7 +515,7 @@ class TestCreateIntegrator(unittest.TestCase):
         self.patcher.stop()
 
     def test_sets_correct_temperature(self):
-        _create_integrator(
+        openmm_runner._create_integrator(
             temperature=300., use_big_timestep=False, use_bigger_timestep=False
         )
         self.MockIntegrator.assert_called_with(
@@ -530,7 +523,7 @@ class TestCreateIntegrator(unittest.TestCase):
         )
 
     def test_big_timestep_should_set_correct_timestep(self):
-        _create_integrator(
+        openmm_runner._create_integrator(
             temperature=300., use_big_timestep=True, use_bigger_timestep=False
         )
         self.MockIntegrator.assert_called_with(

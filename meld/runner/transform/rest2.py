@@ -21,7 +21,7 @@ References
    more efficient version of replica exchange with solute tempering.
 """
 
-from meld.system.runner.transform import TransformerBase
+from meld.runner.transform import TransformerBase
 from simtk import openmm as mm  #type: ignore
 import math
 

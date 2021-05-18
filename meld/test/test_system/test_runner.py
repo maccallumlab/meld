@@ -3,7 +3,7 @@
 # All rights reserved
 #
 
-from meld.system import runner
+from meld import runner
 from meld.system import options
 
 import unittest
@@ -16,7 +16,7 @@ class TestGetRunner(unittest.TestCase):
         comm = mock.Mock()
         opt = options.RunOptions()
         opt.runner = "openmm"
-        with mock.patch("meld.system.runner.openmm_runner.OpenMMRunner") as mock_runner:
+        with mock.patch("meld.runner.openmm_runner.OpenMMRunner") as mock_runner:
             runner.get_runner(meld_system, opt, comm, platform="Reference")
             self.assertEqual(mock_runner.call_count, 1)
 
@@ -25,6 +25,6 @@ class TestGetRunner(unittest.TestCase):
         comm = mock.Mock()
         opt = options.RunOptions()
         opt.runner = "fake_runner"
-        with mock.patch("meld.system.runner.fake_runner.FakeSystemRunner") as mock_runner:
+        with mock.patch("meld.runner.fake_runner.FakeSystemRunner") as mock_runner:
             runner.get_runner(meld_system, opt, comm, platform="Reference")
             self.assertEqual(mock_runner.call_count, 1)

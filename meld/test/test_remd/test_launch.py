@@ -9,7 +9,7 @@ from meld import util
 from meld.remd import worker
 from meld.remd import leader
 from meld.remd import launch
-from meld.system.runner import openmm_runner
+from meld.runner import openmm_runner
 
 import unittest
 from unittest import mock  # type: ignore

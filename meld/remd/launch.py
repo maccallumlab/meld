@@ -10,7 +10,7 @@ A module for launching replica exchange runs
 import meld
 from meld import util
 from meld import vault
-from meld.system import runner
+from meld import runner
 from meld.remd import multiplex_runner
 from simtk.openmm import version as mm_version  # type: ignore
 

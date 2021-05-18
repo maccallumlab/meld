@@ -130,7 +130,7 @@ class TransformerBase:
         pass
 
 
-from meld.system.runner.transform.restraints import (
+from meld.runner.transform.restraints import (
     ConfinementRestraintTransformer,
     RDCRestraintTransformer,
     CartesianRestraintTransformer,
@@ -140,4 +140,4 @@ from meld.system.runner.transform.restraints import (
     MeldRestraintTransformer,
 )
 
-from meld.system.runner.transform.rest2 import REST2Transformer
+from meld.runner.transform.rest2 import REST2Transformer

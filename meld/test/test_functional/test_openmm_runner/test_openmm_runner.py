@@ -8,7 +8,7 @@ from meld.system import builder
 from meld.system import temperature
 from meld.system import options
 from meld.system import state
-from meld.system.runner import openmm_runner
+from meld.runner import openmm_runner
 
 import numpy as np  # type: ignore
 import unittest

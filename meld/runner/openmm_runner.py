@@ -4,8 +4,8 @@
 #
 
 from meld import interfaces
-from meld.system.runner import cmap
-from meld.system.runner import transform
+from meld.runner import cmap
+from meld.runner import transform
 from meld.util import log_timing
 from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore

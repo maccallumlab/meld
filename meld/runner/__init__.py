@@ -27,14 +27,14 @@ def get_runner(
         the runner
     """
     if options.runner == "openmm":
-        import meld.system.runner.openmm_runner
+        import meld.runner.openmm_runner
 
-        return meld.system.runner.openmm_runner.OpenMMRunner(
+        return meld.runner.openmm_runner.OpenMMRunner(
             system, options, communicator=comm, platform=platform
         )
     elif options.runner == "fake_runner":
-        import meld.system.runner.fake_runner
-        return meld.system.runner.fake_runner.FakeSystemRunner(system, options, comm)
+        import meld.runner.fake_runner
+        return meld.runner.fake_runner.FakeSystemRunner(system, options, comm)
     else:
         raise RuntimeError(f"Unknown type of runner: {options.runner}")
 
