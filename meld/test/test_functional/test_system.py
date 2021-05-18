@@ -8,7 +8,7 @@ from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
 from meld.system.builder import SystemBuilder
 from meld.system.temperature import ConstantTemperatureScaler, LinearTemperatureScaler, GeometricTemperatureScaler
 from meld.system.options import RunOptions
-from meld.system.system import ParmTopReader
+from meld.system.meld_system import ParmTopReader
 
 
 class TestCreateFromSequence(unittest.TestCase):

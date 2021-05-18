@@ -9,7 +9,7 @@ Module to build a System from SubSystems
 
 from meld import util
 from meld import interfaces
-from meld.system import system
+from meld.system import meld_system
 from meld.system import indexing
 from meld.system import subsystem
 from meld.system import patchers
@@ -156,7 +156,7 @@ class SystemBuilder:
                 print()
                 raise
 
-            return system._load_amber_system("system.top", "system.mdcrd", chains, patchers)
+            return meld_system._load_amber_system("system.top", "system.mdcrd", chains, patchers)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {

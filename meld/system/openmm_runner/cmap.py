@@ -10,7 +10,7 @@ import math
 from simtk import openmm  # type: ignore
 import numpy as np  # type: ignore
 
-from meld.system.system import ParmTopReader
+from meld.system.meld_system import ParmTopReader
 
 
 CMAPResidue = namedtuple("CMAPResidue", "res_num res_name index_N index_CA index_C")
