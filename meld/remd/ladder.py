@@ -7,8 +7,9 @@
 Module to handle replica exchange swaps
 """
 
-from .adaptor import Adaptor
-from meld.util import log_timing
+from meld.remd import adaptor
+from meld import util
+
 import random
 import math
 import logging
@@ -32,8 +33,8 @@ class NearestNeighborLadder:
         """
         self.n_trials = n_trials
 
-    @log_timing(logger)
-    def compute_exchanges(self, energies: np.ndarray, adaptor: Adaptor) -> List[int]:
+    @util.log_timing(logger)
+    def compute_exchanges(self, energies: np.ndarray, adaptor: adaptor.Adaptor) -> List[int]:
         """
         Compute the exchanges from a given energy matrix.
 
@@ -82,7 +83,7 @@ class NearestNeighborLadder:
         j: int,
         permutation_vector: List[int],
         energies: np.ndarray,
-        adaptor: Adaptor,
+        adaptor: adaptor.Adaptor,
     ) -> None:
         """Perform a replica exchange trial"""
         delta = energies[i, i] - energies[j, i] + energies[j, j] - energies[i, j]

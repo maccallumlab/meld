@@ -9,7 +9,13 @@ and eliminate circular imports
 """
 
 from __future__ import annotations
-from typing import Sequence, Optional
+
+from meld.system import indexing
+from meld.system import restraints
+from meld.system import pdb_writer
+from meld.system import temperature
+
+from typing import Sequence, Optional, List
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -226,7 +232,7 @@ class IRunner(ABC):
     Interface for replica runners
     """
 
-    temperature_scaler: Optional[ITemperatureScaler]
+    temperature_scaler: Optional[temperature.TemperatureScaler]
 
     @abstractmethod
     def minimize_then_run(self, state: IState) -> IState:
@@ -245,11 +251,201 @@ class IRunner(ABC):
         pass
 
 
-class ITemperatureScaler(ABC):
+class ISystem(ABC):
     """
-    Interface for temperature scalers
+    An interface for MELD systems
     """
 
+    restraints: restraints.RestraintManager
+    temperature_scaler: Optional[temperature.TemperatureScaler]
+
     @abstractmethod
-    def __call__(self, alpha: float) -> float:
+    def atom_index(
+        self,
+        resid: int,
+        atom_name: str,
+        expected_resname: Optional[str] = None,
+        chainid: Optional[int] = None,
+        one_based: bool = False,
+    ) -> indexing.AtomIndex:
+        """
+        Find the :class:`indexing.AtomIndex`
+
+        The indexing can be either absolute (if `chainid` is `None`),
+        or relative to a chain (if `chainid` is set).
+
+        Both `resid` and `chainid` are one-based if `one_based` is `True`,
+        or both are zero-based if `one_based=False` (the default).
+
+        If `expected_resname` is specified, error checking will be performed to
+        ensure that the returned atom has the expected residue name. Note
+        that the residue names are those after processing with `tleap`,
+        so some residue names may not match their value in an input pdb file.
+
+        Args:
+            resid: the residue index to lookup
+            atom_name: the name of the atom to lookup
+            expected_resname: the expected residue name, usually three all-caps characters,
+                e.g. "ALA".
+            chainid: the chain id to lookup
+            one_based: use one-based indexing
+
+        Returns:
+            zero-based absolute atom index
+        """
+        pass
+
+    abstractmethod
+
+    def residue_index(
+        self,
+        resid: int,
+        expected_resname: Optional[str] = None,
+        chainid: Optional[int] = None,
+        one_based: bool = False,
+    ) -> indexing.ResidueIndex:
+        """
+        Find the :class:`indexing.ResidueIndex`
+
+        The indexing can be either absolute (if `chainid` is `None`),
+        or relative to a chain (if `chainid` is set).
+
+        Both `resid` and `chainid` are one-based if `one_based` is `True`,
+        or both are zero-based if `one_based=False` (the default).
+
+        If `expected_resname` is specified, error checking will be performed to
+        ensure that the returned atom has the expected residue name. Note
+        that the residue names are those after processing with `tleap`,
+        so some residue names may not match their value in an input pdb file.
+
+        Args:
+            resid: the residue index to lookup
+            expected_resname: the expected residue name, usually three all-caps characters,
+                e.g. "ALA".
+            chainid: the chain id to lookup
+            one_based: use one-based indexing
+
+        Returns:
+            zero-based absolute residue index
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def top_string(self) -> str:
+        """
+        tleap topology string for the system
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def n_atoms(self) -> int:
+        """
+        number of atoms
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def coordinates(self) -> np.ndarray:
+        """
+        coordinates of system
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def atom_names(self) -> List[str]:
+        """
+        names for each atom
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def residue_numbers(self) -> List[int]:
+        """
+        residue numbers for each atom
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def residue_names(self) -> List[str]:
+        """
+        residue names for each atom
+        """
+        pass
+
+    @abstractmethod
+    def get_pdb_writer(self) -> pdb_writer.PDBWriter:
+        """
+        Get the PDBWriter
+        """
+        pass
+
+    @abstractmethod
+    def add_extra_bond(
+        self,
+        i: indexing.AtomIndex,
+        j: indexing.AtomIndex,
+        length: float,
+        force_constant: float,
+    ) -> None:
+        """
+        Add an extra bond to the system
+
+        Args:
+            i: first atom in bond
+            j: second atom in bond
+            length: length of bond, in nm
+            force_constant: strength of bond in kJ/mol/nm^2
+        """
+        pass
+
+    @abstractmethod
+    def add_extra_angle(
+        self,
+        i: indexing.AtomIndex,
+        j: indexing.AtomIndex,
+        k: indexing.AtomIndex,
+        angle: float,
+        force_constant: float,
+    ) -> None:
+        """
+        Add an extra angle to the system
+
+        Args:
+            i: first atom in angle
+            j: second atom in angle
+            k: third atom in angle
+            angle: equilibrium angle in degrees
+            force_constant: strength of angle in kJ/mol/deg^2
+        """
+        pass
+
+    @abstractmethod
+    def add_extra_torsion(
+        self,
+        i: indexing.AtomIndex,
+        j: indexing.AtomIndex,
+        k: indexing.AtomIndex,
+        l: indexing.AtomIndex,
+        phase: float,
+        energy: float,
+        multiplicity: int,
+    ) -> None:
+        """
+        Add an extra torsion to the system
+
+        Args:
+            i: first atom in torsion
+            j: second atom in torsion
+            k: third atom in torsion
+            l: fourth atom in angle
+            phase: phase angle in degrees
+            energy: energy in kJ/mol
+            multiplicity: periodicity of torsion
+        """
         pass

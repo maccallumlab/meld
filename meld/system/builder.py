@@ -8,10 +8,11 @@ Module to build a System from SubSystems
 """
 
 from meld import util
-from .system import _load_amber_system, System
-from .indexing import _ChainInfo
-from .subsystem import _SubSystem
-from .patchers import PatcherBase
+from meld.system import system
+from meld.system import indexing
+from meld.system import subsystem
+from meld.system import patchers
+
 from typing import List, Optional
 import subprocess
 
@@ -68,10 +69,10 @@ class SystemBuilder:
 
     def build_system(
         self,
-        subsystems: List[_SubSystem],
-        patchers: Optional[List[PatcherBase]] = None,
+        subsystems: List[subsystem._SubSystem],
+        patchers: Optional[List[patchers.PatcherBase]] = None,
         leap_header_cmds: Optional[List[str]] = None,
-    ) -> System:
+    ) -> system.System:
         """
         Build the system from SubSystems
 
@@ -106,7 +107,7 @@ class SystemBuilder:
                     residues_with_offset = {
                         k: v + current_res_index for k, v in chain.residues.items()
                     }
-                    chains.append(_ChainInfo(residues_with_offset))
+                    chains.append(indexing._ChainInfo(residues_with_offset))
                 current_res_index += sub._info.n_residues
 
                 # now add the leap commands for this subsystem
@@ -154,7 +155,7 @@ class SystemBuilder:
                 print()
                 raise
 
-            return _load_amber_system("system.top", "system.mdcrd", chains, patchers)
+            return system._load_amber_system("system.top", "system.mdcrd", chains, patchers)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {

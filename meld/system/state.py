@@ -7,8 +7,9 @@
 A module to define the SystemState
 """
 
-import numpy as np  # type: ignore
 from meld import interfaces
+
+import numpy as np  # type: ignore
 
 
 class SystemState(interfaces.IState):

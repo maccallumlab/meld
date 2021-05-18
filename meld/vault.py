@@ -9,6 +9,12 @@ Module for MELD input/output
 The main class is :class:`DataStore` which handles all IO for a MELD run.
 """
 
+from meld import interfaces
+from meld.system import state
+from meld.system import system
+from meld.system import options
+from meld.system import pdb_writer
+
 import contextlib
 import os
 import time
@@ -16,11 +22,6 @@ import pickle
 import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
-from meld import interfaces
-from .system import state
-from .system.system import System
-from .system.options import RunOptions
-from .pdb_writer import PDBWriter
 from typing import Sequence, Iterator, Optional
 
 
@@ -94,7 +95,7 @@ class DataStore:
         self,
         n_atoms: int,
         n_replicas: int,
-        pdb_writer: PDBWriter,
+        pdb_writer: pdb_writer.PDBWriter,
         block_size: int = 100,
     ):
         """
@@ -770,7 +771,7 @@ class DataStore:
         with open(path, "rb") as runner_file:
             return _load_pickle(runner_file)
 
-    def save_system(self, system: System):
+    def save_system(self, system: system.System):
         """
         Save MELD system to disk
 
@@ -781,13 +782,13 @@ class DataStore:
         with open(self._system_path, "wb") as system_file:
             pickle.dump(system, system_file)
 
-    def load_system(self) -> System:
+    def load_system(self) -> system.System:
         """Load MELD system from disk"""
         path = self._system_backup_path if self._readonly_mode else self._system_path
         with open(path, "rb") as system_file:
             return _load_pickle(system_file)
 
-    def save_run_options(self, run_options: RunOptions):
+    def save_run_options(self, run_options: options.RunOptions):
         """
         Save RunOptions to disk
 
@@ -799,7 +800,7 @@ class DataStore:
         with open(self._run_options_path, "wb") as options_file:
             pickle.dump(run_options, options_file)
 
-    def load_run_options(self) -> RunOptions:
+    def load_run_options(self) -> options.RunOptions:
         """Load RunOptions from disk"""
         path = (
             self._run_options_backup_path

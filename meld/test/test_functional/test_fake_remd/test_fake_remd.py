@@ -3,16 +3,21 @@
 # All rights reserved
 #
 
+from meld import comm
+from meld import vault
+from meld.remd import ladder
+from meld.remd import adaptor
+from meld.remd import leader
+from meld.system import state
+from meld.system import options
+from meld.system import pdb_writer
+from meld.system import temperature
+from meld.test import helper
+
 import unittest
 import os
 import subprocess
 import numpy as np  # type: ignore
-from meld.remd import ladder, adaptor, leader
-from meld.system import state
-from meld.system.options import RunOptions
-from meld.system.temperature import ConstantTemperatureScaler
-from meld import comm, vault, pdb_writer
-from meld.test import helper
 
 
 N_ATOMS = 500
@@ -53,11 +58,11 @@ def setup_system():
 
     # create and store the fake system
     s = helper.FakeSystem()
-    s.temperature_scaler = ConstantTemperatureScaler(300.)
+    s.temperature_scaler = temperature.ConstantTemperatureScaler(300.0)
     store.save_system(s)
 
     # create and store the options
-    o = RunOptions()
+    o = options.RunOptions()
     o.runner = "fake_runner"
     store.save_run_options(o)
 

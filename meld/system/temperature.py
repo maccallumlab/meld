@@ -2,11 +2,20 @@
 Module to handle temperature scaling
 """
 
+from abc import ABC, abstractmethod
 import math
-from meld import interfaces
+
+class TemperatureScaler(ABC):
+    """
+    Base class for temperature scalers
+    """
+
+    @abstractmethod
+    def __call__(self, alpha: float) -> float:
+        pass
 
 
-class ConstantTemperatureScaler(interfaces.ITemperatureScaler):
+class ConstantTemperatureScaler(TemperatureScaler):
     """
     Constant temperature scaler
     """
@@ -26,7 +35,7 @@ class ConstantTemperatureScaler(interfaces.ITemperatureScaler):
         return self._temperature
 
 
-class LinearTemperatureScaler(interfaces.ITemperatureScaler):
+class LinearTemperatureScaler(TemperatureScaler):
     """
     Scale temperature lienarly between alpha_min and alpha_max
     """
@@ -75,7 +84,7 @@ class LinearTemperatureScaler(interfaces.ITemperatureScaler):
             return self._temperature_max
 
 
-class GeometricTemperatureScaler(interfaces.ITemperatureScaler):
+class GeometricTemperatureScaler(TemperatureScaler):
     """
     Scale temperature geometrically
     """
@@ -142,7 +151,7 @@ class REST2Scaler:
     def __init__(
         self,
         reference_temperature: float,
-        temperature_scaler: interfaces.ITemperatureScaler,
+        temperature_scaler: TemperatureScaler,
     ):
         """
         Initialize a REST2Scaler

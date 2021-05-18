@@ -139,11 +139,13 @@ References
 
 
 from __future__ import annotations
+
+from meld.system import indexing
+
 import math
 import numpy as np  # type: ignore
 from numpy.typing import ArrayLike
 from collections import namedtuple
-from .indexing import AtomIndex
 from typing import Dict, Any, Optional, Union, List
 
 
@@ -221,8 +223,8 @@ class DistanceRestraint(SelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r1: Union[float, Positioner],
         r2: Union[float, Positioner],
         r3: Union[float, Positioner],
@@ -251,9 +253,9 @@ class DistanceRestraint(SelectableRestraint):
             r4: in nanometers
             k: in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_2 = int(atom2)
 
         if isinstance(r1, Positioner):
@@ -335,7 +337,7 @@ class GMMDistanceRestraint(SelectableRestraint):
         ramp: Optional[TimeRamp],
         n_distances: int,
         n_components: int,
-        atoms: List[AtomIndex],
+        atoms: List[indexing.AtomIndex],
         weights: ArrayLike,
         means: ArrayLike,
         precisions: ArrayLike,
@@ -402,7 +404,7 @@ class GMMDistanceRestraint(SelectableRestraint):
     def _setup_atoms(self, pair_list, system):
         self.atoms = []
         for index in pair_list:
-            assert isinstance(index, AtomIndex)
+            assert isinstance(index, indexing.AtomIndex)
             self.atoms.append(int(index))
 
     def _check(self, system):
@@ -444,8 +446,8 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r1: float,
         r2: float,
         r3: float,
@@ -468,9 +470,9 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
             r4: distance in nm
             asymptote: maximum energy in kT
         """
-        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_2 = int(atom2)
         self.r1 = r1
         self.r2 = r2
@@ -517,10 +519,10 @@ class TorsionRestraint(SelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
-        atom3: AtomIndex,
-        atom4: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
+        atom3: indexing.AtomIndex,
+        atom4: indexing.AtomIndex,
         phi: float,
         delta_phi: float,
         k: float,
@@ -540,10 +542,10 @@ class TorsionRestraint(SelectableRestraint):
             delta_phi: flat within delta_phi, degrees
             k: force constant in :math:`kJ/mol/deg^2`
         """
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.atom_index_3 = int(atom3)
@@ -592,8 +594,8 @@ class DistProfileRestraint(SelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r_min: float,
         r_max: float,
         n_bins: int,
@@ -617,8 +619,8 @@ class DistProfileRestraint(SelectableRestraint):
         """
         self.scaler = scaler
         self.ramp = ramp
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.r_min = r_min
@@ -648,14 +650,14 @@ class TorsProfileRestraint(SelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
-        atom3: AtomIndex,
-        atom4: AtomIndex,
-        atom5: AtomIndex,
-        atom6: AtomIndex,
-        atom7: AtomIndex,
-        atom8: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
+        atom3: indexing.AtomIndex,
+        atom4: indexing.AtomIndex,
+        atom5: indexing.AtomIndex,
+        atom6: indexing.AtomIndex,
+        atom7: indexing.AtomIndex,
+        atom8: indexing.AtomIndex,
         n_bins: int,
         spline_params: np.ndarray,
         scale_factor: float,
@@ -682,14 +684,14 @@ class TorsProfileRestraint(SelectableRestraint):
         self.scaler = scaler
         self.ramp = ramp
 
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
-        assert isinstance(atom4, AtomIndex)
-        assert isinstance(atom5, AtomIndex)
-        assert isinstance(atom6, AtomIndex)
-        assert isinstance(atom7, AtomIndex)
-        assert isinstance(atom8, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
+        assert isinstance(atom4, indexing.AtomIndex)
+        assert isinstance(atom5, indexing.AtomIndex)
+        assert isinstance(atom6, indexing.AtomIndex)
+        assert isinstance(atom7, indexing.AtomIndex)
+        assert isinstance(atom8, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.atom_index_3 = int(atom3)
@@ -723,8 +725,8 @@ class RdcRestraint(NonSelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         kappa: float,
         d_obs: float,
         tolerance: float,
@@ -760,8 +762,8 @@ class RdcRestraint(NonSelectableRestraint):
            - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
            - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
         """
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.s1_index = int(system.atom_index(patcher.resids[expt_index], "S1"))
@@ -807,7 +809,7 @@ class ConfinementRestraint(NonSelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom_index: AtomIndex,
+        atom_index: indexing.AtomIndex,
         radius: float,
         force_const: float,
     ):
@@ -822,7 +824,7 @@ class ConfinementRestraint(NonSelectableRestraint):
             radius: the distance to confine to
             force_const: strength of confinement
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.radius = float(radius)
         self.force_const = float(force_const)
@@ -847,7 +849,7 @@ class CartesianRestraint(NonSelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom_index: AtomIndex,
+        atom_index: indexing.AtomIndex,
         x: float,
         y: float,
         z: float,
@@ -868,7 +870,7 @@ class CartesianRestraint(NonSelectableRestraint):
             delta: energy is zero within delta, in nm
             force_const: force constant in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.x = x
         self.y = y
@@ -907,7 +909,7 @@ class YZCartesianRestraint(NonSelectableRestraint):
             delta: energy is zero within delta, in nm
             force_const: force constant in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.y = y
         self.z = z
@@ -958,7 +960,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        group: List[AtomIndex],
+        group: List[indexing.AtomIndex],
         weights: ArrayLike,
         dims: str,
         force_const: float,
@@ -1016,7 +1018,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
     def _get_indices(self, group):
         indices = []
         for g in group:
-            assert isinstance(g, AtomIndex)
+            assert isinstance(g, indexing.AtomIndex)
             indices.append(int(g))
         return indices
 
@@ -1056,8 +1058,8 @@ class COMRestraint(NonSelectableRestraint):
         system,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        group1: List[AtomIndex],
-        group2: List[AtomIndex],
+        group1: List[indexing.AtomIndex],
+        group2: List[indexing.AtomIndex],
         weights1: List[float],
         weights2: List[float],
         dims: str,
@@ -1124,7 +1126,7 @@ class COMRestraint(NonSelectableRestraint):
     def _get_indices(self, group):
         indices = []
         for g in group:
-            assert isinstance(g, AtomIndex)
+            assert isinstance(g, indexing.AtomIndex)
             indices.append(int(g))
         return indices
 

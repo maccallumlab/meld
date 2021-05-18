@@ -7,10 +7,12 @@
 A module to define MELD Systems
 """
 
-from .restraints import RestraintManager
-from ..pdb_writer import PDBWriter
-from .indexing import _setup_indexing, AtomIndex, ResidueIndex, Indexer
 from meld import interfaces
+from meld.system import restraints
+from meld.system import pdb_writer
+from meld.system import indexing
+from meld.system import temperature
+
 import numpy as np  # type: ignore
 from typing import NamedTuple, List, Optional, Any, Set, Tuple, Dict
 
@@ -40,17 +42,17 @@ class _ExtraTorsParam(NamedTuple):
     multiplicity: int
 
 
-class System:
+class System(interfaces.ISystem):
     """
     A class representing a MELD system.
     """
 
     _top_string: str
     _mdcrd_string: str
-    restraints: RestraintManager
-    _indexer: Indexer
+    restraints: restraints.RestraintManager
+    _indexer: indexing.Indexer
 
-    temperature_scaler: Optional[interfaces.ITemperatureScaler]
+    temperature_scaler: Optional[temperature.TemperatureScaler]
     _coordinates: np.ndarray
     _box_vectors: np.ndarray
     _n_atoms: int
@@ -60,7 +62,7 @@ class System:
     _residue_numbers: List[int]
     _atom_index: Any
 
-    def __init__(self, top_string: str, mdcrd_string: str, indexer: Indexer):
+    def __init__(self, top_string: str, mdcrd_string: str, indexer: indexing.Indexer):
         """
         Initialize a MELD system
 
@@ -71,7 +73,7 @@ class System:
         """
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
-        self.restraints = RestraintManager(self)
+        self.restraints = restraints.RestraintManager(self)
         self._indexer = indexer
 
         self.temperature_scaler = None
@@ -90,9 +92,9 @@ class System:
         expected_resname: Optional[str] = None,
         chainid: Optional[int] = None,
         one_based: bool = False,
-    ) -> AtomIndex:
+    ) -> indexing.AtomIndex:
         """
-        Find the :class:`AtomIndex`
+        Find the :class:`indexing.AtomIndex`
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
@@ -126,9 +128,9 @@ class System:
         expected_resname: Optional[str] = None,
         chainid: Optional[int] = None,
         one_based: bool = False,
-    ) -> ResidueIndex:
+    ) -> indexing.ResidueIndex:
         """
-        Find the :class:`ResidueIndex`
+        Find the :class:`indexing.ResidueIndex`
 
         The indexing can be either absolute (if `chainid` is `None`),
         or relative to a chain (if `chainid` is set).
@@ -195,11 +197,11 @@ class System:
         """
         return self._residue_names
 
-    def get_pdb_writer(self) -> PDBWriter:
+    def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """
         Get the PDBWriter
         """
-        return PDBWriter(
+        return pdb_writer.PDBWriter(
             list(range(1, len(self._atom_names) + 1)),
             self._atom_names,
             self._residue_numbers,
@@ -207,7 +209,7 @@ class System:
         )
 
     def add_extra_bond(
-        self, i: AtomIndex, j: AtomIndex, length: float, force_constant: float
+        self, i: indexing.AtomIndex, j: indexing.AtomIndex, length: float, force_constant: float
     ) -> None:
         """
         Add an extra bond to the system
@@ -218,8 +220,8 @@ class System:
             length: length of bond, in nm
             force_constant: strength of bond in kJ/mol/nm^2
         """
-        assert isinstance(i, AtomIndex)
-        assert isinstance(j, AtomIndex)
+        assert isinstance(i, indexing.AtomIndex)
+        assert isinstance(j, indexing.AtomIndex)
         self.extra_bonds.append(
             _ExtraBondParam(
                 i=int(i), j=int(j), length=length, force_constant=force_constant
@@ -228,9 +230,9 @@ class System:
 
     def add_extra_angle(
         self,
-        i: AtomIndex,
-        j: AtomIndex,
-        k: AtomIndex,
+        i: indexing.AtomIndex,
+        j: indexing.AtomIndex,
+        k: indexing.AtomIndex,
         angle: float,
         force_constant: float,
     ) -> None:
@@ -244,9 +246,9 @@ class System:
             angle: equilibrium angle in degrees
             force_constant: strength of angle in kJ/mol/deg^2
         """
-        assert isinstance(i, AtomIndex)
-        assert isinstance(j, AtomIndex)
-        assert isinstance(k, AtomIndex)
+        assert isinstance(i, indexing.AtomIndex)
+        assert isinstance(j, indexing.AtomIndex)
+        assert isinstance(k, indexing.AtomIndex)
         self.extra_restricted_angles.append(
             _ExtraAngleParam(
                 i=int(i), j=int(j), k=int(k), angle=angle, force_constant=force_constant
@@ -255,10 +257,10 @@ class System:
 
     def add_extra_torsion(
         self,
-        i: AtomIndex,
-        j: AtomIndex,
-        k: AtomIndex,
-        l: AtomIndex,
+        i: indexing.AtomIndex,
+        j: indexing.AtomIndex,
+        k: indexing.AtomIndex,
+        l: indexing.AtomIndex,
         phase: float,
         energy: float,
         multiplicity: int,
@@ -275,10 +277,10 @@ class System:
             energy: energy in kJ/mol
             multiplicity: periodicity of torsion
         """
-        assert isinstance(i, AtomIndex)
-        assert isinstance(j, AtomIndex)
-        assert isinstance(k, AtomIndex)
-        assert isinstance(l, AtomIndex)
+        assert isinstance(i, indexing.AtomIndex)
+        assert isinstance(j, indexing.AtomIndex)
+        assert isinstance(k, indexing.AtomIndex)
+        assert isinstance(l, indexing.AtomIndex)
         self.extra_torsions.append(
             _ExtraTorsParam(
                 i=int(i),
@@ -521,7 +523,7 @@ def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
         top, crd = patcher.patch(top, crd)
 
     # Setup indexing
-    indexer = _setup_indexing(chains, ParmTopReader(top), CrdReader(crd))
+    indexer = indexing._setup_indexing(chains, ParmTopReader(top), CrdReader(crd))
 
     # Create the system
     system = System(top, crd, indexer)

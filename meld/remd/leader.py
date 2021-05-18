@@ -7,11 +7,12 @@
 Module for replica exchange leader
 """
 
-from ..vault import DataStore
-from .worker import WorkerReplicaExchangeRunner
-from .ladder import NearestNeighborLadder
-from .adaptor import Adaptor
 from meld import interfaces
+from meld import vault
+from meld.remd import worker
+from meld.remd import ladder
+from meld.remd import adaptor
+
 import logging
 import math
 import numpy as np
@@ -55,8 +56,8 @@ class LeaderReplicaExchangeRunner:
         self,
         n_replicas: int,
         max_steps: int,
-        ladder: NearestNeighborLadder,
-        adaptor: Adaptor,
+        ladder: ladder.NearestNeighborLadder,
+        adaptor: adaptor.Adaptor,
     ) -> None:
         """
         Initialize a LeaderReplicaExchangeRunner
@@ -74,17 +75,17 @@ class LeaderReplicaExchangeRunner:
         self.adaptor = adaptor
         self._setup_alphas()
 
-    def to_worker(self) -> WorkerReplicaExchangeRunner:
+    def to_worker(self) -> worker.WorkerReplicaExchangeRunner:
         """
         Convert leader to worker
         """
-        return WorkerReplicaExchangeRunner.from_leader(self)
+        return worker.WorkerReplicaExchangeRunner.from_leader(self)
 
     def run(
         self,
         communicator: interfaces.ICommunicator,
         system_runner: interfaces.IRunner,
-        store: DataStore,
+        store: vault.DataStore,
     ):
         """
         Run replica exchange until finished

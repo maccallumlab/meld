@@ -7,6 +7,8 @@
 A module for replica exchange workers
 """
 
+# TODO add annotations
+
 class WorkerReplicaExchangeRunner:
     """
     This class coordinates running replica exchange on the workers.

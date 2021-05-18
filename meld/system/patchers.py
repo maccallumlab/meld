@@ -3,11 +3,12 @@ This module implements Patcher classes that can modify
 the system to include new atoms and/or paramters.
 """
 
-from meld.system.indexing import ResidueIndex
-from .system import System
-import parmed as pmd  # type: ignore
 from meld import util
+from meld.system import indexing
+from meld.system import system
+import parmed as pmd  # type: ignore
 from parmed import unit as u
+
 import numpy as np  # type: ignore
 from typing import Tuple, Dict, List
 
@@ -37,7 +38,7 @@ class PatcherBase:
         """
         pass
 
-    def finalize(self, system: System):
+    def finalize(self, system: system.System):
         """
         Called after `System` is created.
 
@@ -149,7 +150,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
     tors_params = {"OND": (1.9 * u.kilocalorie_per_mole, 1, 240.0 * u.degrees)}
     lj_params = {"OND": (4.0 * u.angstrom / 2.0, 0.05 * u.kilocalorie_per_mole)}
 
-    def __init__(self, params: Dict[ResidueIndex, str], explicit_solvent: bool = False):
+    def __init__(self, params: Dict[indexing.ResidueIndex, str], explicit_solvent: bool = False):
         """
         Initialize a VirtualSpinLabelPatcher
 
@@ -163,7 +164,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
            Islam, Stein, Mchaourab, and Roux, J. Phys. Chem. B 2013, 117, 4740-4754.
         """
         for key in params:
-            assert isinstance(key, ResidueIndex)
+            assert isinstance(key, indexing.ResidueIndex)
             assert params[key] in self.ALLOWED_TYPES
 
         self.params = params
@@ -195,7 +196,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
                 crd_string = infile.read()
         return top_string, crd_string
 
-    def finalize(self, system: System):
+    def finalize(self, system: system.System):
         for res_index in self.params:
             site_type = self.params[res_index]
 
