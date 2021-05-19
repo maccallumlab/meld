@@ -27,8 +27,8 @@ Functions for indexing
 
 The two primary ways for indexing are both methods of the sytem object:
 
-- :code:`system.atom_index(resid, atom_name, expected_resname=None, chainid=None, one_based=False)`
-- :code:`system.residue_index(resid, expected_resname=None, chainid=None, one_based=False)`
+- :code:`system.index.atom(resid, atom_name, expected_resname=None, chainid=None, one_based=False)`
+- :code:`system.index.residue(resid, expected_resname=None, chainid=None, one_based=False)`
 
 Calls to :code:`atom_index` will return a zero-based absolute :code:`AtomIndex`.
 Calls to :code:`residue_index` will return a zero-based absolute :code:`ResidueIndex`.

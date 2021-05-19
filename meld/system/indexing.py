@@ -91,7 +91,7 @@ class Indexer:
         self.residue_names = residue_names
         self.abs_resid_to_resname = abs_resid_to_resname
 
-    def residue_index(
+    def residue(
         self,
         resid: int,
         expected_resname: Optional[str] = None,
@@ -144,7 +144,7 @@ class Indexer:
 
         return ResidueIndex(res_index)
 
-    def atom_index(
+    def atom(
         self,
         resid: int,
         atom_name: str,
@@ -177,7 +177,7 @@ class Indexer:
         Returns:
             zero-based absolute atom index
         """
-        resindex = self.residue_index(resid, expected_resname, chainid, one_based)
+        resindex = self.residue(resid, expected_resname, chainid, one_based)
         return AtomIndex(self.abs_atom_index[resindex, atom_name])
 
 

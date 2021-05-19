@@ -250,6 +250,7 @@ class IRunner(ABC):
     def prepare_for_timestep(self, alpha: float, timestep: int):
         pass
 
+
 class ExtraBondParam(NamedTuple):
     i: int
     j: int
@@ -275,89 +276,18 @@ class ExtraTorsParam(NamedTuple):
     multiplicity: int
 
 
-
 class ISystem(ABC):
     """
     An interface for MELD systems
     """
 
     restraints: restraints.RestraintManager
+    index: indexing.Indexer
     temperature_scaler: Optional[temperature.TemperatureScaler]
 
     extra_bonds: List[ExtraBondParam]
     extra_restricted_angles: List[ExtraAngleParam]
     extra_torsions: List[ExtraTorsParam]
-
-    @abstractmethod
-    def atom_index(
-        self,
-        resid: int,
-        atom_name: str,
-        expected_resname: Optional[str] = None,
-        chainid: Optional[int] = None,
-        one_based: bool = False,
-    ) -> indexing.AtomIndex:
-        """
-        Find the :class:`indexing.AtomIndex`
-
-        The indexing can be either absolute (if `chainid` is `None`),
-        or relative to a chain (if `chainid` is set).
-
-        Both `resid` and `chainid` are one-based if `one_based` is `True`,
-        or both are zero-based if `one_based=False` (the default).
-
-        If `expected_resname` is specified, error checking will be performed to
-        ensure that the returned atom has the expected residue name. Note
-        that the residue names are those after processing with `tleap`,
-        so some residue names may not match their value in an input pdb file.
-
-        Args:
-            resid: the residue index to lookup
-            atom_name: the name of the atom to lookup
-            expected_resname: the expected residue name, usually three all-caps characters,
-                e.g. "ALA".
-            chainid: the chain id to lookup
-            one_based: use one-based indexing
-
-        Returns:
-            zero-based absolute atom index
-        """
-        pass
-
-    abstractmethod
-
-    def residue_index(
-        self,
-        resid: int,
-        expected_resname: Optional[str] = None,
-        chainid: Optional[int] = None,
-        one_based: bool = False,
-    ) -> indexing.ResidueIndex:
-        """
-        Find the :class:`indexing.ResidueIndex`
-
-        The indexing can be either absolute (if `chainid` is `None`),
-        or relative to a chain (if `chainid` is set).
-
-        Both `resid` and `chainid` are one-based if `one_based` is `True`,
-        or both are zero-based if `one_based=False` (the default).
-
-        If `expected_resname` is specified, error checking will be performed to
-        ensure that the returned atom has the expected residue name. Note
-        that the residue names are those after processing with `tleap`,
-        so some residue names may not match their value in an input pdb file.
-
-        Args:
-            resid: the residue index to lookup
-            expected_resname: the expected residue name, usually three all-caps characters,
-                e.g. "ALA".
-            chainid: the chain id to lookup
-            one_based: use one-based indexing
-
-        Returns:
-            zero-based absolute residue index
-        """
-        pass
 
     @property
     @abstractmethod

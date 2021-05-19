@@ -23,12 +23,18 @@ class System(interfaces.ISystem):
     A class representing a MELD system.
     """
 
-    _top_string: str
-    _mdcrd_string: str
     restraints: restraints.RestraintManager
-    _indexer: indexing.Indexer
+    """ The object to handle managing restraints for the system """
+
+    index: indexing.Indexer
+    """The object to lookup atom and residue indices """
 
     temperature_scaler: Optional[temperature.TemperatureScaler]
+    """The temperature scaler for the system"""
+
+    _top_string: str
+    _mdcrd_string: str
+
     _coordinates: np.ndarray
     _box_vectors: np.ndarray
     _n_atoms: int
@@ -50,7 +56,7 @@ class System(interfaces.ISystem):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = restraints.RestraintManager(self)
-        self._indexer = indexer
+        self.index = indexer
 
         self.extra_bonds = []
         self.extra_restricted_angles = []
@@ -60,76 +66,6 @@ class System(interfaces.ISystem):
         self._setup_coords()
 
         self._setup_indexing()
-
-    def atom_index(
-        self,
-        resid: int,
-        atom_name: str,
-        expected_resname: Optional[str] = None,
-        chainid: Optional[int] = None,
-        one_based: bool = False,
-    ) -> indexing.AtomIndex:
-        """
-        Find the :class:`indexing.AtomIndex`
-
-        The indexing can be either absolute (if `chainid` is `None`),
-        or relative to a chain (if `chainid` is set).
-
-        Both `resid` and `chainid` are one-based if `one_based` is `True`,
-        or both are zero-based if `one_based=False` (the default).
-
-        If `expected_resname` is specified, error checking will be performed to
-        ensure that the returned atom has the expected residue name. Note
-        that the residue names are those after processing with `tleap`,
-        so some residue names may not match their value in an input pdb file.
-
-        Args:
-            resid: the residue index to lookup
-            atom_name: the name of the atom to lookup
-            expected_resname: the expected residue name, usually three all-caps characters,
-                e.g. "ALA".
-            chainid: the chain id to lookup
-            one_based: use one-based indexing
-
-        Returns:
-            zero-based absolute atom index
-        """
-        return self._indexer.atom_index(
-            resid, atom_name, expected_resname, chainid, one_based
-        )
-
-    def residue_index(
-        self,
-        resid: int,
-        expected_resname: Optional[str] = None,
-        chainid: Optional[int] = None,
-        one_based: bool = False,
-    ) -> indexing.ResidueIndex:
-        """
-        Find the :class:`indexing.ResidueIndex`
-
-        The indexing can be either absolute (if `chainid` is `None`),
-        or relative to a chain (if `chainid` is set).
-
-        Both `resid` and `chainid` are one-based if `one_based` is `True`,
-        or both are zero-based if `one_based=False` (the default).
-
-        If `expected_resname` is specified, error checking will be performed to
-        ensure that the returned atom has the expected residue name. Note
-        that the residue names are those after processing with `tleap`,
-        so some residue names may not match their value in an input pdb file.
-
-        Args:
-            resid: the residue index to lookup
-            expected_resname: the expected residue name, usually three all-caps characters,
-                e.g. "ALA".
-            chainid: the chain id to lookup
-            one_based: use one-based indexing
-
-        Returns:
-            zero-based absolute residue index
-        """
-        return self._indexer.residue_index(resid, expected_resname, chainid, one_based)
 
     @property
     def top_string(self) -> str:

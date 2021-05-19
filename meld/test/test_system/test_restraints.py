@@ -141,8 +141,8 @@ class TestRestraintManager(unittest.TestCase):
     def test_can_create_distance_restraint(self):
         rest = self.rest_manager.create_restraint(
             "distance",
-            atom1=self.system.atom_index(0, "CA"),
-            atom2=self.system.atom_index(1, "CA"),
+            atom1=self.system.index.atom(0, "CA"),
+            atom2=self.system.index.atom(1, "CA"),
             r1=0,
             r2=0,
             r3=0.3,
@@ -176,8 +176,8 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 10.0,
                 0.0,
                 10.0,
@@ -191,8 +191,8 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 10.0,
                 10.0,
                 0.0,
@@ -206,8 +206,8 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 10.0,
                 10.0,
                 10.0,
@@ -221,8 +221,8 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 -1.0,
                 10.0,
                 10.0,
@@ -236,8 +236,8 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 10.0,
                 10.0,
                 10.0,
@@ -260,8 +260,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 -1.0,
                 1.0,
                 2.0,
@@ -276,8 +276,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 10.0,
                 0.0,
                 1.0,
@@ -292,8 +292,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 0.0,
                 1.0,
                 0.0,
@@ -308,8 +308,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 0.0,
                 1.0,
                 2.0,
@@ -324,8 +324,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 0.0,
                 1.0,
                 2.0,
@@ -340,8 +340,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 1.0,
                 2.0,
                 3.0,
@@ -356,8 +356,8 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "CA"),
-                self.system.atom_index(1, "CA"),
+                self.system.index.atom(0, "CA"),
+                self.system.index.atom(1, "CA"),
                 1.0,
                 2.0,
                 3.0,
@@ -381,10 +381,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "C"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "C"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 180.0,
                 0.0,
                 1.0,
@@ -396,10 +396,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "N"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "N"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 -270.0,
                 0.0,
                 1.0,
@@ -411,10 +411,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "N"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "N"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 270.0,
                 0.0,
                 1.0,
@@ -426,10 +426,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "N"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "N"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 0.0,
                 200.0,
                 1.0,
@@ -441,10 +441,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "N"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "N"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 0.0,
                 -90.0,
                 1.0,
@@ -456,10 +456,10 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system,
                 self.scaler,
                 self.ramp,
-                self.system.atom_index(0, "C"),
-                self.system.atom_index(1, "N"),
-                self.system.atom_index(1, "CA"),
-                self.system.atom_index(1, "C"),
+                self.system.index.atom(0, "C"),
+                self.system.index.atom(1, "N"),
+                self.system.index.atom(1, "CA"),
+                self.system.index.atom(1, "C"),
                 0.0,
                 90.0,
                 -1.0,
@@ -774,8 +774,8 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
     def test_creating_restraint_without_specifying_scaler_uses_constant(self):
         rest = self.manager.create_restraint(
             "distance",
-            atom1=self.system.atom_index(0, "CA"),
-            atom2=self.system.atom_index(1, "CA"),
+            atom1=self.system.index.atom(0, "CA"),
+            atom2=self.system.index.atom(1, "CA"),
             r1=0,
             r2=1,
             r3=3,
@@ -789,8 +789,8 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         rest = self.manager.create_restraint(
             "distance",
             scaler,
-            atom1=self.system.atom_index(0, "CA"),
-            atom2=self.system.atom_index(1, "CA"),
+            atom1=self.system.index.atom(0, "CA"),
+            atom2=self.system.index.atom(1, "CA"),
             r1=0,
             r2=1,
             r3=3,
@@ -805,8 +805,8 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
             _rest = self.manager.create_restraint(
                 "distance",
                 scaler,
-                atom1=self.system.atom_index(0, "CA"),
-                atom2=self.system.atom_index(1, "CA"),
+                atom1=self.system.index.atom(0, "CA"),
+                atom2=self.system.index.atom(1, "CA"),
                 r1=0.0,
                 r2=1.0,
                 r3=3.0,
@@ -822,8 +822,8 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
                 "distance",
                 scaler,
                 ramp=ramp,
-                atom1=self.system.atom_index(0, "CA"),
-                atom2=self.system.atom_index(1, "CA"),
+                atom1=self.system.index.atom(0, "CA"),
+                atom2=self.system.index.atom(1, "CA"),
                 r1=0.0,
                 r2=1.0,
                 r3=3.0,
@@ -836,8 +836,8 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
         rest = self.manager.create_restraint(
             "distance",
             scaler,
-            atom1=self.system.atom_index(0, "CA"),
-            atom2=self.system.atom_index(1, "CA"),
+            atom1=self.system.index.atom(0, "CA"),
+            atom2=self.system.index.atom(1, "CA"),
             r1=0.0,
             r2=1.0,
             r3=3.0,
@@ -983,8 +983,8 @@ class TestCOMRestraint(unittest.TestCase):
         self.ramp = restraints.ConstantRamp()
 
     def test_should_raise_when_dims_has_non_xyz(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1000,8 +1000,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_repeated_dim(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1017,8 +1017,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_negative_k(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1034,8 +1034,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_negative_distance(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1051,8 +1051,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_group1_size_mismatch(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1068,8 +1068,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_group2_size_mismatch(self):
-        group1 = [self.system.atom_index(0, "CA")]
-        group2 = [self.system.atom_index(1, "CA")]
+        group1 = [self.system.index.atom(0, "CA")]
+        group2 = [self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1085,8 +1085,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_negative_weights1(self):
-        group1 = [self.system.atom_index(0, "CA"), self.system.atom_index(1, "CA")]
-        group2 = [self.system.atom_index(2, "CA"), self.system.atom_index(3, "CA")]
+        group1 = [self.system.index.atom(0, "CA"), self.system.index.atom(1, "CA")]
+        group2 = [self.system.index.atom(2, "CA"), self.system.index.atom(3, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1102,8 +1102,8 @@ class TestCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_negative_weights2(self):
-        group1 = [self.system.atom_index(0, "CA"), self.system.atom_index(1, "CA")]
-        group2 = [self.system.atom_index(2, "CA"), self.system.atom_index(3, "CA")]
+        group1 = [self.system.index.atom(0, "CA"), self.system.index.atom(1, "CA")]
+        group2 = [self.system.index.atom(2, "CA"), self.system.index.atom(3, "CA")]
         with self.assertRaises(ValueError):
             restraints.COMRestraint(
                 system=self.system,
@@ -1180,7 +1180,7 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
             )  # too many positions
 
     def test_should_raise_on_size_mismatch(self):
-        group = [self.system.atom_index(0, "CA")]
+        group = [self.system.index.atom(0, "CA")]
         with self.assertRaises(ValueError):
             restraints.AbsoluteCOMRestraint(
                 system=self.system,
@@ -1194,7 +1194,7 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
             )
 
     def test_should_raise_on_negative_weight(self):
-        group = [self.system.atom_index(0, "CA"), self.system.atom_index(1, "CA")]
+        group = [self.system.index.atom(0, "CA"), self.system.index.atom(1, "CA")]
         with self.assertRaises(ValueError):
             restraints.AbsoluteCOMRestraint(
                 system=self.system,

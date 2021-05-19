@@ -176,20 +176,20 @@ class TestAtomIndexingOneBased(unittest.TestCase):
         self.system = b.build_system([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.atom_index(1, "CA", one_based=True), 4)
-        self.assertEqual(self.system.atom_index(2, "CA", one_based=True), 14)
-        self.assertEqual(self.system.atom_index(3, "CA", one_based=True), 24)
-        self.assertEqual(self.system.atom_index(4, "CA", one_based=True), 37)
-        self.assertEqual(self.system.atom_index(5, "CA", one_based=True), 47)
-        self.assertEqual(self.system.atom_index(6, "CA", one_based=True), 57)
+        self.assertEqual(self.system.index.atom(1, "CA", one_based=True), 4)
+        self.assertEqual(self.system.index.atom(2, "CA", one_based=True), 14)
+        self.assertEqual(self.system.index.atom(3, "CA", one_based=True), 24)
+        self.assertEqual(self.system.index.atom(4, "CA", one_based=True), 37)
+        self.assertEqual(self.system.index.atom(5, "CA", one_based=True), 47)
+        self.assertEqual(self.system.index.atom(6, "CA", one_based=True), 57)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.atom_index(1, "CA", chainid=1, one_based=True), 4)
-        self.assertEqual(self.system.atom_index(2, "CA", chainid=1, one_based=True), 14)
-        self.assertEqual(self.system.atom_index(3, "CA", chainid=1, one_based=True), 24)
-        self.assertEqual(self.system.atom_index(1, "CA", chainid=2, one_based=True), 37)
-        self.assertEqual(self.system.atom_index(2, "CA", chainid=2, one_based=True), 47)
-        self.assertEqual(self.system.atom_index(3, "CA", chainid=2, one_based=True), 57)
+        self.assertEqual(self.system.index.atom(1, "CA", chainid=1, one_based=True), 4)
+        self.assertEqual(self.system.index.atom(2, "CA", chainid=1, one_based=True), 14)
+        self.assertEqual(self.system.index.atom(3, "CA", chainid=1, one_based=True), 24)
+        self.assertEqual(self.system.index.atom(1, "CA", chainid=2, one_based=True), 37)
+        self.assertEqual(self.system.index.atom(2, "CA", chainid=2, one_based=True), 47)
+        self.assertEqual(self.system.index.atom(3, "CA", chainid=2, one_based=True), 57)
 
 
 class TestAtomIndexingZeroBased(unittest.TestCase):
@@ -200,39 +200,39 @@ class TestAtomIndexingZeroBased(unittest.TestCase):
         self.system = b.build_system([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.atom_index(0, "CA", one_based=False), 4)
-        self.assertEqual(self.system.atom_index(1, "CA", one_based=False), 14)
-        self.assertEqual(self.system.atom_index(2, "CA", one_based=False), 24)
-        self.assertEqual(self.system.atom_index(3, "CA", one_based=False), 37)
-        self.assertEqual(self.system.atom_index(4, "CA", one_based=False), 47)
-        self.assertEqual(self.system.atom_index(5, "CA", one_based=False), 57)
+        self.assertEqual(self.system.index.atom(0, "CA", one_based=False), 4)
+        self.assertEqual(self.system.index.atom(1, "CA", one_based=False), 14)
+        self.assertEqual(self.system.index.atom(2, "CA", one_based=False), 24)
+        self.assertEqual(self.system.index.atom(3, "CA", one_based=False), 37)
+        self.assertEqual(self.system.index.atom(4, "CA", one_based=False), 47)
+        self.assertEqual(self.system.index.atom(5, "CA", one_based=False), 57)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.atom_index(0, "CA", chainid=0, one_based=False), 4)
+        self.assertEqual(self.system.index.atom(0, "CA", chainid=0, one_based=False), 4)
         self.assertEqual(
-            self.system.atom_index(1, "CA", chainid=0, one_based=False), 14
+            self.system.index.atom(1, "CA", chainid=0, one_based=False), 14
         )
         self.assertEqual(
-            self.system.atom_index(2, "CA", chainid=0, one_based=False), 24
+            self.system.index.atom(2, "CA", chainid=0, one_based=False), 24
         )
         self.assertEqual(
-            self.system.atom_index(0, "CA", chainid=1, one_based=False), 37
+            self.system.index.atom(0, "CA", chainid=1, one_based=False), 37
         )
         self.assertEqual(
-            self.system.atom_index(1, "CA", chainid=1, one_based=False), 47
+            self.system.index.atom(1, "CA", chainid=1, one_based=False), 47
         )
         self.assertEqual(
-            self.system.atom_index(2, "CA", chainid=1, one_based=False), 57
+            self.system.index.atom(2, "CA", chainid=1, one_based=False), 57
         )
 
     def test_expected_resname_mismatch_should_raise(self):
         with self.assertRaises(KeyError):
             # This residue is an alanine
-            self.system.atom_index(1, "CA", expected_resname="CYS")
+            self.system.index.atom(1, "CA", expected_resname="CYS")
 
     def test_expected_resname_should_handle_n_term(self):
         self.assertEqual(
-            self.system.atom_index(
+            self.system.index.atom(
                 0, "CA", expected_resname="ALA", chainid=0, one_based=False
             ),
             4,
@@ -240,7 +240,7 @@ class TestAtomIndexingZeroBased(unittest.TestCase):
 
     def test_expected_resname_should_handle_c_term(self):
         self.assertEqual(
-            self.system.atom_index(
+            self.system.index.atom(
                 2, "CA", expected_resname="ALA", chainid=0, one_based=False
             ),
             24,
@@ -257,15 +257,15 @@ class TestAtomIndexingExpectedResname(unittest.TestCase):
     def test_expected_resname_mismatch_should_raise(self):
         with self.assertRaises(KeyError):
             # This residue is CYS, not a VAL
-            self.system.atom_index(1, "CA", expected_resname="VAL", one_based=False)
+            self.system.index.atom(1, "CA", expected_resname="VAL", one_based=False)
 
     def test_expected_resname_should_match(self):
-        self.system.atom_index(0, "CA", expected_resname="ALA", one_based=False)
-        self.system.atom_index(1, "CA", expected_resname="CYS", one_based=False)
-        self.system.atom_index(2, "CA", expected_resname="LYS", one_based=False)
-        self.system.atom_index(3, "CA", expected_resname="ARG", one_based=False)
-        self.system.atom_index(4, "CA", expected_resname="TRP", one_based=False)
-        self.system.atom_index(5, "CA", expected_resname="TYR", one_based=False)
+        self.system.index.atom(0, "CA", expected_resname="ALA", one_based=False)
+        self.system.index.atom(1, "CA", expected_resname="CYS", one_based=False)
+        self.system.index.atom(2, "CA", expected_resname="LYS", one_based=False)
+        self.system.index.atom(3, "CA", expected_resname="ARG", one_based=False)
+        self.system.index.atom(4, "CA", expected_resname="TRP", one_based=False)
+        self.system.index.atom(5, "CA", expected_resname="TYR", one_based=False)
 
 
 class TestAtomIndexingHistidine(unittest.TestCase):
@@ -273,19 +273,19 @@ class TestAtomIndexingHistidine(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA HID CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
+        system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
         p1 = subsystem.SubSystemFromSequence("NALA HIE CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
+        system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
         p1 = subsystem.SubSystemFromSequence("NALA HIP CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="HIS", one_based=False)
+        system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
 
 class TestAtomIndexingAsparticAcid(unittest.TestCase):
@@ -293,7 +293,7 @@ class TestAtomIndexingAsparticAcid(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA ASH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="ASP", one_based=False)
+        system.index.atom(1, "CA", expected_resname="ASP", one_based=False)
 
 
 class TestAtomIndexingGlutamicAcid(unittest.TestCase):
@@ -301,7 +301,7 @@ class TestAtomIndexingGlutamicAcid(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA GLH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="GLU", one_based=False)
+        system.index.atom(1, "CA", expected_resname="GLU", one_based=False)
 
 
 class TestAtomIndexingLysine(unittest.TestCase):
@@ -309,7 +309,7 @@ class TestAtomIndexingLysine(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA LYN CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.atom_index(1, "CA", expected_resname="LYS", one_based=False)
+        system.index.atom(1, "CA", expected_resname="LYS", one_based=False)
 
 
 class TestAtomIndexingDisulfide(unittest.TestCase):
@@ -318,8 +318,8 @@ class TestAtomIndexingDisulfide(unittest.TestCase):
         p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
         b = builder.SystemBuilder()
         system = b.build_system([p])
-        system.atom_index(0, "CA", expected_resname="CYS", one_based=False)
-        system.atom_index(2, "CA", expected_resname="CYS", one_based=False)
+        system.index.atom(0, "CA", expected_resname="CYS", one_based=False)
+        system.index.atom(2, "CA", expected_resname="CYS", one_based=False)
 
 
 class TestResidueIndexingOneBased(unittest.TestCase):
@@ -330,20 +330,20 @@ class TestResidueIndexingOneBased(unittest.TestCase):
         self.system = b.build_system([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.residue_index(1, one_based=True), 0)
-        self.assertEqual(self.system.residue_index(2, one_based=True), 1)
-        self.assertEqual(self.system.residue_index(3, one_based=True), 2)
-        self.assertEqual(self.system.residue_index(4, one_based=True), 3)
-        self.assertEqual(self.system.residue_index(5, one_based=True), 4)
-        self.assertEqual(self.system.residue_index(6, one_based=True), 5)
+        self.assertEqual(self.system.index.residue(1, one_based=True), 0)
+        self.assertEqual(self.system.index.residue(2, one_based=True), 1)
+        self.assertEqual(self.system.index.residue(3, one_based=True), 2)
+        self.assertEqual(self.system.index.residue(4, one_based=True), 3)
+        self.assertEqual(self.system.index.residue(5, one_based=True), 4)
+        self.assertEqual(self.system.index.residue(6, one_based=True), 5)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.residue_index(1, chainid=1, one_based=True), 0)
-        self.assertEqual(self.system.residue_index(2, chainid=1, one_based=True), 1)
-        self.assertEqual(self.system.residue_index(3, chainid=1, one_based=True), 2)
-        self.assertEqual(self.system.residue_index(1, chainid=2, one_based=True), 3)
-        self.assertEqual(self.system.residue_index(2, chainid=2, one_based=True), 4)
-        self.assertEqual(self.system.residue_index(3, chainid=2, one_based=True), 5)
+        self.assertEqual(self.system.index.residue(1, chainid=1, one_based=True), 0)
+        self.assertEqual(self.system.index.residue(2, chainid=1, one_based=True), 1)
+        self.assertEqual(self.system.index.residue(3, chainid=1, one_based=True), 2)
+        self.assertEqual(self.system.index.residue(1, chainid=2, one_based=True), 3)
+        self.assertEqual(self.system.index.residue(2, chainid=2, one_based=True), 4)
+        self.assertEqual(self.system.index.residue(3, chainid=2, one_based=True), 5)
 
 
 class TestResidueIndexingZeroBased(unittest.TestCase):
@@ -354,20 +354,20 @@ class TestResidueIndexingZeroBased(unittest.TestCase):
         self.system = b.build_system([p1, p2])
 
     def test_absolute_index(self):
-        self.assertEqual(self.system.residue_index(0, one_based=False), 0)
-        self.assertEqual(self.system.residue_index(1, one_based=False), 1)
-        self.assertEqual(self.system.residue_index(2, one_based=False), 2)
-        self.assertEqual(self.system.residue_index(3, one_based=False), 3)
-        self.assertEqual(self.system.residue_index(4, one_based=False), 4)
-        self.assertEqual(self.system.residue_index(5, one_based=False), 5)
+        self.assertEqual(self.system.index.residue(0, one_based=False), 0)
+        self.assertEqual(self.system.index.residue(1, one_based=False), 1)
+        self.assertEqual(self.system.index.residue(2, one_based=False), 2)
+        self.assertEqual(self.system.index.residue(3, one_based=False), 3)
+        self.assertEqual(self.system.index.residue(4, one_based=False), 4)
+        self.assertEqual(self.system.index.residue(5, one_based=False), 5)
 
     def test_relative_index(self):
-        self.assertEqual(self.system.residue_index(0, chainid=0, one_based=False), 0)
-        self.assertEqual(self.system.residue_index(1, chainid=0, one_based=False), 1)
-        self.assertEqual(self.system.residue_index(2, chainid=0, one_based=False), 2)
-        self.assertEqual(self.system.residue_index(0, chainid=1, one_based=False), 3)
-        self.assertEqual(self.system.residue_index(1, chainid=1, one_based=False), 4)
-        self.assertEqual(self.system.residue_index(2, chainid=1, one_based=False), 5)
+        self.assertEqual(self.system.index.residue(0, chainid=0, one_based=False), 0)
+        self.assertEqual(self.system.index.residue(1, chainid=0, one_based=False), 1)
+        self.assertEqual(self.system.index.residue(2, chainid=0, one_based=False), 2)
+        self.assertEqual(self.system.index.residue(0, chainid=1, one_based=False), 3)
+        self.assertEqual(self.system.index.residue(1, chainid=1, one_based=False), 4)
+        self.assertEqual(self.system.index.residue(2, chainid=1, one_based=False), 5)
 
 
 class TestResidueIndexingExpectedResname(unittest.TestCase):
@@ -380,15 +380,15 @@ class TestResidueIndexingExpectedResname(unittest.TestCase):
     def test_expected_resname_mismatch_should_raise(self):
         with self.assertRaises(KeyError):
             # This residue is CYS, not a VAL
-            self.system.residue_index(1, expected_resname="VAL", one_based=False)
+            self.system.index.residue(1, expected_resname="VAL", one_based=False)
 
     def test_expected_resname_should_match(self):
-        self.system.residue_index(0, expected_resname="ALA", one_based=False)
-        self.system.residue_index(1, expected_resname="CYS", one_based=False)
-        self.system.residue_index(2, expected_resname="LYS", one_based=False)
-        self.system.residue_index(3, expected_resname="ARG", one_based=False)
-        self.system.residue_index(4, expected_resname="TRP", one_based=False)
-        self.system.residue_index(5, expected_resname="TYR", one_based=False)
+        self.system.index.residue(0, expected_resname="ALA", one_based=False)
+        self.system.index.residue(1, expected_resname="CYS", one_based=False)
+        self.system.index.residue(2, expected_resname="LYS", one_based=False)
+        self.system.index.residue(3, expected_resname="ARG", one_based=False)
+        self.system.index.residue(4, expected_resname="TRP", one_based=False)
+        self.system.index.residue(5, expected_resname="TYR", one_based=False)
 
 
 class TestResidueIndexingHistidine(unittest.TestCase):
@@ -396,19 +396,19 @@ class TestResidueIndexingHistidine(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA HID CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="HIS", one_based=False)
+        system.index.residue(1, expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
         p1 = subsystem.SubSystemFromSequence("NALA HIE CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="HIS", one_based=False)
+        system.index.residue(1, expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
         p1 = subsystem.SubSystemFromSequence("NALA HIP CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="HIS", one_based=False)
+        system.index.residue(1, expected_resname="HIS", one_based=False)
 
 
 class TestResidueIndexingAsparticAcid(unittest.TestCase):
@@ -416,7 +416,7 @@ class TestResidueIndexingAsparticAcid(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA ASH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="ASP", one_based=False)
+        system.index.residue(1, expected_resname="ASP", one_based=False)
 
 
 class TestResidueIndexingGlutamicAcid(unittest.TestCase):
@@ -424,7 +424,7 @@ class TestResidueIndexingGlutamicAcid(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA GLH CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="GLU", one_based=False)
+        system.index.residue(1, expected_resname="GLU", one_based=False)
 
 
 class TestResidueIndexingLysine(unittest.TestCase):
@@ -432,7 +432,7 @@ class TestResidueIndexingLysine(unittest.TestCase):
         p1 = subsystem.SubSystemFromSequence("NALA LYN CLYS")
         b = builder.SystemBuilder()
         system = b.build_system([p1])
-        system.residue_index(1, expected_resname="LYS", one_based=False)
+        system.index.residue(1, expected_resname="LYS", one_based=False)
 
 
 class TestResidueIndexingDisulfide(unittest.TestCase):
@@ -441,8 +441,8 @@ class TestResidueIndexingDisulfide(unittest.TestCase):
         p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
         b = builder.SystemBuilder()
         system = b.build_system([p])
-        system.residue_index(0, expected_resname="CYS", one_based=False)
-        system.residue_index(2, expected_resname="CYS", one_based=False)
+        system.index.residue(0, expected_resname="CYS", one_based=False)
+        system.index.residue(2, expected_resname="CYS", one_based=False)
 
 
 class TestAtomIndexingFromPDB(unittest.TestCase):
@@ -455,15 +455,15 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
             self.system = b.build_system([p])
 
     def test_absolute_zero_based(self):
-        index1 = self.system.atom_index(0, "CA", expected_resname="ALA")
-        index2 = self.system.atom_index(1, "CA", expected_resname="CYS")
-        index3 = self.system.atom_index(2, "CA", expected_resname="ASP")
-        index4 = self.system.atom_index(3, "CA", expected_resname="ARG")
-        index5 = self.system.atom_index(4, "CA", expected_resname="LYS")
-        index6 = self.system.atom_index(5, "CA", expected_resname="TRP")
-        index7 = self.system.atom_index(6, "CA", expected_resname="TYR")
-        index8 = self.system.atom_index(7, "CA", expected_resname="VAL")
-        index9 = self.system.atom_index(8, "CA", expected_resname="GLY")
+        index1 = self.system.index.atom(0, "CA", expected_resname="ALA")
+        index2 = self.system.index.atom(1, "CA", expected_resname="CYS")
+        index3 = self.system.index.atom(2, "CA", expected_resname="ASP")
+        index4 = self.system.index.atom(3, "CA", expected_resname="ARG")
+        index5 = self.system.index.atom(4, "CA", expected_resname="LYS")
+        index6 = self.system.index.atom(5, "CA", expected_resname="TRP")
+        index7 = self.system.index.atom(6, "CA", expected_resname="TYR")
+        index8 = self.system.index.atom(7, "CA", expected_resname="VAL")
+        index9 = self.system.index.atom(8, "CA", expected_resname="GLY")
 
         self.assertEqual(index1, 4)
         self.assertEqual(index2, 14)
@@ -476,15 +476,15 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
         self.assertEqual(index9, 150)
 
     def test_absolute_one_based(self):
-        index1 = self.system.atom_index(1, "CA", expected_resname="ALA", one_based=True)
-        index2 = self.system.atom_index(2, "CA", expected_resname="CYS", one_based=True)
-        index3 = self.system.atom_index(3, "CA", expected_resname="ASP", one_based=True)
-        index4 = self.system.atom_index(4, "CA", expected_resname="ARG", one_based=True)
-        index5 = self.system.atom_index(5, "CA", expected_resname="LYS", one_based=True)
-        index6 = self.system.atom_index(6, "CA", expected_resname="TRP", one_based=True)
-        index7 = self.system.atom_index(7, "CA", expected_resname="TYR", one_based=True)
-        index8 = self.system.atom_index(8, "CA", expected_resname="VAL", one_based=True)
-        index9 = self.system.atom_index(9, "CA", expected_resname="GLY", one_based=True)
+        index1 = self.system.index.atom(1, "CA", expected_resname="ALA", one_based=True)
+        index2 = self.system.index.atom(2, "CA", expected_resname="CYS", one_based=True)
+        index3 = self.system.index.atom(3, "CA", expected_resname="ASP", one_based=True)
+        index4 = self.system.index.atom(4, "CA", expected_resname="ARG", one_based=True)
+        index5 = self.system.index.atom(5, "CA", expected_resname="LYS", one_based=True)
+        index6 = self.system.index.atom(6, "CA", expected_resname="TRP", one_based=True)
+        index7 = self.system.index.atom(7, "CA", expected_resname="TYR", one_based=True)
+        index8 = self.system.index.atom(8, "CA", expected_resname="VAL", one_based=True)
+        index9 = self.system.index.atom(9, "CA", expected_resname="GLY", one_based=True)
 
         self.assertEqual(index1, 4)
         self.assertEqual(index2, 14)
@@ -497,15 +497,15 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
         self.assertEqual(index9, 150)
 
     def test_relative_zero_based(self):
-        index1 = self.system.atom_index(0, "CA", chainid=0, expected_resname="TYR")
-        index2 = self.system.atom_index(1, "CA", chainid=0, expected_resname="VAL")
-        index3 = self.system.atom_index(2, "CA", chainid=0, expected_resname="GLY")
-        index4 = self.system.atom_index(0, "CA", chainid=1, expected_resname="ALA")
-        index5 = self.system.atom_index(1, "CA", chainid=1, expected_resname="CYS")
-        index6 = self.system.atom_index(2, "CA", chainid=1, expected_resname="ASP")
-        index7 = self.system.atom_index(0, "CA", chainid=2, expected_resname="ARG")
-        index8 = self.system.atom_index(1, "CA", chainid=2, expected_resname="LYS")
-        index9 = self.system.atom_index(2, "CA", chainid=2, expected_resname="TRP")
+        index1 = self.system.index.atom(0, "CA", chainid=0, expected_resname="TYR")
+        index2 = self.system.index.atom(1, "CA", chainid=0, expected_resname="VAL")
+        index3 = self.system.index.atom(2, "CA", chainid=0, expected_resname="GLY")
+        index4 = self.system.index.atom(0, "CA", chainid=1, expected_resname="ALA")
+        index5 = self.system.index.atom(1, "CA", chainid=1, expected_resname="CYS")
+        index6 = self.system.index.atom(2, "CA", chainid=1, expected_resname="ASP")
+        index7 = self.system.index.atom(0, "CA", chainid=2, expected_resname="ARG")
+        index8 = self.system.index.atom(1, "CA", chainid=2, expected_resname="LYS")
+        index9 = self.system.index.atom(2, "CA", chainid=2, expected_resname="TRP")
 
         self.assertEqual(index1, 113)
         self.assertEqual(index2, 134)
@@ -518,31 +518,31 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
         self.assertEqual(index9, 86)
 
     def test_relative_one_based(self):
-        index1 = self.system.atom_index(
+        index1 = self.system.index.atom(
             1, "CA", chainid=1, expected_resname="TYR", one_based=True
         )
-        index2 = self.system.atom_index(
+        index2 = self.system.index.atom(
             2, "CA", chainid=1, expected_resname="VAL", one_based=True
         )
-        index3 = self.system.atom_index(
+        index3 = self.system.index.atom(
             3, "CA", chainid=1, expected_resname="GLY", one_based=True
         )
-        index4 = self.system.atom_index(
+        index4 = self.system.index.atom(
             1, "CA", chainid=2, expected_resname="ALA", one_based=True
         )
-        index5 = self.system.atom_index(
+        index5 = self.system.index.atom(
             2, "CA", chainid=2, expected_resname="CYS", one_based=True
         )
-        index6 = self.system.atom_index(
+        index6 = self.system.index.atom(
             3, "CA", chainid=2, expected_resname="ASP", one_based=True
         )
-        index7 = self.system.atom_index(
+        index7 = self.system.index.atom(
             1, "CA", chainid=3, expected_resname="ARG", one_based=True
         )
-        index8 = self.system.atom_index(
+        index8 = self.system.index.atom(
             2, "CA", chainid=3, expected_resname="LYS", one_based=True
         )
-        index9 = self.system.atom_index(
+        index9 = self.system.index.atom(
             3, "CA", chainid=3, expected_resname="TRP", one_based=True
         )
 
@@ -559,7 +559,7 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
     def test_mismatch_should_raise(self):
         with self.assertRaises(KeyError):
             # Residue is TYR, not GLU
-            self.system.atom_index(0, "CA", chainid=0, expected_resname="GLU")
+            self.system.index.atom(0, "CA", chainid=0, expected_resname="GLU")
 
 
 class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
@@ -572,15 +572,15 @@ class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
             self.system = b.build_system([p])
 
     def test_absolute(self):
-        index1 = self.system.atom_index(0, "CA", expected_resname="ALA")
-        index2 = self.system.atom_index(1, "CA", expected_resname="CYS")
-        index3 = self.system.atom_index(2, "CA", expected_resname="ASP")
-        index4 = self.system.atom_index(3, "CA", expected_resname="ARG")
-        index5 = self.system.atom_index(4, "CA", expected_resname="LYS")
-        index6 = self.system.atom_index(5, "CA", expected_resname="TRP")
-        index7 = self.system.atom_index(6, "CA", expected_resname="TYR")
-        index8 = self.system.atom_index(7, "CA", expected_resname="VAL")
-        index9 = self.system.atom_index(8, "CA", expected_resname="GLY")
+        index1 = self.system.index.atom(0, "CA", expected_resname="ALA")
+        index2 = self.system.index.atom(1, "CA", expected_resname="CYS")
+        index3 = self.system.index.atom(2, "CA", expected_resname="ASP")
+        index4 = self.system.index.atom(3, "CA", expected_resname="ARG")
+        index5 = self.system.index.atom(4, "CA", expected_resname="LYS")
+        index6 = self.system.index.atom(5, "CA", expected_resname="TRP")
+        index7 = self.system.index.atom(6, "CA", expected_resname="TYR")
+        index8 = self.system.index.atom(7, "CA", expected_resname="VAL")
+        index9 = self.system.index.atom(8, "CA", expected_resname="GLY")
 
         self.assertEqual(index1, 4)
         self.assertEqual(index2, 14)
@@ -593,15 +593,15 @@ class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
         self.assertEqual(index9, 150)
 
     def test_relative(self):
-        index1 = self.system.atom_index(0, "CA", chainid=0, expected_resname="TYR")
-        index2 = self.system.atom_index(1, "CA", chainid=0, expected_resname="VAL")
-        index3 = self.system.atom_index(2, "CA", chainid=0, expected_resname="GLY")
-        index4 = self.system.atom_index(0, "CA", chainid=1, expected_resname="ALA")
-        index5 = self.system.atom_index(1, "CA", chainid=1, expected_resname="CYS")
-        index6 = self.system.atom_index(2, "CA", chainid=1, expected_resname="ASP")
-        index7 = self.system.atom_index(0, "CA", chainid=2, expected_resname="ARG")
-        index8 = self.system.atom_index(1, "CA", chainid=2, expected_resname="LYS")
-        index9 = self.system.atom_index(2, "CA", chainid=2, expected_resname="TRP")
+        index1 = self.system.index.atom(0, "CA", chainid=0, expected_resname="TYR")
+        index2 = self.system.index.atom(1, "CA", chainid=0, expected_resname="VAL")
+        index3 = self.system.index.atom(2, "CA", chainid=0, expected_resname="GLY")
+        index4 = self.system.index.atom(0, "CA", chainid=1, expected_resname="ALA")
+        index5 = self.system.index.atom(1, "CA", chainid=1, expected_resname="CYS")
+        index6 = self.system.index.atom(2, "CA", chainid=1, expected_resname="ASP")
+        index7 = self.system.index.atom(0, "CA", chainid=2, expected_resname="ARG")
+        index8 = self.system.index.atom(1, "CA", chainid=2, expected_resname="LYS")
+        index9 = self.system.index.atom(2, "CA", chainid=2, expected_resname="TRP")
 
         self.assertEqual(index1, 113)
         self.assertEqual(index2, 134)
@@ -614,9 +614,9 @@ class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
         self.assertEqual(index9, 86)
 
     def test_extra_residue_indices_match(self):
-        index1 = self.system.residue_index(9, expected_resname="WAT")
-        index2 = self.system.residue_index(0, chainid=3, expected_resname="WAT")
-        index3 = self.system.residue_index(422, expected_resname="WAT")
-        index4 = self.system.residue_index(413, chainid=3, expected_resname="WAT")
+        index1 = self.system.index.residue(9, expected_resname="WAT")
+        index2 = self.system.index.residue(0, chainid=3, expected_resname="WAT")
+        index3 = self.system.index.residue(422, expected_resname="WAT")
+        index4 = self.system.index.residue(413, chainid=3, expected_resname="WAT")
         self.assertEqual(index1, index2)
         self.assertEqual(index3, index4)

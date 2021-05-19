@@ -201,10 +201,10 @@ class VirtualSpinLabelPatcher(PatcherBase):
             site_type = self.params[res_index]
 
             # find the atoms
-            n_index = system.atom_index(int(res_index), "N")
-            ca_index = system.atom_index(int(res_index), "CA")
-            cb_index = system.atom_index(int(res_index), "CB")
-            ond_index = system.atom_index(int(res_index), "OND")
+            n_index = system.index.atom(int(res_index), "N")
+            ca_index = system.index.atom(int(res_index), "CA")
+            cb_index = system.index.atom(int(res_index), "CB")
+            ond_index = system.index.atom(int(res_index), "OND")
 
             # add the extra parameters
             system.add_extra_bond(

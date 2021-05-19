@@ -22,14 +22,14 @@
   - All atom indexing is zero-based.
   - By default, residue and chain indexing is zero-based, but individual
     lookups can specify one-based indexing.
-  - `system.atom_index(resid, atom_name, chainid=None, one_based=False)`
+  - `system.index.atom(resid, atom_name, chainid=None, one_based=False)`
     - Can find the index of an atom.
     - Absolute index if `chainid=None`.
     - Relative index within a chain if `chainid` is specified.
     - Both `resid` and `chainid` are zero-based by default, but can be one based
       if `one_based=True`.
     - Returns an `AtomIndex`, which is a zero-based absolute atom index.
-  - `system.residue_index(resid, chainid=None, one_based=False)`
+  - `system.index.residue(resid, chainid=None, one_based=False)`
     - Can find the index of a residue.
     - Absolute index if `chainid=None`.
     - Relative index within a chain if `chainid` is specified.
