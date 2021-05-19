@@ -2,6 +2,7 @@
 Transformers are objects that take an openmm system
 as created by loading an amber topology and modify
 it in various ways. Example transformations include:
+
 - Adding extra forces for restraints
 - Modifying an existing force, like REST2
 - Replacing an existing force, like softcore interactions
@@ -18,7 +19,6 @@ transformer class that implements the transformer
 protocol given in `TransformerBase`. Next, you
 must add this class to the list in
 `OpenMMRunner._setup_transformers`.
-
 """
 
 from meld import interfaces
@@ -36,23 +36,24 @@ class TransformerBase:
     Base class to document how transformers work.
 
     The transformation process proceeds in several stages.
+
     - The transformer is initialized with the run options
-    and lists of restraints. The transformer must store
-    any relevant information, as these parameters will
-    not be given again. The `__init__` method must also
-    delete any restraints that are handled by this
-    transformer from `always_active_restraints` and
-    `selectively_active_restraints`.
+      and lists of restraints. The transformer must store
+      any relevant information, as these parameters will
+      not be given again. The `__init__` method must also
+      delete any restraints that are handled by this
+      transformer from `always_active_restraints` and
+      `selectively_active_restraints`.
     - Next, `add_interactions` is called. This provides
-    an opportunity for the transformer to add new
-    forces, or to modify or replace existing forces.
+      an opportunity for the transformer to add new
+      forces, or to modify or replace existing forces.
     - Next `finalize` is called. All changes to particles
-    and forces are completed before this call, which
-    can be useful when we have to, e.g. store
-    parameters.
+      and forces are completed before this call, which
+      can be useful when we have to, e.g. store
+      parameters.
     - Finally, `update` is called every stage. This provides
-    an opportunity to update parameters like force constants
-    depending on alpha or on the time step.
+      an opportunity to update parameters like force constants
+      depending on alpha or on the time step.
 
     The number of particles cannot be changed by a transformer,
     instead additional particles should be added using a
@@ -84,6 +85,7 @@ class TransformerBase:
         Add new interactions to the system.
 
         This may involve:
+
         - Adding new forces, e.g. for restraints
         - Replacing an existing force with another, e.g. softcore
           interactions

@@ -24,19 +24,15 @@ class REST2Transformer(TransformerBase):
     """
     An implementation of REST2
 
-    We use the updated version of Replica Exchange with Solute Scaling [1]_.
+    We use the updated version of Replica Exchange with Solute Scaling.
 
-    Limitations
-    -----------
+    Warnings:
+        Currently, the REST2 implmentation in MELD has a limitation that
+        any CMAP / AMAP potentials are not scaled.
 
-    Currently, the REST2 implmentation in MELD has a limitation:
-    - Any CMAP / AMAP potentials are not scaled.
-
-
-    References
-    ----------
-    .. [1] L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
-    more efficient version of replica exchange with solute tempering.
+    References:
+        L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
+        more efficient version of replica exchange with solute tempering.
     """
 
     scaler: temperature.REST2Scaler
