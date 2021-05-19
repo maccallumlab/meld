@@ -10,7 +10,7 @@ MELD uses zero-based indexing internally
 ----------------------------------------
 
 MELD is based on the python programming language, which, like most modern programming languages,
-users zero-based indexing. However, in structural biology, we often use one-based indexing. The
+uses zero-based indexing. However, in structural biology, we often use one-based indexing. The
 difference is that zero-based indexing starts counting from zero, while one-based indexing starts
 from one.
 
@@ -30,8 +30,8 @@ The two primary ways for indexing are both methods of the sytem object:
 - :code:`system.index.atom(resid, atom_name, expected_resname=None, chainid=None, one_based=False)`
 - :code:`system.index.residue(resid, expected_resname=None, chainid=None, one_based=False)`
 
-Calls to :code:`atom_index` will return a zero-based absolute :code:`AtomIndex`.
-Calls to :code:`residue_index` will return a zero-based absolute :code:`ResidueIndex`.
+Calls to :code:`inex.atom` will return a zero-based absolute :code:`AtomIndex`.
+Calls to :code:`index.residue` will return a zero-based absolute :code:`ResidueIndex`.
 
 Specifying :code:`resname` to catch errors
 ------------------------------------------
@@ -40,8 +40,8 @@ Indexing can be tricky and errors can result in strange behavior, as e.g. restra
 may be created between the wrong atoms.
 
 To help catch errors, it is possible to specify :code:`expected_resname`. When
-:code:`rexpcected_resname` is specified, calls to :code:`atom_index` and 
-:code:`residue_index` will check that actual residue name that is found
+:code:`rexpcected_resname` is specified, calls to :code:`index.atom` and 
+:code:`index.residue` will check that actual residue name that is found
 matches :code:`expected_resname`.
 
 Note that the residue names will be those after processing by ``tleap``, so they may not correspond
@@ -51,7 +51,7 @@ e.g. :code:`"ALA"`.
 Using one-based indexing
 ------------------------
 
-By default both :code:`atom_index` and :code:`residue_index` use zero-based indexing,
+By default both :code:`index.atom` and :code:`index.residue` use zero-based indexing,
 where both :code:`chainid` and :code:`resid` start from zero. To use one-based indexing
 set :code:`one_based=True`, which will cause both :code:`resid` and :code:`chainid` to
 be interpreted as one-based.
@@ -94,7 +94,7 @@ In this case, the :code:`chainid` would be defined as follows:
 
 In some cases, MELD will add additional residues that were not present in either
 the sequence or pdb file. Examples include extra residues added to encode RDC
-alignment tensores, which are added the :code:`RdcAlignmentPather` and
+alignment tensors, which are added the :code:`RdcAlignmentPatcher` and
 solvent and ions that are added when explicit solvent calculations are specified.
 These additional residues are considered to be in an additional chain that is
 added in the final position.
