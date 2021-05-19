@@ -5,7 +5,7 @@
 
 %module meldplugin
 
-%import(module="openmm") "swig/OpenMMSwigHeaders.i"
+%import(module="simtk.openmm") "swig/OpenMMSwigHeaders.i"
 %include "swig/typemaps.i"
 
 
@@ -29,8 +29,8 @@ namespace std {
 
 
 %pythoncode %{
-import openmm.unit as unit
-import openmm as mm
+import simtk.unit as unit
+import simtk.openmm as mm
 %}
 
 /* include version information */

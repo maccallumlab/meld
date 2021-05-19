@@ -96,7 +96,6 @@ jobs:
         run: |
           mkdir build
           cd build
-          export EIGEN3_INCLUDE_DIR=${CONDA_PREFIX}/include/eigen3
           cmake ../plugin \
             -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
             -DCMAKE_PREFIX_PATH=${CONDA_PREFIX} \
@@ -184,7 +183,6 @@ jobs:
           cd plugin
           mkdir build
           cd build
-          export EIGEN3_INCLUDE_DIR=${CONDA_PREFIX}/include/eigen3
           cmake .. \
             -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
             -DCMAKE_PREFIX_PATH=${CONDA_PREFIX} \
