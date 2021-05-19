@@ -7,10 +7,12 @@
 A module to define the SystemState
 """
 
+from meld import interfaces
+
 import numpy as np  # type: ignore
 
 
-class SystemState:
+class SystemState(interfaces.IState):
     """
     Class to hold the state of a system.
     """

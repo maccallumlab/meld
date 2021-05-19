@@ -10,12 +10,12 @@ These are primarily useful during initialization to
 remove bad geometry.
 """
 
+from meld import interfaces
+from meld.system import indexing
+
 import random
 import numpy as np  # type: ignore
 import math
-from .state import SystemState
-from .runner import ReplicaRunner
-from .indexing import AtomIndex
 from typing import Tuple, List
 
 
@@ -49,9 +49,9 @@ class MonteCarloScheduler:
 
     def update(
         self,
-        starting_state: SystemState,
-        runner: ReplicaRunner,
-    ) -> SystemState:
+        starting_state: interfaces.IState,
+        runner: interfaces.IRunner,
+    ) -> interfaces.IState:
         """
         Perform a series of Monte Carlo moves
 
@@ -94,9 +94,9 @@ class RandomTorsionMover(Mover):
 
     def __init__(
         self,
-        index1: AtomIndex,
-        index2: AtomIndex,
-        atom_indices: List[AtomIndex],
+        index1: indexing.AtomIndex,
+        index2: indexing.AtomIndex,
+        atom_indices: List[indexing.AtomIndex],
     ):
         """
         Initialize a RandomTorsionMover
@@ -106,17 +106,17 @@ class RandomTorsionMover(Mover):
             index2: index of second atom to rotate around
             atom_indices: list of atom indices that should be rotated
         """
-        assert isinstance(index1, AtomIndex)
-        assert isinstance(index2, AtomIndex)
+        assert isinstance(index1, indexing.AtomIndex)
+        assert isinstance(index2, indexing.AtomIndex)
         self.index1 = index1
         self.index2 = index2
         for atom in atom_indices:
-            assert isinstance(atom, AtomIndex)
+            assert isinstance(atom, indexing.AtomIndex)
         self.atom_indices = atom_indices
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 
@@ -159,12 +159,12 @@ class DoubleTorsionMover(Mover):
 
     def __init__(
         self,
-        index1a: AtomIndex,
-        index1b: AtomIndex,
-        atom_indices1: List[AtomIndex],
-        index2a: AtomIndex,
-        index2b: AtomIndex,
-        atom_indices2: List[AtomIndex],
+        index1a: indexing.AtomIndex,
+        index1b: indexing.AtomIndex,
+        atom_indices1: List[indexing.AtomIndex],
+        index2a: indexing.AtomIndex,
+        index2b: indexing.AtomIndex,
+        atom_indices2: List[indexing.AtomIndex],
     ):
         """
         Initialize a DoubleTorsionMover
@@ -177,14 +177,14 @@ class DoubleTorsionMover(Mover):
             index2b: second atom of second bond
             atom_indices2 : atoms to rotate around second bond
         """
-        assert isinstance(index1a, AtomIndex)
-        assert isinstance(index1b, AtomIndex)
-        assert isinstance(index2a, AtomIndex)
-        assert isinstance(index2b, AtomIndex)
+        assert isinstance(index1a, indexing.AtomIndex)
+        assert isinstance(index1b, indexing.AtomIndex)
+        assert isinstance(index2a, indexing.AtomIndex)
+        assert isinstance(index2b, indexing.AtomIndex)
         for atom in atom_indices1:
-            assert isinstance(atom, AtomIndex)
+            assert isinstance(atom, indexing.AtomIndex)
         for atom in atom_indices2:
-            assert isinstance(atom, AtomIndex)
+            assert isinstance(atom, indexing.AtomIndex)
         self.index1a = index1a
         self.index1b = index1b
         self.atom_indices1 = atom_indices1
@@ -193,8 +193,8 @@ class DoubleTorsionMover(Mover):
         self.atom_indices2 = atom_indices2
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 
@@ -245,7 +245,7 @@ class TranslationMover(Mover):
     """
 
     def __init__(
-        self, atom_indices: List[AtomIndex], move_size: float = 0.1
+        self, atom_indices: List[indexing.AtomIndex], move_size: float = 0.1
     ):
         """
         Initialize a TranslationMover
@@ -258,8 +258,8 @@ class TranslationMover(Mover):
         self.move_size = move_size
 
     def trial(
-        self, state: SystemState, runner: ReplicaRunner
-    ) -> Tuple[SystemState, bool]:
+        self, state: interfaces.IState, runner: interfaces.IRunner
+    ) -> Tuple[interfaces.IState, bool]:
         """
         Perform a Metropolis trial
 

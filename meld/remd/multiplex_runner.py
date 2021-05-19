@@ -7,11 +7,12 @@
 A module for running a replica exchange simulation on a single worker
 """
 
+from meld.remd import ladder
+from meld.remd import adaptor
+
 import numpy as np  # type: ignore
 import logging
 import math
-from .ladder import NearestNeighborLadder
-from .adaptor import Adaptor
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,8 @@ class MultiplexReplicaExchangeRunner:
         self,
         n_replicas: int,
         max_steps: int,
-        ladder: NearestNeighborLadder,
-        adaptor: Adaptor,
+        ladder: ladder.NearestNeighborLadder,
+        adaptor: adaptor.Adaptor,
         step: int,
     ):
         """

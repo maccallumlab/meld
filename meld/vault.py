@@ -9,6 +9,11 @@ Module for MELD input/output
 The main class is :class:`DataStore` which handles all IO for a MELD run.
 """
 
+from meld import interfaces
+from meld.system import state
+from meld.system import options
+from meld.system import pdb_writer
+
 import contextlib
 import os
 import time
@@ -16,11 +21,7 @@ import pickle
 import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
-from .system import state
-from .system.system import System
-from .system.options import RunOptions
-from .pdb_writer import PDBWriter
-from typing import List, Iterator, Optional
+from typing import Sequence, Iterator, Optional
 
 
 def _load_pickle(data):
@@ -93,7 +94,7 @@ class DataStore:
         self,
         n_atoms: int,
         n_replicas: int,
-        pdb_writer: PDBWriter,
+        pdb_writer: pdb_writer.PDBWriter,
         block_size: int = 100,
     ):
         """
@@ -212,13 +213,13 @@ class DataStore:
         with open(path, "rb") as store_file:
             return _load_pickle(store_file)
 
-    def save_communicator(self, comm):
+    def save_communicator(self, comm: interfaces.ICommunicator):
         """Save the communicator to disk"""
         self._can_save()
         with open(self._communicator_path, "wb") as comm_file:
             pickle.dump(comm, comm_file)
 
-    def load_communicator(self):
+    def load_communicator(self) -> interfaces.ICommunicator:
         """Load the communicator from disk"""
         if self._readonly_mode:
             path = self._communicator_backup_path
@@ -440,7 +441,7 @@ class DataStore:
         for i in range(start, end):
             yield self.load_box_vectors(i)
 
-    def save_states(self, states: List[state.SystemState], stage: int):
+    def save_states(self, states: Sequence[interfaces.IState], stage: int):
         """
         Save states to disk.
 
@@ -461,7 +462,7 @@ class DataStore:
         self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
 
-    def load_states(self, stage: int) -> List[state.SystemState]:
+    def load_states(self, stage: int) -> Sequence[interfaces.IState]:
         """
         Load states from disk
 
@@ -485,7 +486,7 @@ class DataStore:
             states.append(s)
         return states
 
-    def append_traj(self, state: state.SystemState, stage: int):
+    def append_traj(self, state: interfaces.IState, stage: int):
         """
         Append structure from state to end of trajectory
 
@@ -769,7 +770,7 @@ class DataStore:
         with open(path, "rb") as runner_file:
             return _load_pickle(runner_file)
 
-    def save_system(self, system: System):
+    def save_system(self, system: interfaces.ISystem):
         """
         Save MELD system to disk
 
@@ -780,13 +781,13 @@ class DataStore:
         with open(self._system_path, "wb") as system_file:
             pickle.dump(system, system_file)
 
-    def load_system(self) -> System:
+    def load_system(self) -> interfaces.ISystem:
         """Load MELD system from disk"""
         path = self._system_backup_path if self._readonly_mode else self._system_path
         with open(path, "rb") as system_file:
             return _load_pickle(system_file)
 
-    def save_run_options(self, run_options: RunOptions):
+    def save_run_options(self, run_options: options.RunOptions):
         """
         Save RunOptions to disk
 
@@ -798,7 +799,7 @@ class DataStore:
         with open(self._run_options_path, "wb") as options_file:
             pickle.dump(run_options, options_file)
 
-    def load_run_options(self) -> RunOptions:
+    def load_run_options(self) -> options.RunOptions:
         """Load RunOptions from disk"""
         path = (
             self._run_options_backup_path

@@ -3,17 +3,23 @@
 # All rights reserved
 #
 
-from collections import OrderedDict, namedtuple
+from meld.system import amber
+from simtk import openmm as mm  # type: ignore
+
+from collections import OrderedDict
 import os
 import math
-
-from simtk import openmm  # type: ignore
 import numpy as np  # type: ignore
+from typing import NamedTuple, List, Set, Tuple, Dict, Iterator
 
-from meld.system.system import ParmTopReader
 
+class CMAPResidue(NamedTuple):
+    res_num: int
+    res_name: str
+    index_N: int
+    index_CA: int
+    index_C: int
 
-CMAPResidue = namedtuple("CMAPResidue", "res_num res_name index_N index_CA index_C")
 
 # Termini residues that act as a cap and have no amap term
 capped = [
@@ -65,39 +71,56 @@ class CMAPAdder:
         "ARG": 3,
     }
 
+    _top_string: str
+    _alpha_bias: float
+    _beta_bias: float
+    _ccap: bool
+    _ncap: bool
+    _bonds: Set[Tuple[int, int]]
+    _residue_numbers: List[int]
+    _residue_names: List[str]
+    _atom_map: Dict[Tuple[int, str], int]
+    _ala_map: np.ndarray
+    _gly_map: np.ndarray
+    _pro_map: np.ndarray
+    _gen_map: np.ndarray
+
     def __init__(
-        self, top_string, alpha_bias=1.0, beta_bias=1.0, ccap=False, ncap=False
-    ):
+        self,
+        top_string: str,
+        alpha_bias: float = 1.0,
+        beta_bias: float = 1.0,
+        ccap: bool = False,
+        ncap: bool = False,
+    ) -> None:
         """
         Initialize a new CMAPAdder object
 
-        :param top_string: an Amber new-style topology in string form
-        :param alpha_bias: strength of alpha correction, default=1.0
-        :param beta_bias: strength of beta correction, default=1.0
+        Args:
+            top_string: an Amber new-style topology in string form
+            alpha_bias: strength of alpha correction
+            beta_bias: strength of beta correction
         """
         self._top_string = top_string
         self._alpha_bias = alpha_bias
         self._beta_bias = beta_bias
         self._ccap = ccap
         self._ncap = ncap
-        reader = ParmTopReader(self._top_string)
+        reader = amber.ParmTopReader(self._top_string)
         self._bonds = reader.get_bonds()
         self._residue_numbers = [r - 1 for r in reader.get_residue_numbers()]
         self._residue_names = reader.get_residue_names()
         self._atom_map = reader.get_atom_map()
-        self._ala_map = None
-        self._gly_map = None
-        self._pro_map = None
-        self._gen_map = None
         self._load_maps()
 
-    def add_to_openmm(self, openmm_system):
+    def add_to_openmm(self, openmm_system: mm.System) -> None:
         """
         Add CMAPTorsionForce to openmm system.
 
-        :param openmm_system:  System object to receive the force
+        Args:
+            opennmm_system: the system to add the CMAP to
         """
-        cmap_force = openmm.CMAPTorsionForce()
+        cmap_force = mm.CMAPTorsionForce()
         cmap_force.addMap(self._gly_map.shape[0], self._gly_map.flatten())
         cmap_force.addMap(self._pro_map.shape[0], self._pro_map.flatten())
         cmap_force.addMap(self._ala_map.shape[0], self._ala_map.flatten())
@@ -117,12 +140,13 @@ class CMAPAdder:
                 cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
 
-    def _iterate_cmap_chains(self):
+    def _iterate_cmap_chains(self) -> Iterator[List[CMAPResidue]]:
         """
         Yield a series of chains of amino acid residues that are bonded
         together.
 
-        :return: a generator that will yield lists of CMAPResidue
+        Returns:
+            a generator over chains
         """
         # use an ordered dict to remember num, name pairs in order, while
         # removing duplicates
@@ -135,39 +159,43 @@ class CMAPAdder:
             num, name = r
             if name not in capped:
                 new_res.append(r)
-        residues = OrderedDict(new_res)
+
+        ordered_residues = OrderedDict(new_res)
+
         # now turn the ordered dict into a list of CMAPResidues
-        residues = [
+        cmap_residues = [
             self._to_cmap_residue(num, name)
-            for (num, name) in residues.items()
+            for (num, name) in ordered_residues.items()
             if name in self._map_index.keys()
         ]
 
         # is each residue i connected to it's predecessor, i-1?
-        connected = self._compute_connected(residues)
+        connected = self._compute_connected(cmap_residues)
 
         # now we iterate until we've handled all residues
         while connected:
-            chain = [residues.pop(0)]  # we always take the first residue
+            chain = [cmap_residues.pop(0)]  # we always take the first residue
             connected.pop(0)
 
             # if there are other residues connected, take them too
             while connected and connected[0]:
-                chain.append(residues.pop(0))
+                chain.append(cmap_residues.pop(0))
                 connected.pop(0)
 
             # we've taken a single connected chain, so yield it
             # then loop back to the beginning
             yield chain
 
-    def _compute_connected(self, residues):
+    def _compute_connected(self, residues: List[CMAPResidue]) -> List[bool]:
         """
         Return a list of boolean values indicating if each residue is
         connected to its predecessor.
 
-        :param residues: a list of CMAPResidue objects
-        :return: a list of boolean values indicating if residue i is bonded
-                 to i-1
+        Args:
+            residues: the list of residues
+
+        Returns:
+            the list of sequential connectivities
         """
 
         def has_c_n_bond(res_i, res_j):
@@ -185,13 +213,15 @@ class CMAPAdder:
         connected = [False] + connected
         return connected
 
-    def _to_cmap_residue(self, num, name):
+    def _to_cmap_residue(self, num: int, name: str) -> CMAPResidue:
         """
         Turn a residue number and name into a CMAPResidue object
 
-        :param num: residue number
-        :param name: residue name
-        :return: CMAPResidue
+        Args:
+            num: residue number
+            name: residue name
+        Returns:
+            the CMAPResidue
         """
         n = self._atom_map[(num, "N")]
         ca = self._atom_map[(num, "CA")]
@@ -199,7 +229,7 @@ class CMAPAdder:
         res = CMAPResidue(res_num=num, res_name=name, index_N=n, index_CA=ca, index_C=c)
         return res
 
-    def _load_map(self, stem):
+    def _load_map(self, stem: str) -> np.ndarray:
         basedir = os.path.join(os.path.dirname(__file__), "maps")
         alpha = (
             np.loadtxt(os.path.join(basedir, f"{stem}_alpha.txt")) * self._alpha_bias
@@ -213,7 +243,7 @@ class CMAPAdder:
         total = np.flipud(total)
         return total
 
-    def _load_maps(self):
+    def _load_maps(self) -> None:
         """Load the maps from disk and apply the alpha and beta biases."""
         self._gly_map = self._load_map("gly")
         self._pro_map = self._load_map("pro")

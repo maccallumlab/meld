@@ -5,13 +5,14 @@
 
 import unittest
 
+from meld.system import subsystem
+from meld.system import builder
+from meld.runner import cmap
+
 from simtk import openmm  #type: ignore
 from unittest import mock  #type: ignore
 from unittest.mock import ANY  #type: ignore
 import numpy as np  #type: ignore
-
-from meld.system import subsystem, builder
-from meld.system.openmm_runner.cmap import CMAPAdder
 
 
 class TestAddCMAPTriAla(unittest.TestCase):
@@ -29,7 +30,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -40,14 +41,14 @@ class TestAddCMAPTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_adds_maps_to_force(self):
-        with mock.patch("meld.system.openmm_runner.cmap.np.loadtxt") as mock_loadtxt:
+        with mock.patch("meld.runner.cmap.np.loadtxt") as mock_loadtxt:
             # this is a bit hacky and depends on what order the maps are loaded in
             expected_gly = 3.0 * 0. + 7.0 * 1. + np.zeros((24, 24)).flatten()
             expected_pro = 3.0 * 2. + 7.0 * 3. + np.zeros((24, 24)).flatten()
             expected_ala = 3.0 * 4. + 7.0 * 5. + np.zeros((24, 24)).flatten()
             expected_gen = 3.0 * 6. + 7.0 * 7. + np.zeros((24, 24)).flatten()
             mock_loadtxt.side_effect = self.maps
-            adder = CMAPAdder(self.system.top_string, alpha_bias=3.0, beta_bias=7.0)
+            adder = cmap.CMAPAdder(self.system.top_string, alpha_bias=3.0, beta_bias=7.0)
 
             adder.add_to_openmm(self.mock_openmm_system)
 
@@ -68,7 +69,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
             np.testing.assert_almost_equal(add_map_args[3][0][1], expected_gen)
 
     def test_correct_torsions_should_be_added_to_force(self):
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         # map should be #2 for alanine
@@ -78,7 +79,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
         )
 
     def test_force_should_be_added_to_system(self):
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         self.mock_openmm_system.addForce.assert_called_once_with(self.mock_cmap)
@@ -96,7 +97,7 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -107,7 +108,7 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_correct_torsions_should_be_added_to_force(self):
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         # map should be #2 for alanine
@@ -126,7 +127,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -145,7 +146,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
     def test_correct_map_used_for_GLY(self):
         self.make_system("GLY")
 
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         self.mock_cmap.addTorsion.assert_called_once_with(
@@ -155,7 +156,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
     def test_correct_map_used_for_PRO(self):
         self.make_system("PRO")
 
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         self.mock_cmap.addTorsion.assert_called_once_with(
@@ -165,7 +166,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
     def test_correct_map_used_for_ALA(self):
         self.make_system("ALA")
 
-        adder = CMAPAdder(self.system.top_string)
+        adder = cmap.CMAPAdder(self.system.top_string)
         adder.add_to_openmm(self.mock_openmm_system)
 
         self.mock_cmap.addTorsion.assert_called_once_with(
@@ -203,7 +204,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
             self.mock_cmap.reset_mock()
             self.make_system(res)
 
-            adder = CMAPAdder(self.system.top_string)
+            adder = cmap.CMAPAdder(self.system.top_string)
             adder.add_to_openmm(self.mock_openmm_system)
 
             self.mock_cmap.addTorsion.assert_called_once_with(

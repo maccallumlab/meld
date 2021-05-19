@@ -8,7 +8,7 @@ from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
 from meld.system.builder import SystemBuilder
 from meld.system.temperature import ConstantTemperatureScaler, LinearTemperatureScaler, GeometricTemperatureScaler
 from meld.system.options import RunOptions
-from meld.system.system import ParmTopReader
+from meld.system import amber
 
 
 class TestCreateFromSequence(unittest.TestCase):
@@ -363,7 +363,7 @@ class TestGetBonds(unittest.TestCase):
         p = SubSystemFromSequence("NALA ALA CALA")
         b = SystemBuilder()
         sys = b.build_system([p])
-        self.bonds = ParmTopReader(sys.top_string).get_bonds()
+        self.bonds = amber.ParmTopReader(sys.top_string).get_bonds()
 
     def test_correct_bonds_should_be_present(self):
         self.assertIn((0, 4), self.bonds)  # N -CA

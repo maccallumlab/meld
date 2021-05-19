@@ -9,12 +9,12 @@ import numpy as np  # type: ignore
 import unittest
 import os
 from meld import vault, comm
+from meld.system import pdb_writer
 from meld.remd import leader, ladder, adaptor
 from meld.system.options import RunOptions
 from meld.system.state import SystemState
 from meld.test.helper import TempDirHelper
 from meld.util import in_temp_dir
-from meld.pdb_writer import PDBWriter
 
 
 class DataStorePickleTestCase(unittest.TestCase):
@@ -466,23 +466,23 @@ class TestPDBWriter(unittest.TestCase):
         self.coords = np.zeros((2, 3))
         self.coords[0, :] = 1.0
         self.coords[1, :] = 2.0
-        self.writer = PDBWriter(
+        self.writer = pdb_writer.PDBWriter(
             self.atom_numbers, self.atom_names, self.residue_numbers, self.residue_names
         )
 
     def test_should_raise_with_wrong_number_of_atom_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(
+            pdb_writer.PDBWriter(
                 self.atom_numbers, ["CA"], self.residue_numbers, self.residue_names
             )
 
     def test_should_raise_with_wrong_number_of_residue_numbers(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
+            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
 
     def test_should_raise_with_wrong_number_of_residue_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
+            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
 
     def test_should_raise_with_bad_coordinate_size(self):
         with self.assertRaises(AssertionError):

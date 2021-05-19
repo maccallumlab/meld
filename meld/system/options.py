@@ -2,9 +2,10 @@
 Module to handle options for a MELD run
 """
 
-from .temperature import REST2Scaler
-from .montecarlo import MonteCarloScheduler
-from .patchers import RdcAlignmentPatcher
+from meld.system import temperature
+from meld.system import montecarlo
+from meld.system import patchers
+
 from typing import Optional
 from simtk.unit import atmosphere  # type: ignore
 
@@ -190,36 +191,36 @@ class RunOptions:
         self._use_rest2 = new_value
 
     @property
-    def rest2_scaler(self) -> REST2Scaler:
+    def rest2_scaler(self) -> temperature.REST2Scaler:
         """
         Scaler for REST2 temperature scaling
         """
         return self._rest2_scaler
 
     @rest2_scaler.setter
-    def rest2_scaler(self, new_value: REST2Scaler) -> None:
+    def rest2_scaler(self, new_value: temperature.REST2Scaler) -> None:
         self._rest2_scaler = new_value
 
     @property
-    def min_mc(self) -> MonteCarloScheduler:
+    def min_mc(self) -> montecarlo.MonteCarloScheduler:
         """
         MonteCarlo Scheduler used during minimization
         """
         return self._min_mc
 
     @min_mc.setter
-    def min_mc(self, new_value: MonteCarloScheduler) -> None:
+    def min_mc(self, new_value: montecarlo.MonteCarloScheduler) -> None:
         self._min_mc = new_value
 
     @property
-    def run_mc(self) -> MonteCarloScheduler:
+    def run_mc(self) -> montecarlo.MonteCarloScheduler:
         """
         MonteCarloScheduler used during run
         """
         return self._run_mc
 
     @run_mc.setter
-    def run_mc(self, new_value: MonteCarloScheduler) -> None:
+    def run_mc(self, new_value: montecarlo.MonteCarloScheduler) -> None:
         self._run_mc = new_value
 
     @property
@@ -417,14 +418,14 @@ class RunOptions:
         self._amap_beta_bias = value
 
     @property
-    def rdc_patcher(self) -> RdcAlignmentPatcher:
+    def rdc_patcher(self) -> patchers.RdcAlignmentPatcher:
         """
         Patcher for RDC alignments
         """
         return self._rdc_patcher
 
     @rdc_patcher.setter
-    def rdc_patcher(self, value: RdcAlignmentPatcher) -> None:
+    def rdc_patcher(self, value: patchers.RdcAlignmentPatcher) -> None:
         self._rdc_patcher = value
 
     def sanity_check(self) -> None:

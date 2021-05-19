@@ -7,13 +7,14 @@
 Module to build SubSystems from sequence or PDB file
 """
 
+from meld.system import indexing
+import parmed  # type: ignore
+
 import numpy as np  # type: ignore
 import math
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from typing import NamedTuple, List
-from .indexing import _ChainInfo, _SubSystemInfo, ResidueIndex
-import parmed  # type: ignore
 
 
 class _SubSystem(ABC):
@@ -108,8 +109,8 @@ class _SubSystem(ABC):
 
     def add_bond(
         self,
-        res_index_i: ResidueIndex,
-        res_index_j: ResidueIndex,
+        res_index_i: indexing.ResidueIndex,
+        res_index_j: indexing.ResidueIndex,
         atom_name_i: str,
         atom_name_j: str,
         bond_type: str,
@@ -124,8 +125,8 @@ class _SubSystem(ABC):
             atom_name_j: name of j
             bond_type:   type of bond ["S", "D", "T"...]
         """
-        assert isinstance(res_index_i, ResidueIndex)
-        assert isinstance(res_index_j, ResidueIndex)
+        assert isinstance(res_index_i, indexing.ResidueIndex)
+        assert isinstance(res_index_j, indexing.ResidueIndex)
         self._general_bond.append(
             (int(res_index_i), int(res_index_j), atom_name_i, atom_name_j, bond_type)
         )
@@ -138,8 +139,8 @@ class _SubSystem(ABC):
             res_index_i: index of residue i
             res_index_j: index of residue j
         """
-        assert isinstance(res_index_i, ResidueIndex)
-        assert isinstance(res_index_j, ResidueIndex)
+        assert isinstance(res_index_i, indexing.ResidueIndex)
+        assert isinstance(res_index_j, indexing.ResidueIndex)
         self._disulfide_list.append((int(res_index_i), int(res_index_j)))
 
     def add_prep_file(self, fname: str):
@@ -245,8 +246,8 @@ class SubSystemFromSequence(_SubSystem):
         super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
-        chain_info = _ChainInfo({i: i for i in range(sequence_len)})
-        self._info = _SubSystemInfo(sequence_len, [chain_info])
+        chain_info = indexing._ChainInfo({i: i for i in range(sequence_len)})
+        self._info = indexing._SubSystemInfo(sequence_len, [chain_info])
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -307,9 +308,9 @@ class SubSystemFromPdbFile(_SubSystem):
         # loop over the chainids in alphabetical order
         chains = []
         for chainid in sorted(chainid_set):
-            chain = _ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
             chains.append(chain)
-        self._info = _SubSystemInfo(n_residues, chains)
+        self._info = indexing._SubSystemInfo(n_residues, chains)
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

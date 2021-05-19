@@ -139,12 +139,13 @@ References
 
 
 from __future__ import annotations
+
+from meld import interfaces
+from meld.system import indexing
+
 import math
 import numpy as np  # type: ignore
-from numpy.typing import ArrayLike
-from collections import namedtuple
-from .indexing import AtomIndex
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, NamedTuple
 
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
@@ -218,11 +219,11 @@ class DistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r1: Union[float, Positioner],
         r2: Union[float, Positioner],
         r3: Union[float, Positioner],
@@ -251,9 +252,9 @@ class DistanceRestraint(SelectableRestraint):
             r4: in nanometers
             k: in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_2 = int(atom2)
 
         if isinstance(r1, Positioner):
@@ -330,15 +331,15 @@ class GMMDistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         n_distances: int,
         n_components: int,
-        atoms: List[AtomIndex],
-        weights: ArrayLike,
-        means: ArrayLike,
-        precisions: ArrayLike,
+        atoms: List[indexing.AtomIndex],
+        weights: np.ndarray,
+        means: np.ndarray,
+        precisions: np.ndarray,
     ):
         """
         Initialize a GMMDistanceRestraint
@@ -371,7 +372,7 @@ class GMMDistanceRestraint(SelectableRestraint):
     @classmethod
     def from_params(
         cls,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         params: GMMParams,
@@ -402,7 +403,7 @@ class GMMDistanceRestraint(SelectableRestraint):
     def _setup_atoms(self, pair_list, system):
         self.atoms = []
         for index in pair_list:
-            assert isinstance(index, AtomIndex)
+            assert isinstance(index, indexing.AtomIndex)
             self.atoms.append(int(index))
 
     def _check(self, system):
@@ -441,11 +442,11 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r1: float,
         r2: float,
         r3: float,
@@ -468,9 +469,9 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
             r4: distance in nm
             asymptote: maximum energy in kT
         """
-        assert isinstance(atom1, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_2 = int(atom2)
         self.r1 = r1
         self.r2 = r2
@@ -514,13 +515,13 @@ class TorsionRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
-        atom3: AtomIndex,
-        atom4: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
+        atom3: indexing.AtomIndex,
+        atom4: indexing.AtomIndex,
         phi: float,
         delta_phi: float,
         k: float,
@@ -540,10 +541,10 @@ class TorsionRestraint(SelectableRestraint):
             delta_phi: flat within delta_phi, degrees
             k: force constant in :math:`kJ/mol/deg^2`
         """
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.atom_index_3 = int(atom3)
@@ -589,11 +590,11 @@ class DistProfileRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         r_min: float,
         r_max: float,
         n_bins: int,
@@ -617,8 +618,8 @@ class DistProfileRestraint(SelectableRestraint):
         """
         self.scaler = scaler
         self.ramp = ramp
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.r_min = r_min
@@ -645,17 +646,17 @@ class TorsProfileRestraint(SelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
-        atom3: AtomIndex,
-        atom4: AtomIndex,
-        atom5: AtomIndex,
-        atom6: AtomIndex,
-        atom7: AtomIndex,
-        atom8: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
+        atom3: indexing.AtomIndex,
+        atom4: indexing.AtomIndex,
+        atom5: indexing.AtomIndex,
+        atom6: indexing.AtomIndex,
+        atom7: indexing.AtomIndex,
+        atom8: indexing.AtomIndex,
         n_bins: int,
         spline_params: np.ndarray,
         scale_factor: float,
@@ -682,14 +683,14 @@ class TorsProfileRestraint(SelectableRestraint):
         self.scaler = scaler
         self.ramp = ramp
 
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
-        assert isinstance(atom3, AtomIndex)
-        assert isinstance(atom4, AtomIndex)
-        assert isinstance(atom5, AtomIndex)
-        assert isinstance(atom6, AtomIndex)
-        assert isinstance(atom7, AtomIndex)
-        assert isinstance(atom8, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
+        assert isinstance(atom3, indexing.AtomIndex)
+        assert isinstance(atom4, indexing.AtomIndex)
+        assert isinstance(atom5, indexing.AtomIndex)
+        assert isinstance(atom6, indexing.AtomIndex)
+        assert isinstance(atom7, indexing.AtomIndex)
+        assert isinstance(atom8, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.atom_index_3 = int(atom3)
@@ -720,11 +721,11 @@ class RdcRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: AtomIndex,
-        atom2: AtomIndex,
+        atom1: indexing.AtomIndex,
+        atom2: indexing.AtomIndex,
         kappa: float,
         d_obs: float,
         tolerance: float,
@@ -760,8 +761,8 @@ class RdcRestraint(NonSelectableRestraint):
            - 13C - 1H: :math:`-90600 \ Hz / Angstrom^3`
            - 15N - 1H: :math:`36500 \ Hz / Angstrom^3`
         """
-        assert isinstance(atom1, AtomIndex)
-        assert isinstance(atom2, AtomIndex)
+        assert isinstance(atom1, indexing.AtomIndex)
+        assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.s1_index = int(system.atom_index(patcher.resids[expt_index], "S1"))
@@ -804,10 +805,10 @@ class ConfinementRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom_index: AtomIndex,
+        atom_index: indexing.AtomIndex,
         radius: float,
         force_const: float,
     ):
@@ -822,12 +823,12 @@ class ConfinementRestraint(NonSelectableRestraint):
             radius: the distance to confine to
             force_const: strength of confinement
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.radius = float(radius)
         self.force_const = float(force_const)
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
 
     def _check(self, system):
@@ -844,10 +845,10 @@ class CartesianRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom_index: AtomIndex,
+        atom_index: indexing.AtomIndex,
         x: float,
         y: float,
         z: float,
@@ -868,15 +869,15 @@ class CartesianRestraint(NonSelectableRestraint):
             delta: energy is zero within delta, in nm
             force_const: force constant in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.x = x
         self.y = y
         self.z = z
         self.delta = delta
         self.force_const = force_const
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
 
     def _check(self):
@@ -893,7 +894,17 @@ class YZCartesianRestraint(NonSelectableRestraint):
 
     _restraint_key_ = "yzcartesian"
 
-    def __init__(self, system, scaler, ramp, atom_index, y, z, delta, force_const):
+    def __init__(
+        self,
+        system: interfaces.ISystem,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom_index: indexing.AtomIndex,
+        y: float,
+        z: float,
+        delta: float,
+        force_const: float,
+    ):
         """
         Initialize a YZCartesianRestraint
 
@@ -907,14 +918,14 @@ class YZCartesianRestraint(NonSelectableRestraint):
             delta: energy is zero within delta, in nm
             force_const: force constant in :math:`kJ/mol/nm^2`
         """
-        assert isinstance(atom_index, AtomIndex)
+        assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
         self.y = y
         self.z = z
         self.delta = delta
         self.force_const = force_const
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
 
     def _check(self):
@@ -955,14 +966,14 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        group: List[AtomIndex],
-        weights: ArrayLike,
+        group: List[indexing.AtomIndex],
+        weights: np.ndarray,
         dims: str,
         force_const: float,
-        position: ArrayLike,
+        position: np.ndarray,
     ):
         """
         Initialize an AbsoluteCOMRestraint
@@ -979,8 +990,8 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
             force_const: force constant in kJ/mol/nm^2
             point: location in space to restrain to
         """
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler: RestraintScaler = ConstantScaler() if scaler is None else scaler
+        self.ramp: TimeRamp = ConstantRamp() if ramp is None else ramp
 
         self.dims = dims
         self._check_dims()
@@ -1016,7 +1027,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
     def _get_indices(self, group):
         indices = []
         for g in group:
-            assert isinstance(g, AtomIndex)
+            assert isinstance(g, indexing.AtomIndex)
             indices.append(int(g))
         return indices
 
@@ -1053,11 +1064,11 @@ class COMRestraint(NonSelectableRestraint):
 
     def __init__(
         self,
-        system,
+        system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        group1: List[AtomIndex],
-        group2: List[AtomIndex],
+        group1: List[indexing.AtomIndex],
+        group2: List[indexing.AtomIndex],
         weights1: List[float],
         weights2: List[float],
         dims: str,
@@ -1083,8 +1094,8 @@ class COMRestraint(NonSelectableRestraint):
             distance: distance between groups
         """
         # setup indices
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
 
         self.indices1 = self._get_indices(group1)
         self.indices2 = self._get_indices(group2)
@@ -1124,7 +1135,7 @@ class COMRestraint(NonSelectableRestraint):
     def _get_indices(self, group):
         indices = []
         for g in group:
-            assert isinstance(g, AtomIndex)
+            assert isinstance(g, indexing.AtomIndex)
             indices.append(int(g))
         return indices
 
@@ -1148,7 +1159,7 @@ class AlwaysActiveCollection:
         self._restraints = []
 
     @property
-    def restraints(self):
+    def restraints(self) -> List[Restraint]:
         return self._restraints
 
     def add_restraint(self, restraint: Restraint):
@@ -1205,14 +1216,14 @@ class SelectivelyActiveCollection:
         self._num_active = num_active
 
     @property
-    def groups(self):
+    def groups(self) -> List[RestraintGroup]:
         """
         Number of groups in collection
         """
         return self._groups
 
     @property
-    def num_active(self):
+    def num_active(self) -> int:
         """
         Number active in collection
         """
@@ -1260,14 +1271,14 @@ class RestraintGroup:
         self._num_active = num_active
 
     @property
-    def restraints(self):
+    def restraints(self) -> List[SelectableRestraint]:
         """
         Restraints in the group
         """
         return self._restraints
 
     @property
-    def num_active(self):
+    def num_active(self) -> int:
         """
         Number of active restraints
         """
@@ -1284,7 +1295,7 @@ class RestraintManager:
     A class to manage restraints for a System
     """
 
-    def __init__(self, system):
+    def __init__(self, system: interfaces.ISystem):
         """
         Initialize a RestraintManager
 
@@ -1293,17 +1304,17 @@ class RestraintManager:
         """
         self._system = system
         self._always_active = AlwaysActiveCollection()
-        self._selective_collections = []
+        self._selective_collections: List[SelectivelyActiveCollection] = []
 
     @property
-    def always_active(self):
+    def always_active(self) -> List[Restraint]:
         """
         Always active restraints
         """
         return self._always_active.restraints
 
     @property
-    def selectively_active_collections(self):
+    def selectively_active_collections(self) -> List[SelectivelyActiveCollection]:
         """
         Selectively active collections
         """
@@ -1311,7 +1322,7 @@ class RestraintManager:
 
     def add_as_always_active(
         self, restraint: Union[NonSelectableRestraint, SelectableRestraint]
-    ):
+    ) -> None:
         """
         Add a restraint as always active
 
@@ -1322,7 +1333,7 @@ class RestraintManager:
 
     def add_as_always_active_list(
         self, restraint_list: List[Union[NonSelectableRestraint, SelectableRestraint]]
-    ):
+    ) -> None:
         """
         Add a list of restraints as always active
 
@@ -1336,7 +1347,7 @@ class RestraintManager:
         self,
         rest_list: List[Union[RestraintGroup, SelectableRestraint]],
         num_active: int,
-    ):
+    ) -> None:
         """
         Add a selectively active collection
 
@@ -1354,7 +1365,7 @@ class RestraintManager:
         scaler: Optional[RestraintScaler] = None,
         ramp: Optional[TimeRamp] = None,
         **kwargs,
-    ):
+    ) -> Restraint:
         r"""
         Create a restraint
 
@@ -1386,10 +1397,32 @@ class RestraintManager:
             self._system, scaler, ramp, **kwargs
         )
 
-    def create_restraint_group(self, rest_list, num_active):
+    def create_restraint_group(
+        self, rest_list: List[SelectableRestraint], num_active: int
+    ) -> RestraintGroup:
+        """
+        Create a restraint group
+
+        Args:
+            rest_list: restraints to include in group
+            num_active: number of restraints active at each timestep
+
+        Returns:
+            the new restraint group
+        """
         return RestraintGroup(rest_list, num_active)
 
-    def create_scaler(self, scaler_type, **kwargs):
+    def create_scaler(self, scaler_type: str, **kwargs) -> RestraintScaler:
+        r"""
+        Create a restraint scaler
+
+        Args:
+            scaler_type: the type a scaler to create
+            \**kwargs: passed along to the scaler creattion functions
+
+        Returns:
+            the new restraint scaler
+        """
         return ScalerRegistry.get_constructor_for_key(scaler_type)(**kwargs)
 
 
@@ -1474,13 +1507,16 @@ class AlphaMapper(metaclass=ScalerRegistry):
 class RestraintScaler(AlphaMapper):
     """Base class for all resraint scaler classes."""
 
+    def __call__(self, alpha: float) -> float:
+        raise NotImplementedError("Cannot call base RestraintScaler")
+
 
 class ConstantScaler(RestraintScaler):
     """This scaler is "always on" and always returns a value of 1.0"."""
 
     _scaler_key_ = "constant"
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         return 1.0
 
@@ -1515,7 +1551,7 @@ class LinearScaler(RestraintScaler):
         self._delta = alpha_max - alpha_min
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         scale = self._handle_boundaries(alpha)
         if scale is None:
@@ -1534,10 +1570,13 @@ class PlateauLinearScaler(RestraintScaler):
     alpha_one, keeps the value of 1 until alpha_two and then decreases
     linearly until 0 in alpha_max.
 
-        ------   strength alpha_min --> between two and one
-      /        \
-     /          \ strength alpha_max --> > alpha_max and
-                                           below alphamin
+    ::
+
+        |    ------   strength alpha_min --> between two and one
+        |  /        \
+        | /          \ strength alpha_max --> > alpha_max and
+        |                                       below alphamin
+
     """
 
     _scaler_key_ = "plateau"
@@ -1570,7 +1609,7 @@ class PlateauLinearScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1634,7 +1673,7 @@ class NonLinearScaler(RestraintScaler):
             raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         scale = self._handle_boundaries(alpha)
         if scale is None:
@@ -1691,7 +1730,7 @@ class PlateauNonLinearScaler(RestraintScaler):
             raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1757,7 +1796,7 @@ class PlateauSmoothScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1811,7 +1850,7 @@ class GeometricScaler(RestraintScaler):
         self._delta_alpha = self._alpha_max - self._alpha_min
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
 
         if alpha < 0 or alpha > 1:
@@ -1834,13 +1873,16 @@ class GeometricScaler(RestraintScaler):
 class TimeRamp(AlphaMapper):
     """Base class for all time ramp classes."""
 
+    def __call__(self, timestep: int) -> float:
+        raise NotImplementedError("Cannot call base TimeRamp directly")
+
 
 class ConstantRamp(TimeRamp):
     """TimeRamp that always returns 1.0"""
 
     _scaler_key_ = "constant_ramp"
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("Timestep is < 0.")
         return 1.0
@@ -1868,7 +1910,7 @@ class LinearRamp(TimeRamp):
         self.w_start = float(start_weight)
         self.w_end = float(end_weight)
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("Timestep is < 0.")
         if timestep < self.t_start:
@@ -1917,7 +1959,7 @@ class NonLinearRamp(TimeRamp):
         self.w_end = float(end_weight)
         self.factor = float(factor)
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("timestep is < 0.")
 
@@ -1971,7 +2013,7 @@ class TimeRampSwitcher(TimeRamp):
         self.second_ramp = second_ramp
         self.switching_time = switching_time
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < self.switching_time:
             return self.first_ramp(timestep)
         else:
@@ -1980,6 +2022,9 @@ class TimeRampSwitcher(TimeRamp):
 
 class Positioner(AlphaMapper):
     """Base class for all positioner classes."""
+
+    def __call__(self, alpha: float) -> float:
+        raise NotImplementedError("Cannot call base positioner")
 
 
 class ConstantPositioner(Positioner):
@@ -1990,7 +2035,7 @@ class ConstantPositioner(Positioner):
     def __init__(self, value):
         self._value = value
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         if alpha < 0:
             raise ValueError("alpha must be >= 0")
         if alpha > 1:
@@ -2026,7 +2071,7 @@ class LinearPositioner(Positioner):
         self.pos_min = float(pos_min)
         self.pos_max = float(pos_max)
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         if alpha < 0:
             raise ValueError("alpha was < 0")
         if alpha > 1:
@@ -2040,7 +2085,10 @@ class LinearPositioner(Positioner):
             return self.pos_max
 
 
-GMMParams = namedtuple(
-    "GMMParams",
-    ["n_components", "n_distances", "atoms", "weights", "means", "precisions"],
-)
+class GMMParams(NamedTuple):
+    n_components: int
+    n_distances: int
+    atoms: List[indexing.AtomIndex]
+    weights: np.ndarray
+    means: np.ndarray
+    precisions: np.ndarray

@@ -2,14 +2,15 @@
 Module to handle temperature scaling
 """
 
+from abc import ABC, abstractmethod
 import math
 
-
-class TemperatureScaler:
+class TemperatureScaler(ABC):
     """
     Base class for temperature scalers
     """
 
+    @abstractmethod
     def __call__(self, alpha: float) -> float:
         pass
 
@@ -142,22 +143,24 @@ class REST2Scaler:
 
     When performing REST2 simulations, typically the system temperature is kept
     fixed at 300K. Then the psuedo-temperature of non-solvent nonbonded and
-    torsion interactions is adjusted based on the `temperature_scaler` parameter
+    torsion interactions is adjusted based on the ``temperature_scaler`` parameter
     according to:
-        :code:`scale = reference_temperature / temperature_scaler(alpha)`
+    :code:`scale = reference_temperature / temperature_scaler(alpha)`
     """
 
     def __init__(
-        self, reference_temperature: float, temperature_scaler: TemperatureScaler
+        self,
+        reference_temperature: float,
+        temperature_scaler: TemperatureScaler,
     ):
         """
         Initialize a REST2Scaler
 
         Args:
-        reference_temperature: this should be set to the temperature of
-            the simulation, usually 300K, in Kelvin
-        temperature_scaler: the psuedo-temperature to adjust nonbonded and
-            torsion parameters of REST2, in Kelvin
+            reference_temperature: this should be set to the temperature of
+                the simulation, usually 300K, in Kelvin
+            temperature_scaler: the psuedo-temperature to adjust nonbonded and
+                torsion parameters of REST2, in Kelvin
         """
         self.reference_temperature = reference_temperature
         self.scaler = temperature_scaler

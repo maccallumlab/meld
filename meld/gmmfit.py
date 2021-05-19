@@ -2,11 +2,12 @@
 Routines to build GMMDistanceRestraints from data.
 """
 
+from meld.system import restraints
+
 import numpy as np  # type: ignore
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture  #type: ignore
 from sklearn.model_selection import RandomizedSearchCV, KFold  #type: ignore
 from scipy import stats  #type: ignore
-from meld.system.restraints import GMMParams
 import math
 
 
@@ -177,7 +178,7 @@ def fit_gmm(
         new_atoms.append((r2, n2))
 
     # Return the parameters for a GMM
-    return GMMParams(
+    return restraints.GMMParams(
         n_components=gmm.weights_.shape[0],
         n_distances=n_distances,
         atoms=new_atoms,

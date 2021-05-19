@@ -7,12 +7,15 @@
 A module for replica exchange workers
 """
 
+from meld import interfaces
+
+
 class WorkerReplicaExchangeRunner:
     """
     This class coordinates running replica exchange on the workers.
     """
 
-    def __init__(self, step, max_steps):
+    def __init__(self, step: int, max_steps: int):
         """
         Initialize a WorkerReplicaExchangeRunner
 
@@ -23,31 +26,19 @@ class WorkerReplicaExchangeRunner:
         self._step = step
         self._max_steps = max_steps
 
-    @classmethod
-    def from_leader(cls, leader):
-        """
-        Initialize a new worker from a leader.
-
-        Args:
-            leader: a leader to serve as a template
-        
-        Returns:
-            a worker based on the leader template
-        """
-        new_worker = cls(leader.step, leader.max_steps)
-        return new_worker
-
     @property
-    def step(self):
+    def step(self) -> int:
         """current step"""
         return self._step
 
     @property
-    def max_steps(self):
+    def max_steps(self) -> int:
         """number of steps to run"""
         return self._max_steps
 
-    def run(self, communicator, system_runner):
+    def run(
+        self, communicator: interfaces.ICommunicator, system_runner: interfaces.IRunner
+    ) -> None:
         """
         Continue running worker jobs until done.
 
@@ -65,7 +56,7 @@ class WorkerReplicaExchangeRunner:
 
             state.alpha = new_alpha
 
-            system_runner.prepare_for_timestep(state, new_alpha, self._step)
+            system_runner.prepare_for_timestep(new_alpha, self._step)
 
             # do one round of simulation
             if minimize:

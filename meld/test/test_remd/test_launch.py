@@ -3,27 +3,34 @@
 # All rights reserved
 #
 
+from meld import comm
+from meld import vault
+from meld import util
+from meld.remd import worker
+from meld.remd import leader
+from meld.remd import launch
+from meld.runner import openmm_runner
+
 import unittest
-from unittest import mock  #type: ignore
-from meld.remd import worker, leader, launch
-from meld.system.openmm_runner import OpenMMRunner
-from meld import comm, vault
-from meld.util import in_temp_dir
+from unittest import mock  # type: ignore
 import logging
 import os
 
 
 class TestLaunchNotLeader(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch("meld.remd.launch.vault")
-        self.mock_vault = self.patcher.start()
+        vault_patcher = mock.patch("meld.remd.launch.vault")
+        self.mock_vault = vault_patcher.start()
+        self.addCleanup(vault_patcher.stop)
 
-        self.log_patcher = mock.patch("meld.remd.launch.logging")
-        self.log_patcher.start()
+        log_patcher = mock.patch("meld.remd.launch.logging")
+        log_patcher.start()
+        self.addCleanup(log_patcher.stop)
 
-        self.get_runner_patcher = mock.patch("meld.remd.launch.get_runner")
-        self.mock_get_runner = self.get_runner_patcher.start()
-        self.mock_runner = mock.Mock(spec=OpenMMRunner)
+        get_runner_patcher = mock.patch("meld.remd.launch.runner.get_runner")
+        self.mock_get_runner = get_runner_patcher.start()
+        self.addCleanup(get_runner_patcher.stop)
+        self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
 
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
@@ -41,23 +48,14 @@ class TestLaunchNotLeader(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_leader = mock.Mock(
-            spec_set=leader.LeaderReplicaExchangeRunner
-        )
-        self.mock_remd_worker = mock.Mock(
-            spec_set=worker.WorkerReplicaExchangeRunner
-        )
+        self.mock_remd_leader = mock.Mock(spec_set=leader.LeaderReplicaExchangeRunner)
+        self.mock_remd_worker = mock.Mock(spec_set=worker.WorkerReplicaExchangeRunner)
         self.mock_remd_leader.to_worker.return_value = self.mock_remd_worker
         self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
         self.mock_store.load_run_options.return_value.runner = "openmm"
 
         self.log_handler = logging.StreamHandler()
-
-    def cleanUp(self):
-        self.patcher.stop()
-        self.get_runner_patcher.stop()
-        self.log_patcher.stop()
 
     def test_load_datastore(self):
         "should call vault.DataStore.load_data_store to load the data_store"
@@ -94,12 +92,14 @@ class TestLaunchNotLeader(unittest.TestCase):
 
 class TestLaunchLeader(unittest.TestCase):
     def setUp(self):
-        self.patcher = mock.patch("meld.remd.launch.vault")
-        self.mock_vault = self.patcher.start()
+        vault_patcher = mock.patch("meld.remd.launch.vault")
+        self.mock_vault = vault_patcher.start()
+        self.addCleanup(vault_patcher.stop)
 
-        self.get_runner_patcher = mock.patch("meld.remd.launch.get_runner")
-        self.mock_get_runner = self.get_runner_patcher.start()
-        self.mock_runner = mock.Mock(spec=OpenMMRunner)
+        get_runner_patcher = mock.patch("meld.remd.launch.runner.get_runner")
+        self.mock_get_runner = get_runner_patcher.start()
+        self.addCleanup(get_runner_patcher.stop)
+        self.mock_runner = mock.Mock(spec=openmm_runner.OpenMMRunner)
         self.mock_get_runner.return_value = self.mock_runner
 
         self.MockDataStore = mock.Mock(spec_set=vault.DataStore)
@@ -116,12 +116,8 @@ class TestLaunchLeader(unittest.TestCase):
         self.mock_system = mock.Mock()
         self.mock_store.load_system.return_value = self.mock_system
 
-        self.mock_remd_leader = mock.Mock(
-            spec_set=leader.LeaderReplicaExchangeRunner
-        )
-        self.mock_remd_worker = mock.Mock(
-            spec_set=worker.WorkerReplicaExchangeRunner
-        )
+        self.mock_remd_leader = mock.Mock(spec_set=leader.LeaderReplicaExchangeRunner)
+        self.mock_remd_worker = mock.Mock(spec_set=worker.WorkerReplicaExchangeRunner)
         self.mock_remd_leader.to_worker.return_value = self.mock_remd_worker
         self.mock_store.load_remd_runner.return_value = self.mock_remd_leader
 
@@ -129,13 +125,9 @@ class TestLaunchLeader(unittest.TestCase):
 
         self.log_handler = logging.StreamHandler()
 
-    def tearDown(self):
-        self.patcher.stop()
-        self.get_runner_patcher.stop()
-
     def test_load_datastore(self):
         "should call load the datastore"
-        with in_temp_dir():
+        with util.in_temp_dir():
             os.mkdir("Logs")
 
             launch.launch("Reference", self.log_handler)
@@ -144,7 +136,7 @@ class TestLaunchLeader(unittest.TestCase):
 
     def test_should_init_comm(self):
         "should initialize the communicator"
-        with in_temp_dir():
+        with util.in_temp_dir():
             os.mkdir("Logs")
 
             launch.launch("Reference", self.log_handler)
@@ -153,7 +145,7 @@ class TestLaunchLeader(unittest.TestCase):
 
     def test_should_init_store(self):
         "should initialize the store"
-        with in_temp_dir():
+        with util.in_temp_dir():
             os.mkdir("Logs")
 
             launch.launch("Reference", self.log_handler)
@@ -162,7 +154,7 @@ class TestLaunchLeader(unittest.TestCase):
 
     def test_should_run(self):
         "should run remd runner with correct parameters"
-        with in_temp_dir():
+        with util.in_temp_dir():
             os.mkdir("Logs")
 
             launch.launch("Reference", self.log_handler)

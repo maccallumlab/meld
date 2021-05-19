@@ -23,6 +23,9 @@ except ImportError:
     print()
     raise
 
+from meld import interfaces
+from meld import util
+
 import signal
 import threading
 import time
@@ -33,9 +36,7 @@ from collections import defaultdict, namedtuple
 import contextlib
 import logging
 import sys
-from meld.util import log_timing
-from meld.system.state import SystemState
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Any, Optional, NamedTuple, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def _mpi_excepthook(type, value, traceback):
 sys.excepthook = _mpi_excepthook
 
 
-class MPICommunicator:
+class MPICommunicator(interfaces.ICommunicator):
     """
     Class to handle communications between leader and workers using MPI.
 
@@ -112,7 +113,7 @@ class MPICommunicator:
         else:
             return False
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def barrier(self) -> None:
         """
         Wait until all workers reach this point
@@ -122,7 +123,7 @@ class MPICommunicator:
         ):
             self._mpi_comm.barrier()
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def broadcast_alphas_to_workers(self, alphas: List[float]) -> None:
         """
         Send the alpha values to the workers.
@@ -140,7 +141,7 @@ class MPICommunicator:
         ):
             self._mpi_comm.scatter(alphas, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def receive_alpha_from_leader(self) -> float:
         """
         Receive alpha value from leader node.
@@ -154,8 +155,8 @@ class MPICommunicator:
         ):
             return self._mpi_comm.scatter(None, root=0)
 
-    @log_timing(logger)
-    def broadcast_states_to_workers(self, states: List[SystemState]) -> SystemState:
+    @util.log_timing(logger)
+    def broadcast_states_to_workers(self, states: Sequence[interfaces.IState]) -> interfaces.IState:
         """
         Send a state to each worker.
 
@@ -174,8 +175,8 @@ class MPICommunicator:
         ):
             return self._mpi_comm.scatter(states, root=0)
 
-    @log_timing(logger)
-    def receive_state_from_leader(self) -> SystemState:
+    @util.log_timing(logger)
+    def receive_state_from_leader(self) -> interfaces.IState:
         """
         Get state to run for this step
 
@@ -188,10 +189,10 @@ class MPICommunicator:
         ):
             return self._mpi_comm.scatter(None, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def gather_states_from_workers(
-        self, state_on_leader: SystemState
-    ) -> List[SystemState]:
+        self, state_on_leader: interfaces.IState
+    ) -> Sequence[interfaces.IState]:
         """
         Receive states from all workers
 
@@ -206,8 +207,8 @@ class MPICommunicator:
         ):
             return self._mpi_comm.gather(state_on_leader, root=0)
 
-    @log_timing(logger)
-    def send_state_to_leader(self, state: SystemState) -> None:
+    @util.log_timing(logger)
+    def send_state_to_leader(self, state: interfaces.IState) -> None:
         """
         Send state to leader
 
@@ -220,9 +221,9 @@ class MPICommunicator:
         ):
             self._mpi_comm.gather(state, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def broadcast_states_for_energy_calc_to_workers(
-        self, states: List[SystemState]
+        self, states: Sequence[interfaces.IState]
     ) -> None:
         """
         Broadcast states to all workers.
@@ -243,8 +244,8 @@ class MPICommunicator:
         ):
             self._mpi_comm.bcast(states, root=0)
 
-    @log_timing(logger)
-    def exchange_states_for_energy_calc(self, state: SystemState) -> List[SystemState]:
+    @util.log_timing(logger)
+    def exchange_states_for_energy_calc(self, state: interfaces.IState) -> Sequence[interfaces.IState]:
         """
         Exchange states between all processes.
 
@@ -262,8 +263,8 @@ class MPICommunicator:
         ):
             return self._mpi_comm.allgather(state)
 
-    @log_timing(logger)
-    def receive_states_for_energy_calc_from_leader(self) -> List[SystemState]:
+    @util.log_timing(logger)
+    def receive_states_for_energy_calc_from_leader(self) -> Sequence[interfaces.IState]:
         """
         Receive all states from leader.
 
@@ -280,7 +281,7 @@ class MPICommunicator:
         ):
             return self._mpi_comm.bcast(None, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def gather_energies_from_workers(
         self, energies_on_leader: List[float]
     ) -> np.ndarray:
@@ -302,7 +303,7 @@ class MPICommunicator:
             energies = self._mpi_comm.gather(energies_on_leader, root=0)
             return np.array(energies)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def send_energies_to_leader(self, energies: List[float]) -> None:
         """
         Send a list of energies to the leader.
@@ -316,7 +317,7 @@ class MPICommunicator:
         ):
             return self._mpi_comm.gather(energies, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def negotiate_device_id(self) -> int:
         """
         Negotiate CUDA device id
@@ -434,7 +435,9 @@ def _get_mpi_comm_world() -> MPI.Comm:
 
 
 # namedtuple to hold results for negotiate id
-HostInfo = namedtuple("HostInfo", "host_name devices")
+class HostInfo(NamedTuple):
+    host_name: str
+    devices: Optional[List[int]]
 
 
 # Adapted from interrupting cow

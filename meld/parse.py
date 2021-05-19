@@ -8,21 +8,13 @@ Functions to read in sequences, secondary structures, and RDCs
 
 """
 
+from meld import interfaces
+from meld.system import restraints
+from meld.system import patchers
+from meld.system import indexing
+
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
-from meld.system.system import System
-from meld.system.restraints import (
-    RestraintGroup,
-    SelectableRestraint,
-    TorsionRestraint,
-    DistanceRestraint,
-    RdcRestraint,
-    TimeRamp,
-    ConstantRamp,
-    RestraintScaler,
-)
-from meld.system.patchers import RdcAlignmentPatcher
-from meld.system.indexing import ResidueIndex
 
 SequenceString = NewType("SequenceString", str)
 SecondaryString = NewType("SecondaryString", str)
@@ -181,18 +173,18 @@ def get_sequence_from_AA3(
 
 
 def get_secondary_structure_restraints(
-    system: System,
-    scaler: RestraintScaler,
-    ramp: Optional[TimeRamp] = None,
+    system: interfaces.ISystem,
+    scaler: restraints.RestraintScaler,
+    ramp: Optional[restraints.TimeRamp] = None,
     torsion_force_constant: float = 2.48,
     distance_force_constant: float = 2.48,
     quadratic_cut: float = 2.0,
-    first_residue: Optional[ResidueIndex] = None,
+    first_residue: Optional[indexing.ResidueIndex] = None,
     min_secondary_match: int = 4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
     file: Optional[TextIO] = None,
-) -> List[RestraintGroup]:
+) -> List[restraints.RestraintGroup]:
     """
     Get a list of secondary structure restraints.
 
@@ -216,12 +208,12 @@ def get_secondary_structure_restraints(
        Specify exactly one of filename, contents, file.
     """
     if ramp is None:
-        ramp = ConstantRamp()
+        ramp = restraints.ConstantRamp()
 
     if first_residue is None:
-        first_residue = ResidueIndex(0)
+        first_residue = indexing.ResidueIndex(0)
     else:
-        assert isinstance(first_residue, ResidueIndex)
+        assert isinstance(first_residue, indexing.ResidueIndex)
 
     if min_secondary_match > 5:
         raise RuntimeError(
@@ -241,9 +233,9 @@ def get_secondary_structure_restraints(
         contents, "H", 5, min_secondary_match, first_residue
     )
     for helix in helices:
-        rests: List[SelectableRestraint] = []
+        rests: List[restraints.SelectableRestraint] = []
         for index in range(helix.start + 1, helix.end - 1):
-            phi = TorsionRestraint(
+            phi = restraints.TorsionRestraint(
                 system,
                 scaler,
                 ramp,
@@ -255,7 +247,7 @@ def get_secondary_structure_restraints(
                 17.5,
                 torsion_force_constant,
             )
-            psi = TorsionRestraint(
+            psi = restraints.TorsionRestraint(
                 system,
                 scaler,
                 ramp,
@@ -269,7 +261,7 @@ def get_secondary_structure_restraints(
             )
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(
+        d1 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -281,7 +273,7 @@ def get_secondary_structure_restraints(
             0.561 + quadratic_cut,
             distance_force_constant,
         )
-        d2 = DistanceRestraint(
+        d2 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -293,7 +285,7 @@ def get_secondary_structure_restraints(
             0.561 + quadratic_cut,
             distance_force_constant,
         )
-        d3 = DistanceRestraint(
+        d3 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -308,7 +300,7 @@ def get_secondary_structure_restraints(
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)
-        group = RestraintGroup(rests, len(rests))
+        group = restraints.RestraintGroup(rests, len(rests))
         groups.append(group)
 
     extended = _extract_secondary_runs(
@@ -317,7 +309,7 @@ def get_secondary_structure_restraints(
     for ext in extended:
         rests = []
         for index in range(ext.start + 1, ext.end - 1):
-            phi = TorsionRestraint(
+            phi = restraints.TorsionRestraint(
                 system,
                 scaler,
                 ramp,
@@ -329,7 +321,7 @@ def get_secondary_structure_restraints(
                 27.5,
                 torsion_force_constant,
             )
-            psi = TorsionRestraint(
+            psi = restraints.TorsionRestraint(
                 system,
                 scaler,
                 ramp,
@@ -343,7 +335,7 @@ def get_secondary_structure_restraints(
             )
             rests.append(phi)
             rests.append(psi)
-        d1 = DistanceRestraint(
+        d1 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -355,7 +347,7 @@ def get_secondary_structure_restraints(
             1.063 + quadratic_cut,
             distance_force_constant,
         )
-        d2 = DistanceRestraint(
+        d2 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -367,7 +359,7 @@ def get_secondary_structure_restraints(
             1.063 + quadratic_cut,
             distance_force_constant,
         )
-        d3 = DistanceRestraint(
+        d3 = restraints.DistanceRestraint(
             system,
             scaler,
             ramp,
@@ -382,7 +374,7 @@ def get_secondary_structure_restraints(
         rests.append(d1)
         rests.append(d2)
         rests.append(d3)
-        group = RestraintGroup(rests, len(rests))
+        group = restraints.RestraintGroup(rests, len(rests))
         groups.append(group)
 
     return groups
@@ -451,16 +443,16 @@ def _handle_arguments(
 
 
 def get_rdc_restraints(
-    system: System,
-    patcher: RdcAlignmentPatcher,
-    scaler: RestraintScaler,
-    ramp: Optional[TimeRamp] = None,
+    system: interfaces.ISystem,
+    patcher: patchers.RdcAlignmentPatcher,
+    scaler: restraints.RestraintScaler,
+    ramp: Optional[restraints.TimeRamp] = None,
     quadratic_cut: float = 99999.0,
     scale_factor: float = 1.0e4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
     file: Optional[TextIO] = None,
-) -> List[RdcRestraint]:
+) -> List[restraints.RdcRestraint]:
     """
     Reads restraints from file and returns as RdcRestraint object.
 
@@ -488,13 +480,13 @@ def get_rdc_restraints(
        same alignment.
     """
     if ramp is None:
-        ramp = ConstantRamp()
+        ramp = restraints.ConstantRamp()
 
     contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
     lines = [line.strip() for line in lines if not line.startswith("#")]
 
-    restraints = []
+    restraint_list = []
     for line in lines:
         cols = line.split()
         res_i = int(cols[0])
@@ -511,7 +503,7 @@ def get_rdc_restraints(
         atom_index_i = system.atom_index(res_i, atom_i, one_based=True)
         atom_index_j = system.atom_index(res_j, atom_j, one_based=True)
 
-        rest = RdcRestraint(
+        rest = restraints.RdcRestraint(
             system,
             scaler,
             ramp,
@@ -526,5 +518,5 @@ def get_rdc_restraints(
             expt,
             patcher,
         )
-        restraints.append(rest)
-    return restraints
+        restraint_list.append(rest)
+    return restraint_list

@@ -5,39 +5,55 @@
 
 """
 This module implements a transformer that implements REST2.
-
-We use the updated version of Replica Exchange with Solute Scaling [1]_.
-
-Limitations
------------
-
-Currently, the REST2 implmentation in MELD has a limitation:
-- Any CMAP / AMAP potentials are not scaled.
-
-
-References
-----------
-.. [1] L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
-   more efficient version of replica exchange with solute tempering.
 """
 
-from meld.system.openmm_runner.transform import TransformerBase
-from simtk import openmm as mm  #type: ignore
+from meld.system import options
+from meld.system import temperature
+from meld.system import restraints
+from meld.runner.transform import TransformerBase
+from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
+
 import math
+from typing import List, Dict, Tuple
 
 
 class REST2Transformer(TransformerBase):
+    """
+    An implementation of REST2
+
+    We use the updated version of Replica Exchange with Solute Scaling [1]_.
+
+    Limitations
+    -----------
+
+    Currently, the REST2 implmentation in MELD has a limitation:
+    - Any CMAP / AMAP potentials are not scaled.
+
+
+    References
+    ----------
+    .. [1] L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
+    more efficient version of replica exchange with solute tempering.
+    """
+    scaler: temperature.REST2Scaler
+    ramp: restraints.TimeRamp
+    nb_force: mm.NonbondedForce
+    dihedral_force: mm.PeriodicTorsionForce
+    protein_nonbonded_params: Dict[int, Tuple[float, float, float]]
+    protein_exception_params: Dict[int, Tuple[int, int, float, float, float]]
+    protein_dihedrals: Dict[int, Tuple[int, int, int, int, int, float, float]]
+
     def __init__(
-        self, options, always_active_restraints, selectively_active_restraints
-    ):
+        self,
+        options: options.RunOptions,
+        always_active_restraints: List[restraints.Restraint],
+        selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
+    ) -> None:
         self.active = False
         self.protein_nonbonded_params = {}
         self.protein_exception_params = {}
         self.protein_dihedrals = {}
-        self.scaler = None
-        self.ramp = None
-        self.nb_force = None
-        self.dihedral_force = None
 
         if options.use_rest2:
             self.active = True
@@ -46,7 +62,7 @@ class REST2Transformer(TransformerBase):
             if options.solvation != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")
 
-    def finalize(self, system, topology):
+    def finalize(self, system: mm.System, topology: app.Topology) -> None:
         if self.active:
             nonsolvent_atoms = self._find_nonsolvent_atoms(topology)
             self._find_nb_force(system)
@@ -54,13 +70,13 @@ class REST2Transformer(TransformerBase):
             self._gather_nonbonded_params(nonsolvent_atoms)
             self._gather_dihedral_params(nonsolvent_atoms, topology)
 
-    def update(self, simulation, alpha, timestep):
+    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
         if self.active:
             scale = self.scaler(alpha)
             self._update_nonbonded(simulation, scale)
             self._update_dihedrals(simulation, scale)
 
-    def _find_nonsolvent_atoms(self, topology):
+    def _find_nonsolvent_atoms(self, topology: app.Topology) -> List[int]:
         solvent_residue_names = ["WAT", "SOL", "H2O", "HOH"]
         nonsolvent_atoms = []
         for atom in topology.atoms():
@@ -68,7 +84,7 @@ class REST2Transformer(TransformerBase):
                 nonsolvent_atoms.append(atom.index)
         return nonsolvent_atoms
 
-    def _gather_nonbonded_params(self, nonsolvent_atoms):
+    def _gather_nonbonded_params(self, nonsolvent_atoms: List[int]) -> None:
         # gather the nonbonded parameters
         for index in nonsolvent_atoms:
             self.protein_nonbonded_params[index] = self.nb_force.getParticleParameters(
@@ -81,7 +97,9 @@ class REST2Transformer(TransformerBase):
             if params[0] in nonsolvent_atoms and params[1] in nonsolvent_atoms:
                 self.protein_exception_params[param_index] = params
 
-    def _gather_dihedral_params(self, nonsolvent_atoms, topology):
+    def _gather_dihedral_params(
+        self, nonsolvent_atoms: List[int], topology: app.Topology
+    ) -> None:
         bond_idxs = [sorted([i.index, j.index]) for i, j in topology.bonds()]
         for parm_index in range(self.dihedral_force.getNumTorsions()):
             params = self.dihedral_force.getTorsionParameters(parm_index)
@@ -105,7 +123,7 @@ class REST2Transformer(TransformerBase):
             if not_solvent and not_improper:
                 self.protein_dihedrals[parm_index] = params
 
-    def _find_nb_force(self, system):
+    def _find_nb_force(self, system: mm.System) -> None:
         forces = [system.getForce(i) for i in range(system.getNumForces())]
         nb_forces = [f for f in forces if isinstance(f, mm.NonbondedForce)]
 
@@ -116,7 +134,7 @@ class REST2Transformer(TransformerBase):
 
         self.nb_force = nb_forces[0]
 
-    def _find_dihedral_force(self, system):
+    def _find_dihedral_force(self, system: mm.System) -> None:
         forces = [system.getForce(i) for i in range(system.getNumForces())]
         dihed_forces = [f for f in forces if isinstance(f, mm.PeriodicTorsionForce)]
 
@@ -127,23 +145,23 @@ class REST2Transformer(TransformerBase):
 
         self.dihedral_force = dihed_forces[0]
 
-    def _update_nonbonded(self, simulation, scale):
+    def _update_nonbonded(self, simulation: app.Simulation, scale: float) -> None:
         for index in self.protein_nonbonded_params:
-            params = self.protein_nonbonded_params[index]
-            q, sigma, eps = params
+            nb_params = self.protein_nonbonded_params[index]
+            q, sigma, eps = nb_params
             self.nb_force.setParticleParameters(
                 index, q * math.sqrt(scale), sigma, eps * scale
             )
 
         for index in self.protein_exception_params:
-            params = self.protein_exception_params[index]
-            i, j, q, sigma, eps = params
+            except_params = self.protein_exception_params[index]
+            i, j, q, sigma, eps = except_params
             self.nb_force.setExceptionParameters(
                 index, i, j, q * scale, sigma, eps * scale
             )
         self.nb_force.updateParametersInContext(simulation.context)
 
-    def _update_dihedrals(self, simulation, scale):
+    def _update_dihedrals(self, simulation: app.Simulation, scale: float) -> None:
         for index in self.protein_dihedrals:
             params = self.protein_dihedrals[index]
             i, j, k, l, mult, phi, fc = params
