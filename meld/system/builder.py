@@ -3,36 +3,54 @@
 # All rights reserved
 #
 
+"""
+Module to build a System from SubSystems
+"""
+
 from meld import util
-from meld.system.system import System
+from meld import interfaces
+from meld.system import meld_system
+from meld.system import indexing
+from meld.system import subsystem
+from meld.system import patchers
+
+from typing import List, Optional
 import subprocess
 
 
-def load_amber_system(top_filename, crd_filename, patchers=None):
-    if patchers is None:
-        patchers = []
-
-    with open(top_filename, "rt") as topfile:
-        top = topfile.read()
-    with open(crd_filename) as crdfile:
-        crd = crdfile.read()
-
-    for patcher in patchers:
-        top, crd = patcher.patch(top, crd)
-
-    system = System(top, crd)
-
-    for patcher in patchers:
-        patcher.finalize(system)
-
-    return system
-
-
 class SystemBuilder:
-    def __init__(self, forcefield="ff14sbside", gb_radii="mbondi3",
-        explicit_solvent=False, solvent_forcefield="tip3p", solvent_distance=6,
-        explicit_ions=False, p_ion="Na+", p_ioncount=0, n_ion="Cl-", n_ioncount=0
+    r"""
+    Class to handle building a System from SubSystems.
+    """
+
+    def __init__(
+        self,
+        forcefield: str = "ff14sbside",
+        gb_radii: str = "mbondi3",
+        explicit_solvent: bool = False,
+        solvent_forcefield: str = "tip3p",
+        solvent_distance: float = 6,
+        explicit_ions: bool = False,
+        p_ion: str = "Na+",
+        p_ioncount: int = 0,
+        n_ion: str = "Cl-",
+        n_ioncount: int = 0,
     ):
+        """
+        Initialize a SystemBuilder
+
+        Args:
+            forcefield: the forcefield to use [ff12sb, ff14sb, ff14sbside]
+            gb_radii: the generalized Born radii [mbondi2, mbondi3]
+            explicit_solvent: use explicit solvent?
+            solvent_forcefield: explicit force field [spce, spceb, opc, tip3p, tip4pew]
+            solvent_distance: distance between protein and edge of solvent box, Angstrom
+            explicit_ions: include explicit ions?
+            p_ion: name of positive ion [Na+, K+, Li+, Rb+, Cs+, Mg+]
+            p_ioncount: number of positive ions
+            n_ion: name of negative ion [Cl-, I-, Br-, F-]
+            n_ioncount: number of negative ions
+        """
         self._forcefield = None
         self._set_forcefield(forcefield)
         self._gb_radii = None
@@ -50,9 +68,26 @@ class SystemBuilder:
                 self._set_negative_ion_type(n_ion)
                 self._n_ioncount = n_ioncount
 
-    def build_system_from_molecules(
-        self, molecules, patchers=None, leap_header_cmds=None
-    ):
+    def build_system(
+        self,
+        subsystems: List[subsystem._SubSystem],
+        patchers: Optional[List[patchers.PatcherBase]] = None,
+        leap_header_cmds: Optional[List[str]] = None,
+    ) -> interfaces.ISystem:
+        """
+        Build the system from SubSystems
+
+        Args:
+            subsystems: component subsystems that make up the system
+            patchers: an optional list of patchers to modify system
+            leap_header_cmds: an optional list of leap commands
+
+        Returns:
+            the MELD system
+        """
+        if not subsystems:
+            raise ValueError("len(subsystems) must be > 0")
+
         if patchers is None:
             patchers = []
         if leap_header_cmds is None:
@@ -61,15 +96,27 @@ class SystemBuilder:
             leap_header_cmds = [leap_header_cmds]
 
         with util.in_temp_dir():
-            leap_cmds = []
             mol_ids = []
+            chains = []
+            current_res_index = 0
+            leap_cmds = []
             leap_cmds.extend(self._generate_leap_header())
             leap_cmds.extend(leap_header_cmds)
-            for index, mol in enumerate(molecules):
+            for index, sub in enumerate(subsystems):
+                # First we'll update the indexing for this subsystem
+                for chain in sub._info.chains:
+                    residues_with_offset = {
+                        k: v + current_res_index for k, v in chain.residues.items()
+                    }
+                    chains.append(indexing._ChainInfo(residues_with_offset))
+                current_res_index += sub._info.n_residues
+
+                # now add the leap commands for this subsystem
                 mol_id = f"mol_{index}"
                 mol_ids.append(mol_id)
-                mol.prepare_for_tleap(mol_id)
-                leap_cmds.extend(mol.generate_tleap_input(mol_id))
+                sub.prepare_for_tleap(mol_id)
+                leap_cmds.extend(sub.generate_tleap_input(mol_id))
+
             if self._explicit_solvent:
                 leap_cmds.extend(self._generate_solvent(mol_ids))
                 leap_cmds.extend(self._generate_leap_footer([f"solute"]))
@@ -79,9 +126,37 @@ class SystemBuilder:
             with open("tleap.in", "w") as tleap_file:
                 tleap_string = "\n".join(leap_cmds)
                 tleap_file.write(tleap_string)
-            subprocess.check_call("tleap -f tleap.in > tleap.out", shell=True)
+            try:
+                subprocess.check_call("tleap -f tleap.in > tleap.out", shell=True)
+            except subprocess.CalledProcessError:
+                print("Call to tleap failed.")
+                print()
+                print()
+                print()
+                print("=========")
+                print("tleap.in")
+                print("=========")
+                print(open("tleap.in").read())
+                print()
+                print()
+                print()
+                print("=========")
+                print("tleap.out")
+                print("=========")
+                print(open("tleap.out").read())
+                print()
+                print()
+                print()
+                print("========")
+                print("leap.log")
+                print("========")
+                print(open("leap.log").read())
+                print()
+                print()
+                print()
+                raise
 
-            return load_amber_system("system.top", "system.mdcrd", patchers)
+            return meld_system._load_amber_system("system.top", "system.mdcrd", chains, patchers)
 
     def _set_forcefield(self, forcefield):
         ff_dict = {
@@ -105,14 +180,14 @@ class SystemBuilder:
         ff_dict = {
             "spce": "leaprc.water.spce",
             "spceb": "leaprc.water.spceb",
-            "opc":  "leaprc.water.opc",
+            "opc": "leaprc.water.opc",
             "tip3p": "leaprc.water.tip3p",
             "tip4pew": "leaprc.water.tip4pew",
         }
         box_dict = {
             "spce": "SPCBOX",
             "spceb": "SPCBOX",
-            "opc":  "OPCBOX",
+            "opc": "OPCBOX",
             "tip3p": "TIP3PBOX",
             "tip4pew": "TIP4PEWBOX",
         }
@@ -120,7 +195,7 @@ class SystemBuilder:
             self._solvent_forcefield = ff_dict[solvent_forcefield]
             self._solvent_box = box_dict[solvent_forcefield]
         except KeyError:
-            raise RuntimeError(f"Unknown solvent_model: {solvent_model}")
+            raise RuntimeError(f"Unknown solvent_model: {solvent_forcefield}")
 
     def _set_positive_ion_type(self, ion_type):
         allowed = ["Na+", "K+", "Li+", "Rb+", "Cs+", "Mg+"]

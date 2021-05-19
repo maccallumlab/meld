@@ -3,20 +3,20 @@
 # All rights reserved
 #
 
-from meld.system.param_sampling import ParameterState
+"""
+A module to define the SystemState
+"""
+
+from meld.system import param_sampling
 from typing import Optional
+from meld import interfaces
+
 import numpy as np  # type: ignore
 
 
-class SystemState:
+class SystemState(interfaces.IState):
     """
     Class to hold the state of a system.
-
-    :param positions: coordinates of structure, ``numpy.array(n_atoms, 3)``
-    :param velocities: velocities for structure, same as coords
-    :param alpha: alpha value, within ``[0, 1]``
-    :param energy: total potential energy, including restraints
-    :param box_vector: box vectors, ``numpy.array(3)``
     """
 
     def __init__(
@@ -26,8 +26,18 @@ class SystemState:
         alpha: float,
         energy: float,
         box_vector: np.ndarray,
-        parameters: Optional[ParameterState] = None,
+        parameters: Optional[param_sampling.ParameterState] = None,
     ) -> None:
+        """
+        Initialize a SystemState
+
+        Params:
+            positions: coordinates of structure, shape(n_atoms, 3)
+            velocities: velocities for structure, shape(n_atoms, 3)
+            alpha: alpha value, within ``[0, 1]``
+            energy: total potential energy, including restraints, in kJ/mol
+            box_vector: the box vectors, shape(3, 3) in nm
+        """
         self.positions = positions
         self.velocities = velocities
         self.box_vector = box_vector
@@ -35,7 +45,7 @@ class SystemState:
         self.alpha = alpha
         self.energy = energy
         if parameters is None:
-            self.parameters = ParameterState(
+            self.parameters = param_sampling.ParameterState(
                 discrete=np.array([], dtype=np.int32),
                 continuous=np.array([], dtype=np.float64),
             )

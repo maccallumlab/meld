@@ -5,6 +5,7 @@
 
 # Packages
 docs/_build
+docs/reference/_autosummary
 *.egg
 *.egg-info
 dist

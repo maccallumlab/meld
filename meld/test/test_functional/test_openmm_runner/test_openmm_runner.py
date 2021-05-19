@@ -3,8 +3,13 @@
 # All rights reserved
 #
 
-from meld import system
-from meld.system.openmm_runner import OpenMMRunner
+from meld.system import subsystem
+from meld.system import builder
+from meld.system import temperature
+from meld.system import options
+from meld.system import state
+from meld.runner import openmm_runner
+
 import numpy as np  # type: ignore
 import unittest
 import os
@@ -16,76 +21,104 @@ class TestOpenRunner(unittest.TestCase):
         self.mdcrd_path = os.path.join(os.path.dirname(__file__), "system.mdcrd")
 
     def test_implicit_runner(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder()
-        sys = b.build_system_from_molecules([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.0)
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder()
+        sys = b.build_system([p])
+        sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions()
-        options.timesteps = 20
+        opt = options.RunOptions()
+        opt.timesteps = 20
 
-        runner = OpenMMRunner(sys, options, platform="Reference")
-        state = sys.get_state_template()
+        runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
-        runner.prepare_for_timestep(state, 0.0, 1)
-        state = runner.minimize_then_run(state)
-        state = runner.run(state)
+        pos = sys._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.
+        energy = 0.
+        box_vectors = np.zeros(3)
+        s = state.SystemState(pos, vel, alpha, energy, box_vectors)
 
-        assert state
+        s = runner.minimize_then_run(s)
+        s = runner.run(s)
+
+        assert s
 
     def test_implicit_runner_amap(self):
-        p = system.ProteinMoleculeFromSequence("NALA ALA CALA")
-        b = system.SystemBuilder()
-        sys = b.build_system_from_molecules([p])
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.0)
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder()
+        sys = b.build_system([p])
+        sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions()
-        options.timesteps = 20
-        options.use_amap = True
-        options.amap_beta_bias = 10
+        opt = options.RunOptions()
+        opt.timesteps = 20
+        opt.use_amap = True
+        opt.amap_beta_bias = 10
 
-        runner = OpenMMRunner(sys, options, platform="Reference")
-        state = sys.get_state_template()
+        runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
-        runner.prepare_for_timestep(state, 0.0, 1)
-        state = runner.minimize_then_run(state)
-        state = runner.run(state)
+        pos = sys._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.
+        energy = 0.
+        box_vectors = np.zeros(3)
+        s = state.SystemState(pos, vel, alpha, energy, box_vectors)
 
-        assert state
+        s = runner.minimize_then_run(s)
+        s = runner.run(s)
+
+        assert s
 
     def test_explicit_runner(self):
-        # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.0)
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder(explicit_solvent=True)
+        sys = b.build_system([p])
+        sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
 
-        options = system.RunOptions(solvation="explicit")
-        options.timesteps = 20
+        opt = options.RunOptions(solvation="explicit")
+        opt.minimize_steps = 100
+        opt.timesteps = 2
 
-        runner = OpenMMRunner(sys, options, platform="Reference")
-        state = sys.get_state_template()
+        runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
-        runner.prepare_for_timestep(state, 0.0, 1)
-        state = runner.minimize_then_run(state)
-        state = runner.run(state)
+        pos = sys._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.
+        energy = 0.
+        box_vectors = sys._box_vectors
+        s = state.SystemState(pos, vel, alpha, energy, box_vectors)
 
-        assert state
+        s = runner.minimize_then_run(s)
+        s = runner.run(s)
+
+        assert s
 
     def test_explicit_runner_scaler(self):
-        # alanine dipeptide in TIP3P box
-        sys = system.builder.load_amber_system(self.top_path, self.mdcrd_path)
-        sys.temperature_scaler = system.ConstantTemperatureScaler(300.0)
-        rest2_scaler = system.GeometricTemperatureScaler(0, 1, 300.0, 350.0)
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
+        b = builder.SystemBuilder(explicit_solvent=True)
+        sys = b.build_system([p])
+        sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
+        rest2_scaler = temperature.GeometricTemperatureScaler(0, 1, 300., 350.)
 
-        options = system.RunOptions(solvation="explicit")
-        options.rest2_scaler = system.REST2Scaler(300.0, rest2_scaler)
-        options.timesteps = 20
-        options.use_rest2 = True
+        opt = options.RunOptions(solvation="explicit")
+        opt.rest2_scaler = temperature.REST2Scaler(300., rest2_scaler)
+        opt.minimize_steps = 100
+        opt.timesteps = 2
+        opt.use_rest2 = True
 
-        runner = OpenMMRunner(sys, options, platform="Reference")
-        state = sys.get_state_template()
+        runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
-        runner.prepare_for_timestep(state, 0.0, 1)
-        state = runner.minimize_then_run(state)
-        state = runner.run(state)
+        pos = sys._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.
+        energy = 0.
+        box_vectors = sys._box_vectors
+        s = state.SystemState(pos, vel, alpha, energy, box_vectors)
 
-        assert state
+        s = runner.minimize_then_run(s)
+        s = runner.run(s)
+
+        assert s

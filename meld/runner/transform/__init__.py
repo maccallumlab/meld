@@ -21,6 +21,15 @@ must add this class to the list in
 
 """
 
+from meld import interfaces
+from meld.system import options
+from meld.system import restraints
+from meld.system import param_sampling
+from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
+
+from typing import List
+
 
 class TransformerBase:
     """
@@ -48,30 +57,29 @@ class TransformerBase:
     The number of particles cannot be changed by a transformer,
     instead additional particles should be added using a
     patcher.
-
-    Parameters
-    ----------
-    param_manager: meld.system.param_sampling.ParameterManager
-        parameter manager to handle sampling of paramters
-    options: meld.system.RunOptions
-        the options for the runner
-    always_active_restraints: list of restraints
-        these restraints are always active
-    selectively_active_collections: list of SelectivelyActiveCollection
-        these restraints are selected by the MELD algorithm
-
     """
 
     def __init__(
         self,
-        param_manager,
-        options,
-        always_active_restraints,
-        selectively_active_restraints,
+        param_manager: param_sampling.ParameterManager,
+        options: options.RunOptions,
+        always_active_restraints: List[restraints.Restraint],
+        selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ):
+        """
+        Initialize a Transformer
+
+        Args:
+            param_manager: parameter manager to handle sampling of paramters
+            options: the options for the runner
+            always_active_restraints: these restraints are always active
+            selectively_active_collections: these restraints are selected by the MELD algorithm
+        """
         raise NotImplementedError("TransformerBase cannot be instantiated.")
 
-    def add_interactions(self, state, omm_system, topology):
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         """
         Add new interactions to the system.
 
@@ -84,20 +92,16 @@ class TransformerBase:
         transformer does not add interactions, it may simply
         return the passed values.
 
-        Parameters
-        ----------
-        state: meld.system.SystemState
-            State of the meld system being simulated
-        omm_system: openmm.System
-            OpenMM system object to be modified
-        topology: openmm.Topology
-            OpenMM topology object to be modified and/or used
-            for indexing
-
+        Args:
+            state: the state of the system
+            system: OpenMM system object to be modified
+            topology: OpenMM topology object to be modified and/or used for indexing
         """
-        return omm_system
+        return system
 
-    def finalize(self, state, omm_system, topology):
+    def finalize(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> None:
         """
         Finalize the transformer.
 
@@ -107,42 +111,36 @@ class TransformerBase:
 
         This method should not add any new forces.
 
-        Parameters
-        ----------
-        state: meld.system.SystemState
-            State of the meld system being simulated
-        omm_system: openmm.System
-            OpenMM system object to be modified
-        topology: openmm.Topology
-            OpenMM topology object to be modified and/or used
-            for indexing
-
+        Args:
+            state: the state of the system
+            system: OpenMM system object to be modified
+            topology: OpenMM topology object to be modified and/or used for indexing
         """
         pass
 
-    def update(self, state, simulation, alpha, timestep):
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         """
         Update the system according to alpha and timestep.
 
         This method is called at the beginning of every stage.
         It should update forces and parameters as necessary.
 
-        Parameters
-        ----------
-        state: meld.system.SystemState
-            State of the meld system being simulated
-        simulation: openmm.app.simulation
-            OpenMM simulation object to be modified
-        alpha: float
-            Current value of alpha, ranges from 0 to 1
-        stage: int
-            Current stage of the simulation, starting from 0
-
+        Args:
+            state: the state of the system
+            simulation: OpenMM simulation object to be modified
+            alpha: current value of alpha, ranges from 0 to 1
+            stage: current stage of the simulation, starting from 0
         """
         pass
 
 
-from meld.system.openmm_runner.transform.restraints import (
+from meld.runner.transform.restraints import (
     ConfinementRestraintTransformer,
     RDCRestraintTransformer,
     CartesianRestraintTransformer,
@@ -152,4 +150,5 @@ from meld.system.openmm_runner.transform.restraints import (
     MeldRestraintTransformer,
 )
 
-from meld.system.openmm_runner.transform.rest2 import REST2Transformer
+from meld.runner.transform.rest2 import REST2Transformer
+from meld.runner.transform.cmap import CMAPTransformer

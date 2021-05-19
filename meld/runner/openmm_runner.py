@@ -3,57 +3,22 @@
 # All rights reserved
 #
 
-from meld.system.runner import ReplicaRunner
-from openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2, Simulation  # type: ignore
-from openmm.app import forcefield as ff  # type: ignore
-from openmm import (  # type: ignore
-    LangevinIntegrator,
-    Platform,
-    CustomExternalForce,
-    CustomCentroidBondForce,
-    MonteCarloBarostat,
-    HarmonicBondForce,
-    HarmonicAngleForce,
-    PeriodicTorsionForce,
-    CustomAngleForce,
-)
-from openmm.unit import (  # type: ignore
-    Quantity,
-    kelvin,
-    picosecond,
-    femtosecond,
-    angstrom,
-    kilojoule,
-    mole,
-    gram,
-    nanometer,
-    atmosphere,
-)
-from meld.system.restraints import (
-    SelectableRestraint,
-    NonSelectableRestraint,
-    DistanceRestraint,
-    TorsionRestraint,
-    ConfinementRestraint,
-    DistProfileRestraint,
-    TorsProfileRestraint,
-    CartesianRestraint,
-    YZCartesianRestraint,
-    COMRestraint,
-    AbsoluteCOMRestraint,
-    RdcRestraint,
-    HyperbolicDistanceRestraint,
-)
-from meld.system.state import SystemState
-from meld.system.openmm_runner import cmap
-from meld.system.openmm_runner import transform
-import logging
+from meld import interfaces
+from meld.system import options
+from meld.system import restraints
+from meld.runner import transform
 from meld.util import log_timing
+
+from simtk.openmm import app  # type: ignore
+from simtk.openmm.app import forcefield as ff  # type: ignore
+from simtk import openmm as mm  # type: ignore
+from simtk import unit as u  # type: ignore
+
+import logging
 import numpy as np  # type: ignore
 import tempfile
-from collections import Callable, namedtuple
-import math
-import random
+from collections import namedtuple
+from typing import Optional, List, Dict, NamedTuple, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +36,42 @@ GAS_CONSTANT = 8.314e-3
 
 
 # namedtuples to store simulation information
-PressureCouplingParams = namedtuple(
-    "PressureCouplingParams", ["enable", "pressure", "temperature", "steps"]
-)
-PMEParams = namedtuple("PMEParams", ["enable", "tolerance"])
+class PressureCouplingParams(NamedTuple):
+    enable: bool
+    pressure: float
+    temperature: float
+    steps: int
 
 
-class OpenMMRunner(ReplicaRunner):
-    def __init__(self, system, options, communicator=None, platform=None):
+class PMEParams(NamedTuple):
+    enable: bool
+    tolerance: float
+
+
+class OpenMMRunner(interfaces.IRunner):
+    _parm_string: str
+    _always_on_restraints: List[restraints.Restraint]
+    _selectable_collections: List[restraints.SelectivelyActiveCollection]
+    _options: options.RunOptions
+    _simulation: app.Simulation
+    _integrator: mm.LangevinIntegrator
+    _barostat: mm.MonteCarloBarostat
+    _timestep: int
+    _initialized: bool
+    _alpha: float
+    _temperature: float
+    _transformers: List[transform.TransformerBase]
+    _extra_bonds: List[interfaces.ExtraBondParam]
+    _extra_restricted_angles: List[interfaces.ExtraAngleParam]
+    _extra_torsions: List[interfaces.ExtraTorsParam]
+
+    def __init__(
+        self,
+        system: interfaces.ISystem,
+        options: options.RunOptions,
+        communicator: Optional[interfaces.ICommunicator] = None,
+        platform: str = None,
+    ):
         # Default to CUDA platform
         platform = platform if platform else "CUDA"
         self.platform = platform
@@ -87,7 +80,7 @@ class OpenMMRunner(ReplicaRunner):
             # Only need to figure out device id for CUDA
             if platform == "CUDA":
                 self._device_id = communicator.negotiate_device_id()
-            self._rank = communicator.rank
+            self._rank: Optional[int] = communicator.rank
         else:
             self._device_id = 0
             self._rank = None
@@ -100,40 +93,38 @@ class OpenMMRunner(ReplicaRunner):
         self._always_on_restraints = system.restraints.always_active
         self._selectable_collections = system.restraints.selectively_active_collections
         self._options = options
-        self._simulation = None
-        self._integrator = None
-        self._barostat = None
-        self._timestep = None
+        self._timestep = 0
         self._initialized = False
         self._alpha = 0.0
-        self._temperature = None
-        self._force_dict = {}
-        self._transformers = []
+        self._transformers: List[transform.TransformerBase] = []
         self._extra_bonds = system.extra_bonds
         self._extra_restricted_angles = system.extra_restricted_angles
         self._extra_torsions = system.extra_torsions
         self._parameter_manager = system.param_sampler
 
-    def prepare_for_timestep(self, state, alpha, timestep):
+    def prepare_for_timestep(
+        self, state: interfaces.IState, alpha: float, timestep: int
+    ):
         self._alpha = alpha
         self._timestep = timestep
+        assert self.temperature_scaler is not None
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation(state)
 
     @log_timing(logger)
-    def minimize_then_run(self, state):
+    def minimize_then_run(self, state: interfaces.IState) -> interfaces.IState:
         return self._run(state, minimize=True)
 
     @log_timing(logger)
-    def run(self, state):
+    def run(self, state: interfaces.IState) -> interfaces.IState:
         return self._run(state, minimize=False)
 
-    def get_energy(self, state):
+    def get_energy(self, state: interfaces.IState) -> float:
         # update all of the transformers
         self._transformers_update(state)
 
         # set the coordinates
-        coordinates = Quantity(state.positions, angstrom)
+        coordinates = u.Quantity(state.positions, u.angstrom)
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
@@ -149,7 +140,7 @@ class OpenMMRunner(ReplicaRunner):
         snapshot = self._simulation.context.getState(getEnergy=True)
         e_potential = snapshot.getPotentialEnergy()
         e_potential = (
-            e_potential.value_in_unit(kilojoule / mole)
+            e_potential.value_in_unit(u.kilojoule / u.mole)
             / GAS_CONSTANT
             / self._temperature
         )
@@ -159,7 +150,7 @@ class OpenMMRunner(ReplicaRunner):
 
         return e_potential - log_prior
 
-    def _initialize_simulation(self, state):
+    def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
             # update temperature and pressure
             self._integrator.setTemperature(self._temperature)
@@ -207,31 +198,20 @@ class OpenMMRunner(ReplicaRunner):
                 self._options.soluteDielectric,
                 self._options.solventDielectric,
             )
-
             self._barostat = barostat
-
-            if self._options.use_amap:
-                adder = cmap.CMAPAdder(
-                    self._parm_string,
-                    self._options.amap_alpha_bias,
-                    self._options.amap_beta_bias,
-                    self._options.ccap,
-                    self._options.ncap,
-                )
-                adder.add_to_openmm(sys)
 
             # setup the transformers
             self._transformers_setup()
             if len(self._always_on_restraints) > 0:
                 print("Not all always on restraints were handled.")
-                for r in self._always_on_restraints:
-                    print("\t", r)
+                for remaining_always_on in self._always_on_restraints:
+                    print("\t", remaining_always_on)
                 raise RuntimeError("Not all always on restraints were handled.")
 
             if len(self._selectable_collections) > 0:
                 print("Not all selectable restraints were handled.")
-                for r in self._selectable_collections:
-                    print("\t", r)
+                for remaining_selectable in self._selectable_collections:
+                    print("\t", remaining_selectable)
                 raise RuntimeError("Not all selectable restraints were handled.")
 
             sys = self._transformers_add_interactions(state, sys, prmtop.topology)
@@ -245,17 +225,18 @@ class OpenMMRunner(ReplicaRunner):
             )
 
             # setup the platform, CUDA by default and Reference for testing
+            properties: Dict[str, str]
             if self.platform == "Reference":
                 logger.info("Using Reference platform.")
-                platform = Platform.getPlatformByName("Reference")
+                platform = mm.Platform.getPlatformByName("Reference")
                 properties = {}
             elif self.platform == "CPU":
                 logger.info("Using CPU platform.")
-                platform = Platform.getPlatformByName("CPU")
+                platform = mm.Platform.getPlatformByName("CPU")
                 properties = {}
             elif self.platform == "CUDA":
                 logger.info("Using CUDA platform.")
-                platform = Platform.getPlatformByName("CUDA")
+                platform = mm.Platform.getPlatformByName("CUDA")
                 # The plugin currently requires that we use nvcc, as
                 # nvrtc is not able to compile code that uses the cub
                 # library, which we use in the plugin.
@@ -279,7 +260,12 @@ class OpenMMRunner(ReplicaRunner):
 
             self._transformers_update(state)
 
-    def _transformers_setup(self):
+    def _transformers_setup(self) -> None:
+        # CMAPTransformer is different, so we add it separately
+        self._transformers.append(
+            transform.CMAPTransformer(self._options, self._parm_string)
+        )
+
         trans_types = [
             transform.ConfinementRestraintTransformer,
             transform.RDCRestraintTransformer,
@@ -300,20 +286,22 @@ class OpenMMRunner(ReplicaRunner):
             )
             self._transformers.append(trans)
 
-    def _transformers_add_interactions(self, state, sys, topol):
+    def _transformers_add_interactions(
+        self, state: interfaces.IState, sys, topol
+    ) -> mm.System:
         for t in self._transformers:
             sys = t.add_interactions(state, sys, topol)
         return sys
 
-    def _transformers_finalize(self, state, sys, topol):
+    def _transformers_finalize(self, state: interfaces.IState, sys, topol) -> None:
         for t in self._transformers:
             t.finalize(state, sys, topol)
 
-    def _transformers_update(self, state):
+    def _transformers_update(self, state: interfaces.IState) -> None:
         for t in self._transformers:
             t.update(state, self._simulation, self._alpha, self._timestep)
 
-    def _run_min_mc(self, state):
+    def _run_min_mc(self, state: interfaces.IState) -> interfaces.IState:
         if self._options.min_mc is not None:
             logger.info("Running MCMC before minimization.")
             logger.info(f"Starting energy {self.get_energy(state):.3f}")
@@ -322,7 +310,7 @@ class OpenMMRunner(ReplicaRunner):
             logger.info(f"Ending energy {self.get_energy(state):.3f}")
         return state
 
-    def _run_mc(self, state):
+    def _run_mc(self, state: interfaces.IState) -> interfaces.IState:
         if self._options.run_mc is not None:
             logger.info("Running MCMC.")
             logger.debug(f"Starting energy {self.get_energy(state):.3f}")
@@ -331,7 +319,7 @@ class OpenMMRunner(ReplicaRunner):
             logger.debug(f"Ending energy {self.get_energy(state):.3f}")
         return state
 
-    def _run(self, state, minimize):
+    def _run(self, state: interfaces.IState, minimize: bool) -> interfaces.IState:
         # update the transformers to account for sampled parameters
         # stored in the state
         self._transformers_update(state)
@@ -349,9 +337,9 @@ class OpenMMRunner(ReplicaRunner):
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
-        coordinates = Quantity(state.positions, angstrom)
-        velocities = Quantity(state.velocities, angstrom / picosecond)
-        box_vectors = Quantity(state.box_vector, angstrom)
+        coordinates = u.Quantity(state.positions, u.angstrom)
+        velocities = u.Quantity(state.velocities, u.angstrom / u.picosecond)
+        box_vectors = u.Quantity(state.box_vector, u.angstrom)
 
         # set the positions
         self._simulation.context.setPositions(coordinates)
@@ -359,9 +347,9 @@ class OpenMMRunner(ReplicaRunner):
         # if explicit solvent, then set the box vectors
         if self._options.solvation == "explicit":
             self._simulation.context.setPeriodicBoxVectors(
-                [box_vectors[0].value_in_unit(nanometer), 0.0, 0.0],
-                [0.0, box_vectors[1].value_in_unit(nanometer), 0.0],
-                [0.0, 0.0, box_vectors[2].value_in_unit(nanometer)],
+                [box_vectors[0].value_in_unit(u.nanometer), 0.0, 0.0],
+                [0.0, box_vectors[1].value_in_unit(u.nanometer), 0.0],
+                [0.0, 0.0, box_vectors[2].value_in_unit(u.nanometer)],
             )
 
         # run energy minimization
@@ -386,15 +374,15 @@ class OpenMMRunner(ReplicaRunner):
                 getEnergy=True,
                 enforcePeriodicBox=True,
             )
-        coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(angstrom)
+        coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(u.angstrom)
         velocities = snapshot.getVelocities(asNumpy=True).value_in_unit(
-            angstrom / picosecond
+            u.angstrom / u.picosecond
         )
         _check_for_nan(coordinates, velocities, self._rank)
 
         # if explicit solvent, the recover the box vectors
         if self._options.solvation == "explicit":
-            box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(angstrom)
+            box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(u.angstrom)
             box_vector = np.array(
                 (box_vector[0][0], box_vector[1][1], box_vector[2][2])
             )
@@ -404,7 +392,7 @@ class OpenMMRunner(ReplicaRunner):
 
         # get the energy
         e_potential = (
-            snapshot.getPotentialEnergy().value_in_unit(kilojoule / mole)
+            snapshot.getPotentialEnergy().value_in_unit(u.kilojoule / u.mole)
             / GAS_CONSTANT
             / self._temperature
         )
@@ -460,22 +448,25 @@ class OpenMMRunner(ReplicaRunner):
         return state
 
 
-def _check_for_nan(coordinates, velocities, rank):
+def _check_for_nan(
+    coordinates: np.ndarray, velocities: np.ndarray, rank: Optional[int]
+) -> None:
+    output_rank = 0 if rank is None else rank
     if np.isnan(coordinates).any():
-        raise RuntimeError("Coordinates for rank {} contain NaN", rank)
+        raise RuntimeError("Coordinates for rank {} contain NaN", output_rank)
     if np.isnan(velocities).any():
-        raise RuntimeError("Velocities for rank {} contain NaN", rank)
+        raise RuntimeError("Velocities for rank {} contain NaN", output_rank)
 
 
 def _create_openmm_simulation(topology, system, integrator, platform, properties):
-    return Simulation(topology, system, integrator, platform, properties)
+    return app.Simulation(topology, system, integrator, platform, properties)
 
 
 def _parm_top_from_string(parm_string):
     with tempfile.NamedTemporaryFile(mode="w") as parm_file:
         parm_file.write(parm_string)
         parm_file.flush()
-        prm_top = AmberPrmtopFile(parm_file.name)
+        prm_top = app.AmberPrmtopFile(parm_file.name)
         return prm_top
 
 
@@ -536,36 +527,36 @@ def _create_openmm_system(
 def _add_extras(system, bonds, restricted_angles, torsions):
     # add the extra bonds
     if bonds:
-        f = [f for f in system.getForces() if isinstance(f, HarmonicBondForce)][0]
+        f = [f for f in system.getForces() if isinstance(f, mm.HarmonicBondForce)][0]
         for bond in bonds:
-            f.addBond(bond.i - 1, bond.j - 1, bond.length, bond.force_constant)
+            f.addBond(bond.i, bond.j, bond.length, bond.force_constant)
 
     # add the extra restricted_angles
     if restricted_angles:
         # create the new force for restricted angles
-        f = CustomAngleForce(
+        f = mm.CustomAngleForce(
             "0.5 * k_ra * (theta - theta0_ra)^2 / sin(theta * 3.1459 / 180)"
         )
         f.addPerAngleParameter("k_ra")
         f.addPerAngleParameter("theta0_ra")
         for angle in restricted_angles:
             f.addAngle(
-                angle.i - 1,
-                angle.j - 1,
-                angle.k - 1,
+                angle.i,
+                angle.j,
+                angle.k,
                 (angle.force_constant, angle.angle),
             )
         system.addForce(f)
 
     # add the extra torsions
     if torsions:
-        f = [f for f in system.getForces() if isinstance(f, PeriodicTorsionForce)][0]
+        f = [f for f in system.getForces() if isinstance(f, mm.PeriodicTorsionForce)][0]
         for tors in torsions:
             f.addTorsion(
-                tors.i - 1,
-                tors.j - 1,
-                tors.k - 1,
-                tors.l - 1,
+                tors.i,
+                tors.j,
+                tors.k,
+                tors.l,
                 tors.multiplicity,
                 tors.phase,
                 tors.energy,
@@ -576,11 +567,11 @@ def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):
     if use_big_timestep:
         logger.info("Enabling hydrogen mass=3, constraining all bonds")
         constraint_type = ff.AllBonds
-        hydrogen_mass = 3.0 * gram / mole
+        hydrogen_mass = 3.0 * u.gram / u.mole
     elif use_bigger_timestep:
         logger.info("Enabling hydrogen mass=4, constraining all bonds")
         constraint_type = ff.AllBonds
-        hydrogen_mass = 4.0 * gram / mole
+        hydrogen_mass = 4.0 * u.gram / u.mole
     else:
         logger.info("Enabling hydrogen mass=1, constraining bonds with hydrogen")
         constraint_type = ff.HBonds
@@ -614,13 +605,13 @@ def _create_openmm_system_implicit(
 
     if implicit_solvent == "obc":
         logger.info('Using "OBC" implicit solvent')
-        implicit_type = OBC2
+        implicit_type = app.OBC2
     elif implicit_solvent == "gbNeck":
         logger.info('Using "gbNeck" implicit solvent')
-        implicit_type = GBn
+        implicit_type = app.GBn
     elif implicit_solvent == "gbNeck2":
         logger.info('Using "gbNeck2" implicit solvent')
-        implicit_type = GBn2
+        implicit_type = app.GBn2
     elif implicit_solvent == "vacuum" or implicit_solvent is None:
         logger.info("Using vacuum instead of implicit solvent")
         implicit_type = None
@@ -633,7 +624,8 @@ def _create_openmm_system_implicit(
         soluteDielectric = 1.0
     if solventDielectric is None:
         solventDielectric = 78.5
-    return parm_object.createSystem(
+
+    sys = parm_object.createSystem(
         nonbondedMethod=cutoff_type,
         nonbondedCutoff=cutoff_dist,
         constraints=constraint_type,
@@ -644,6 +636,7 @@ def _create_openmm_system_implicit(
         soluteDielectric=soluteDielectric,
         solventDielectric=solventDielectric,
     )
+    return sys
 
 
 def _create_openmm_system_explicit(
@@ -689,7 +682,7 @@ def _create_openmm_system_explicit(
         logger.info("Enabling pressure coupling")
         logger.info(f"Pressure is {pcouple_params.pressure}")
         logger.info(f"Volume moves attempted every {pcouple_params.steps} steps")
-        baro = MonteCarloBarostat(
+        baro = mm.MonteCarloBarostat(
             pcouple_params.pressure, pcouple_params.temperature, pcouple_params.steps
         )
         s.addForce(baro)
@@ -700,11 +693,11 @@ def _create_openmm_system_explicit(
 def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
     if use_big_timestep:
         logger.info("Creating integrator with 3.5 fs timestep")
-        timestep = 3.5 * femtosecond
+        timestep = 3.5 * u.femtosecond
     elif use_bigger_timestep:
         logger.info("Creating integrator with 4.5 fs timestep")
-        timestep = 4.5 * femtosecond
+        timestep = 4.5 * u.femtosecond
     else:
         logger.info("Creating integrator with 2.0 fs timestep")
-        timestep = 2.0 * femtosecond
-    return LangevinIntegrator(temperature * kelvin, 1.0 / picosecond, timestep)
+        timestep = 2.0 * u.femtosecond
+    return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)

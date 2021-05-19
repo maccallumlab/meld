@@ -8,14 +8,17 @@
 import numpy as np  # type: ignore
 import unittest
 import os
-from meld import vault, comm
-from meld.system.state import SystemState
-from meld.system.param_sampling import ParameterState
-from meld.remd import leader, ladder, adaptor
-from meld import system
+from meld import vault
+from meld import comm
+from meld.system import options
+from meld.system import state
+from meld.system import pdb_writer
+from meld.system import param_sampling
+from meld.remd import leader
+from meld.remd import ladder
+from meld.remd import adaptor
 from meld.test.helper import TempDirHelper
 from meld.util import in_temp_dir
-from meld.pdb_writer import PDBWriter
 
 
 class DataStorePickleTestCase(unittest.TestCase):
@@ -28,13 +31,13 @@ class DataStorePickleTestCase(unittest.TestCase):
         self.N_REPLICAS = 4
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
-        self.state_template = SystemState(
+        self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
             np.zeros(3),
-            ParameterState(
+            param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
@@ -156,7 +159,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             pdb_writer = object()
             store = vault.DataStore(self.state_template, self.N_REPLICAS, pdb_writer)
             store.initialize(mode="w")
-            fake_run_options = system.RunOptions()
+            fake_run_options = options.RunOptions()
 
             store.save_run_options(fake_run_options)
             store.load_run_options()
@@ -177,13 +180,13 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
-        self.state_template = SystemState(
+        self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
             np.zeros(3),
-            ParameterState(
+            param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
@@ -291,8 +294,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
-            params = ParameterState(discrete, continuous)
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            params = param_sampling.ParameterState(discrete, continuous)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -316,8 +319,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
-            params = ParameterState(discrete, continuous)
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            params = param_sampling.ParameterState(discrete, continuous)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -359,13 +362,13 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
-        self.state_template = SystemState(
+        self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
             np.zeros(3),
-            ParameterState(
+            param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
@@ -388,8 +391,8 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
-            params = ParameterState(discrete, continuous)
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            params = param_sampling.ParameterState(discrete, continuous)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = leader.LeaderReplicaExchangeRunner(
@@ -437,13 +440,13 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
-        self.state_template = SystemState(
+        self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
             np.zeros(3),
-            ParameterState(
+            param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
@@ -466,8 +469,8 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
-            params = ParameterState(discrete, continuous)
-            return system.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            params = param_sampling.ParameterState(discrete, continuous)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
 
         runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a
@@ -532,23 +535,23 @@ class TestPDBWriter(unittest.TestCase):
         self.coords = np.zeros((2, 3))
         self.coords[0, :] = 1.0
         self.coords[1, :] = 2.0
-        self.writer = PDBWriter(
+        self.writer = pdb_writer.PDBWriter(
             self.atom_numbers, self.atom_names, self.residue_numbers, self.residue_names
         )
 
     def test_should_raise_with_wrong_number_of_atom_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(
+            pdb_writer.PDBWriter(
                 self.atom_numbers, ["CA"], self.residue_numbers, self.residue_names
             )
 
     def test_should_raise_with_wrong_number_of_residue_numbers(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
+            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
 
     def test_should_raise_with_wrong_number_of_residue_names(self):
         with self.assertRaises(AssertionError):
-            PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
+            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
 
     def test_should_raise_with_bad_coordinate_size(self):
         with self.assertRaises(AssertionError):

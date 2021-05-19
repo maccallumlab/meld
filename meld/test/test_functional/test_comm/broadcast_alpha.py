@@ -15,7 +15,7 @@ def main():
 
     if c.is_leader():
         alphas = [0., 0.1, 0.2, 0.3]
-        c.broadcast_alphas_to_followers(alphas)
+        c.broadcast_alphas_to_workers(alphas)
         try:
             assert alphas[0] == 0.
         except AssertionError:

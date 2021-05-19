@@ -34,7 +34,7 @@ def main():
 
     if c.is_leader():
         states = [generate_state(index) for index in range(4)]
-        my_state = c.broadcast_states_to_followers(states)
+        my_state = c.broadcast_states_to_workers(states)
         check_state(my_state, 0)
 
     else:

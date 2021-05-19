@@ -36,11 +36,13 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'breathe',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints'
 ]
 
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
+autosummary_mock_imports = ["meld.test"]
 
 # setup for C++ api docs
 breathe_projects = { "meld-api": "../plugin/build/xml" }
@@ -61,7 +63,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'MELD'
-copyright = u'2014, Justin MacCallum'
+copyright = u'2021, MELD Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -113,10 +115,7 @@ pygments_style = 'sphinx'
 
 
 # -- Options for HTML output ----------------------------------------------
-import msmb_theme
-import sphinx_rtd_theme
-
-html_theme = 'msmb_theme'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -124,10 +123,8 @@ html_theme = 'msmb_theme'
 #html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [
-    msmb_theme.get_html_theme_path(),
-    sphinx_rtd_theme.get_html_theme_path()
-]
+html_theme_path = []
+
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -148,7 +145,7 @@ html_theme_path = [
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

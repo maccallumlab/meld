@@ -18,6 +18,27 @@
 - You can now specify the platform to use.
   - Options are: "CUDA", "CPU", "Reference"
   - E.g. `launch_remd --platform CPU`
+- Many changes to indexing.
+  - All atom indexing is zero-based.
+  - By default, residue and chain indexing is zero-based, but individual
+    lookups can specify one-based indexing.
+  - `system.index.atom(resid, atom_name, chainid=None, one_based=False)`
+    - Can find the index of an atom.
+    - Absolute index if `chainid=None`.
+    - Relative index within a chain if `chainid` is specified.
+    - Both `resid` and `chainid` are zero-based by default, but can be one based
+      if `one_based=True`.
+    - Returns an `AtomIndex`, which is a zero-based absolute atom index.
+  - `system.index.residue(resid, chainid=None, one_based=False)`
+    - Can find the index of a residue.
+    - Absolute index if `chainid=None`.
+    - Relative index within a chain if `chainid` is specified.
+    - Both `resid` and `chainid` are zero-based by default, but can be one based
+      if `one_based=True`.
+    - Returns a `ResidueIndex`, which is a zero-based absolute residue index.
+  - All functions defining restraints now take `AtomIndex` rather sets of residues and
+    atom names.
+  - "follower" changed to "worker"
 
 ## Changes
 - No longer use network logging.

@@ -3,47 +3,48 @@
 # All rights reserved
 #
 
+"""
+A module for replica exchange workers
+"""
 
-class FollowerReplicaExchangeRunner:
+from meld import interfaces
+
+
+class WorkerReplicaExchangeRunner:
     """
-    This class coordinates running replica exchange on the follwers.
-
+    This class coordinates running replica exchange on the workers.
     """
 
-    def __init__(self, step, max_steps):
+    def __init__(self, step: int, max_steps: int):
+        """
+        Initialize a WorkerReplicaExchangeRunner
+
+        Args:
+            step: current step
+            max_steps: number of steps to run
+        """
         self._step = step
         self._max_steps = max_steps
 
-    @classmethod
-    def from_leader(cls, leader):
-        """
-        Initialize a new follower from a leader.
-
-        :param leader: a :class:`meld.remd.leader.
-                                 LeaderReplicaExchangeRunner`
-                       to serve as a template
-        :return: a :class:`FollwerReplicaExchangeRunner`
-
-        """
-        new_follower = cls(leader.step, leader.max_steps)
-        return new_follower
-
     @property
-    def step(self):
+    def step(self) -> int:
+        """current step"""
         return self._step
 
     @property
-    def max_steps(self):
+    def max_steps(self) -> int:
+        """number of steps to run"""
         return self._max_steps
 
-    def run(self, communicator, system_runner):
+    def run(
+        self, communicator: interfaces.ICommunicator, system_runner: interfaces.IRunner
+    ) -> None:
         """
-        Continue running follower jobs until done.
+        Continue running worker jobs until done.
 
-        :param communicator: a communicator object for talking to the leader
-        :param system_runner: a system_runner object for actually running the
-                              simulations
-
+        Args:
+            communicator: a communicator object for talking to the leader
+            system_runner: a system runner object for actually running the simulations
         """
         # we always minimize when we first start, either on the first
         # stage or the first stage after a restart

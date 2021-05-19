@@ -3,16 +3,25 @@
 # All rights reserved
 #
 
-import numpy as np  #type: ignore
+"""
+Module to build SubSystems from sequence or PDB file
+"""
+
+from meld.system import indexing
+import parmed  # type: ignore
+
+import numpy as np  # type: ignore
 import math
+from collections import defaultdict
+from abc import ABC, abstractmethod
+from typing import NamedTuple, List
 
 
-class ProteinBase:
+class _SubSystem(ABC):
     """
-    Base class for other Protein classes.
+    Base class for other SubSystem classes.
 
     Provides functionality for translation/rotation and adding H-bonds.
-
     """
 
     def __init__(self):
@@ -23,32 +32,61 @@ class ProteinBase:
         self._prep_files = []
         self._frcmod_files = []
         self._lib_files = []
+        self._info = []
 
-    def set_translation(self, translation_vector):
+    @abstractmethod
+    def prepare_for_tleap(self, mol_id: str):
+        """
+        Prepare any inputs needed for tleap
+
+        Args:
+            mol_id: identifier for this moleule
+
+        This runs in a temporary directory where tleap
+        will be run.
+        """
+        pass
+
+    @abstractmethod
+    def generate_tleap_input(self, mol_id: str) -> List[str]:
+        """
+        Returns a list of tleap commands to run.
+
+        Args:
+            mol_id: identifier for this moleule
+
+        Returns:
+            a list of telap commands
+        """
+        pass
+
+    def set_translation(self, translation_vector: np.ndarray):
         """
         Set the translation vector.
 
-        :param translation_vector: ``numpy.array(3)`` in nanometers
+        Args:
+            translation_vector: in nanometers
 
-        Translation happens after rotation.
-
+        .. note::
+           Translation happens after rotation.
         """
         self._translation_vector = np.array(translation_vector)
 
-    def set_rotation(self, rotation_axis, theta):
+    def set_rotation(self, rotation_axis: np.ndarray, theta: float):
         """
         Set the rotation.
 
-        :param rotation_axis: ``numpy.array(3)`` in nanometers
-        :param theta: angle of rotation in degrees
+        Args:
+            rotation_axis: in nanometers
+            theta: angle of rotation in degrees
 
-        Rotation happens after translation.
-
+        .. note::
+           Rotation happens after translation.
         """
         theta = theta * 180 / math.pi
         rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
-        a = np.cos(theta / 2.)
-        b, c, d = -rotation_axis * np.sin(theta / 2.)
+        a = np.cos(theta / 2.0)
+        b, c, d = -rotation_axis * np.sin(theta / 2.0)
         self._rotatation_matrix = np.array(
             [
                 [
@@ -69,61 +107,75 @@ class ProteinBase:
             ]
         )
 
-    def add_bond(self, res_index_i, res_index_j, atom_name_i, atom_name_j, bond_type):
+    def add_bond(
+        self,
+        res_index_i: indexing.ResidueIndex,
+        res_index_j: indexing.ResidueIndex,
+        atom_name_i: str,
+        atom_name_j: str,
+        bond_type: str,
+    ):
         """
         Add a general bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
-        :param atom_name_i: string name of i
-        :param atom_name_j: string name of j
-        :param bond_type:   string specifying the "S", "D","T"... bond
-
-        .. note::
-            indexing starts from one and the residue numbering from the
-            PDB file is ignored.
-
+        Args:
+            res_index_i: index of residue i
+            res_index_j: index of residue j
+            atom_name_i: name of i
+            atom_name_j: name of j
+            bond_type:   type of bond ["S", "D", "T"...]
         """
+        assert isinstance(res_index_i, indexing.ResidueIndex)
+        assert isinstance(res_index_j, indexing.ResidueIndex)
         self._general_bond.append(
-            (res_index_i, res_index_j, atom_name_i, atom_name_j, bond_type)
+            (int(res_index_i), int(res_index_j), atom_name_i, atom_name_j, bond_type)
         )
 
     def add_disulfide(self, res_index_i, res_index_j):
         """
         Add a disulfide bond.
 
-        :param res_index_i: one-based index of residue i
-        :param res_index_j: one-based index of residue j
-
-        .. note::
-            indexing starts from one and the residue numbering from the
-            PDB file is ignored. When loading from a PDB or creating a
-            sequence, residue name must be CYX, not CYS.
-
+        Args:
+            res_index_i: index of residue i
+            res_index_j: index of residue j
         """
-        self._disulfide_list.append((res_index_i, res_index_j))
+        assert isinstance(res_index_i, indexing.ResidueIndex)
+        assert isinstance(res_index_j, indexing.ResidueIndex)
+        self._disulfide_list.append((int(res_index_i), int(res_index_j)))
 
-    def add_prep_file(self, fname):
+    def add_prep_file(self, fname: str):
         """
         Add a prep file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: filename of prep file
         """
         self._prep_files.append(fname)
 
-    def add_frcmod_file(self, fname):
+    def add_frcmod_file(self, fname: str):
         """
         Add a frcmod file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: name of frcmod file
         """
         self._frcmod_files.append(fname)
 
-    def add_lib_file(self, fname):
+    def add_lib_file(self, fname: str):
         """
         Add a lib file.
+
         This will be needed when using residues that
         are not defined in the general amber force field
+
+        Args:
+            fname: name of lib file
         """
         self._lib_files.append(fname)
 
@@ -141,14 +193,14 @@ class ProteinBase:
     def _gen_bond_string(self, mol_id):
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
-            d = f'bond {mol_id}.{i}.{a} {mol_id}.{j}.{b} "{t}"'
+            d = f'bond {mol_id}.{i+1}.{a} {mol_id}.{j+1}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
     def _gen_disulfide_string(self, mol_id):
         disulfide_strings = []
         for i, j in self._disulfide_list:
-            d = f"bond {mol_id}.{i}.SG {mol_id}.{j}.SG"
+            d = f"bond {mol_id}.{i+1}.SG {mol_id}.{j+1}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
@@ -171,24 +223,31 @@ class ProteinBase:
         return lib_string
 
 
-class ProteinMoleculeFromSequence(ProteinBase):
+class SubSystemFromSequence(_SubSystem):
     """
-    Class to create a protein from sequence. This class will create a protein
-    molecule from sequence. This class is pretty dumb and relies on AmberTools
-    to do all of the heavy lifting.
+    Class to create a sub-system from sequence.
 
-    :param sequence: sequence of the protein to create
+    This class will create a sub-system from sequence. This class is
+    pretty dumb and relies on AmberTools to do all of the heavy lifting.
 
     The sequence is specified in Amber/Leap format. There are special NRES and
     CRES variants for the N- and C-termini. Different protonation states are
     also available via different residue names. E.g. ASH
     for neutral ASP.
-
     """
 
-    def __init__(self, sequence):
-        super(ProteinMoleculeFromSequence, self).__init__()
+    def __init__(self, sequence: str):
+        """
+        Initialize a SubSystemFromSequence
+
+        Args:
+            sequence: the sequence to build
+        """
+        super(SubSystemFromSequence, self).__init__()
         self._sequence = sequence
+        sequence_len = len(sequence.split(" "))
+        chain_info = indexing._ChainInfo({i: i for i in range(sequence_len)})
+        self._info = indexing._SubSystemInfo(sequence_len, [chain_info])
 
     def prepare_for_tleap(self, mol_id):
         # we don't need to do anything
@@ -208,9 +267,10 @@ class ProteinMoleculeFromSequence(ProteinBase):
         return leap_cmds
 
 
-class ProteinMoleculeFromPdbFile(ProteinBase):
+class SubSystemFromPdbFile(_SubSystem):
     """
-    Create a new protein molecule from a pdb file.
+    Create a new susbsystem from a pdb file.
+
     This class is dumb and relies on AmberTools for the heavy lifting.
 
     :param pdb_path: string path to the pdb file
@@ -222,10 +282,35 @@ class ProteinMoleculeFromPdbFile(ProteinBase):
 
     """
 
-    def __init__(self, pdb_path):
-        super(ProteinMoleculeFromPdbFile, self).__init__()
+    def __init__(self, pdb_path: str):
+        """
+        Initialize a SubSystemFromPdbFile
+
+        Args:
+            pdb_path: path to pdb file
+        """
+        super(SubSystemFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
+
+        # figure out chains
+        pdb = parmed.load_file(pdb_path)
+        n_residues = len(pdb.residues)
+
+        # get list of chainids
+        chainids = []
+        chain_to_res = defaultdict(list)
+        for i, residue in enumerate(pdb.residues):
+            chainids.append(residue.chain)
+            chain_to_res[residue.chain].append(i)
+        chainid_set = set(chainids)
+
+        # loop over the chainids in alphabetical order
+        chains = []
+        for chainid in sorted(chainid_set):
+            chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chains.append(chain)
+        self._info = indexing._SubSystemInfo(n_residues, chains)
 
     def prepare_for_tleap(self, mol_id):
         # copy the contents of the pdb file into the current working directory

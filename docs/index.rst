@@ -11,33 +11,14 @@ on it.
 .. toctree::
    :maxdepth: 1
 
-   getting_started
-
-.. toctree::
-   :maxdepth: 1
-
-   explicit_solvent
-
-API Reference
--------------
-
-.. toctree::
-   :maxdepth: 1
-
-   python-api
-   c++-api
+   tutorial/index
+   how_to/index
+   explain/index
+   reference/index
 
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-Omnia
-=====
-
-MELD is part of the `Omnia <http://omnia.md>`_ suite of tools.
-
-.. image:: /_static/omnia.svg
-
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

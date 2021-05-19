@@ -100,7 +100,7 @@ conda install mpich mpi4py
 
 If your cluster uses mpi libraries that are system-specific, you will likely need to compile from source:
 ```
-pip install mpi4py
+pip install --no-deps mpi4py
 ```
 You may need to load `module`s and/or configure environment variables for this to work. Consult your system adminstrator or
 cluster documentation for guidance.

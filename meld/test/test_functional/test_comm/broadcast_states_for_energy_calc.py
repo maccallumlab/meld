@@ -34,7 +34,7 @@ def main():
 
     if c.is_leader():
         states = [generate_state(index) for index in range(4)]
-        c.broadcast_states_for_energy_calc_to_followers(states)
+        c.broadcast_states_for_energy_calc_to_workers(states)
 
     else:
         all_states = c.receive_states_for_energy_calc_from_leader()

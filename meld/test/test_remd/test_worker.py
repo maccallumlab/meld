@@ -5,37 +5,16 @@
 
 import unittest
 from unittest import mock  # type: ignore
-from meld.remd import follower, leader
-from meld.system import runner
+from meld.remd import worker, leader
+from meld import interfaces
 from meld import comm
 
 
 sentinel = mock.sentinel
 
 
-class TestFollowerInitFromLeader(unittest.TestCase):
-    "Initialize follower runner from leader runner"
-
-    def setUp(self):
-        self.mock_leader = mock.Mock(spec_set=leader.LeaderReplicaExchangeRunner)
-        self.mock_leader.step = 42
-        self.mock_leader.max_steps = 43
-
-    def test_sets_step(self):
-        "creating follower from_leader should set the step"
-        runner = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
-
-        self.assertEqual(runner.step, 42)
-
-    def test_sets_max_steps(self):
-        "creating follower from_leader should set max_steps"
-        runner = follower.FollowerReplicaExchangeRunner.from_leader(self.mock_leader)
-
-        self.assertEqual(runner.max_steps, 43)
-
-
-class TestFollowerSingle(unittest.TestCase):
-    "Make sure the FollowerReplicaExchangeRunner works for a single round"
+class TestWorkerSingle(unittest.TestCase):
+    "Make sure the WorkerReplicaExchangeRunner works for a single round"
 
     def setUp(self):
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
@@ -69,7 +48,7 @@ class TestFollowerSingle(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec_set=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = mock.sentinel.STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1,
@@ -83,7 +62,7 @@ class TestFollowerSingle(unittest.TestCase):
             self.FAKE_ENERGIES_AFTER_GET_ENERGY
         )
 
-        self.runner = follower.FollowerReplicaExchangeRunner(step=1, max_steps=1)
+        self.runner = worker.WorkerReplicaExchangeRunner(step=1, max_steps=1)
 
     def test_calls_receive_alpha(self):
         "should call receive_alpha"
@@ -137,8 +116,8 @@ class TestFollowerSingle(unittest.TestCase):
         )
 
 
-class TestFollowerMultiple(unittest.TestCase):
-    "Make sure the FollowerReplicaExchangeRunner works for a multiple rounds"
+class TestWorkerMultiple(unittest.TestCase):
+    "Make sure the worker works for a multiple rounds"
 
     def setUp(self):
         self.mock_comm = mock.Mock(spec_set=comm.MPICommunicator)
@@ -170,7 +149,7 @@ class TestFollowerMultiple(unittest.TestCase):
             self.fake_states_after_run
         )
 
-        self.mock_system_runner = mock.Mock(spec_set=runner.ReplicaRunner)
+        self.mock_system_runner = mock.Mock(spec_set=interfaces.IRunner)
         self.mock_system_runner.minimize_then_run.return_value = mock.sentinel.STATE
         self.FAKE_ENERGIES_AFTER_GET_ENERGY = [
             sentinel.E1,
@@ -181,7 +160,7 @@ class TestFollowerMultiple(unittest.TestCase):
         self.mock_system_runner.get_energy.side_effect = (
             self.FAKE_ENERGIES_AFTER_GET_ENERGY
         )
-        self.runner = follower.FollowerReplicaExchangeRunner(step=1, max_steps=4)
+        self.runner = worker.WorkerReplicaExchangeRunner(step=1, max_steps=4)
 
     def test_runs_correct_number_of_steps(self):
         "should run the correct number of steps"

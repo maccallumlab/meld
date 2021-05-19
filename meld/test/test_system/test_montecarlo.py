@@ -4,10 +4,12 @@
 #
 
 from meld.system import montecarlo as mc
+from meld.system.indexing import AtomIndex
+from meld.system.state import SystemState
 import meld
 import unittest
-from unittest import mock  #type: ignore
-import numpy as np  #type: ignore
+from unittest import mock  # type: ignore
+import numpy as np  # type: ignore
 
 
 class TestMonteCarloSchedulerSingle(unittest.TestCase):
@@ -100,70 +102,70 @@ class TestRotateAroundAxis(unittest.TestCase):
     def test_should_produce_correct_rotation(self):
         start = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [0., 0., .0],
-                [-1., 0., -1.],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
+                [-1.0, 0.0, -1.0],
             ]
         )
-        p1 = np.array([0., 0., -1.])
-        p2 = np.array([0., 2., -1.])
-        rotation_angle = 90.
+        p1 = np.array([0.0, 0.0, -1.0])
+        p2 = np.array([0.0, 2.0, -1.0])
+        rotation_angle = 90.0
 
         # rotation should leave the first two points unchanged,
         # while the rest are circularly permuted due to 90 degree
         # rotation
         end = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [-1., 0., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [0., 0., .0],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [-1.0, 0.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
             ]
         )
 
-        result = mc.rotate_around_vector(p1, p2, rotation_angle, start)
+        result = mc._rotate_around_vector(p1, p2, rotation_angle, start)
 
         np.testing.assert_array_almost_equal(result, end)
 
 
 class TestMetropolis(unittest.TestCase):
     def test_should_always_accept_favorable_move(self):
-        current_energy = 0.
-        trial_energy = -1.
-        bias = 0.
+        current_energy = 0.0
+        trial_energy = -1.0
+        bias = 0.0
 
-        result = mc.metropolis(current_energy, trial_energy, bias)
+        result = mc._metropolis(current_energy, trial_energy, bias)
 
         self.assertEqual(result, True)
 
     def test_should_accept_unfavorable_move_with_random_less_than_metropolis_weight(
-        self
+        self,
     ):
-        current_energy = 0.
-        trial_energy = 1.
-        bias = 0.
+        current_energy = 0.0
+        trial_energy = 1.0
+        bias = 0.0
 
         with mock.patch("meld.system.montecarlo.random.random") as mock_random:
             mock_random.return_value = 0.35  # slightly less than exp(-1)
-            result = mc.metropolis(current_energy, trial_energy, bias)
+            result = mc._metropolis(current_energy, trial_energy, bias)
 
         self.assertEqual(result, True)
 
     def test_should_not_accept_unfavorable_move_with_random_greater_than_metropolis_weight(
-        self
+        self,
     ):
-        current_energy = 0.
-        trial_energy = 1.
-        bias = 0.
+        current_energy = 0.0
+        trial_energy = 1.0
+        bias = 0.0
 
         with mock.patch("meld.system.montecarlo.random.random") as mock_random:
             mock_random.return_value = 0.37  # slightly more than exp(-1)
-            result = mc.metropolis(current_energy, trial_energy, bias)
+            result = mc._metropolis(current_energy, trial_energy, bias)
 
         self.assertEqual(result, False)
 
@@ -173,39 +175,41 @@ class TestRandomTorsionMover(unittest.TestCase):
         # setup
         start = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [0., 0., .0],
-                [-1., 0., -1.],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
+                [-1.0, 0.0, -1.0],
             ]
         )
 
         end = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [1., 0., -1.],
-                [0., 0., 0.],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
             ]
         )
 
-        state = meld.system.SystemState(
-            start, np.zeros_like(start), 0., 0., np.zeros(3)
+        state = SystemState(
+            start, np.zeros_like(start), 0.0, 0.0, np.zeros(3)
         )
         mock_runner = mock.Mock()
         mock_runner.get_energy.return_value = -1.0
 
-        mover = mc.RandomTorsionMover(0, 1, [4, 5])
+        mover = mc.RandomTorsionMover(
+            AtomIndex(0), AtomIndex(1), [AtomIndex(4), AtomIndex(5)]
+        )
 
         # exercise
         with mock.patch(
-            "meld.system.montecarlo.generate_uniform_angle"
+            "meld.system.montecarlo._generate_uniform_angle"
         ) as mock_gen_angle:
-            mock_gen_angle.return_value = 90.
+            mock_gen_angle.return_value = 90.0
             new_state, accepted = mover.trial(state, mock_runner)
 
         # assert
@@ -217,39 +221,41 @@ class TestRandomTorsionMover(unittest.TestCase):
         # setup
         start = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [0., 0., .0],
-                [-1., 0., -1.],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
+                [-1.0, 0.0, -1.0],
             ]
         )
 
         end = np.array(
             [
-                [0., 0., -1.],
-                [0., 2., -1.],
-                [0., 0., -2.],
-                [1., 0., -1.],
-                [0., 0., .0],
-                [-1., 0., -1.],
+                [0.0, 0.0, -1.0],
+                [0.0, 2.0, -1.0],
+                [0.0, 0.0, -2.0],
+                [1.0, 0.0, -1.0],
+                [0.0, 0.0, 0.0],
+                [-1.0, 0.0, -1.0],
             ]
         )
 
-        state = meld.system.SystemState(
-            start, np.zeros_like(start), 0., 0., np.zeros(3)
+        state = SystemState(
+            start, np.zeros_like(start), 0.0, 0.0, np.zeros(3)
         )
         mock_runner = mock.Mock()
-        mock_runner.get_energy.return_value = 1000.
+        mock_runner.get_energy.return_value = 1000.0
 
-        mover = mc.RandomTorsionMover(0, 1, [4, 5])
+        mover = mc.RandomTorsionMover(
+            AtomIndex(0), AtomIndex(1), [AtomIndex(4), AtomIndex(5)]
+        )
 
         # exercise
         with mock.patch(
-            "meld.system.montecarlo.generate_uniform_angle"
+            "meld.system.montecarlo._generate_uniform_angle"
         ) as mock_gen_angle:
-            mock_gen_angle.return_value = 90.
+            mock_gen_angle.return_value = 90.0
             new_state, accepted = mover.trial(state, mock_runner)
 
         # assert

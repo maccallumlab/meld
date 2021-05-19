@@ -22,7 +22,7 @@ def main():
     energies = generate_energies(c.rank)
 
     if c.is_leader():
-        all_energies = c.gather_energies_from_followers(energies)
+        all_energies = c.gather_energies_from_workers(energies)
         assert all_energies[0, 0] == 0.
         assert all_energies[0, 1] == 0.
         assert all_energies[0, 2] == 0.

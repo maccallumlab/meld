@@ -5,21 +5,23 @@
 
 import unittest
 
-import openmm  #type: ignore
-from unittest import mock  #type: ignore
-from unittest.mock import ANY  #type: ignore
-import numpy as np  #type: ignore
+from meld.system import subsystem
+from meld.system import builder
+from meld.system import options
+from meld.runner.transform import cmap
 
-from meld.system import protein, builder
-from meld.system.openmm_runner.cmap import CMAPAdder
+from simtk import openmm  # type: ignore
+from unittest import mock  # type: ignore
+from unittest.mock import ANY  # type: ignore
+import numpy as np  # type: ignore
 
 
 class TestAddCMAPTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
         # create eight 24x24 maps filled with 0, 1, ..7
         self.maps = [np.zeros((24, 24)) + i for i in range(8)]
@@ -29,7 +31,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.transform.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -40,16 +42,21 @@ class TestAddCMAPTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_adds_maps_to_force(self):
-        with mock.patch("meld.system.openmm_runner.cmap.np.loadtxt") as mock_loadtxt:
+        with mock.patch("meld.runner.transform.cmap.np.loadtxt") as mock_loadtxt:
             # this is a bit hacky and depends on what order the maps are loaded in
-            expected_gly = 3.0 * 0. + 7.0 * 1. + np.zeros((24, 24)).flatten()
-            expected_pro = 3.0 * 2. + 7.0 * 3. + np.zeros((24, 24)).flatten()
-            expected_ala = 3.0 * 4. + 7.0 * 5. + np.zeros((24, 24)).flatten()
-            expected_gen = 3.0 * 6. + 7.0 * 7. + np.zeros((24, 24)).flatten()
+            expected_gly = 3.0 * 0.0 + 7.0 * 1.0 + np.zeros((24, 24)).flatten()
+            expected_pro = 3.0 * 2.0 + 7.0 * 3.0 + np.zeros((24, 24)).flatten()
+            expected_ala = 3.0 * 4.0 + 7.0 * 5.0 + np.zeros((24, 24)).flatten()
+            expected_gen = 3.0 * 6.0 + 7.0 * 7.0 + np.zeros((24, 24)).flatten()
             mock_loadtxt.side_effect = self.maps
-            adder = CMAPAdder(self.system.top_string, alpha_bias=3.0, beta_bias=7.0)
 
-            adder.add_to_openmm(self.mock_openmm_system)
+            opt = options.RunOptions()
+            opt.use_amap = True
+            opt.amap_alpha_bias = 3.0
+            opt.amap_beta_bias = 7.0
+            adder = cmap.CMAPTransformer(opt, self.system.top_string)
+
+            adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
             self.assertEqual(self.MockCMAP.call_count, 1)
             self.assertEqual(self.mock_cmap.addMap.call_count, 4)
@@ -68,8 +75,11 @@ class TestAddCMAPTriAla(unittest.TestCase):
             np.testing.assert_almost_equal(add_map_args[3][0][1], expected_gen)
 
     def test_correct_torsions_should_be_added_to_force(self):
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         # map should be #2 for alanine
         # all atom indices are zero-based in openmm
@@ -78,8 +88,11 @@ class TestAddCMAPTriAla(unittest.TestCase):
         )
 
     def test_force_should_be_added_to_system(self):
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_openmm_system.addForce.assert_called_once_with(self.mock_cmap)
 
@@ -87,16 +100,16 @@ class TestAddCMAPTriAla(unittest.TestCase):
 class TestAddCMAPDoubleTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
-        p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")
+        p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p, p])
+        self.system = b.build_system([p, p])
 
         # mock openmm system to recieve the new cmap torsion force
         self.mock_openmm_system = mock.Mock(spec=openmm.System)
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.transform.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -107,8 +120,11 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
         self.patcher.stop()
 
     def test_correct_torsions_should_be_added_to_force(self):
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         # map should be #2 for alanine
         # all atom indices are zero-based in openmm
@@ -126,7 +142,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.system.openmm_runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.transform.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -138,15 +154,18 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
     def make_system(self, restype):
         sequence = f"NALA {restype} CALA"
-        p = protein.ProteinMoleculeFromSequence(sequence)
+        p = subsystem.SubSystemFromSequence(sequence)
         b = builder.SystemBuilder()
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
     def test_correct_map_used_for_GLY(self):
         self.make_system("GLY")
 
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             0, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -155,8 +174,11 @@ class TestAddsCorrectMapType(unittest.TestCase):
     def test_correct_map_used_for_PRO(self):
         self.make_system("PRO")
 
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             1, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -165,8 +187,11 @@ class TestAddsCorrectMapType(unittest.TestCase):
     def test_correct_map_used_for_ALA(self):
         self.make_system("ALA")
 
-        adder = CMAPAdder(self.system.top_string)
-        adder.add_to_openmm(self.mock_openmm_system)
+        opt = options.RunOptions()
+        opt.use_amap = True
+
+        adder = cmap.CMAPTransformer(opt, self.system.top_string)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock)
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             2, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -203,8 +228,11 @@ class TestAddsCorrectMapType(unittest.TestCase):
             self.mock_cmap.reset_mock()
             self.make_system(res)
 
-            adder = CMAPAdder(self.system.top_string)
-            adder.add_to_openmm(self.mock_openmm_system)
+            opt = options.RunOptions()
+            opt.use_amap = True
+
+            adder = cmap.CMAPTransformer(opt, self.system.top_string)
+            adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
             self.mock_cmap.addTorsion.assert_called_once_with(
                 3, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY

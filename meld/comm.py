@@ -3,6 +3,29 @@
 # All rights reserved
 #
 
+"""
+Module to handle MPI communication
+"""
+
+try:
+    from mpi4py import MPI  # type: ignore
+except ImportError:
+    print()
+    print("****")
+    print("Error importing mpi4py.")
+    print()
+    print("Meld depends on mpi4py, but does not automatically install it")
+    print(
+        "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
+    )
+    print("for details.")
+    print("****")
+    print()
+    raise
+
+from meld import interfaces
+from meld import util
+
 import signal
 import threading
 import time
@@ -13,9 +36,7 @@ from collections import defaultdict, namedtuple
 import contextlib
 import logging
 import sys
-from meld.util import log_timing
-from meld.system.state import SystemState
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, NamedTuple, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -24,26 +45,23 @@ logger = logging.getLogger(__name__)
 sys_excepthook = sys.excepthook
 
 
-def mpi_excepthook(type, value, traceback):
+def _mpi_excepthook(type, value, traceback):
     sys_excepthook(type, value, traceback)
-    rank = get_mpi_comm_world().rank + 1
-    size = get_mpi_comm_world().size
+    rank = _get_mpi_comm_world().rank + 1
+    size = _get_mpi_comm_world().size
     node_name = f"{rank}/{size}"
     logger.critical(f"MPI node {node_name} raised exception.")
     sys.stdout.flush()
     sys.stderr.flush()
-    get_mpi_comm_world().Abort(1)
+    _get_mpi_comm_world().Abort(1)
 
 
-sys.excepthook = mpi_excepthook
+sys.excepthook = _mpi_excepthook
 
 
-class MPICommunicator:
+class MPICommunicator(interfaces.ICommunicator):
     """
-    Class to handle communications between leader and followers using MPI.
-
-    :param n_atoms: number of atoms
-    :param n_replicas: number of replicas
+    Class to handle communications between leader and workers using MPI.
 
     .. note::
         creating an MPI communicator will not actually initialize MPI.
@@ -52,7 +70,15 @@ class MPICommunicator:
 
     _mpi_comm: Any
 
-    def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600) -> None:
+    def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600):
+        """
+        Initialize an MPICommunicator
+
+        Args:
+            n_atoms: number of atoms
+            n_replicas: number of replicas
+            timeout: maximum time to wait before aborting
+        """
         # We're not using n_atoms and n_replicas, but if we switch
         # to more efficient buffer-based MPI routines, we'll need them.
         self._n_atoms = n_atoms
@@ -71,167 +97,165 @@ class MPICommunicator:
     def initialize(self) -> None:
         """
         Initialize and start MPI
-
         """
-        self._mpi_comm = get_mpi_comm_world()
+        self._mpi_comm = _get_mpi_comm_world()
         self._my_rank = self._mpi_comm.Get_rank()
 
     def is_leader(self) -> bool:
         """
         Is this the leader node?
 
-        :returns: :const:`True` if we are the leader, otherwise :const:`False`
-
+        Returns:
+            :const:`True` if we are the leader, otherwise :const:`False`
         """
         if self._my_rank == 0:
             return True
         else:
             return False
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def barrier(self) -> None:
-        with timeout(
+        """
+        Wait until all workers reach this point
+        """
+        with _timeout(
             self._timeout, RuntimeError(self._timeout_message.format("barrier"))
         ):
             self._mpi_comm.barrier()
 
-    @log_timing(logger)
-    def broadcast_alphas_to_followers(self, alphas: List[float]) -> None:
+    @util.log_timing(logger)
+    def broadcast_alphas_to_workers(self, alphas: List[float]) -> None:
         """
-        broadcast_alphas_to_followers(alphas)
-        Send the alpha values to the followers.
+        Send the alpha values to the workers.
 
-        :param alphas: a list of alpha values, one for each replica.
-            The leader's alpha value should be included in this list.
-            The leader's node will always be at alpha=0.0
-        :returns: :const:`None`
+        Args:
+            alphas: a list of alpha values, one for each replica.
 
+        .. note::
+           The leader's alpha value should be included in :code:`alphas`.
+           The leader's node will always be at :code:`alpha=0.0`.
         """
-        with timeout(
+        with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_alphas_to_followers")),
+            RuntimeError(self._timeout_message.format("broadcast_alphas_to_workers")),
         ):
             self._mpi_comm.scatter(alphas, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def receive_alpha_from_leader(self) -> float:
         """
-        receive_alpha_from_leader()
         Receive alpha value from leader node.
 
-        :returns: a floating point value for alpha in ``[0,1]``
-
+        Returns:
+            value for alpha in ``[0,1]``
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("receive_alpha_from_leader")),
         ):
             return self._mpi_comm.scatter(None, root=0)
 
-    @log_timing(logger)
-    def broadcast_states_to_followers(self, states: List[SystemState]) -> SystemState:
+    @util.log_timing(logger)
+    def broadcast_states_to_workers(self, states: Sequence[interfaces.IState]) -> interfaces.IState:
         """
-        broadcast_states_to_followers(states)
-        Send a state to each follower.
+        Send a state to each worker.
 
-        :param states: a list of states. The list of states should include
-            the state for the leader node. These are the states that will
-            be simulated on each replica for each step.
-        :returns: the state to run on the leader node
+        Args:
+            states: a list of states.
+            
+        Returns:
+            the state to run on the leader node
 
+        .. note::
+           The list of states should include the state for the leader node. 
         """
-        with timeout(
+        with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("broadcast_states_to_followers")),
+            RuntimeError(self._timeout_message.format("broadcast_states_to_workers")),
         ):
             return self._mpi_comm.scatter(states, root=0)
 
-    @log_timing(logger)
-    def receive_state_from_leader(self) -> SystemState:
+    @util.log_timing(logger)
+    def receive_state_from_leader(self) -> interfaces.IState:
         """
-        receive_state_from_leader()
         Get state to run for this step
 
-        :returns: the state to run for this step
-
+        Returns:
+            the state to run for this step
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("receive_state_from_leader")),
         ):
             return self._mpi_comm.scatter(None, root=0)
 
-    @log_timing(logger)
-    def gather_states_from_followers(
-        self, state_on_leader: SystemState
-    ) -> List[SystemState]:
+    @util.log_timing(logger)
+    def gather_states_from_workers(
+        self, state_on_leader: interfaces.IState
+    ) -> Sequence[interfaces.IState]:
         """
-        gather_states_from_followers(state_on_leader)
-        Receive states from all followers
+        Receive states from all workers
 
-        :param state_on_leader: the state on the leader after simulating
-        :returns: A list of states, one from each replica.
-                  The returned states are the states after simulating.
-
+        Args:
+            state_on_leader: the state on the leader after simulating
+        Returns:
+            A list of states, one from each replica.
         """
-        with timeout(
+        with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("gather_states_from_followers")),
+            RuntimeError(self._timeout_message.format("gather_states_from_workers")),
         ):
             return self._mpi_comm.gather(state_on_leader, root=0)
 
-    @log_timing(logger)
-    def send_state_to_leader(self, state: SystemState) -> None:
+    @util.log_timing(logger)
+    def send_state_to_leader(self, state: interfaces.IState) -> None:
         """
-        send_state_to_leader(state)
         Send state to leader
 
-        :param state: State to send to leader. This is the state after
-                      simulating this step.
-        :returns: :const:`None`
-
+        Args:
+            state: State to send to leader.
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("send_state_to_leader")),
         ):
             self._mpi_comm.gather(state, root=0)
 
-    @log_timing(logger)
-    def broadcast_states_for_energy_calc_to_followers(
-        self, states: List[SystemState]
+    @util.log_timing(logger)
+    def broadcast_states_for_energy_calc_to_workers(
+        self, states: Sequence[interfaces.IState]
     ) -> None:
         """
-        broadcast_states_for_energy_calc_to_followers(states)
-        Broadcast states to all followers. Send all results from this step
-        to every follower so that we can calculate the energies and do
-        replica exchange.
+        Broadcast states to all workers.
+        
+        Send all results from this step to every worker so that we can
+        calculate the energies and do replica exchange.
 
-        :param states: a list of states
-        :returns: :const:`None`
-
+        Args:
+            states: a list of states
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(
                 self._timeout_message.format(
-                    "broadcast_states_for_energy_calc_to_followers"
+                    "broadcast_states_for_energy_calc_to_workers"
                 )
             ),
         ):
             self._mpi_comm.bcast(states, root=0)
 
-    @log_timing(logger)
-    def exchange_states_for_energy_calc(self, state: SystemState) -> List[SystemState]:
+    @util.log_timing(logger)
+    def exchange_states_for_energy_calc(self, state: interfaces.IState) -> Sequence[interfaces.IState]:
         """
-        exchange_states_for_energy_calc(state)
         Exchange states between all processes.
 
-        :param state: the state for this node
-        :returns: a list of states from all nodes
+        Args:
+            state: the state for this node
 
+        Returns:
+            a list of states from all nodes
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(
                 self._timeout_message.format("exchange_states_for_energy_calc")
@@ -239,16 +263,15 @@ class MPICommunicator:
         ):
             return self._mpi_comm.allgather(state)
 
-    @log_timing(logger)
-    def receive_states_for_energy_calc_from_leader(self) -> List[SystemState]:
+    @util.log_timing(logger)
+    def receive_states_for_energy_calc_from_leader(self) -> Sequence[interfaces.IState]:
         """
-        receive_states_for_energy_calc_from_leader()
         Receive all states from leader.
 
-        :returns: a list of states to calculate the energy of
-
+        Returns:
+            a list of states to calculate the energy of
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(
                 self._timeout_message.format(
@@ -258,47 +281,52 @@ class MPICommunicator:
         ):
             return self._mpi_comm.bcast(None, root=0)
 
-    @log_timing(logger)
-    def gather_energies_from_followers(
+    @util.log_timing(logger)
+    def gather_energies_from_workers(
         self, energies_on_leader: List[float]
     ) -> np.ndarray:
         """
-        gather_energies_from_followers(energies_on_leader)
-        Receive a list of energies from each follower.
+        Receive a list of energies from each worker.
 
-        :param energies_on_leader: a list of energies from the leader
-        :returns: a square matrix of every state on every replica to be used
-                  for replica exchange
+        Args:
+            energies_on_leader: a list of energies from the leader
 
+        Returns:
+            a square matrix of every state on every replica to be used for replica exchange
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(
-                self._timeout_message.format("gather_energies_from_followers")
+                self._timeout_message.format("gather_energies_from_workers")
             ),
         ):
             energies = self._mpi_comm.gather(energies_on_leader, root=0)
             return np.array(energies)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def send_energies_to_leader(self, energies: List[float]) -> None:
         """
-        send_energies_to_leader(energies)
         Send a list of energies to the leader.
 
-        :param energies: a list of energies to send to the leader
-        :returns: :const:`None`
-
+        Args:
+            energies: a list of energies to send to the leader
         """
-        with timeout(
+        with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("send_energies_to_leader")),
         ):
             return self._mpi_comm.gather(energies, root=0)
 
-    @log_timing(logger)
+    @util.log_timing(logger)
     def negotiate_device_id(self) -> int:
-        with timeout(
+        """
+        Negotiate CUDA device id
+
+        Returns:
+            the cuda device id to use
+
+        """
+        with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("negotiate_device_id")),
         ):
@@ -384,18 +412,21 @@ class MPICommunicator:
 
     @property
     def n_replicas(self) -> int:
+        """number of replicas"""
         return self._n_replicas
 
     @property
     def n_atoms(self) -> int:
+        """number of atoms"""
         return self._n_atoms
 
     @property
     def rank(self) -> int:
+        """rank of this worker"""
         return self._my_rank
 
 
-def get_mpi_comm_world() -> Any:
+def _get_mpi_comm_world() -> MPI.Comm:
     """
     Helper function to return the comm_world.
 
@@ -420,7 +451,9 @@ def get_mpi_comm_world() -> Any:
 
 
 # namedtuple to hold results for negotiate id
-HostInfo = namedtuple("HostInfo", "host_name devices")
+class HostInfo(NamedTuple):
+    host_name: str
+    devices: Optional[List[int]]
 
 
 # Adapted from interrupting cow
@@ -452,11 +485,11 @@ HostInfo = namedtuple("HostInfo", "host_name devices")
 # SOFTWARE.
 
 
-class StateException(Exception):
+class _StateException(Exception):
     pass
 
 
-class Quota:
+class _Quota:
     def __init__(self, seconds):
         if seconds <= 0:
             raise ValueError("Invalid timeout: %s" % seconds)
@@ -509,7 +542,7 @@ def _bootstrap():
         if current == signal.SIG_DFL:
             signal.signal(signal.SIGALRM, handler)
         elif current != handler:
-            raise StateException(
+            raise _StateException(
                 "Your process alarm handler is already in "
                 "use! Interruptingcow cannot be used in "
                 "programs that use SIGALRM."
@@ -517,13 +550,13 @@ def _bootstrap():
 
     def timeout(seconds, exception):
         if threading.currentThread().name != "MainThread":
-            raise StateException(
+            raise _StateException(
                 "Interruptingcow can only be used from the " "MainThread."
             )
-        if isinstance(seconds, Quota):
+        if isinstance(seconds, _Quota):
             quota = seconds
         else:
-            quota = Quota(float(seconds))
+            quota = _Quota(float(seconds))
         set_sighandler()
         seconds = quota.remaining()
 
@@ -569,4 +602,4 @@ def _bootstrap():
     return timeout_context_manager
 
 
-timeout = _bootstrap()
+_timeout = _bootstrap()

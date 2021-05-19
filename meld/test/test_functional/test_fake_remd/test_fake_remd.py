@@ -3,15 +3,22 @@
 # All rights reserved
 #
 
+from meld import comm
+from meld import vault
+from meld.remd import ladder
+from meld.remd import adaptor
+from meld.remd import leader
+from meld.system import state
+from meld.system import options
+from meld.system import pdb_writer
+from meld.system import temperature
+from meld.system import param_sampling
+from meld.test import helper
+
 import unittest
 import os
 import subprocess
 import numpy as np  # type: ignore
-from meld.remd import ladder, adaptor, leader
-from meld.system import state, RunOptions, ConstantTemperatureScaler
-from meld.system.param_sampling import ParameterState
-from meld import comm, vault, pdb_writer
-from meld.test import helper
 
 
 N_ATOMS = 500
@@ -30,7 +37,7 @@ def gen_state(index):
     box_vectors = np.zeros(3)
     discrete = np.zeros(N_DISCRETE, dtype=np.int32)
     continuous = np.zeros(N_CONTINUOUS, dtype=np.float64)
-    params = ParameterState(discrete, continuous)
+    params = param_sampling.ParameterState(discrete, continuous)
     return state.SystemState(pos, vel, alpha, energy, box_vectors, params)
 
 
@@ -57,11 +64,11 @@ def setup_system():
 
     # create and store the fake system
     s = helper.FakeSystem()
-    s.temperature_scaler = ConstantTemperatureScaler(300.0)
+    s.temperature_scaler = temperature.ConstantTemperatureScaler(300.0)
     store.save_system(s)
 
     # create and store the options
-    o = RunOptions()
+    o = options.RunOptions()
     o.runner = "fake_runner"
     store.save_run_options(o)
 

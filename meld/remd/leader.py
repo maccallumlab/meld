@@ -3,17 +3,20 @@
 # All rights reserved
 #
 
-from meld.vault import DataStore
-from meld.system.state import SystemState
-from meld.remd import follower
-from meld.remd.ladder import NearestNeighborLadder
-from meld.remd.adaptor import Adaptor
-from meld.remd.reseed import NullReseeder
-from meld.system.runner import ReplicaRunner
-from meld.comm import MPICommunicator
+"""
+Module for replica exchange leader
+"""
+
+from meld import interfaces
+from meld import vault
+from meld.remd import worker
+from meld.remd import ladder
+from meld.remd import adaptor
+
 import logging
 import math
-from typing import List, Union
+import numpy as np
+from typing import List, Sequence
 
 
 logger = logging.getLogger(__name__)
@@ -25,37 +28,27 @@ class LeaderReplicaExchangeRunner:
 
     This class doesn't really know much about the calculation that
     is happening, but it's the glue that holds everything together.
-
-    :param n_replicas: number of replicas
-    :param max_steps: maximum number of steps to run
-    :param ladder: Ladder object to handle exchanges
-    :param adaptor: Adaptor object to handle alphas adaptation
-
     """
-
-    #
-    # read only properties
-    #
 
     @property
     def n_replicas(self) -> int:
+        """number of replicas"""
         return self._n_replicas
 
     @property
     def alphas(self) -> List[float]:
+        """current values of alpha"""
         return self._alphas
 
     @property
     def step(self) -> int:
+        """current step"""
         return self._step
 
     @property
     def max_steps(self) -> int:
+        """number of steps to run"""
         return self._max_steps
-
-    #
-    # public methods
-    #
 
     _alphas: List[float]
 
@@ -63,37 +56,44 @@ class LeaderReplicaExchangeRunner:
         self,
         n_replicas: int,
         max_steps: int,
-        ladder: NearestNeighborLadder,
-        adaptor: Adaptor,
+        ladder: ladder.NearestNeighborLadder,
+        adaptor: adaptor.Adaptor,
     ) -> None:
+        """
+        Initialize a LeaderReplicaExchangeRunner
+
+        Args:
+            n_replicas: number of replicas
+            max_steps: maximum number of steps to run
+            ladder: ladder object to handle exchanges
+            adaptor: adaptor object to handle alphas adaptation
+        """
         self._n_replicas = n_replicas
         self._max_steps = max_steps
         self._step = 1
         self.ladder = ladder
         self.adaptor = adaptor
         self._setup_alphas()
-        self.reseeder = NullReseeder()
 
-    def to_follower(self) -> follower.FollowerReplicaExchangeRunner:
+    def to_worker(self) -> worker.WorkerReplicaExchangeRunner:
         """
-        Return a FollowerReplicaExchangeRunner based on self.
-
+        Convert leader to worker
         """
-        return follower.FollowerReplicaExchangeRunner.from_leader(self)
+        return worker.WorkerReplicaExchangeRunner(self.step, self.max_steps)
 
     def run(
         self,
-        communicator: MPICommunicator,
-        system_runner: ReplicaRunner,
-        store: DataStore,
+        communicator: interfaces.ICommunicator,
+        system_runner: interfaces.IRunner,
+        store: vault.DataStore,
     ):
         """
         Run replica exchange until finished
 
-        :param communicator: A communicator object to talk with followers
-        :param system_runner: a ReplicaRunner object to run the simulations
-        :param store: a Store object to handle storing data to disk
-
+        Args:
+            communicator: a communicator object to talk with workers
+            system_runner: a interfaces.IRunner object to run the simulations
+            store: a store object to handle storing data to disk
         """
         logger.info("Beginning replica exchange")
         # check to make sure n_replicas matches
@@ -113,12 +113,12 @@ class LeaderReplicaExchangeRunner:
             )
 
             # communicate state
-            my_state = communicator.broadcast_states_to_followers(states)
+            my_state = communicator.broadcast_states_to_workers(states)
 
             # update alphas
             system_runner.prepare_for_timestep(my_state, 0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
-            communicator.broadcast_alphas_to_followers(self._alphas)
+            communicator.broadcast_alphas_to_workers(self._alphas)
 
             # do one step
             if minimize:
@@ -134,19 +134,16 @@ class LeaderReplicaExchangeRunner:
 
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
-            energies = communicator.gather_energies_from_followers(my_energies)
+            energies = communicator.gather_energies_from_workers(my_energies)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states, system_runner)
 
-            # perform reseeding if it is time
-            self.reseeder.reseed(self.step, states, store)
-
             # store everything
             store.save_states(states, self.step)
             store.append_traj(states[0], self.step)
-            store.save_alphas(self._alphas, self.step)
+            store.save_alphas(np.array(self._alphas), self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
             store.save_acceptance_probabilities(
@@ -168,7 +165,7 @@ class LeaderReplicaExchangeRunner:
 
     @staticmethod
     def _compute_energies(
-        states: List[SystemState], system_runner: ReplicaRunner
+        states: Sequence[interfaces.IState], system_runner: interfaces.IRunner
     ) -> List[float]:
         my_energies = []
         for state in states:
@@ -178,14 +175,15 @@ class LeaderReplicaExchangeRunner:
     @staticmethod
     def _permute_states(
         permutation_matrix: List[int],
-        states: List[SystemState],
-        system_runner: ReplicaRunner,
-    ) -> List[SystemState]:
+        states: Sequence[interfaces.IState],
+        system_runner: interfaces.IRunner,
+    ) -> Sequence[interfaces.IState]:
         old_coords = [s.positions for s in states]
         old_velocities = [s.velocities for s in states]
         old_box_vectors = [s.box_vector for s in states]
         old_energy = [s.energy for s in states]
         old_params = [s.parameters for s in states]
+        assert system_runner.temperature_scaler is not None
         temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
 
         for i, index in enumerate(permutation_matrix):

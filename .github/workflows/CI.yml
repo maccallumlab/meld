@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - "master"
+
   pull_request:
     banches:
       - "master"
@@ -140,3 +140,86 @@ jobs:
           set -x
           python -m unittest discover meld.test
           mypy meld
+
+  docs:
+    env:
+      CCACHE_BASEDIR: "${{ github.workspace }}"
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
+      CCACHE_COMPRESS: true
+      CCACHE_COMPRESSLEVEL: 6
+      CCACHE_MAXSIZE: 400M
+    
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        name: "Prepare base dependencies"
+        with:
+          python-version: "3.8"
+          activate-environment: build
+          environment-file: devtools/ci/gh-actions/conda-envs/docs.yml
+          auto-activate-base: false
+
+      - name: "Prepare ccache"
+        id: prepare-ccache
+        shell: bash -l {0}
+        run: |
+          echo "::set-output name=key::$(echo "${{ matrix.name }}" | tr -d ' .')"
+          echo "::set-output name=timestamp::$(date +%Y%m%d-%H%M%S)"
+          ccache -p
+          ccache -z
+
+      - name: "Restore ccache"
+        uses: actions/cache@v1.1.0
+        with:
+          path: .ccache
+          key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
+          restore-keys: |
+            ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-
+
+      - name: "Configure plugin build with CMake"
+        shell: bash -l {0}
+        run: |
+          cd plugin
+          mkdir build
+          cd build
+          export EIGEN3_INCLUDE_DIR=${CONDA_PREFIX}/include/eigen3
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+            -DCMAKE_PREFIX_PATH=${CONDA_PREFIX} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DOPENMM_DIR=${CONDA_PREFIX} \
+            ${{ matrix.CMAKE_FLAGS }}
+
+      - name: Build plugin docs
+        shell: bash -l {0}
+        run: |
+          set -x
+          cd plugin/build
+          make -j2 install PythonInstall
+          make -j2 DoxygenApiDocs
+
+      - name: Build docs
+        shell: bash -l {0}
+        run: |
+          set -x
+          cd docs
+          make html
+
+      - name: "Check ccache performance"
+        shell: bash -l {0}
+        run: ccache -s
+
+      - name: "Deploy docs (only on master)"
+        if: ${{ github.ref == 'refs/heads/master' && github.event_name != 'schedule' }}
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read --follow-symlinks --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-2'
+          SOURCE_DIR: 'docs/_build/html'

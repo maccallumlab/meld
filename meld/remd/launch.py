@@ -3,14 +3,19 @@
 # All rights reserved
 #
 
-import os
-import logging
+"""
+A module for launching replica exchange runs
+"""
+
 import meld
 from meld import util
 from meld import vault
-from meld.system import get_runner
-from openmm import version as mm_version  # type: ignore
+from meld import runner
 from meld.remd import multiplex_runner
+from simtk.openmm import version as mm_version  # type: ignore
+
+import os
+import logging
 import socket
 from typing import Union
 
@@ -21,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def log_versions() -> None:
+    """Record version numbers to log"""
     logger.info("Meld version is %s", meld.__version__)
     logger.info("OpenMM_Meld version is %s", mm_version.full_version)
 
@@ -31,6 +37,15 @@ def launch(
     debug: bool = False,
     console_log: bool = False,
 ) -> None:
+    """
+    Launch a replica exchange run
+
+    Args:
+        platform: platform to run on [Reference, CPU, CUDA]
+        console_handler: log handler for console logging
+        debug: log debugging information
+        console_log: display logging on console
+    """
     logger.info("loading data store")
     store = vault.DataStore.load_data_store()
 
@@ -79,7 +94,7 @@ def launch(
     if communicator.is_leader():
         logger.info("Launching replica exchange on leader")
     else:
-        logger.info("Launching replica exchange on follower")
+        logger.info("Launching replica exchange on worker")
     log_versions()
 
     logger.info("Loading system")
@@ -88,20 +103,28 @@ def launch(
     logger.info("Loading run options")
     options = store.load_run_options()
 
-    system_runner = get_runner(system, options, comm=communicator, platform=platform)
+    system_runner = runner.get_runner(system, options, comm=communicator, platform=platform)
 
     if communicator.is_leader():
         store.initialize(mode="a")
         remd_runner = store.load_remd_runner()
         remd_runner.run(communicator, system_runner, store)
     else:
-        remd_runner = store.load_remd_runner().to_follower()
+        remd_runner = store.load_remd_runner().to_worker()
         remd_runner.run(communicator, system_runner)
 
 
 def launch_multiplex(
     platform: str, console_handler: Handler, debug: bool = False
 ) -> None:
+    """
+    Launch a replica exchange run on a single worker
+
+    Args:
+        platform: platform to run on [Reference, CPU, CUDA]
+        console_handler: log handler for console logging
+        debug: log debugging information
+    """
     logger.info("Loading data store")
     store = vault.DataStore.load_data_store()
 
@@ -131,7 +154,7 @@ def launch_multiplex(
     system = store.load_system()
     options = store.load_run_options()
 
-    system_runner = get_runner(system, options, None, platform)
+    system_runner = runner.get_runner(system, options, None, platform)
 
     store.initialize(mode="a")
     remd_runner = store.load_remd_runner()

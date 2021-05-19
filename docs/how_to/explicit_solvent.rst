@@ -13,13 +13,13 @@ From Sequence
 A simple explicit solvent model can be built in the setup.py script by first generating a protein sequence and setting up an explicit solvent SystemBuilder that defines the system:
 ::
 
-   p = protein.ProteinMoleculeFromSequence("NALA ALA CALA")        
+   p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
    b = builder.SystemBuilder(explicit_solvent=True)
 
 The system is then built from the molecular sequence according to the specifications of the builder:
 ::
 
-        self.system = b.build_system_from_molecules([p])
+        self.system = b.build_system([p])
 
 This set of commands will instruct MELD to use tleap to generate a solvent box with 6 |ang| between any atom in the protein and the edge of the box, and produce the necessary amber topology (system.top) and coordinate files (system.mdcrd). By default MELD uses the TIP3P water model, however ``'spce'``, ``'spceb'``, ``'obc'``, ``'tip4pew'`` are all allowed values for ``solvent_forcefield``:
 ::       
