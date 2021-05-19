@@ -13,6 +13,8 @@ from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import indexing
 from meld.system import temperature
+from meld.system import param_sampling
+from meld.system import state
 
 import numpy as np  # type: ignore
 from typing import List, Optional, Any
@@ -31,6 +33,9 @@ class System(interfaces.ISystem):
 
     temperature_scaler: Optional[temperature.TemperatureScaler]
     """The temperature scaler for the system"""
+
+    param_sampler: param_sampling.ParameterManager
+    """The sampler for parameters"""
 
     _top_string: str
     _mdcrd_string: str
@@ -56,6 +61,7 @@ class System(interfaces.ISystem):
         self._top_string = top_string
         self._mdcrd_string = mdcrd_string
         self.restraints = restraints.RestraintManager(self)
+        self.param_sampler = param_sampling.ParameterManager()
         self.index = indexer
 
         self.extra_bonds = []
@@ -108,6 +114,18 @@ class System(interfaces.ISystem):
         residue names for each atom
         """
         return self._residue_names
+
+    def get_state_template(self):
+        pos = self._coordinates.copy()
+        vel = np.zeros_like(pos)
+        alpha = 0.0
+        energy = 0.0
+        box_vectors = self._box_vectors
+        if box_vectors is None:
+            box_vectors = np.array([0.0, 0.0, 0.0])
+        params = self.param_sampler.get_initial_state()
+        return state.SystemState(pos, vel, alpha, energy, box_vectors, params)
+
 
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """

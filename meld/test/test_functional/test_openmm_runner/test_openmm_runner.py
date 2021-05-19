@@ -30,7 +30,7 @@ class TestOpenRunner(unittest.TestCase):
         opt.timesteps = 20
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
-        runner.prepare_for_timestep(0., 1)
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
         pos = sys._coordinates.copy()
         vel = np.zeros_like(pos)
@@ -56,7 +56,7 @@ class TestOpenRunner(unittest.TestCase):
         opt.amap_beta_bias = 10
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
-        runner.prepare_for_timestep(0., 1)
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
         pos = sys._coordinates.copy()
         vel = np.zeros_like(pos)
@@ -81,7 +81,7 @@ class TestOpenRunner(unittest.TestCase):
         opt.timesteps = 2
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
-        runner.prepare_for_timestep(0., 1)
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
         pos = sys._coordinates.copy()
         vel = np.zeros_like(pos)
@@ -109,7 +109,7 @@ class TestOpenRunner(unittest.TestCase):
         opt.use_rest2 = True
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
-        runner.prepare_for_timestep(0., 1)
+        runner.prepare_for_timestep(sys.get_state_template(), 0., 1)
 
         pos = sys._coordinates.copy()
         vel = np.zeros_like(pos)

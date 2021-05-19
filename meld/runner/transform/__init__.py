@@ -2,6 +2,7 @@
 Transformers are objects that take an openmm system
 as created by loading an amber topology and modify
 it in various ways. Example transformations include:
+
 - Adding extra forces for restraints
 - Modifying an existing force, like REST2
 - Replacing an existing force, like softcore interactions
@@ -18,11 +19,12 @@ transformer class that implements the transformer
 protocol given in `TransformerBase`. Next, you
 must add this class to the list in
 `OpenMMRunner._setup_transformers`.
-
 """
 
+from meld import interfaces
 from meld.system import options
 from meld.system import restraints
+from meld.system import param_sampling
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
@@ -34,23 +36,24 @@ class TransformerBase:
     Base class to document how transformers work.
 
     The transformation process proceeds in several stages.
+
     - The transformer is initialized with the run options
-    and lists of restraints. The transformer must store
-    any relevant information, as these parameters will
-    not be given again. The `__init__` method must also
-    delete any restraints that are handled by this
-    transformer from `always_active_restraints` and
-    `selectively_active_restraints`.
+      and lists of restraints. The transformer must store
+      any relevant information, as these parameters will
+      not be given again. The `__init__` method must also
+      delete any restraints that are handled by this
+      transformer from `always_active_restraints` and
+      `selectively_active_restraints`.
     - Next, `add_interactions` is called. This provides
-    an opportunity for the transformer to add new
-    forces, or to modify or replace existing forces.
+      an opportunity for the transformer to add new
+      forces, or to modify or replace existing forces.
     - Next `finalize` is called. All changes to particles
-    and forces are completed before this call, which
-    can be useful when we have to, e.g. store
-    parameters.
+      and forces are completed before this call, which
+      can be useful when we have to, e.g. store
+      parameters.
     - Finally, `update` is called every stage. This provides
-    an opportunity to update parameters like force constants
-    depending on alpha or on the time step.
+      an opportunity to update parameters like force constants
+      depending on alpha or on the time step.
 
     The number of particles cannot be changed by a transformer,
     instead additional particles should be added using a
@@ -59,6 +62,7 @@ class TransformerBase:
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -67,17 +71,21 @@ class TransformerBase:
         Initialize a Transformer
 
         Args:
+            param_manager: parameter manager to handle sampling of paramters
             options: the options for the runner
             always_active_restraints: these restraints are always active
             selectively_active_collections: these restraints are selected by the MELD algorithm
         """
         raise NotImplementedError("TransformerBase cannot be instantiated.")
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         """
         Add new interactions to the system.
 
         This may involve:
+
         - Adding new forces, e.g. for restraints
         - Replacing an existing force with another, e.g. softcore
           interactions
@@ -87,12 +95,15 @@ class TransformerBase:
         return the passed values.
 
         Args:
+            state: the state of the system
             system: OpenMM system object to be modified
             topology: OpenMM topology object to be modified and/or used for indexing
         """
         return system
 
-    def finalize(self, system: mm.System, topology: app.Topology) -> None:
+    def finalize(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> None:
         """
         Finalize the transformer.
 
@@ -103,24 +114,30 @@ class TransformerBase:
         This method should not add any new forces.
 
         Args:
+            state: the state of the system
             system: OpenMM system object to be modified
             topology: OpenMM topology object to be modified and/or used for indexing
         """
         pass
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         """
         Update the system according to alpha and timestep.
 
         This method is called at the beginning of every stage.
         It should update forces and parameters as necessary.
 
-        Parameters
-        ----------
-        simulation: OpenMM simulation object to be modified
-        alpha: current value of alpha, ranges from 0 to 1
-        stage: current stage of the simulation, starting from 0
-
+        Args:
+            state: the state of the system
+            simulation: OpenMM simulation object to be modified
+            alpha: current value of alpha, ranges from 0 to 1
+            stage: current stage of the simulation, starting from 0
         """
         pass
 

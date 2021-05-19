@@ -7,6 +7,7 @@
 Add AMAP correction for GB models
 """
 
+from meld import interfaces
 from meld.system import amber
 from meld.runner import transform
 from meld.system import options
@@ -120,7 +121,7 @@ class CMAPTransformer(transform.TransformerBase):
             self._load_maps()
 
     def add_interactions(
-        self, openmm_system: mm.System, topology: app.Topology
+        self, state: interfaces.IState, openmm_system: mm.System, topology: app.Topology
     ) -> mm.System:
         if not self._active:
             return openmm_system

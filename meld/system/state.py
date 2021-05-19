@@ -7,6 +7,8 @@
 A module to define the SystemState
 """
 
+from meld.system import param_sampling
+from typing import Optional
 from meld import interfaces
 
 import numpy as np  # type: ignore
@@ -24,6 +26,7 @@ class SystemState(interfaces.IState):
         alpha: float,
         energy: float,
         box_vector: np.ndarray,
+        parameters: Optional[param_sampling.ParameterState] = None,
     ) -> None:
         """
         Initialize a SystemState
@@ -41,6 +44,13 @@ class SystemState(interfaces.IState):
         self.n_atoms = positions.shape[0]
         self.alpha = alpha
         self.energy = energy
+        if parameters is None:
+            self.parameters = param_sampling.ParameterState(
+                discrete=np.array([], dtype=np.int32),
+                continuous=np.array([], dtype=np.float64),
+            )
+        else:
+            self.parameters = parameters
 
         self._validate()
 

@@ -327,7 +327,9 @@ namespace MeldPlugin {
                                 std::vector<double> precisionOffDiagonal);
 
         int addGroup(std::vector<int> restraint_indices, int n_active);
+        void modifyGroupNumActive(int index, int numActive);
 
         int addCollection(std::vector<int> group_indices, int n_active);
+        void modifyCollectionNumActive(int index, int numActive);
     };
 }

@@ -11,18 +11,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from meld import interfaces
 from meld.system import restraints
 from meld.system import options
-from meld.runner.transform import TransformerBase
+from meld.system import param_sampling
+from meld.runner import transform
+from meldplugin import MeldForce  # type: ignore
 
-try:
-    from meldplugin import MeldForce  # type: ignore
-except ImportError:
-    logger.warning(
-        "Could not import meldplugin. "
-        "Are you sure it is installed correctly?\n"
-        "Attempts to use meld restraints will fail."
-    )
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
@@ -31,7 +26,7 @@ from collections import OrderedDict, Callable
 from typing import List, Tuple
 
 
-class ConfinementRestraintTransformer(TransformerBase):
+class ConfinementRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle confinement restraints
     """
@@ -40,6 +35,7 @@ class ConfinementRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -57,7 +53,9 @@ class ConfinementRestraintTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             # create the confinement force
             if self.use_pbc:
@@ -82,7 +80,13 @@ class ConfinementRestraintTransformer(TransformerBase):
 
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
@@ -92,7 +96,7 @@ class ConfinementRestraintTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class RDCRestraintTransformer(TransformerBase):
+class RDCRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle RDC restraints
     """
@@ -101,6 +105,7 @@ class RDCRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -123,7 +128,9 @@ class RDCRestraintTransformer(TransformerBase):
             for r in self.restraints:
                 self.expt_dict[r.expt_index].append(r)
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         # The approach we use is based on
         # Habeck, Nilges, Rieping, J. Biomol. NMR., 2007, 135-144.
         #
@@ -225,7 +232,13 @@ class RDCRestraintTransformer(TransformerBase):
             self.force = rdc_force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             index = 0
             for experiment in self.expt_dict:
@@ -250,7 +263,7 @@ class RDCRestraintTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class CartesianRestraintTransformer(TransformerBase):
+class CartesianRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle Cartesian restraints
     """
@@ -259,6 +272,7 @@ class CartesianRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -276,7 +290,9 @@ class CartesianRestraintTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             if self.use_pbc:
                 cartesian_force = mm.CustomExternalForce(
@@ -309,7 +325,13 @@ class CartesianRestraintTransformer(TransformerBase):
             self.force = cartesian_force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
@@ -319,7 +341,7 @@ class CartesianRestraintTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class YZCartesianTransformer(TransformerBase):
+class YZCartesianTransformer(transform.TransformerBase):
     """
     Transformer to handle YZCartesian restraints
     """
@@ -328,6 +350,7 @@ class YZCartesianTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -345,7 +368,9 @@ class YZCartesianTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             # create the confinement force
             if self.use_pbc:
@@ -376,7 +401,13 @@ class YZCartesianTransformer(TransformerBase):
             self.force = cartesian_force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             for index, r in enumerate(self.restraints):
                 weight = r.force_const * r.scaler(alpha) * r.ramp(timestep)
@@ -386,7 +417,7 @@ class YZCartesianTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class COMRestraintTransformer(TransformerBase):
+class COMRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle COM restraints
     """
@@ -395,6 +426,7 @@ class COMRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -414,7 +446,9 @@ class COMRestraintTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             rest = self.restraints[0]
 
@@ -452,7 +486,13 @@ class COMRestraintTransformer(TransformerBase):
             self.force = force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             rest = self.restraints[0]
             weight = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
@@ -462,7 +502,7 @@ class COMRestraintTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class AbsoluteCOMRestraintTransformer(TransformerBase):
+class AbsoluteCOMRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle AbsoluteCOM restraints
     """
@@ -471,6 +511,7 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -490,7 +531,9 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             rest = self.restraints[0]
 
@@ -528,7 +571,13 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
             self.force = force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             rest = self.restraints[0]
             weight = rest.force_const * rest.scaler(alpha) * rest.ramp(timestep)
@@ -540,7 +589,7 @@ class AbsoluteCOMRestraintTransformer(TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
 
-class MeldRestraintTransformer(TransformerBase):
+class MeldRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle MELD restraints
     """
@@ -549,10 +598,19 @@ class MeldRestraintTransformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
+        # We use the param_manager to update parameters that can be sampled over.
+        self.param_manager = param_manager
+
+        # We need to track the index of the first group and first collection
+        # that could potentially need their num_active updated.
+        self.first_selective_group = 0
+        self.first_selective_collection = 0
+
         self.always_on = [
             r
             for r in always_active_restraints
@@ -560,6 +618,7 @@ class MeldRestraintTransformer(TransformerBase):
         ]
         _delete_from_always_active(self.always_on, always_active_restraints)
 
+        # Gather all of the selectively active restraints.
         self.selective_on = [r for r in selectively_active_restraints]
         for r in self.selective_on:
             selectively_active_restraints.remove(r)
@@ -569,16 +628,27 @@ class MeldRestraintTransformer(TransformerBase):
         else:
             self.active = False
 
-    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
+    def add_interactions(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> mm.System:
         if self.active:
             meld_force = MeldForce()
+
+            # Add all of the always-on restraints
             if self.always_on:
                 group_list = []
                 for rest in self.always_on:
                     rest_index = _add_meld_restraint(rest, meld_force, 0, 0)
+                    # Each restraint goes in its own group.
                     group_index = meld_force.addGroup([rest_index], 1)
                     group_list.append(group_index)
+                # All of the always-on restraints go in a single collection
                 meld_force.addCollection(group_list, len(group_list))
+                # We need to track the number of groups and collections
+                # that are always on
+                self.first_selective_group = len(group_list)
+                self.first_selective_collection = 1
+
             for coll in self.selective_on:
                 group_indices = []
                 for group in coll.groups:
@@ -586,25 +656,77 @@ class MeldRestraintTransformer(TransformerBase):
                     for rest in group.restraints:
                         rest_index = _add_meld_restraint(rest, meld_force, 0, 0)
                         restraint_indices.append(rest_index)
+                    # Create the group
+                    group_num_active = self._handle_num_active(group.num_active, state)
                     group_index = meld_force.addGroup(
-                        restraint_indices, group.num_active
+                        restraint_indices, group_num_active
                     )
                     group_indices.append(group_index)
-                meld_force.addCollection(group_indices, coll.num_active)
+                # Create the collection
+                coll_num_active = self._handle_num_active(group.num_active, state)
+                meld_force.addCollection(group_indices, coll_num_active)
+
             system.addForce(meld_force)
             self.force = meld_force
         return system
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
-            dist_index = 0
-            hyper_index = 0
-            tors_index = 0
-            dist_prof_index = 0
-            tors_prof_index = 0
-            gmm_index = 0
-            if self.always_on:
-                for rest in self.always_on:
+            self._update_restraints(state, simulation, alpha, timestep)
+            self._update_groups_collections(state, simulation, alpha, timestep)
+            self.force.updateParametersInContext(simulation.context)
+
+    def _update_groups_collections(self, state, simulation, alpha, timestep):
+        # Keep track of which group to modify
+        group_index = self.first_selective_group
+
+        for i, coll in enumerate(self.selective_on):
+            num_active = self._handle_num_active(coll.num_active, state)
+            self.force.modifyCollectionNumActive(
+                i + self.first_selective_collection, num_active
+            )
+            for group in coll.groups:
+                num_active_group = self._handle_num_active(group.num_active, state)
+                self.force.modifyGroupNumActive(group_index, num_active_group)
+                group_index += 1
+
+    def _update_restraints(self, state, simulation, alpha, timestep):
+        dist_index = 0
+        hyper_index = 0
+        tors_index = 0
+        dist_prof_index = 0
+        tors_prof_index = 0
+        gmm_index = 0
+        if self.always_on:
+            for rest in self.always_on:
+                (
+                    dist_index,
+                    hyper_index,
+                    tors_index,
+                    dist_prof_index,
+                    tors_prof_index,
+                    gmm_index,
+                ) = _update_meld_restraint(
+                    rest,
+                    self.force,
+                    alpha,
+                    timestep,
+                    dist_index,
+                    hyper_index,
+                    tors_index,
+                    dist_prof_index,
+                    tors_prof_index,
+                    gmm_index,
+                )
+        for coll in self.selective_on:
+            for group in coll.groups:
+                for rest in group.restraints:
                     (
                         dist_index,
                         hyper_index,
@@ -624,29 +746,12 @@ class MeldRestraintTransformer(TransformerBase):
                         tors_prof_index,
                         gmm_index,
                     )
-            for coll in self.selective_on:
-                for group in coll.groups:
-                    for rest in group.restraints:
-                        (
-                            dist_index,
-                            hyper_index,
-                            tors_index,
-                            dist_prof_index,
-                            tors_prof_index,
-                            gmm_index,
-                        ) = _update_meld_restraint(
-                            rest,
-                            self.force,
-                            alpha,
-                            timestep,
-                            dist_index,
-                            hyper_index,
-                            tors_index,
-                            dist_prof_index,
-                            tors_prof_index,
-                            gmm_index,
-                        )
-            self.force.updateParametersInContext(simulation.context)
+
+    def _handle_num_active(self, value, state):
+        if isinstance(value, param_sampling.Parameter):
+            return int(self.param_manager.extract_value(value, state.parameters))
+        else:
+            return value
 
 
 def _add_meld_restraint(

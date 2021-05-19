@@ -2,6 +2,13 @@
 
 Contributions to MELD are welcome. The preferred approach is to fork and submit a pull request.
 
+Go to the `maccallumlab/meld` github repo and click fork. Then clone your fork to your computer. From inside that repo, run
+```
+git remote add upstream https://github.com/maccallumlab/meld.git
+```
+
+Then you can make commits to your local repo. You can pull in any changes from the main branch with `git merge upstream/master`. Once your work is ready, submit a pull request against `maccallumlab/master` through the github interface.
+
 ## Documentation
 
 Scientific software projects often have poor documentation, and MELD is no exception. As a development

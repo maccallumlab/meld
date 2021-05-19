@@ -26,5 +26,7 @@ class FakeSystemRunner(interfaces.IRunner):
     def get_energy(self, state: interfaces.IState) -> float:
         return 0.0
 
-    def prepare_for_timestep(self, alpha: float, timestep: int) -> None:
+    def prepare_for_timestep(
+        self, state: interfaces.IState, alpha: float, timestep: int
+    ) -> None:
         pass

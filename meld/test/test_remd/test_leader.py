@@ -4,12 +4,12 @@
 #
 
 import unittest
-from unittest import mock  #type: ignore
-from unittest.mock import sentinel  #type: ignore
+from unittest import mock  # type: ignore
+from unittest.mock import sentinel  # type: ignore
 from meld.remd import leader, ladder, adaptor
 from meld import interfaces
 from meld import comm, vault
-from numpy.testing import assert_almost_equal  #type: ignore
+from numpy.testing import assert_almost_equal  # type: ignore
 
 
 class TestSingleStep(unittest.TestCase):
@@ -29,21 +29,27 @@ class TestSingleStep(unittest.TestCase):
 
         self.mock_state_1 = mock.Mock()
         self.mock_state_1.positions = sentinel.pos1
+        self.mock_state_1.parameters = sentinel.parm1
         self.mock_state_1.velocities = 1.0
         self.mock_state_2 = mock.Mock()
         self.mock_state_2.velocities = 1.0
         self.mock_state_2.positions = sentinel.pos2
+        self.mock_state_2.parameters = sentinel.parm2
         self.mock_state_3 = mock.Mock()
         self.mock_state_3.velocities = 1.0
         self.mock_state_3.positions = sentinel.pos3
+        self.mock_state_3.parameters = sentinel.parm3
         self.mock_state_4 = mock.Mock()
         self.mock_state_4.velocities = 1.0
         self.mock_state_4.positions = sentinel.pos4
+        self.mock_state_4.parameters = sentinel.parm4
         self.mock_state_5 = mock.Mock()
         self.mock_state_5.positions = sentinel.pos5
+        self.mock_state_5.parameters = sentinel.parm5
         self.mock_state_5.velocities = 1.0
         self.mock_state_6 = mock.Mock()
         self.mock_state_6.positions = sentinel.pos6
+        self.mock_state_6.parameters = sentinel.parm6
         self.mock_state_6.velocities = 1.0
         self.fake_states_after_run = [
             self.mock_state_1,
@@ -101,7 +107,7 @@ class TestSingleStep(unittest.TestCase):
 
     def test_alpha_begins_uniform(self):
         "alphas should be initialized with uniform spacing"
-        assert_almost_equal(self.runner.alphas, [0., 0.2, 0.4, 0.6, 0.8, 1.])
+        assert_almost_equal(self.runner.alphas, [0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
 
     def test_step_begins_one(self):
         "step should begin at one"
@@ -118,7 +124,9 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         # the leader is always alphas = 0.
-        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(0., 1)
+        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
+            sentinel.MY_STATE_INIT, 0.0, 1
+        )
 
     def test_should_broadcast_alphas(self):
         "calling run should broadcast all of the alpha values"
@@ -178,7 +186,7 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         # our permutation matrix is reversed
-        correct_order = list(
+        correct_order_pos = list(
             reversed(
                 [
                     sentinel.pos1,
@@ -190,8 +198,23 @@ class TestSingleStep(unittest.TestCase):
                 ]
             )
         )
-        observed_order = [s.positions for s in self.fake_states_after_run]
-        self.assertEqual(observed_order, correct_order)
+        observed_order_pos = [s.positions for s in self.fake_states_after_run]
+        self.assertEqual(observed_order_pos, correct_order_pos)
+
+        correct_order_parm = list(
+            reversed(
+                [
+                    sentinel.parm1,
+                    sentinel.parm2,
+                    sentinel.parm3,
+                    sentinel.parm4,
+                    sentinel.parm5,
+                    sentinel.parm6,
+                ]
+            )
+        )
+        observed_order_parm = [s.parameters for s in self.fake_states_after_run]
+        self.assertEqual(observed_order_parm, correct_order_parm)
 
         self.mock_store.save_states.assert_called_once_with(
             self.fake_states_after_run, 1

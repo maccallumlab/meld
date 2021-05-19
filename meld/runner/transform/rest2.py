@@ -7,9 +7,11 @@
 This module implements a transformer that implements REST2.
 """
 
+from meld import interfaces
 from meld.system import options
 from meld.system import temperature
 from meld.system import restraints
+from meld.system import param_sampling
 from meld.runner.transform import TransformerBase
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
@@ -22,20 +24,17 @@ class REST2Transformer(TransformerBase):
     """
     An implementation of REST2
 
-    We use the updated version of Replica Exchange with Solute Scaling [1]_.
+    We use the updated version of Replica Exchange with Solute Scaling.
 
-    Limitations
-    -----------
+    Warnings:
+        Currently, the REST2 implmentation in MELD has a limitation that
+        any CMAP / AMAP potentials are not scaled.
 
-    Currently, the REST2 implmentation in MELD has a limitation:
-    - Any CMAP / AMAP potentials are not scaled.
-
-
-    References
-    ----------
-    .. [1] L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
-    more efficient version of replica exchange with solute tempering.
+    References:
+        L. Wang, R.A. Friesner, B.J. Berne, Replica exchange with solute scaling: a
+        more efficient version of replica exchange with solute tempering.
     """
+
     scaler: temperature.REST2Scaler
     ramp: restraints.TimeRamp
     nb_force: mm.NonbondedForce
@@ -46,6 +45,7 @@ class REST2Transformer(TransformerBase):
 
     def __init__(
         self,
+        param_manager: param_sampling.ParameterManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -62,7 +62,9 @@ class REST2Transformer(TransformerBase):
             if options.solvation != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")
 
-    def finalize(self, system: mm.System, topology: app.Topology) -> None:
+    def finalize(
+        self, state: interfaces.IState, system: mm.System, topology: app.Topology
+    ) -> None:
         if self.active:
             nonsolvent_atoms = self._find_nonsolvent_atoms(topology)
             self._find_nb_force(system)
@@ -70,7 +72,13 @@ class REST2Transformer(TransformerBase):
             self._gather_nonbonded_params(nonsolvent_atoms)
             self._gather_dihedral_params(nonsolvent_atoms, topology)
 
-    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
+    def update(
+        self,
+        state: interfaces.IState,
+        simulation: app.Simulation,
+        alpha: float,
+        timestep: int,
+    ) -> None:
         if self.active:
             scale = self.scaler(alpha)
             self._update_nonbonded(simulation, scale)

@@ -112,13 +112,15 @@ class LeaderReplicaExchangeRunner:
                 "Running replica exchange step %d of %d.", self._step, self._max_steps
             )
 
+            # communicate state
+            my_state = communicator.broadcast_states_to_workers(states)
+
             # update alphas
-            system_runner.prepare_for_timestep(0.0, self._step)
+            system_runner.prepare_for_timestep(my_state, 0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
             communicator.broadcast_alphas_to_workers(self._alphas)
 
             # do one step
-            my_state = communicator.broadcast_states_to_workers(states)
             if minimize:
                 logger.info("First step, minimizing and then running.")
                 my_state = system_runner.minimize_then_run(my_state)
@@ -180,16 +182,18 @@ class LeaderReplicaExchangeRunner:
         old_velocities = [s.velocities for s in states]
         old_box_vectors = [s.box_vector for s in states]
         old_energy = [s.energy for s in states]
+        old_params = [s.parameters for s in states]
         assert system_runner.temperature_scaler is not None
         temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
 
         for i, index in enumerate(permutation_matrix):
             states[i].positions = old_coords[index]
-            states[i].box_vector = old_box_vectors[index]
             states[i].velocities = (
                 math.sqrt(temperatures[i] / temperatures[index]) * old_velocities[index]
             )
+            states[i].box_vector = old_box_vectors[index]
             states[i].energy = old_energy[index]
+            states[i].parameters = old_params[index]
         return states
 
     def _setup_alphas(self) -> None:

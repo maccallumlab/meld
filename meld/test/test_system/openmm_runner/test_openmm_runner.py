@@ -8,20 +8,21 @@ from meld.system import subsystem
 from meld.system import builder
 from meld.system import temperature
 from meld.system import options
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  #type: ignore
+from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  # type: ignore
 from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  #type: ignore
-from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  #type: ignore
+from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  # type: ignore
+from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  # type: ignore
 
 import unittest
-from unittest import mock  #type: ignore
+from unittest import mock  # type: ignore
+
 
 class TestOpenMMRunner(unittest.TestCase):
     def setUp(self):
         p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p])
-        self.system.temperature_scaler = temperature.ConstantTemperatureScaler(300.)
+        self.system.temperature_scaler = temperature.ConstantTemperatureScaler(300.0)
 
     def test_raises_when_system_has_no_temperature_scaler(self):
         self.system.temperature_scaler = None
@@ -31,9 +32,7 @@ class TestOpenMMRunner(unittest.TestCase):
 
 class TestPrmTopFromString(unittest.TestCase):
     def test_should_call_openmm(self):
-        with mock.patch(
-            "meld.runner.openmm_runner.app.AmberPrmtopFile"
-        ) as mock_parm:
+        with mock.patch("meld.runner.openmm_runner.app.AmberPrmtopFile") as mock_parm:
             openmm_runner._parm_top_from_string("ABCD")
 
             self.assertEqual(mock_parm.call_count, 1)
@@ -70,7 +69,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
             nonbondedMethod=ff.NoCutoff,
-            nonbondedCutoff=999.,
+            nonbondedCutoff=999.0,
             constraints=ff.HBonds,
             implicitSolvent=OBC2,
             hydrogenMass=None,
@@ -157,7 +156,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_restricted_angles=[],
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
-            soluteDielectric=2.,
+            soluteDielectric=2.0,
             solventDielectric=None,
         )
         self.mock_parm.createSystem.assert_called_with(
@@ -189,7 +188,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             extra_torsions=[],
             implicitSolventSaltConc=0.150,
             soluteDielectric=None,
-            solventDielectric=5.,
+            solventDielectric=5.0,
         )
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
@@ -200,7 +199,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
             hydrogenMass=None,
             implicitSolventSaltConc=0.150,
             soluteDielectric=1.0,
-            solventDielectric=5.,
+            solventDielectric=5.0,
         )
 
     def test_salt_concentration_sets_correct_method(self):
@@ -256,7 +255,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
             nonbondedMethod=ff.NoCutoff,
-            nonbondedCutoff=999.,
+            nonbondedCutoff=999.0,
             constraints=ff.AllBonds,
             implicitSolvent=OBC2,
             hydrogenMass=3.0 * (gram / mole),
@@ -287,7 +286,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
             nonbondedMethod=ff.NoCutoff,
-            nonbondedCutoff=999.,
+            nonbondedCutoff=999.0,
             constraints=ff.HBonds,
             implicitSolvent=GBn,
             hydrogenMass=None,
@@ -318,7 +317,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
         self.mock_parm.createSystem.assert_called_with(
             removeCMMotion=False,
             nonbondedMethod=ff.NoCutoff,
-            nonbondedCutoff=999.,
+            nonbondedCutoff=999.0,
             constraints=ff.HBonds,
             implicitSolvent=GBn2,
             hydrogenMass=None,
@@ -331,7 +330,7 @@ class TestCreateOpenMMSystemImplicit(unittest.TestCase):
 class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
     def setUp(self):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
-        self.TEMP = 450.
+        self.TEMP = 450.0
         self.pcouple_params = openmm_runner.PressureCouplingParams(
             temperature=300 * kelvin, pressure=1.0 * atmosphere, steps=25, enable=False
         )
@@ -463,7 +462,7 @@ class TestCreateOpenMMSystemExplicitNoPCouple(unittest.TestCase):
 class TestCreateOpenMMSystemExplicitPCouple(unittest.TestCase):
     def setUp(self):
         self.mock_parm = mock.Mock(spec=AmberPrmtopFile)
-        self.TEMP = 450.
+        self.TEMP = 450.0
 
     def test_pressure_coupling_should_add_barostat(self):
         PRESS = 2.0 * atmosphere
@@ -516,16 +515,16 @@ class TestCreateIntegrator(unittest.TestCase):
 
     def test_sets_correct_temperature(self):
         openmm_runner._create_integrator(
-            temperature=300., use_big_timestep=False, use_bigger_timestep=False
+            temperature=300.0, use_big_timestep=False, use_bigger_timestep=False
         )
         self.MockIntegrator.assert_called_with(
-            300. * kelvin, 1.0 / picosecond, 2 * femtosecond
+            300.0 * kelvin, 1.0 / picosecond, 2 * femtosecond
         )
 
     def test_big_timestep_should_set_correct_timestep(self):
         openmm_runner._create_integrator(
-            temperature=300., use_big_timestep=True, use_bigger_timestep=False
+            temperature=300.0, use_big_timestep=True, use_bigger_timestep=False
         )
         self.MockIntegrator.assert_called_with(
-            300. * kelvin, 1.0 / picosecond, 3.5 * femtosecond
+            300.0 * kelvin, 1.0 / picosecond, 3.5 * femtosecond
         )

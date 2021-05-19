@@ -8,6 +8,7 @@ from meld.system import options
 from meld.system import restraints
 from meld.runner import transform
 from meld.util import log_timing
+from meldplugin import MeldForce  # type: ignore
 
 from simtk.openmm import app  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore
@@ -21,15 +22,6 @@ from collections import namedtuple
 from typing import Optional, List, Dict, NamedTuple, Tuple
 
 logger = logging.getLogger(__name__)
-
-try:
-    from meldplugin import MeldForce  # type: ignore
-except ImportError:
-    logger.warning(
-        "Could not import meldplugin. "
-        "Are you sure it is installed correctly?\n"
-        "Attempts to use meld restraints will fail."
-    )
 
 
 GAS_CONSTANT = 8.314e-3
@@ -100,13 +92,16 @@ class OpenMMRunner(interfaces.IRunner):
         self._extra_bonds = system.extra_bonds
         self._extra_restricted_angles = system.extra_restricted_angles
         self._extra_torsions = system.extra_torsions
+        self._parameter_manager = system.param_sampler
 
-    def prepare_for_timestep(self, alpha: float, timestep: int) -> None:
+    def prepare_for_timestep(
+        self, state: interfaces.IState, alpha: float, timestep: int
+    ):
         self._alpha = alpha
         self._timestep = timestep
         assert self.temperature_scaler is not None
         self._temperature = self.temperature_scaler(alpha)
-        self._initialize_simulation()
+        self._initialize_simulation(state)
 
     @log_timing(logger)
     def minimize_then_run(self, state: interfaces.IState) -> interfaces.IState:
@@ -117,11 +112,14 @@ class OpenMMRunner(interfaces.IRunner):
         return self._run(state, minimize=False)
 
     def get_energy(self, state: interfaces.IState) -> float:
+        # update all of the transformers
+        self._transformers_update(state)
+
         # set the coordinates
         coordinates = u.Quantity(state.positions, u.angstrom)
+        self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        self._simulation.context.setPositions(coordinates)
         if self._options.solvation == "explicit":
             box_vector = state.box_vector / 10.0  # Angstrom to nm
             self._simulation.context.setPeriodicBoxVectors(
@@ -138,9 +136,13 @@ class OpenMMRunner(interfaces.IRunner):
             / GAS_CONSTANT
             / self._temperature
         )
-        return e_potential
 
-    def _initialize_simulation(self) -> None:
+        # get the log_prior for parameters being sampled
+        log_prior = self._parameter_manager.log_prior(state.parameters)
+
+        return e_potential - log_prior
+
+    def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
             # update temperature and pressure
             self._integrator.setTemperature(self._temperature)
@@ -150,7 +152,7 @@ class OpenMMRunner(interfaces.IRunner):
                 )
 
             # update all of the system transformers
-            self._transformers_update()
+            self._transformers_update(state)
 
         else:
             # we need to set the whole thing from scratch
@@ -204,8 +206,8 @@ class OpenMMRunner(interfaces.IRunner):
                     print("\t", remaining_selectable)
                 raise RuntimeError("Not all selectable restraints were handled.")
 
-            sys = self._transformers_add_interactions(sys, prmtop.topology)
-            self._transformers_finalize(sys, prmtop.topology)
+            sys = self._transformers_add_interactions(state, sys, prmtop.topology)
+            self._transformers_finalize(state, sys, prmtop.topology)
 
             # create the integrator
             self._integrator = _create_integrator(
@@ -248,7 +250,7 @@ class OpenMMRunner(interfaces.IRunner):
                 prmtop.topology, sys, self._integrator, platform, properties
             )
 
-            self._transformers_update()
+            self._transformers_update(state)
 
     def _transformers_setup(self) -> None:
         # CMAPTransformer is different, so we add it separately
@@ -269,22 +271,27 @@ class OpenMMRunner(interfaces.IRunner):
 
         for tt in trans_types:
             trans = tt(
-                self._options, self._always_on_restraints, self._selectable_collections
+                self._parameter_manager,
+                self._options,
+                self._always_on_restraints,
+                self._selectable_collections,
             )
             self._transformers.append(trans)
 
-    def _transformers_add_interactions(self, sys, topol) -> mm.System:
+    def _transformers_add_interactions(
+        self, state: interfaces.IState, sys, topol
+    ) -> mm.System:
         for t in self._transformers:
-            sys = t.add_interactions(sys, topol)
+            sys = t.add_interactions(state, sys, topol)
         return sys
 
-    def _transformers_finalize(self, sys, topol) -> mm.System:
+    def _transformers_finalize(self, state: interfaces.IState, sys, topol) -> None:
         for t in self._transformers:
-            t.finalize(sys, topol)
+            t.finalize(state, sys, topol)
 
-    def _transformers_update(self) -> None:
+    def _transformers_update(self, state: interfaces.IState) -> None:
         for t in self._transformers:
-            t.update(self._simulation, self._alpha, self._timestep)
+            t.update(state, self._simulation, self._alpha, self._timestep)
 
     def _run_min_mc(self, state: interfaces.IState) -> interfaces.IState:
         if self._options.min_mc is not None:
@@ -305,11 +312,20 @@ class OpenMMRunner(interfaces.IRunner):
         return state
 
     def _run(self, state: interfaces.IState, minimize: bool) -> interfaces.IState:
-        assert abs(state.alpha - self._alpha) < 1e-6  # run Monte Carlo
+        # update the transformers to account for sampled parameters
+        # stored in the state
+        self._transformers_update(state)
+
+        assert abs(state.alpha - self._alpha) < 1e-6
+
+        # Run Monte Carlo position updates
         if minimize:
             state = self._run_min_mc(state)
         else:
             state = self._run_mc(state)
+
+        # Run MonteCarlo parameter updates
+        state = self._run_param_mc(state)
 
         # add units to coordinates and velocities (we store in Angstrom, openmm
         # uses nm
@@ -378,6 +394,48 @@ class OpenMMRunner(interfaces.IRunner):
         state.velocities = velocities
         state.energy = e_potential
         state.box_vector = box_vector
+
+        return state
+
+    def _run_param_mc(self, state):
+        if not self._parameter_manager.has_parameters():
+            return state
+
+        if self._options.param_mcmc_steps is None:
+            raise RuntimeError(
+                "There are sampled parameters, but param_mcmc_steps is not set."
+            )
+
+        energy = self.get_energy(state)
+
+        for _ in range(self._options.param_mcmc_steps):
+            trial_params = self._parameter_manager.sample(state.parameters)
+            if not self._parameter_manager.is_valid(trial_params):
+                accept = False
+            else:
+                trial_state = SystemState(
+                    state.positions,
+                    state.velocities,
+                    state.alpha,
+                    state.energy,
+                    state.box_vector,
+                    trial_params,
+                )
+                trial_energy = self.get_energy(trial_state)
+
+                delta = trial_energy - energy
+
+                if delta < 0:
+                    accept = True
+                else:
+                    if random.random() < math.exp(-delta):
+                        accept = True
+                    else:
+                        accept = False
+
+            if accept:
+                state = trial_state
+                energy = trial_energy
 
         return state
 

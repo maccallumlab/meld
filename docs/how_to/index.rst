@@ -6,3 +6,4 @@ How-To
     :maxdepth: 2
 
     explicit_solvent
+    parameter_sampling

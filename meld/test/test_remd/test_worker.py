@@ -75,7 +75,7 @@ class TestWorkerSingle(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner)
 
         self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
-            sentinel.ALPHA, 1
+            sentinel.STATE, sentinel.ALPHA, 1
         )
 
     def test_calls_receive_state(self):

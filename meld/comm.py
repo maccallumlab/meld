@@ -68,7 +68,7 @@ class MPICommunicator(interfaces.ICommunicator):
         To do that, call :meth:`initialize`.
     """
 
-    _mpi_comm: MPI.Comm
+    _mpi_comm: Any
 
     def __init__(self, n_atoms: int, n_replicas: int, timeout: int = 600):
         """
@@ -431,6 +431,22 @@ def _get_mpi_comm_world() -> MPI.Comm:
     Helper function to return the comm_world.
 
     """
+    try:
+        from mpi4py import MPI  # type: ignore
+    except ImportError:
+        print()
+        print("****")
+        print("Error importing mpi4py.")
+        print()
+        print("Meld depends on mpi4py, but does not automatically install it")
+        print(
+            "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
+        )
+        print("for details.")
+        print("****")
+        print()
+        raise
+
     return MPI.COMM_WORLD
 
 

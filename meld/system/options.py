@@ -45,6 +45,7 @@ class RunOptions:
             "solventDielectric",
             "implicitSolventSaltConc",
             "rdc_patcher",
+            "param_mcmc_steps",
         ]
         _allowed_attributes += ["_{}".format(item) for item in _allowed_attributes]
         if name not in _allowed_attributes:
@@ -92,6 +93,7 @@ class RunOptions:
         self._solventDielectric = None
         self._soluteDielectric = None
         self._rdc_patcher = None
+        self._param_mcmc_steps = None
 
     # solvation is a read-only property that must be set
     # when the options are created
@@ -427,6 +429,16 @@ class RunOptions:
     @rdc_patcher.setter
     def rdc_patcher(self, value: patchers.RdcAlignmentPatcher) -> None:
         self._rdc_patcher = value
+
+    @property
+    def param_mcmc_steps(self):
+        return self._param_mcmc_steps
+
+    @param_mcmc_steps.setter
+    def param_mcmc_steps(self, value):
+        if value < 0:
+            raise RuntimeError("param_mcmc_steps must be positive")
+        self._param_mcmc_steps = value
 
     def sanity_check(self) -> None:
         """

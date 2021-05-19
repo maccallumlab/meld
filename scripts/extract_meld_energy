@@ -7,7 +7,7 @@ import progressbar
 from meld import vault
 import meld.system.openmm_runner.runner as omm_runner
 import meld.system.restraints as restraints
-from simtk.openmm.openmm import (
+from openmm import (
     HarmonicBondForce,
     HarmonicAngleForce,
     PeriodicTorsionForce,

@@ -56,7 +56,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
             opt.amap_beta_bias = 7.0
             adder = cmap.CMAPTransformer(opt, self.system.top_string)
 
-            adder.add_interactions(self.mock_openmm_system, mock.Mock())
+            adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
             self.assertEqual(self.MockCMAP.call_count, 1)
             self.assertEqual(self.mock_cmap.addMap.call_count, 4)
@@ -79,7 +79,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock())
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         # map should be #2 for alanine
         # all atom indices are zero-based in openmm
@@ -92,7 +92,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock())
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_openmm_system.addForce.assert_called_once_with(self.mock_cmap)
 
@@ -124,7 +124,7 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock())
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         # map should be #2 for alanine
         # all atom indices are zero-based in openmm
@@ -165,7 +165,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock())
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             0, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -178,7 +178,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock())
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             1, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -191,7 +191,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
         opt.use_amap = True
 
         adder = cmap.CMAPTransformer(opt, self.system.top_string)
-        adder.add_interactions(self.mock_openmm_system, mock.Mock)
+        adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock)
 
         self.mock_cmap.addTorsion.assert_called_once_with(
             2, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY
@@ -232,7 +232,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
             opt.use_amap = True
 
             adder = cmap.CMAPTransformer(opt, self.system.top_string)
-            adder.add_interactions(self.mock_openmm_system, mock.Mock())
+            adder.add_interactions(mock.Mock(), self.mock_openmm_system, mock.Mock())
 
             self.mock_cmap.addTorsion.assert_called_once_with(
                 3, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY

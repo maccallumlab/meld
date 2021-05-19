@@ -56,7 +56,7 @@ class WorkerReplicaExchangeRunner:
 
             state.alpha = new_alpha
 
-            system_runner.prepare_for_timestep(new_alpha, self._step)
+            system_runner.prepare_for_timestep(state, new_alpha, self._step)
 
             # do one round of simulation
             if minimize:

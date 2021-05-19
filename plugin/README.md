@@ -37,7 +37,6 @@ Next, after editing the paths as appropriate, you can use something like the fol
     export LD_LIBRARY_PATH=$OPENMM_DIR/lib
     export LD_LIBRARY_PATH=/opt/nvidia/cuda/lib:/opt/nvidia/cuda/lib64:$LD_LIBRARY_PATH
     export OPENMM_CUDA_COMPILER=/opt/nvidia/cuda/bin/nvcc
-    export EIGEN3_INCLUDE_DIR=/usr/local/include/eigen3
 
     git clone https://github.com/maccallumlab/meld-openmm-plugin.git
     cd meld-openmm-plugin

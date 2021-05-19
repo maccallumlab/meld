@@ -142,6 +142,7 @@ from __future__ import annotations
 
 from meld import interfaces
 from meld.system import indexing
+from meld.system import param_sampling
 
 import math
 import numpy as np  # type: ignore
@@ -1208,11 +1209,18 @@ class SelectivelyActiveCollection:
         for rest in restraint_list:
             self._add_restraint(rest)
 
-        if num_active < 0:
-            raise RuntimeError("num_active must be >= 0.")
+        # Do error checking
         n_rest = len(self._groups)
-        if num_active > n_rest:
-            raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
+        if isinstance(num_active, param_sampling.DiscreteParameter):
+            if num_active.min < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active.max > n_rest:
+                raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
+        else:
+            if num_active < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active > n_rest:
+                raise RuntimeError(f"num active must be <= num_groups ({n_rest}).")
         self._num_active = num_active
 
     @property
@@ -1263,11 +1271,17 @@ class RestraintGroup:
         for rest in rest_list:
             self._add_restraint(rest)
 
-        if num_active < 0:
-            raise RuntimeError("num_active must be >= 0.")
         n_rest = len(self._restraints)
-        if num_active > n_rest:
-            raise RuntimeError(f"num_active must be <= n_rest ({n_rest}).")
+        if isinstance(num_active, param_sampling.DiscreteParameter):
+            if num_active.min < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active.max > n_rest:
+                raise RuntimeError(f"num active must be <= num_restraints ({n_rest}).")
+        else:
+            if num_active < 0:
+                raise RuntimeError("num_active must be >= 0.")
+            if num_active > n_rest:
+                raise RuntimeError(f"num_active must be <= n_rest ({n_rest}).")
         self._num_active = num_active
 
     @property
