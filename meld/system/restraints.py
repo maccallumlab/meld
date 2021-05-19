@@ -1570,10 +1570,13 @@ class PlateauLinearScaler(RestraintScaler):
     alpha_one, keeps the value of 1 until alpha_two and then decreases
     linearly until 0 in alpha_max.
 
-        ------   strength alpha_min --> between two and one
-      /        \
-     /          \ strength alpha_max --> > alpha_max and
-                                           below alphamin
+    ::
+
+        |    ------   strength alpha_min --> between two and one
+        |  /        \
+        | /          \ strength alpha_max --> > alpha_max and
+        |                                       below alphamin
+
     """
 
     _scaler_key_ = "plateau"

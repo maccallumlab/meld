@@ -19,12 +19,6 @@ on it.
 Indices and tables
 ==================
 
-.. only:: builder_html
-
    * :ref:`genindex`
    * :ref:`modindex`
    * :ref:`search`
-
-.. only:: not builder_html
-
-   * :ref:`modindex`
