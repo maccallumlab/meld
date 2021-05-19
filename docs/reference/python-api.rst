@@ -6,10 +6,11 @@ Full Python API Reference
    :template: custom-module-template.rst
    :recursive:
 
+   meld.test_install
    meld.system
    meld.remd
    meld.comm
    meld.parse
    meld.vault
    meld.util
-   meld.test_install
+   meld.runner
