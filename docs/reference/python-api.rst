@@ -14,3 +14,4 @@ Full Python API Reference
    meld.vault
    meld.util
    meld.runner
+   meld.interfaces
