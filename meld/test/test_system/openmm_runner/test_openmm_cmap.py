@@ -30,7 +30,7 @@ class TestAddCMAPTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -97,7 +97,7 @@ class TestAddCMAPDoubleTriAla(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()
@@ -127,7 +127,7 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
         # patch out CMAPTorsionForce so we can see how it is called
         self.patcher = mock.patch(
-            "meld.runner.cmap.openmm.CMAPTorsionForce",
+            "meld.runner.cmap.mm.CMAPTorsionForce",
             spec=openmm.CMAPTorsionForce,
         )
         self.MockCMAP = self.patcher.start()

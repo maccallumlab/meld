@@ -145,9 +145,7 @@ from meld.system import indexing
 
 import math
 import numpy as np  # type: ignore
-from numpy.typing import ArrayLike
-from collections import namedtuple
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, Union, List, NamedTuple
 
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
@@ -339,9 +337,9 @@ class GMMDistanceRestraint(SelectableRestraint):
         n_distances: int,
         n_components: int,
         atoms: List[indexing.AtomIndex],
-        weights: ArrayLike,
-        means: ArrayLike,
-        precisions: ArrayLike,
+        weights: np.ndarray,
+        means: np.ndarray,
+        precisions: np.ndarray,
     ):
         """
         Initialize a GMMDistanceRestraint
@@ -829,8 +827,8 @@ class ConfinementRestraint(NonSelectableRestraint):
         self.atom_index = int(atom_index)
         self.radius = float(radius)
         self.force_const = float(force_const)
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
 
     def _check(self, system):
@@ -878,8 +876,8 @@ class CartesianRestraint(NonSelectableRestraint):
         self.z = z
         self.delta = delta
         self.force_const = force_const
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
 
     def _check(self):
@@ -926,8 +924,8 @@ class YZCartesianRestraint(NonSelectableRestraint):
         self.z = z
         self.delta = delta
         self.force_const = force_const
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
 
     def _check(self):
@@ -972,10 +970,10 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         group: List[indexing.AtomIndex],
-        weights: ArrayLike,
+        weights: np.ndarray,
         dims: str,
         force_const: float,
-        position: ArrayLike,
+        position: np.ndarray,
     ):
         """
         Initialize an AbsoluteCOMRestraint
@@ -992,8 +990,8 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
             force_const: force constant in kJ/mol/nm^2
             point: location in space to restrain to
         """
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler: RestraintScaler = ConstantScaler() if scaler is None else scaler
+        self.ramp: TimeRamp = ConstantRamp() if ramp is None else ramp
 
         self.dims = dims
         self._check_dims()
@@ -1096,8 +1094,8 @@ class COMRestraint(NonSelectableRestraint):
             distance: distance between groups
         """
         # setup indices
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
 
         self.indices1 = self._get_indices(group1)
         self.indices2 = self._get_indices(group2)
@@ -1509,13 +1507,16 @@ class AlphaMapper(metaclass=ScalerRegistry):
 class RestraintScaler(AlphaMapper):
     """Base class for all resraint scaler classes."""
 
+    def __call__(self, alpha: float) -> float:
+        raise NotImplementedError("Cannot call base RestraintScaler")
+
 
 class ConstantScaler(RestraintScaler):
     """This scaler is "always on" and always returns a value of 1.0"."""
 
     _scaler_key_ = "constant"
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         return 1.0
 
@@ -1550,7 +1551,7 @@ class LinearScaler(RestraintScaler):
         self._delta = alpha_max - alpha_min
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         scale = self._handle_boundaries(alpha)
         if scale is None:
@@ -1605,7 +1606,7 @@ class PlateauLinearScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1669,7 +1670,7 @@ class NonLinearScaler(RestraintScaler):
             raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         scale = self._handle_boundaries(alpha)
         if scale is None:
@@ -1726,7 +1727,7 @@ class PlateauNonLinearScaler(RestraintScaler):
             raise RuntimeError(f"factor must be >= 1. factor={factor}.")
         self._factor = factor
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1792,7 +1793,7 @@ class PlateauSmoothScaler(RestraintScaler):
         self._strength_at_alpha_max = strength_at_alpha_max
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
         if alpha <= self._alpha_min:
             scale = self._strength_at_alpha_max
@@ -1846,7 +1847,7 @@ class GeometricScaler(RestraintScaler):
         self._delta_alpha = self._alpha_max - self._alpha_min
         self._check_alpha_min_max()
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)
 
         if alpha < 0 or alpha > 1:
@@ -1869,13 +1870,16 @@ class GeometricScaler(RestraintScaler):
 class TimeRamp(AlphaMapper):
     """Base class for all time ramp classes."""
 
+    def __call__(self, timestep: int) -> float:
+        raise NotImplementedError("Cannot call base TimeRamp directly")
+
 
 class ConstantRamp(TimeRamp):
     """TimeRamp that always returns 1.0"""
 
     _scaler_key_ = "constant_ramp"
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("Timestep is < 0.")
         return 1.0
@@ -1903,7 +1907,7 @@ class LinearRamp(TimeRamp):
         self.w_start = float(start_weight)
         self.w_end = float(end_weight)
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("Timestep is < 0.")
         if timestep < self.t_start:
@@ -1952,7 +1956,7 @@ class NonLinearRamp(TimeRamp):
         self.w_end = float(end_weight)
         self.factor = float(factor)
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < 0:
             raise ValueError("timestep is < 0.")
 
@@ -2006,7 +2010,7 @@ class TimeRampSwitcher(TimeRamp):
         self.second_ramp = second_ramp
         self.switching_time = switching_time
 
-    def __call__(self, timestep):
+    def __call__(self, timestep: int) -> float:
         if timestep < self.switching_time:
             return self.first_ramp(timestep)
         else:
@@ -2015,6 +2019,9 @@ class TimeRampSwitcher(TimeRamp):
 
 class Positioner(AlphaMapper):
     """Base class for all positioner classes."""
+
+    def __call__(self, alpha: float) -> float:
+        raise NotImplementedError("Cannot call base positioner")
 
 
 class ConstantPositioner(Positioner):
@@ -2025,7 +2032,7 @@ class ConstantPositioner(Positioner):
     def __init__(self, value):
         self._value = value
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         if alpha < 0:
             raise ValueError("alpha must be >= 0")
         if alpha > 1:
@@ -2061,7 +2068,7 @@ class LinearPositioner(Positioner):
         self.pos_min = float(pos_min)
         self.pos_max = float(pos_max)
 
-    def __call__(self, alpha):
+    def __call__(self, alpha: float) -> float:
         if alpha < 0:
             raise ValueError("alpha was < 0")
         if alpha > 1:
@@ -2075,7 +2082,10 @@ class LinearPositioner(Positioner):
             return self.pos_max
 
 
-GMMParams = namedtuple(
-    "GMMParams",
-    ["n_components", "n_distances", "atoms", "weights", "means", "precisions"],
-)
+class GMMParams(NamedTuple):
+    n_components: int
+    n_distances: int
+    atoms: List[indexing.AtomIndex]
+    weights: np.ndarray
+    means: np.ndarray
+    precisions: np.ndarray

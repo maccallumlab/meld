@@ -21,6 +21,13 @@ must add this class to the list in
 
 """
 
+from meld.system import options
+from meld.system import restraints
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
+
+from typing import List
+
 
 class TransformerBase:
     """
@@ -48,24 +55,25 @@ class TransformerBase:
     The number of particles cannot be changed by a transformer,
     instead additional particles should be added using a
     patcher.
-
-    Parameters
-    ----------
-    options: meld.system.RunOptions
-        the options for the runner
-    always_active_restraints: list of restraints
-        these restraints are always active
-    selectively_active_collections: list of SelectivelyActiveCollection
-        these restraints are selected by the MELD algorithm
-
     """
 
     def __init__(
-        self, options, always_active_restraints, selectively_active_restraints
+        self,
+        options: options.RunOptions,
+        always_active_restraints: List[restraints.Restraint],
+        selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ):
+        """
+        Initialize a Transformer
+
+        Args:
+            options: the options for the runner
+            always_active_restraints: these restraints are always active
+            selectively_active_collections: these restraints are selected by the MELD algorithm
+        """
         raise NotImplementedError("TransformerBase cannot be instantiated.")
 
-    def add_interactions(self, system, topology):
+    def add_interactions(self, system: mm.System, topology: app.Topology) -> mm.System:
         """
         Add new interactions to the system.
 
@@ -78,18 +86,13 @@ class TransformerBase:
         transformer does not add interactions, it may simply
         return the passed values.
 
-        Parameters
-        ----------
-        system: simtk.openmm.System
-            OpenMM system object to be modified
-        topology: simtk.openmm.Topology
-            OpenMM topology object to be modified and/or used
-            for indexing
-
+        Args:
+            system: OpenMM system object to be modified
+            topology: OpenMM topology object to be modified and/or used for indexing
         """
         return system
 
-    def finalize(self, system, topology):
+    def finalize(self, system: mm.System, topology: app.Topology) -> None:
         """
         Finalize the transformer.
 
@@ -99,18 +102,13 @@ class TransformerBase:
 
         This method should not add any new forces.
 
-        Parameters
-        ----------
-        system: simtk.openmm.System
-            OpenMM system object to be modified
-        topology: simtk.openmm.Topology
-            OpenMM topology object to be modified and/or used
-            for indexing
-
+        Args:
+            system: OpenMM system object to be modified
+            topology: OpenMM topology object to be modified and/or used for indexing
         """
         pass
 
-    def update(self, simulation, alpha, timestep):
+    def update(self, simulation: app.Simulation, alpha: float, timestep: int) -> None:
         """
         Update the system according to alpha and timestep.
 
@@ -119,12 +117,9 @@ class TransformerBase:
 
         Parameters
         ----------
-        simulation: simtk.openmm.app.simulation
-            OpenMM simulation object to be modified
-        alpha: float
-            Current value of alpha, ranges from 0 to 1
-        stage: int
-            Current stage of the simulation, starting from 0
+        simulation: OpenMM simulation object to be modified
+        alpha: current value of alpha, ranges from 0 to 1
+        stage: current stage of the simulation, starting from 0
 
         """
         pass

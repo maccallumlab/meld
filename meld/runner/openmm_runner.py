@@ -6,7 +6,6 @@
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
-from meld.system import temperature
 from meld.runner import cmap
 from meld.runner import transform
 from meld.util import log_timing
