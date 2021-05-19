@@ -4,7 +4,7 @@
 #
 
 from meld.system import amber
-import openmm as mm  # type: ignore
+from simtk import openmm as mm  # type: ignore
 
 from collections import OrderedDict
 import os

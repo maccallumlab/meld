@@ -11,8 +11,8 @@ from meld.system import options
 from meld.system import temperature
 from meld.system import restraints
 from meld.runner.transform import TransformerBase
-import openmm as mm  # type: ignore
-from openmm import app  # type: ignore
+from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
 
 import math
 from typing import List, Dict, Tuple

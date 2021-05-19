@@ -23,8 +23,8 @@ except ImportError:
         "Are you sure it is installed correctly?\n"
         "Attempts to use meld restraints will fail."
     )
-import openmm as mm  # type: ignore
-from openmm import app  # type: ignore
+from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
 
 import numpy as np  # type: ignore
 from collections import OrderedDict, Callable

@@ -9,7 +9,7 @@ setup(
     author_email="justin.maccallum@ucalgary.ca",
     packages=find_packages(),
     package_data={
-        "meld.system.openmm_runner": ["maps/*.txt", "maps/GAVL/*.txt"],
+        "meld.runner": ["maps/*.txt", "maps/GAVL/*.txt"],
         "meld.test.test_functional.test_openmm_runner": [
             "system.top",
             "system.mdcrd",

@@ -23,8 +23,8 @@ must add this class to the list in
 
 from meld.system import options
 from meld.system import restraints
-import openmm as mm  # type: ignore
-from openmm import app  # type: ignore
+from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
 
 from typing import List
 
