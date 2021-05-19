@@ -10,6 +10,8 @@ CMAKE_POLICY(SET CMP0011 NEW)
 
 project(meld)
 
+FIND_PACKAGE(Eigen3 3.3 REQUIRED)
+
 # We need to know where OpenMM is installed so we can access the headers and libraries.
 SET(OPENMM_DIR "/usr/local/openmm" CACHE PATH "Where OpenMM is installed")
 INCLUDE_DIRECTORIES("${OPENMM_DIR}/include")
