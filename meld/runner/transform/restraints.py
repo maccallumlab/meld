@@ -16,15 +16,8 @@ from meld.system import restraints
 from meld.system import options
 from meld.system import param_sampling
 from meld.runner import transform
+from meldplugin import MeldForce  # type: ignore
 
-try:
-    from meldplugin import MeldForce  # type: ignore
-except ImportError:
-    logger.warning(
-        "Could not import meldplugin. "
-        "Are you sure it is installed correctly?\n"
-        "Attempts to use meld restraints will fail."
-    )
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 

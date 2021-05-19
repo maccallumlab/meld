@@ -8,6 +8,7 @@ from meld.system import options
 from meld.system import restraints
 from meld.runner import transform
 from meld.util import log_timing
+from meldplugin import MeldForce  # type: ignore
 
 from simtk.openmm import app  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore
@@ -21,15 +22,6 @@ from collections import namedtuple
 from typing import Optional, List, Dict, NamedTuple, Tuple
 
 logger = logging.getLogger(__name__)
-
-try:
-    from meldplugin import MeldForce  # type: ignore
-except ImportError:
-    logger.warning(
-        "Could not import meldplugin. "
-        "Are you sure it is installed correctly?\n"
-        "Attempts to use meld restraints will fail."
-    )
 
 
 GAS_CONSTANT = 8.314e-3
