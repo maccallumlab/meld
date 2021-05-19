@@ -3,8 +3,15 @@
 # All rights reserved
 #
 
+"""
+Add AMAP correction for GB models
+"""
+
 from meld.system import amber
+from meld.runner import transform
+from meld.system import options
 from simtk import openmm as mm  # type: ignore
+from simtk.openmm import app  # type: ignore
 
 from collections import OrderedDict
 import os
@@ -39,39 +46,38 @@ capped = [
     "0E9",
 ]
 
+residue_to_map = {
+    "GLY": 0,
+    "PRO": 1,
+    "ALA": 2,
+    "CYS": 3,
+    "CYX": 3,
+    "ASP": 3,
+    "ASH": 3,
+    "GLU": 3,
+    "GLH": 3,
+    "PHE": 3,
+    "HIS": 3,
+    "HIE": 3,
+    "HID": 3,
+    "HIP": 3,
+    "ILE": 3,
+    "LYS": 3,
+    "LYN": 3,
+    "MET": 3,
+    "ASN": 3,
+    "GLN": 3,
+    "SER": 3,
+    "THR": 3,
+    "VAL": 3,
+    "TRP": 3,
+    "TYR": 3,
+    "LEU": 3,
+    "ARG": 3,
+}
 
-class CMAPAdder:
-    _map_index = {
-        "GLY": 0,
-        "PRO": 1,
-        "ALA": 2,
-        "CYS": 3,
-        "CYX": 3,
-        "ASP": 3,
-        "ASH": 3,
-        "GLU": 3,
-        "GLH": 3,
-        "PHE": 3,
-        "HIS": 3,
-        "HIE": 3,
-        "HID": 3,
-        "HIP": 3,
-        "ILE": 3,
-        "LYS": 3,
-        "LYN": 3,
-        "MET": 3,
-        "ASN": 3,
-        "GLN": 3,
-        "SER": 3,
-        "THR": 3,
-        "VAL": 3,
-        "TRP": 3,
-        "TYR": 3,
-        "LEU": 3,
-        "ARG": 3,
-    }
 
-    _top_string: str
+class CMAPTransformer(transform.TransformerBase):
     _alpha_bias: float
     _beta_bias: float
     _ccap: bool
@@ -87,39 +93,38 @@ class CMAPAdder:
 
     def __init__(
         self,
+        options: options.RunOptions,
         top_string: str,
-        alpha_bias: float = 1.0,
-        beta_bias: float = 1.0,
         ccap: bool = False,
         ncap: bool = False,
     ) -> None:
         """
-        Initialize a new CMAPAdder object
+        Initialize a new CMAPTransformer
 
         Args:
+            options: run options
             top_string: an Amber new-style topology in string form
-            alpha_bias: strength of alpha correction
-            beta_bias: strength of beta correction
         """
+        self._alpha_bias = options.amap_alpha_bias
+        self._beta_bias = options.amap_beta_bias
+        self._active = options.use_amap
         self._top_string = top_string
-        self._alpha_bias = alpha_bias
-        self._beta_bias = beta_bias
         self._ccap = ccap
         self._ncap = ncap
-        reader = amber.ParmTopReader(self._top_string)
-        self._bonds = reader.get_bonds()
-        self._residue_numbers = [r - 1 for r in reader.get_residue_numbers()]
-        self._residue_names = reader.get_residue_names()
-        self._atom_map = reader.get_atom_map()
-        self._load_maps()
+        if self._active:
+            reader = amber.ParmTopReader(self._top_string)
+            self._bonds = reader.get_bonds()
+            self._residue_numbers = [r - 1 for r in reader.get_residue_numbers()]
+            self._residue_names = reader.get_residue_names()
+            self._atom_map = reader.get_atom_map()
+            self._load_maps()
 
-    def add_to_openmm(self, openmm_system: mm.System) -> None:
-        """
-        Add CMAPTorsionForce to openmm system.
+    def add_interactions(
+        self, openmm_system: mm.System, topology: app.Topology
+    ) -> mm.System:
+        if not self._active:
+            return openmm_system
 
-        Args:
-            opennmm_system: the system to add the CMAP to
-        """
         cmap_force = mm.CMAPTorsionForce()
         cmap_force.addMap(self._gly_map.shape[0], self._gly_map.flatten())
         cmap_force.addMap(self._pro_map.shape[0], self._pro_map.flatten())
@@ -131,7 +136,7 @@ class CMAPAdder:
             # loop over the interior residues
             n_res = len(chain)
             for i in range(1, n_res - 1):
-                map_index = self._map_index[chain[i].res_name]
+                map_index = residue_to_map[chain[i].res_name]
                 c_prev = chain[i - 1].index_C
                 n = chain[i].index_N
                 ca = chain[i].index_CA
@@ -139,6 +144,7 @@ class CMAPAdder:
                 n_next = chain[i + 1].index_N
                 cmap_force.addTorsion(map_index, c_prev, n, ca, c, n, ca, c, n_next)
         openmm_system.addForce(cmap_force)
+        return openmm_system
 
     def _iterate_cmap_chains(self) -> Iterator[List[CMAPResidue]]:
         """
@@ -166,7 +172,7 @@ class CMAPAdder:
         cmap_residues = [
             self._to_cmap_residue(num, name)
             for (num, name) in ordered_residues.items()
-            if name in self._map_index.keys()
+            if name in residue_to_map.keys()
         ]
 
         # is each residue i connected to it's predecessor, i-1?

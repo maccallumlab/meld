@@ -6,7 +6,6 @@
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
-from meld.runner import cmap
 from meld.runner import transform
 from meld.util import log_timing
 
@@ -191,14 +190,6 @@ class OpenMMRunner(interfaces.IRunner):
             )
             self._barostat = barostat
 
-            if self._options.use_amap:
-                adder = cmap.CMAPAdder(
-                    self._parm_string,
-                    self._options.amap_alpha_bias,
-                    self._options.amap_beta_bias,
-                )
-                adder.add_to_openmm(sys)
-
             # setup the transformers
             self._transformers_setup()
             if len(self._always_on_restraints) > 0:
@@ -260,6 +251,11 @@ class OpenMMRunner(interfaces.IRunner):
             self._transformers_update()
 
     def _transformers_setup(self) -> None:
+        # CMAPTransformer is different, so we add it separately
+        self._transformers.append(
+            transform.CMAPTransformer(self._options, self._parm_string)
+        )
+
         trans_types = [
             transform.ConfinementRestraintTransformer,
             transform.RDCRestraintTransformer,

@@ -136,3 +136,4 @@ from meld.runner.transform.restraints import (
 )
 
 from meld.runner.transform.rest2 import REST2Transformer
+from meld.runner.transform.cmap import CMAPTransformer
