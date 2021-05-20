@@ -27,52 +27,9 @@ namespace std {
 #include <vector>
 %}
 
-
-%pythoncode %{
-import simtk.unit as unit
-import simtk.openmm as mm
-%}
-
 /* include version information */
 %pythoncode %{
 __version__ = '0.5.0'
-%}
-
-/*
-    Add units to outputs
-*/
-%pythonappend MeldPlugin::MeldForce::getDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
-                                                                float& r4, float& forceConstant, int& globalIndex) const %{
-   val[2]=unit.Quantity(val[2], unit.nanometer)
-   val[3]=unit.Quantity(val[3], unit.nanometer)
-   val[4]=unit.Quantity(val[4], unit.nanometer)
-   val[5]=unit.Quantity(val[5], unit.nanometer)
-   val[6]=unit.Quantity(val[6], unit.kilojoule_per_mole/(unit.nanometer*unit.nanometer))
-%}
-
-%pythonappend MeldPlugin::MeldForce::getHyperbolicDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
-                                                                          float& r4, float& forceConstant, float& asymptote, int& globalIndex) const %{
-   val[2]=unit.Quantity(val[2], unit.nanometer)
-   val[3]=unit.Quantity(val[3], unit.nanometer)
-   val[4]=unit.Quantity(val[4], unit.nanometer)
-   val[5]=unit.Quantity(val[5], unit.nanometer)
-   val[6]=unit.Quantity(val[6], unit.kilojoule_per_mole/(unit.nanometer*unit.nanometer))
-   val[7]=unit.Quantity(val[7], unit.kilojoule_per_mole)
-%}
-
-%pythonappend MeldPlugin::MeldForce::getTorsionRestraintParams(int index, int& atom1, int& atom2, int& atom3, int&atom4,
-                                                               float& phi, float& deltaPhi, float& forceConstant, int& globalIndex) const %{
-    val[4] = unit.Quantity(val[4], unit.degree)
-    val[5] = unit.Quantity(val[5], unit.degree)
-    val[6] = unit.Quantity(val[6], unit.kilojoule_per_mole / (unit.degree * unit.degree))
-%}
-
-%pythonappend MeldPlugin::MeldForce::getDistProfileRestraintParams(int index, int& atom1, int& atom2, float& rMin, float & rMax,
-                                                                   int& nBins, std::vector<double>& a0, std::vector<double>& a1,
-                                                                   std::vector<double>& a2, std::vector<double>& a3,
-                                                                   float& scaleFactor, int& globalIndex) const %{
-    val[2] = unit.Quantity(val[2], unit.nanometer)
-    val[3] = unit.Quantity(val[3], unit.nanometer)
 %}
 
 /*
