@@ -142,15 +142,16 @@ class TransformerBase:
         pass
 
 
-from meld.runner.transform.restraints import (
-    ConfinementRestraintTransformer,
-    RDCRestraintTransformer,
+from meld.runner.transform.restraints.confinement import ConfinementRestraintTransformer
+from meld.runner.transform.restraints.rdc import RDCRestraintTransformer
+from meld.runner.transform.restraints.cartesian import (
     CartesianRestraintTransformer,
     YZCartesianTransformer,
-    COMRestraintTransformer,
-    AbsoluteCOMRestraintTransformer,
-    MeldRestraintTransformer,
 )
-
+from meld.runner.transform.restraints.com import (
+    AbsoluteCOMRestraintTransformer,
+    COMRestraintTransformer,
+)
+from meld.runner.transform.restraints.meld import MeldRestraintTransformer
 from meld.runner.transform.rest2 import REST2Transformer
 from meld.runner.transform.cmap import CMAPTransformer
