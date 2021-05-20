@@ -6,6 +6,7 @@
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
+from meld.system import state
 from meld.runner import transform
 from meld.util import log_timing
 from meldplugin import MeldForce  # type: ignore
@@ -411,7 +412,7 @@ class OpenMMRunner(interfaces.IRunner):
             if not self._parameter_manager.is_valid(trial_params):
                 accept = False
             else:
-                trial_state = SystemState(
+                trial_state = state.SystemState(
                     state.positions,
                     state.velocities,
                     state.alpha,
