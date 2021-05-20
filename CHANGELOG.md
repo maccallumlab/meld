@@ -15,6 +15,7 @@
   nodes which would lead to failure at runtime.
 
 ## Enhancements
+- Most user facing modules are now imported into the root `meld` namespace.
 - Most user-facing functions now require units, which will help to eliminate
   errors.
 - You can now specify the platform to use.
