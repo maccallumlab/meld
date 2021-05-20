@@ -67,9 +67,13 @@ class CrdReader:
             raise RuntimeError("len(coords) != 3 * n_atoms")
 
         coords = np.array(coords)
-        coords = coords.reshape((n_atoms, 3))
+        coords = coords.reshape((n_atoms, 3)) / 10.0  # angstrom -> nm
         self._coords = coords
-        self._box_vectors = box_vectors
+
+        if box_vectors is not None:
+            self._box_vectors = box_vectors / 10.0
+        else:
+            self._box_vectors = None
 
 
 class ParmTopReader:
