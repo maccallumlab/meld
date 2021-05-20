@@ -6,7 +6,7 @@
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
-from meld.system import state
+from meld.system.state import SystemState
 from meld.runner import transform
 from meld.util import log_timing
 from meldplugin import MeldForce  # type: ignore
@@ -21,6 +21,8 @@ import numpy as np  # type: ignore
 import tempfile
 from collections import namedtuple
 from typing import Optional, List, Dict, NamedTuple, Tuple
+import random
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -412,7 +414,7 @@ class OpenMMRunner(interfaces.IRunner):
             if not self._parameter_manager.is_valid(trial_params):
                 accept = False
             else:
-                trial_state = state.SystemState(
+                trial_state = SystemState(
                     state.positions,
                     state.velocities,
                     state.alpha,
@@ -435,6 +437,11 @@ class OpenMMRunner(interfaces.IRunner):
             if accept:
                 state = trial_state
                 energy = trial_energy
+
+        # Update transfomers in case we rejected the
+        # last MCMC move
+        if not accept:
+            self._transformers_update(state)
 
         return state
 
