@@ -29,7 +29,7 @@ class SystemBuilder:
         gb_radii: str = "mbondi3",
         explicit_solvent: bool = False,
         solvent_forcefield: str = "tip3p",
-        solvent_distance: float = 6,
+        solvent_distance: float = 0.6,
         explicit_ions: bool = False,
         p_ion: str = "Na+",
         p_ioncount: int = 0,
@@ -44,7 +44,7 @@ class SystemBuilder:
             gb_radii: the generalized Born radii [mbondi2, mbondi3]
             explicit_solvent: use explicit solvent?
             solvent_forcefield: explicit force field [spce, spceb, opc, tip3p, tip4pew]
-            solvent_distance: distance between protein and edge of solvent box, Angstrom
+            solvent_distance: distance between protein and edge of solvent box, nm
             explicit_ions: include explicit ions?
             p_ion: name of positive ion [Na+, K+, Li+, Rb+, Cs+, Mg+]
             p_ioncount: number of positive ions
@@ -60,7 +60,7 @@ class SystemBuilder:
         self._explicit_ions = explicit_ions
         if self._explicit_solvent:
             self._set_solvent_forcefield(solvent_forcefield)
-            self._solvent_dist = solvent_distance
+            self._solvent_dist = solvent_distance * 10.0  # nm to angstrom
 
             if self._explicit_ions:
                 self._set_positive_ion_type(p_ion)

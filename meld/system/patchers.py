@@ -272,7 +272,7 @@ class VirtualSpinLabelPatcher(PatcherBase):
             direction = (ca_pos - cb_pos) / np.linalg.norm(ca_pos - cb_pos)
             new_pos = (
                 ca_pos
-                - self.bond_params[self.params[key]][1].value_in_unit(u.angstrom)
+                - self.bond_params[self.params[key]][1].value_in_unit(u.nanometer)
                 * direction
                 + ca_pos
                 - n_pos

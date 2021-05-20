@@ -15,6 +15,8 @@
   nodes which would lead to failure at runtime.
 
 ## Enhancements
+- Most user-facing functions now require units, which will help to eliminate
+  errors.
 - You can now specify the platform to use.
   - Options are: "CUDA", "CPU", "Reference"
   - E.g. `launch_remd --platform CPU`

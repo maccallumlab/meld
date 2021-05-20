@@ -191,14 +191,16 @@ def extract_traj_dcd(store, args):
         for step, (positions, box_vectors) in enumerate(
             zip(
                 store.iterate_positions(start, end),
-                store.iterate_box_vectors(start, end)
+                store.iterate_box_vectors(start, end),
             )
         ):
             bar.update(step)
             if solvation == "explicit":
-                output_file.write(positions[replica_index, :, :],
-                                  box_vectors[replica_index, :],
-                                  numpy.array([90.,90.,90.]))
+                output_file.write(
+                    positions[replica_index, :, :] * 10.0,  # nm -> Angstrom
+                    box_vectors[replica_index, :] * 10.0,
+                    numpy.array([90.0, 90.0, 90.0]),
+                )
             else:
                 output_file.write(positions[replica_index, :, :])
     bar.finish()
@@ -321,16 +323,18 @@ def follow_structure_dcd(store, args):
             zip(
                 store.iterate_positions(start, end),
                 store.iterate_permutation_vectors(start, end),
-                store.iterate_box_vectors(start, end)
+                store.iterate_box_vectors(start, end),
             )
         ):
             bar.update(step)
             replica_indices = replica_indices[perm_vector]
             structure_index = numpy.where(replica_indices == replica_index)[0][0]
             if solvation == "explicit":
-                output_file.write(positions[structure_index, :, :],
-                                  box_vectors[structure_index, :],
-                                  numpy.array([90.,90.,90.]))
+                output_file.write(
+                    positions[structure_index, :, :] * 10.0,  # nm -> Angstrom
+                    box_vectors[structure_index, :] * 10.0,
+                    numpy.array([90.0, 90.0, 90.0]),
+                )
             else:
                 output_file.write(positions[structure_index, :, :])
     bar.finish()

@@ -12,6 +12,7 @@ from meld import interfaces
 from meld.system import restraints
 from meld.system import patchers
 from meld.system import indexing
+from simtk.openmm import unit as u  # type: ignore
 
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
@@ -176,9 +177,9 @@ def get_secondary_structure_restraints(
     system: interfaces.ISystem,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
-    torsion_force_constant: float = 2.48,
-    distance_force_constant: float = 2.48,
-    quadratic_cut: float = 2.0,
+    torsion_force_constant: Optional[u.Quantity] = None,
+    distance_force_constant: Optional[u.Quantity] = None,
+    quadratic_cut: Optional[u.Quantity] = None,
     first_residue: Optional[indexing.ResidueIndex] = None,
     min_secondary_match: int = 4,
     filename: Optional[str] = None,
@@ -192,9 +193,9 @@ def get_secondary_structure_restraints(
         system: the system
         scaler: the force scaler
         ramp: the ramp, default is ConstantRamp
-        torsion_force_constant: force constant for torsions, in kJ/mol/(10 degree)^2
-        distance_force_constant: force constant for distances, in kJ/mol/Angstrom^2
-        quadratic_cut: switch from quadratic to linear beyond this distance, Angstrom
+        torsion_force_constant: force constant for torsions, default 2.5e-2 kJ/mol/deg^2
+        distance_force_constant: force constant for distances, default 2.5 kJ/mol/nm^2
+        quadratic_cut: switch from quadratic to linear beyond this distance, default 0.2 nm
         min_secondary_match: minimum number of elements to match in secondary structure
         first_residue: residue at which these secondary structure restraints start
         filename: filename to open
@@ -207,6 +208,19 @@ def get_secondary_structure_restraints(
     .. note::
        Specify exactly one of filename, contents, file.
     """
+
+    torsion_force_constant = (
+        2.5e-2 * u.kilojoule_per_mole / u.degree ** 2
+        if torsion_force_constant is None
+        else torsion_force_constant
+    )
+    distance_force_constant = (
+        2500 * u.kilojoule_per_mole / u.nanometer ** 2
+        if distance_force_constant is None
+        else distance_force_constant
+    )
+    quadratic_cut = 0.2 * u.nanometer if quadratic_cut is None else quadratic_cut
+
     if ramp is None:
         ramp = restraints.ConstantRamp()
 
@@ -223,9 +237,6 @@ def get_secondary_structure_restraints(
     min_secondary_match = int(min_secondary_match)
 
     contents = _get_secondary_sequence(filename, content, file)
-    torsion_force_constant /= 100.0
-    distance_force_constant *= 100.0
-    quadratic_cut /= 10.0
 
     groups = []
 
@@ -243,8 +254,8 @@ def get_secondary_structure_restraints(
                 system.index.atom(index, "N"),
                 system.index.atom(index, "CA"),
                 system.index.atom(index, "C"),
-                -62.5,
-                17.5,
+                -62.5 * u.degree,
+                17.5 * u.degree,
                 torsion_force_constant,
             )
             psi = restraints.TorsionRestraint(
@@ -255,8 +266,8 @@ def get_secondary_structure_restraints(
                 system.index.atom(index, "CA"),
                 system.index.atom(index, "C"),
                 system.index.atom(index + 1, "N"),
-                -42.5,
-                17.5,
+                -42.5 * u.degree,
+                17.5 * u.degree,
                 torsion_force_constant,
             )
             rests.append(phi)
@@ -267,10 +278,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(helix.start, "CA"),
             system.index.atom(helix.start + 3, "CA"),
-            0,
-            0.485,
-            0.561,
-            0.561 + quadratic_cut,
+            0 * u.nanometer,
+            0.485 * u.nanometer,
+            0.561 * u.nanometer,
+            0.561 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         d2 = restraints.DistanceRestraint(
@@ -279,10 +290,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(helix.start + 1, "CA"),
             system.index.atom(helix.start + 4, "CA"),
-            0,
-            0.485,
-            0.561,
-            0.561 + quadratic_cut,
+            0 * u.nanometer,
+            0.485 * u.nanometer,
+            0.561 * u.nanometer,
+            0.561 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         d3 = restraints.DistanceRestraint(
@@ -291,10 +302,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(helix.start, "CA"),
             system.index.atom(helix.start + 4, "CA"),
-            0,
-            0.581,
-            0.684,
-            0.684 + quadratic_cut,
+            0 * u.nanometer,
+            0.581 * u.nanometer,
+            0.684 * u.nanometer,
+            0.684 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         rests.append(d1)
@@ -317,8 +328,8 @@ def get_secondary_structure_restraints(
                 system.index.atom(index, "N"),
                 system.index.atom(index, "CA"),
                 system.index.atom(index, "C"),
-                -117.5,
-                27.5,
+                -117.5 * u.degree,
+                27.5 * u.degree,
                 torsion_force_constant,
             )
             psi = restraints.TorsionRestraint(
@@ -329,8 +340,8 @@ def get_secondary_structure_restraints(
                 system.index.atom(index, "CA"),
                 system.index.atom(index, "C"),
                 system.index.atom(index + 1, "N"),
-                145,
-                25.0,
+                145 * u.degree,
+                25.0 * u.degree,
                 torsion_force_constant,
             )
             rests.append(phi)
@@ -341,10 +352,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(ext.start, "CA"),
             system.index.atom(ext.start + 3, "CA"),
-            0,
-            0.785,
-            1.063,
-            1.063 + quadratic_cut,
+            0 * u.nanometer,
+            0.785 * u.nanometer,
+            1.063 * u.nanometer,
+            1.063 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         d2 = restraints.DistanceRestraint(
@@ -353,10 +364,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(ext.start + 1, "CA"),
             system.index.atom(ext.start + 4, "CA"),
-            0,
-            0.785,
-            1.063,
-            1.063 + quadratic_cut,
+            0 * u.nanometer,
+            0.785 * u.nanometer,
+            1.063 * u.nanometer,
+            1.063 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         d3 = restraints.DistanceRestraint(
@@ -365,10 +376,10 @@ def get_secondary_structure_restraints(
             ramp,
             system.index.atom(ext.start, "CA"),
             system.index.atom(ext.start + 4, "CA"),
-            0,
-            1.086,
-            1.394,
-            1.394 + quadratic_cut,
+            0 * u.nanometer,
+            1.086 * u.nanometer,
+            1.394 * u.nanometer,
+            1.394 * u.nanometer + quadratic_cut,
             distance_force_constant,
         )
         rests.append(d1)
@@ -447,7 +458,7 @@ def get_rdc_restraints(
     patcher: patchers.RdcAlignmentPatcher,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
-    quadratic_cut: float = 99999.0,
+    quadratic_cut: Optional[u.Quantity] = None,
     scale_factor: float = 1.0e4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
@@ -461,7 +472,7 @@ def get_rdc_restraints(
         patcher: the patcher that was used to add alignment tensor dummy atoms
         scaler: object to scale the force constant.
         ramp: ramp, default is ConstantRamp()
-        quadratic_cut: restraints become linear beyond this deviation s^-1
+        quadratic_cut: restraints become linear beyond this deviation, default 999 Hz
         scale_factor: scale factor for kappa and alignment tensor
         filename : filename to open
         content : contents to process
@@ -479,6 +490,9 @@ def get_rdc_restraints(
        of `scale_factor` must be the same for all experiments that share the
        same alignment.
     """
+
+    quadratic_cut = 999.0 / u.seconds if quadratic_cut is None else quadratic_cut
+
     if ramp is None:
         ramp = restraints.ConstantRamp()
 
@@ -496,7 +510,7 @@ def get_rdc_restraints(
         obs = float(cols[4])
         expt = int(cols[5])
         tolerance = float(cols[6])
-        kappa = float(cols[7]) / scale_factor / 1000.0  # convert Hz A^3 to Hz nm^3
+        kappa = float(cols[7]) / scale_factor
         force_const = float(cols[8])
         weight = float(cols[9])
 
@@ -509,10 +523,10 @@ def get_rdc_restraints(
             ramp,
             atom_index_i,
             atom_index_j,
-            kappa,
-            obs,
-            tolerance,
-            force_const,
+            kappa * u.second ** -1 * u.angstrom ** -3,
+            obs * u.second ** -1,
+            tolerance * u.second ** -1,
+            force_const * u.kilojoule_per_mole * u.second ** 2,
             quadratic_cut,
             weight,
             expt,

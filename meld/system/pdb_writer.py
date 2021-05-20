@@ -85,9 +85,9 @@ class PDBWriter:
                 atom_name=atom_name,
                 residue_name=res_name,
                 residue_number=res_num,
-                x=coordinates[i, 0],
-                y=coordinates[i, 1],
-                z=coordinates[i, 2],
+                x=coordinates[i, 0] * 10.0,  # nm -> angstrom
+                y=coordinates[i, 1] * 10.0,
+                z=coordinates[i, 2] * 10.0,
             )
             for atom_num, atom_name, res_num, res_name, i in zipper
         ]

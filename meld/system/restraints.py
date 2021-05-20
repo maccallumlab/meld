@@ -140,9 +140,11 @@ References
 
 from __future__ import annotations
 
+from meld.util import strip_unit
 from meld import interfaces
 from meld.system import indexing
 from meld.system import param_sampling
+from simtk.openmm import unit as u  # type: ignore
 
 import math
 import numpy as np  # type: ignore
@@ -225,11 +227,11 @@ class DistanceRestraint(SelectableRestraint):
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
         atom2: indexing.AtomIndex,
-        r1: Union[float, Positioner],
-        r2: Union[float, Positioner],
-        r3: Union[float, Positioner],
-        r4: Union[float, Positioner],
-        k: Union[float, Positioner],
+        r1: Union[u.Quantity, u.Positioner],
+        r2: Union[u.Quantity, Positioner],
+        r3: Union[u.Quantity, Positioner],
+        r4: Union[u.Quantity, Positioner],
+        k: u.Quantity,
     ):
         """
         Initialize a DistanceRestraint
@@ -247,11 +249,11 @@ class DistanceRestraint(SelectableRestraint):
             ramp: a time ramp to turn restraints on a beginning of simulation
             atom_1: index of atom 1
             atom_2: index of atom 2
-            r1: in nanometers
-            r2: in nanometers
-            r3: in nanometers
-            r4: in nanometers
-            k: in :math:`kJ/mol/nm^2`
+            r1: distance
+            r2: distance
+            r3: distance
+            r4: distance
+            k: force constant
         """
         assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
@@ -278,7 +280,7 @@ class DistanceRestraint(SelectableRestraint):
         else:
             self.r4 = ConstantPositioner(r4)
 
-        self.k = k
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer ** 2)
         self.scaler = scaler
         self.ramp = ramp
         self._check(system)
@@ -448,15 +450,32 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
         atom2: indexing.AtomIndex,
-        r1: float,
-        r2: float,
-        r3: float,
-        r4: float,
-        k: float,
-        asymptote: float,
+        r1: u.Quantity,
+        r2: u.Quantity,
+        r3: u.Quantity,
+        r4: u.Quantity,
+        k: u.Quantity,
+        asymptote: u.Quantity,
     ):
         """
         Initialize a HyperbolicDistanceRestraint
+        There are five regions::
+
+            I:    r < r1
+
+            II:  r1 < r < r2
+
+            III: r2 < r < r3
+
+            IV:  r3 < r < r4
+
+            V:   r4 < r
+
+        The energy is linear in region I, quadratic in II and IV, and zero in III.
+
+        The energy is hyperbolic in region V, with an asymptotic value set by the
+        parameter asymptote. The energy will be 1/3 of the asymptotic value at r=r4.
+        The distance between r3 and r4 controls the steepness of the potential.
 
         Args:
             system: the system this restraint belongs to
@@ -464,22 +483,22 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
             ramp: ramp up restraint over time
             atom1: first atom in bond
             atom2: second atom in bond
-            r1: distance in nm
-            r2: distance in nm
-            r3: distance in nm
-            r4: distance in nm
-            asymptote: maximum energy in kT
+            r1: distance
+            r2: distance
+            r3: distance
+            r4: distance
+            asymptote: maximum energy in region V
         """
         assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_2 = int(atom2)
-        self.r1 = r1
-        self.r2 = r2
-        self.r3 = r3
-        self.r4 = r4
-        self.k = k
-        self.asymptote = asymptote
+        self.r1 = strip_unit(r1, u.nanometer)
+        self.r2 = strip_unit(r2, u.nanometer)
+        self.r3 = strip_unit(r3, u.nanometer)
+        self.r4 = strip_unit(r4, u.nanometer)
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer ** 2)
+        self.asymptote = strip_unit(asymptote, u.kilojoule_per_mole)
 
         self._check(system)
 
@@ -523,9 +542,9 @@ class TorsionRestraint(SelectableRestraint):
         atom2: indexing.AtomIndex,
         atom3: indexing.AtomIndex,
         atom4: indexing.AtomIndex,
-        phi: float,
-        delta_phi: float,
-        k: float,
+        phi: u.Quantity,
+        delta_phi: u.Quantity,
+        k: u.Quantity,
     ):
         """
         Initialize a TorsionRestraint
@@ -550,9 +569,9 @@ class TorsionRestraint(SelectableRestraint):
         self.atom_index_2 = int(atom2)
         self.atom_index_3 = int(atom3)
         self.atom_index_4 = int(atom4)
-        self.phi = phi
-        self.delta_phi = delta_phi
-        self.k = k
+        self.phi = strip_unit(phi, u.degree)
+        self.delta_phi = strip_unit(delta_phi, u.degree)
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.degree ** 2)
         self.scaler = scaler
         self.ramp = ramp
         self._check()
@@ -596,11 +615,11 @@ class DistProfileRestraint(SelectableRestraint):
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
         atom2: indexing.AtomIndex,
-        r_min: float,
-        r_max: float,
+        r_min: u.Quantity,
+        r_max: u.Quantity,
         n_bins: int,
         spline_params: np.ndarray,
-        scale_factor: float,
+        scale_factor: u.Quantity,
     ):
         """
         Initialize a DistProfileRestraint
@@ -623,11 +642,11 @@ class DistProfileRestraint(SelectableRestraint):
         assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
-        self.r_min = r_min
-        self.r_max = r_max
+        self.r_min = strip_unit(r_min, u.nanometer)
+        self.r_max = strip_unit(r_max, u.nanometer)
         self.n_bins = n_bins
         self.spline_params = spline_params
-        self.scale_factor = scale_factor
+        self.scale_factor = strip_unit(scale_factor, u.kilojoule_per_mole)
         self._check()
 
     def _check(self):
@@ -660,7 +679,7 @@ class TorsProfileRestraint(SelectableRestraint):
         atom8: indexing.AtomIndex,
         n_bins: int,
         spline_params: np.ndarray,
-        scale_factor: float,
+        scale_factor: u.Quantity,
     ):
         """
         Initialize a TorsProfileRestraint
@@ -703,7 +722,7 @@ class TorsProfileRestraint(SelectableRestraint):
 
         self.n_bins = n_bins
         self.spline_params = spline_params
-        self.scale_factor = scale_factor
+        self.scale_factor = strip_unit(scale_factor, u.kilojoule_per_mole)
         self._check()
 
     def _check(self):
@@ -727,11 +746,11 @@ class RdcRestraint(NonSelectableRestraint):
         ramp: Optional[TimeRamp],
         atom1: indexing.AtomIndex,
         atom2: indexing.AtomIndex,
-        kappa: float,
-        d_obs: float,
-        tolerance: float,
-        force_const: float,
-        quadratic_cut: float,
+        kappa: u.Quantity,
+        d_obs: u.Quantity,
+        tolerance: u.Quantity,
+        force_const: u.Quantity,
+        quadratic_cut: u.Quantity,
         weight: float,
         expt_index: int,
         patcher,
@@ -764,6 +783,12 @@ class RdcRestraint(NonSelectableRestraint):
         """
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)
+        kappa = strip_unit(kappa, u.second ** -1 / u.nanometer ** 3)
+        d_obs = strip_unit(d_obs, u.second ** -1)
+        tolerance = strip_unit(tolerance, u.second ** -1)
+        force_const = strip_unit(force_const, u.kilojoule_per_mole * u.second ** 2)
+        quadratic_cut = strip_unit(quadratic_cut, u.second ** -1)
+
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
         self.s1_index = int(system.index.atom(patcher.resids[expt_index], "S1"))
@@ -810,8 +835,8 @@ class ConfinementRestraint(NonSelectableRestraint):
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom_index: indexing.AtomIndex,
-        radius: float,
-        force_const: float,
+        radius: u.Quantity,
+        force_const: u.Quantity,
     ):
         """
         Initialize a ConfinementRestraint
@@ -826,8 +851,10 @@ class ConfinementRestraint(NonSelectableRestraint):
         """
         assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
-        self.radius = float(radius)
-        self.force_const = float(force_const)
+        self.radius = strip_unit(radius, u.nanometer)
+        self.force_const = strip_unit(
+            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+        )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
@@ -850,11 +877,11 @@ class CartesianRestraint(NonSelectableRestraint):
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom_index: indexing.AtomIndex,
-        x: float,
-        y: float,
-        z: float,
-        delta: float,
-        force_const: float,
+        x: u.Quantity,
+        y: u.Quantity,
+        z: u.Quantity,
+        delta: u.Quantity,
+        force_const: u.Quantity,
     ):
         """
         Initialize a CartesianRestraint
@@ -864,19 +891,21 @@ class CartesianRestraint(NonSelectableRestraint):
             scaler: scale the force with alpha
             ramp: scale the force over time
             atom_index: the atom to restrain
-            x: equilibrium x-coordinate, in nm
-            y: equilibrium y-coordinate, in nm
-            z: equilibrium z-coordinate, in nm
-            delta: energy is zero within delta, in nm
-            force_const: force constant in :math:`kJ/mol/nm^2`
+            x: equilibrium x-coordinate
+            y: equilibrium y-coordinate
+            z: equilibrium z-coordinate
+            delta: energy is zero within delta
+            force_const: force constant
         """
         assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
-        self.x = x
-        self.y = y
-        self.z = z
-        self.delta = delta
-        self.force_const = force_const
+        self.x = strip_unit(x, u.nanometer)
+        self.y = strip_unit(y, u.nanometer)
+        self.z = strip_unit(z, u.nanometer)
+        self.delta = strip_unit(delta, u.nanometer)
+        self.force_const = strip_unit(
+            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+        )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
@@ -901,10 +930,10 @@ class YZCartesianRestraint(NonSelectableRestraint):
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
         atom_index: indexing.AtomIndex,
-        y: float,
-        z: float,
-        delta: float,
-        force_const: float,
+        y: u.Quantity,
+        z: u.Quantity,
+        delta: u.Quantity,
+        force_const: u.Quantity,
     ):
         """
         Initialize a YZCartesianRestraint
@@ -921,10 +950,12 @@ class YZCartesianRestraint(NonSelectableRestraint):
         """
         assert isinstance(atom_index, indexing.AtomIndex)
         self.atom_index = int(atom_index)
-        self.y = y
-        self.z = z
-        self.delta = delta
-        self.force_const = force_const
+        self.y = strip_unit(y, u.nanometer)
+        self.z = strip_unit(z, u.nanometer)
+        self.delta = strip_unit(delta, u.nanometer)
+        self.force_const = strip_unit(
+            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+        )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
@@ -973,8 +1004,8 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
         group: List[indexing.AtomIndex],
         weights: np.ndarray,
         dims: str,
-        force_const: float,
-        position: np.ndarray,
+        force_const: u.Quantity,
+        position: u.Quantity,
     ):
         """
         Initialize an AbsoluteCOMRestraint
@@ -997,11 +1028,14 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
         self.dims = dims
         self._check_dims()
 
-        self.force_const = force_const
+        self.force_const = strip_unit(
+            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+        )
         if self.force_const < 0:
             raise ValueError("force_const cannot be negative")
 
-        self.position = np.array(position, dtype=float)
+        assert isinstance(position, u.Quantity)
+        self.position = position.value_in_unit(u.nanometer)
         if len(self.position) != 3:
             raise ValueError("position should be an array of [x, y, z]")
 
@@ -1073,8 +1107,8 @@ class COMRestraint(NonSelectableRestraint):
         weights1: List[float],
         weights2: List[float],
         dims: str,
-        force_const: float,
-        distance: Union[float, Positioner],
+        force_const: u.Quantity,
+        distance: Union[u.Quantity, Positioner],
     ):
         """
         Initialize a COMRestraint
@@ -1122,13 +1156,15 @@ class COMRestraint(NonSelectableRestraint):
         self._check_dims()
 
         # setup the force constant and positioner
-        self.force_const = force_const
+        self.force_const = strip_unit(
+            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+        )
         if self.force_const < 0:
             raise ValueError("force constant cannot be negative")
         if isinstance(distance, Positioner):
             self.positioner = distance
         else:
-            if distance < 0.0:
+            if strip_unit(distance, u.nanometer) < 0.0:
                 raise ValueError("distance cannot be negative")
 
             self.positioner = ConstantPositioner(distance)
@@ -2046,8 +2082,8 @@ class ConstantPositioner(Positioner):
 
     _scaler_key_ = "constant_positioner"
 
-    def __init__(self, value):
-        self._value = value
+    def __init__(self, value: u.Quantity) -> None:
+        self._value = strip_unit(value, u.nanometer)
 
     def __call__(self, alpha: float) -> float:
         if alpha < 0:
@@ -2066,8 +2102,8 @@ class LinearPositioner(Positioner):
     _scaler_key_ = "linear_positioner"
 
     def __init__(
-        self, alpha_min: float, alpha_max: float, pos_min: float, pos_max: float
-    ):
+        self, alpha_min: float, alpha_max: float, pos_min: u.Quantity, pos_max: u.Quantity
+    ) -> None:
         """
         Initialize a LinearPositioner
 
@@ -2082,8 +2118,8 @@ class LinearPositioner(Positioner):
 
         self.alpha_min = float(alpha_min)
         self.alpha_max = float(alpha_max)
-        self.pos_min = float(pos_min)
-        self.pos_max = float(pos_max)
+        self.pos_min = strip_unit(pos_min, u.nanometer)
+        self.pos_max = strip_unit(pos_max, u.nanometer)
 
     def __call__(self, alpha: float) -> float:
         if alpha < 0:

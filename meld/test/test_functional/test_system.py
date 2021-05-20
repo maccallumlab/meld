@@ -6,9 +6,14 @@
 import unittest
 from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
 from meld.system.builder import SystemBuilder
-from meld.system.temperature import ConstantTemperatureScaler, LinearTemperatureScaler, GeometricTemperatureScaler
+from meld.system.temperature import (
+    ConstantTemperatureScaler,
+    LinearTemperatureScaler,
+    GeometricTemperatureScaler,
+)
 from meld.system.options import RunOptions
 from meld.system import amber
+from simtk.openmm import unit as u  # type: ignore
 
 
 class TestCreateFromSequence(unittest.TestCase):
@@ -160,7 +165,7 @@ class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
 
 class TestConstantTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = ConstantTemperatureScaler(300.0)
+        self.s = ConstantTemperatureScaler(300.0 * u.kelvin)
 
     def test_returns_constant_when_alpha_is_zero(self):
         t = self.s(0.0)
@@ -181,7 +186,7 @@ class TestConstantTemperatureScaler(unittest.TestCase):
 
 class TestLinearTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = LinearTemperatureScaler(0.2, 0.8, 300.0, 500.0)
+        self.s = LinearTemperatureScaler(0.2, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_returns_min_when_alpha_is_low(self):
         t = self.s(0)
@@ -205,36 +210,38 @@ class TestLinearTemperatureScaler(unittest.TestCase):
 
     def test_raises_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(-0.1, 0.8, 300.0, 500.0)
+            LinearTemperatureScaler(-0.1, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(1.1, 0.8, 300.0, 500.0)
+            LinearTemperatureScaler(1.1, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, -0.1, 300.0, 500.0)
+            LinearTemperatureScaler(0.0, -0.1, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.1, 300.0, 500.0)
+            LinearTemperatureScaler(0.0, 1.1, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_min_above_alpha_max(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(1.0, 0.0, 300.0, 500.0)
+            LinearTemperatureScaler(1.0, 0.0, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_temp_min_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.0, -300.0, 500.0)
+            LinearTemperatureScaler(0.0, 1.0, -300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            LinearTemperatureScaler(0.0, 1.0, 300.0, -500.0)
+            LinearTemperatureScaler(0.0, 1.0, 300.0 * u.kelvin, -500.0 * u.kelvin)
 
 
 class TestGeometricTemperatureScaler(unittest.TestCase):
     def setUp(self):
-        self.s = GeometricTemperatureScaler(0.2, 0.8, 300.0, 500.0)
+        self.s = GeometricTemperatureScaler(
+            0.2, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin
+        )
 
     def test_returns_min_when_alpha_is_low(self):
         t = self.s(0)
@@ -258,31 +265,31 @@ class TestGeometricTemperatureScaler(unittest.TestCase):
 
     def test_raises_when_alpha_min_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(-0.1, 0.8, 300.0, 500.0)
+            GeometricTemperatureScaler(-0.1, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_min_above_one(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(1.1, 0.8, 300.0, 500.0)
+            GeometricTemperatureScaler(1.1, 0.8, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_max_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, -0.1, 300.0, 500.0)
+            GeometricTemperatureScaler(0.0, -0.1, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_max_above_one(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.1, 300.0, 500.0)
+            GeometricTemperatureScaler(0.0, 1.1, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_alpha_min_above_alpha_max(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(1.0, 0.0, 300.0, 500.0)
+            GeometricTemperatureScaler(1.0, 0.0, 300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_temp_min_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.0, -300.0, 500.0)
+            GeometricTemperatureScaler(0.0, 1.0, -300.0 * u.kelvin, 500.0 * u.kelvin)
 
     def test_raises_when_temp_max_is_below_zero(self):
         with self.assertRaises(RuntimeError):
-            GeometricTemperatureScaler(0.0, 1.0, 300.0, -500.0)
+            GeometricTemperatureScaler(0.0, 1.0, 300.0 * u.kelvin, -500.0 * u.kelvin)
 
 
 class TestOptions(unittest.TestCase):
@@ -322,12 +329,12 @@ class TestOptions(unittest.TestCase):
         self.assertIs(self.options.cutoff, None)
 
     def test_cutoff_accepts_positive_float(self):
-        self.options.cutoff = 1.0
+        self.options.cutoff = 1.0 * u.nanometer
         self.assertEqual(self.options.cutoff, 1.0)
 
     def test_cutoff_should_raise_with_non_positive_value(self):
         with self.assertRaises(RuntimeError):
-            self.options.cutoff = 0.0
+            self.options.cutoff = 0.0 * u.nanometer
 
     def test_use_big_timestep_defaults_to_false(self):
         self.assertEqual(self.options.use_big_timestep, False)

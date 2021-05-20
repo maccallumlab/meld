@@ -2,9 +2,11 @@
 Module to handle options for a MELD run
 """
 
+from meld.util import strip_unit
 from meld.system import temperature
 from meld.system import montecarlo
 from meld.system import patchers
+from simtk.openmm import unit as u  # type: ignore
 
 from typing import Optional
 from simtk.unit import atmosphere  # type: ignore
@@ -68,7 +70,7 @@ class RunOptions:
             self.enable_pressure_coupling = False
         elif solvation == "explicit":
             self.implicit_solvent_model = "vacuum"
-            self.cutoff = 0.9
+            self.cutoff = 0.9 * u.nanometer
             self.enable_pme = True
             self.enable_pressure_coupling = True
         else:
@@ -84,7 +86,7 @@ class RunOptions:
         self._min_mc = None
         self._run_mc = None
         self._remove_com = True
-        self._pressure = 1.0 * atmosphere
+        self._pressure = 1.01325
         self._pressure_coupling_update_steps = 25
         self._pme_tolerance = 0.0005
         self._use_rest2 = False
@@ -163,10 +165,11 @@ class RunOptions:
         return self._pressure
 
     @pressure.setter
-    def pressure(self, new_value: float) -> None:
-        if new_value <= 0:
+    def pressure(self, new_value: u.Quantity) -> None:
+        pressure = strip_unit(new_value, u.bar)
+        if pressure <= 0:
             raise ValueError("pressure must be > 0")
-        self._pressure = new_value
+        self._pressure = pressure
 
     @property
     def pressure_coupling_update_steps(self) -> int:
@@ -344,7 +347,7 @@ class RunOptions:
         if value is None:
             self._cutoff = None
         else:
-            value = float(value)
+            value = strip_unit(value, u.nanometer)
             if value <= 0:
                 raise RuntimeError("cutoff must be > 0")
             self._cutoff = value

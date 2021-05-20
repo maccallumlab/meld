@@ -22,7 +22,7 @@ class TestOpenMMRunner(unittest.TestCase):
         p = subsystem.SubSystemFromSequence("NALA ALA CALA")
         b = builder.SystemBuilder()
         self.system = b.build_system([p])
-        self.system.temperature_scaler = temperature.ConstantTemperatureScaler(300.0)
+        self.system.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * kelvin)
 
     def test_raises_when_system_has_no_temperature_scaler(self):
         self.system.temperature_scaler = None

@@ -116,12 +116,12 @@ class OpenMMRunner(interfaces.IRunner):
         self._transformers_update(state)
 
         # set the coordinates
-        coordinates = u.Quantity(state.positions, u.angstrom)
+        coordinates = u.Quantity(state.positions, u.nanometer)
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
         if self._options.solvation == "explicit":
-            box_vector = state.box_vector / 10.0  # Angstrom to nm
+            box_vector = state.box_vector
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vector[0], 0.0, 0.0],
                 [0.0, box_vector[1], 0.0],
@@ -327,11 +327,9 @@ class OpenMMRunner(interfaces.IRunner):
         # Run MonteCarlo parameter updates
         state = self._run_param_mc(state)
 
-        # add units to coordinates and velocities (we store in Angstrom, openmm
-        # uses nm
-        coordinates = u.Quantity(state.positions, u.angstrom)
-        velocities = u.Quantity(state.velocities, u.angstrom / u.picosecond)
-        box_vectors = u.Quantity(state.box_vector, u.angstrom)
+        coordinates = u.Quantity(state.positions, u.nanometer)
+        velocities = u.Quantity(state.velocities, u.nanometer / u.picosecond)
+        box_vectors = u.Quantity(state.box_vector, u.nanometer)
 
         # set the positions
         self._simulation.context.setPositions(coordinates)
@@ -366,15 +364,15 @@ class OpenMMRunner(interfaces.IRunner):
                 getEnergy=True,
                 enforcePeriodicBox=True,
             )
-        coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(u.angstrom)
+        coordinates = snapshot.getPositions(asNumpy=True).value_in_unit(u.nanometer)
         velocities = snapshot.getVelocities(asNumpy=True).value_in_unit(
-            u.angstrom / u.picosecond
+            u.nanometer / u.picosecond
         )
         _check_for_nan(coordinates, velocities, self._rank)
 
         # if explicit solvent, the recover the box vectors
         if self._options.solvation == "explicit":
-            box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(u.angstrom)
+            box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(u.nanometer)
             box_vector = np.array(
                 (box_vector[0][0], box_vector[1][1], box_vector[2][2])
             )

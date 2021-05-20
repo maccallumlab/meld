@@ -11,6 +11,7 @@ from unittest import mock  # type: ignore
 from meld.system import restraints
 from meld.system.subsystem import SubSystemFromSequence
 from meld.system.builder import SystemBuilder
+from simtk.openmm import unit as u  # type: ignore
 
 
 class TestAlwaysActiveCollection(unittest.TestCase):
@@ -143,11 +144,11 @@ class TestRestraintManager(unittest.TestCase):
             "distance",
             atom1=self.system.index.atom(0, "CA"),
             atom2=self.system.index.atom(1, "CA"),
-            r1=0,
-            r2=0,
-            r3=0.3,
-            r4=999.0,
-            k=2500,
+            r1=0 * u.nanometer,
+            r2=0 * u.nanometer,
+            r3=0.3 * u.nanometer,
+            r4=999.0 * u.nanometer,
+            k=2500 * u.kilojoule_per_mole / u.nanometer ** 2,
         )
         self.assertTrue(isinstance(rest, restraints.DistanceRestraint))
 
@@ -178,11 +179,11 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                10.0,
-                0.0,
-                10.0,
-                10.0,
-                1.0,
+                10.0 * u.nanometer,
+                0.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
             )
 
     def test_should_raise_if_r3_less_than_r2(self):
@@ -193,11 +194,11 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                10.0,
-                10.0,
-                0.0,
-                10.0,
-                1.0,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                0.0 * u.nanometer,
+                10.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
             )
 
     def test_should_raise_if_r4_less_than_r3(self):
@@ -208,11 +209,11 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                10.0,
-                10.0,
-                10.0,
-                0.0,
-                1.0,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                0.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
             )
 
     def test_should_raise_with_negative_r(self):
@@ -223,11 +224,11 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                -1.0,
-                10.0,
-                10.0,
-                10.0,
-                1.0,
+                -1.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
             )
 
     def test_should_raise_with_negative_k(self):
@@ -238,11 +239,11 @@ class TestDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                10.0,
-                10.0,
-                10.0,
-                10.0,
-                -1.0,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                10.0 * u.nanometer,
+                -1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
             )
 
 
@@ -262,12 +263,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                -1.0,
-                1.0,
-                2.0,
-                3.0,
-                1.0,
-                1.0,
+                -1.0 * u.nanometer,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                3.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_if_r2_less_than_r1(self):
@@ -278,12 +279,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                10.0,
-                0.0,
-                1.0,
-                2.0,
-                1.0,
-                1.0,
+                10.0 * u.nanometer,
+                0.0 * u.nanometer,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_if_r3_less_than_r2(self):
@@ -294,12 +295,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                0.0,
-                1.0,
-                0.0,
-                2.0,
-                1.0,
-                1.0,
+                0.0 * u.nanometer,
+                1.0 * u.nanometer,
+                0.0 * u.nanometer,
+                2.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_if_r4_less_than_r3(self):
@@ -310,12 +311,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                0.0,
-                1.0,
-                2.0,
-                0.0,
-                1.0,
-                1.0,
+                0.0 * u.nanometer,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                0.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_if_r4_equals_r3(self):
@@ -326,12 +327,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                0.0,
-                1.0,
-                2.0,
-                2.0,
-                1.0,
-                1.0,
+                0.0 * u.nanometer,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                2.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_with_negative_k(self):
@@ -342,12 +343,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                1.0,
-                2.0,
-                3.0,
-                4.0,
-                -1.0,
-                1.0,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                3.0 * u.nanometer,
+                4.0 * u.nanometer,
+                -1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                1.0 * u.kilojoule_per_mole,
             )
 
     def test_should_raise_with_negative_asymptote(self):
@@ -358,12 +359,12 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
                 self.ramp,
                 self.system.index.atom(0, "CA"),
                 self.system.index.atom(1, "CA"),
-                1.0,
-                2.0,
-                3.0,
-                4.0,
-                1.0,
-                -1.0,
+                1.0 * u.nanometer,
+                2.0 * u.nanometer,
+                3.0 * u.nanometer,
+                4.0 * u.nanometer,
+                1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
+                -1.0 * u.kilojoule_per_mole,
             )
 
 
@@ -385,9 +386,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "C"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                180.0,
-                0.0,
-                1.0,
+                180.0 * u.degree,
+                0.0 * u.degree,
+                1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
     def test_should_fail_with_phi_below_minus_180(self):
@@ -400,9 +401,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "N"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                -270.0,
-                0.0,
-                1.0,
+                -270.0 * u.degree,
+                0.0 * u.degree,
+                1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
     def test_should_fail_with_phi_above_180(self):
@@ -415,9 +416,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "N"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                270.0,
-                0.0,
-                1.0,
+                270.0 * u.degree,
+                0.0 * u.degree,
+                1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
     def test_should_fail_with_delta_phi_above_180(self):
@@ -430,9 +431,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "N"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                0.0,
-                200.0,
-                1.0,
+                0.0 * u.degree,
+                200.0 * u.degree,
+                1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
     def test_should_fail_with_delta_phi_below_0(self):
@@ -445,9 +446,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "N"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                0.0,
-                -90.0,
-                1.0,
+                0.0 * u.degree,
+                -90.0 * u.degree,
+                1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
     def test_should_fail_with_negative_k(self):
@@ -460,9 +461,9 @@ class TestTorsionRestraint(unittest.TestCase):
                 self.system.index.atom(1, "N"),
                 self.system.index.atom(1, "CA"),
                 self.system.index.atom(1, "C"),
-                0.0,
-                90.0,
-                -1.0,
+                0.0 * u.degree,
+                90.0 * u.degree,
+                -1.0 * u.kilojoule_per_mole / u.degree ** 2,
             )
 
 
@@ -776,11 +777,11 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
             "distance",
             atom1=self.system.index.atom(0, "CA"),
             atom2=self.system.index.atom(1, "CA"),
-            r1=0,
-            r2=1,
-            r3=3,
-            r4=4,
-            k=1.0,
+            r1=0 * u.nanometer,
+            r2=1 * u.nanometer,
+            r3=3 * u.nanometer,
+            r4=4 * u.nanometer,
+            k=1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
         )
         self.assertTrue(isinstance(rest.scaler, restraints.ConstantScaler))
 
@@ -791,11 +792,11 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
             scaler,
             atom1=self.system.index.atom(0, "CA"),
             atom2=self.system.index.atom(1, "CA"),
-            r1=0,
-            r2=1,
-            r3=3,
-            r4=4,
-            k=1.0,
+            r1=0 * u.nanometer,
+            r2=1 * u.nanometer,
+            r3=3 * u.nanometer,
+            r4=4 * u.nanometer,
+            k=1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
         )
         self.assertTrue(isinstance(rest.scaler, restraints.LinearScaler))
 
@@ -838,11 +839,11 @@ class TestCreateRestraintsAndScalers(unittest.TestCase):
             scaler,
             atom1=self.system.index.atom(0, "CA"),
             atom2=self.system.index.atom(1, "CA"),
-            r1=0.0,
-            r2=1.0,
-            r3=3.0,
-            r4=4.0,
-            k=1.0,
+            r1=0.0 * u.nanometer,
+            r2=1.0 * u.nanometer,
+            r3=3.0 * u.nanometer,
+            r4=4.0 * u.nanometer,
+            k=1.0 * u.kilojoule_per_mole / u.nanometer ** 2,
         )
         self.assertTrue(isinstance(rest.ramp, restraints.ConstantRamp))
 
@@ -936,7 +937,7 @@ class TestTimeRampSwitcher(unittest.TestCase):
 
 class TestConstantPositioner(unittest.TestCase):
     def setUp(self):
-        self.positioner = restraints.ConstantPositioner(42.0)
+        self.positioner = restraints.ConstantPositioner(42.0 * u.nanometer)
 
     def test_should_raise_when_alpha_below_zero(self):
         with self.assertRaises(ValueError):
@@ -954,7 +955,9 @@ class TestConstantPositioner(unittest.TestCase):
 
 class TestLinearPositioner(unittest.TestCase):
     def setUp(self):
-        self.positioner = restraints.LinearPositioner(0.1, 0.9, 0, 100)
+        self.positioner = restraints.LinearPositioner(
+            0.1, 0.9, 0 * u.nanometer, 100 * u.nanometer
+        )
 
     def test_should_raise_when_alpha_below_zero(self):
         with self.assertRaises(ValueError):
@@ -995,8 +998,8 @@ class TestCOMRestraint(unittest.TestCase):
                 weights1=None,
                 weights2=None,
                 dims="a",
-                force_const=1,
-                distance=1,
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                distance=1 * u.nanometer,
             )
 
     def test_should_raise_on_repeated_dim(self):
@@ -1012,8 +1015,8 @@ class TestCOMRestraint(unittest.TestCase):
                 weights1=None,
                 weights2=None,
                 dims="xx",
-                force_const=1,
-                distance=1,
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                distance=1 * u.nanometer,
             )
 
     def test_should_raise_on_negative_k(self):
@@ -1029,8 +1032,8 @@ class TestCOMRestraint(unittest.TestCase):
                 weights1=None,
                 weights2=None,
                 dims="x",
-                force_const=-1,
-                distance=1,
+                force_const=-1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                distance=1 * u.nanometer,
             )
 
     def test_should_raise_on_negative_distance(self):
@@ -1046,8 +1049,8 @@ class TestCOMRestraint(unittest.TestCase):
                 weights1=None,
                 weights2=None,
                 dims="x",
-                force_const=1,
-                distance=-1,
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                distance=-1 * u.nanometer,
             )
 
     def test_should_raise_on_group1_size_mismatch(self):
@@ -1136,8 +1139,8 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=[(1, "CA")],
                 weights=None,
                 dims="a",  # not xyz
-                force_const=1,
-                position=[0.0, 0.0, 0.0],
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                position=np.array([0.0, 0.0, 0.0]) * u.nanometer,
             )
 
     def test_should_raise_on_repeated_dim(self):
@@ -1149,8 +1152,8 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=[(1, "CA")],
                 weights=None,
                 dims="xx",  # repeated
-                force_const=1,
-                position=[0.0, 0.0, 0.0],
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                position=np.array([0.0, 0.0, 0.0]) * u.nanometer,
             )
 
     def test_should_raise_on_negative_k(self):
@@ -1162,8 +1165,10 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=[(1, "CA")],
                 weights=None,
                 dims="xyz",
-                force_const=-1,  # negative force const
-                position=[0.0, 0.0, 0.0],
+                force_const=-1
+                * u.kilojoule_per_mole
+                / u.nanometer ** 2,  # negative force const
+                position=np.array([0.0, 0.0, 0.0]) * u.nanometer,
             )
 
     def test_should_raise_on_position_wrong_shape(self):
@@ -1175,8 +1180,8 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=[(1, "CA")],
                 weights=None,
                 dims="xyz",
-                force_const=1,
-                position=[0.0, 0.0, 0.0, 0.0],
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                position=np.array([0.0, 0.0, 0.0, 0.0]) * u.nanometer,
             )  # too many positions
 
     def test_should_raise_on_size_mismatch(self):
@@ -1189,8 +1194,8 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=group,
                 weights=[1.0, 1.0],  # too many weights
                 dims="xyz",
-                force_const=1,
-                position=[0.0, 0.0, 0.0],
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                position=np.array([0.0, 0.0, 0.0]) * u.nanometer,
             )
 
     def test_should_raise_on_negative_weight(self):
@@ -1203,6 +1208,6 @@ class TestAbsoluteCOMRestraint(unittest.TestCase):
                 group=group,
                 weights=[1.0, -1.0],
                 dims="xyz",
-                force_const=1,
-                position=[0.0, 0.0, 0.0],
+                force_const=1 * u.kilojoule_per_mole / u.nanometer ** 2,
+                position=np.array([0.0, 0.0, 0.0]) * u.nanometer,
             )

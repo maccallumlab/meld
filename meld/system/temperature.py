@@ -2,8 +2,12 @@
 Module to handle temperature scaling
 """
 
+from meld.util import strip_unit
+from simtk.openmm import unit as u  # type: ignore
+
 from abc import ABC, abstractmethod
 import math
+
 
 class TemperatureScaler(ABC):
     """
@@ -20,14 +24,14 @@ class ConstantTemperatureScaler(TemperatureScaler):
     Constant temperature scaler
     """
 
-    def __init__(self, temperature: float):
+    def __init__(self, temperature: u.Quantity):
         """
         Initialize a ConstantTemperatureScaler
 
         Args:
-            temperature: constant temperature to return, in Kelvin
+            temperature: constant temperature to return
         """
-        self._temperature = temperature
+        self._temperature = strip_unit(temperature, u.kelvin)
 
     def __call__(self, alpha):
         if alpha < 0 or alpha > 1:
@@ -37,15 +41,15 @@ class ConstantTemperatureScaler(TemperatureScaler):
 
 class LinearTemperatureScaler(TemperatureScaler):
     """
-    Scale temperature lienarly between alpha_min and alpha_max
+    Scale temperature linearly between alpha_min and alpha_max
     """
 
     def __init__(
         self,
         alpha_min: float,
         alpha_max: float,
-        temperature_min: float,
-        temperature_max: float,
+        temperature_min: u.Quantity,
+        temperature_max: u.Quantity,
     ):
         """
         Initialize LinearTemperatureScaler
@@ -56,19 +60,20 @@ class LinearTemperatureScaler(TemperatureScaler):
             temperature_min: minimum temperature in Kelvin
             termperature_max: maximum temperature in Kelvin
         """
-        if alpha_min < 0 or alpha_min > 1:
-            raise RuntimeError("0 <= alpha_min <=1")
-        if alpha_max < 0 or alpha_max > 1:
-            raise RuntimeError("0 <= alpha_max <=1")
-        if alpha_min >= alpha_max:
-            raise RuntimeError("alpha_min must be < alpha_max")
-        if temperature_min <= 0 or temperature_max <= 0:
-            raise RuntimeError("temperatures must be positive")
-
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
-        self._temperature_min = float(temperature_min)
-        self._temperature_max = float(temperature_max)
+        self._temperature_min = strip_unit(temperature_min, u.kelvin)
+        self._temperature_max = strip_unit(temperature_max, u.kelvin)
+
+        if self._alpha_min < 0 or self._alpha_min > 1:
+            raise RuntimeError("0 <= alpha_min <=1")
+        if self._alpha_max < 0 or self._alpha_max > 1:
+            raise RuntimeError("0 <= alpha_max <=1")
+        if self._alpha_min >= self._alpha_max:
+            raise RuntimeError("alpha_min must be < alpha_max")
+        if self._temperature_min <= 0 or self._temperature_max <= 0:
+            raise RuntimeError("temperatures must be positive")
+
         self._delta_alpha = self._alpha_max - self._alpha_min
         self._delta_temp = self._temperature_max - self._temperature_min
 
@@ -93,8 +98,8 @@ class GeometricTemperatureScaler(TemperatureScaler):
         self,
         alpha_min: float,
         alpha_max: float,
-        temperature_min: float,
-        temperature_max: float,
+        temperature_min: u.Quantity,
+        temperature_max: u.Quantity,
     ):
         """
         Initialize a GeometricTemperatureScaler
@@ -105,19 +110,20 @@ class GeometricTemperatureScaler(TemperatureScaler):
             temperature_min: minimum temperature, in Kelvin
             temperature_max: maximum temperature, in Kelvin
         """
+        self._temperature_min = strip_unit(temperature_min, u.kelvin)
+        self._temperature_max = strip_unit(temperature_max, u.kelvin)
+
         if alpha_min < 0 or alpha_min > 1:
             raise RuntimeError("0 <= alpha_min <=1")
         if alpha_max < 0 or alpha_max > 1:
             raise RuntimeError("0 <= alpha_max <=1")
         if alpha_min >= alpha_max:
             raise RuntimeError("alpha_min must be < alpha_max")
-        if temperature_min <= 0 or temperature_max <= 0:
+        if self._temperature_min <= 0 or self._temperature_max <= 0:
             raise RuntimeError("temperatures must be positive")
 
         self._alpha_min = float(alpha_min)
         self._alpha_max = float(alpha_max)
-        self._temperature_min = float(temperature_min)
-        self._temperature_max = float(temperature_max)
         self._delta_alpha = self._alpha_max - self._alpha_min
 
     def __call__(self, alpha):
@@ -150,7 +156,7 @@ class REST2Scaler:
 
     def __init__(
         self,
-        reference_temperature: float,
+        reference_temperature: u.Quantity,
         temperature_scaler: TemperatureScaler,
     ):
         """
@@ -158,11 +164,11 @@ class REST2Scaler:
 
         Args:
             reference_temperature: this should be set to the temperature of
-                the simulation, usually 300K, in Kelvin
+                the simulation, usually 300K
             temperature_scaler: the psuedo-temperature to adjust nonbonded and
-                torsion parameters of REST2, in Kelvin
+                torsion parameters of REST2
         """
-        self.reference_temperature = reference_temperature
+        self.reference_temperature = strip_unit(reference_temperature, u.kelvin)
         self.scaler = temperature_scaler
 
     def __call__(self, alpha):

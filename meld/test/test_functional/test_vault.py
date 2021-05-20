@@ -533,8 +533,8 @@ class TestPDBWriter(unittest.TestCase):
         self.residue_numbers = [999, 1000]
         self.residue_names = ["XYZ", "R2"]
         self.coords = np.zeros((2, 3))
-        self.coords[0, :] = 1.0
-        self.coords[1, :] = 2.0
+        self.coords[0, :] = 0.1
+        self.coords[1, :] = 0.2
         self.writer = pdb_writer.PDBWriter(
             self.atom_numbers, self.atom_names, self.residue_numbers, self.residue_names
         )
@@ -547,11 +547,15 @@ class TestPDBWriter(unittest.TestCase):
 
     def test_should_raise_with_wrong_number_of_residue_numbers(self):
         with self.assertRaises(AssertionError):
-            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, [1], self.residue_names)
+            pdb_writer.PDBWriter(
+                self.atom_numbers, self.atom_names, [1], self.residue_names
+            )
 
     def test_should_raise_with_wrong_number_of_residue_names(self):
         with self.assertRaises(AssertionError):
-            pdb_writer.PDBWriter(self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"])
+            pdb_writer.PDBWriter(
+                self.atom_numbers, self.atom_names, self.residue_numbers, ["R1"]
+            )
 
     def test_should_raise_with_bad_coordinate_size(self):
         with self.assertRaises(AssertionError):

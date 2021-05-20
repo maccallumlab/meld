@@ -7,6 +7,8 @@
 Miscellaneous utilities
 """
 
+from simtk.openmm import unit as u  # type: ignore
+
 import os
 import shutil
 import tempfile
@@ -15,6 +17,13 @@ import time
 from functools import wraps
 import logging
 import logging.handlers
+
+
+def strip_unit(value, unit: u.Unit) -> float:
+    assert isinstance(
+        value, u.Quantity
+    ), f"Expected a Quantity, but {value} has type {type(value)}"
+    return value.value_in_unit(unit)
 
 
 @contextlib.contextmanager
