@@ -281,8 +281,8 @@ class DistanceRestraint(SelectableRestraint):
             self.r4 = ConstantPositioner(r4)
 
         self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer ** 2)
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
 
     def _check(self, system):
@@ -361,8 +361,8 @@ class GMMDistanceRestraint(SelectableRestraint):
             precisions: the precision (i.e. inverse covariance) of each mixture component,
                     shape(n_components, n_distances, n_distances)
         """
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self.n_distances = n_distances
         self.n_components = n_components
         self.weights = weights
@@ -489,6 +489,8 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
             r4: distance
             asymptote: maximum energy in region V
         """
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         assert isinstance(atom1, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
         assert isinstance(atom2, indexing.AtomIndex)
@@ -572,8 +574,8 @@ class TorsionRestraint(SelectableRestraint):
         self.phi = strip_unit(phi, u.degree)
         self.delta_phi = strip_unit(delta_phi, u.degree)
         self.k = strip_unit(k, u.kilojoule_per_mole / u.degree ** 2)
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
 
     def _check(self):
@@ -636,8 +638,8 @@ class DistProfileRestraint(SelectableRestraint):
             spline_params: the spline coefficient lookup table, shape(n_bins, 4)
             scale_factor: scale the energy
         """
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)
         self.atom_index_1 = int(atom1)
@@ -700,8 +702,8 @@ class TorsProfileRestraint(SelectableRestraint):
             spline_params: the spline coefficient lookup table, shape(n_bins, 16)
             scale_factor: scale the energy
         """
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
 
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)
@@ -800,8 +802,8 @@ class RdcRestraint(NonSelectableRestraint):
         self.quadratic_cut = quadratic_cut
         self.weight = float(weight)
         self.expt_index = int(expt_index)
-        self.scaler = scaler
-        self.ramp = ramp
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
 
     def _check(self, system):
