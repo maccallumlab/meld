@@ -25,6 +25,7 @@ from meld import interfaces
 from meld.system import options
 from meld.system import restraints
 from meld.system import param_sampling
+from meld.system import mapping
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
@@ -63,6 +64,7 @@ class TransformerBase:
     def __init__(
         self,
         param_manager: param_sampling.ParameterManager,
+        mapper: mapping.PeakMapManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],

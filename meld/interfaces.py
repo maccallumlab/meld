@@ -15,6 +15,7 @@ from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import temperature
 from meld.system import param_sampling
+from meld.system import mapping
 
 from typing import Sequence, Optional, List, NamedTuple
 from abc import ABC, abstractmethod
@@ -227,6 +228,7 @@ class IState(ABC):
     energy: float
     box_vector: np.ndarray
     parameters: param_sampling.ParameterState
+    mappings: np.ndarray
 
 
 class IRunner(ABC):
@@ -287,6 +289,7 @@ class ISystem(ABC):
     index: indexing.Indexer
     temperature_scaler: Optional[temperature.TemperatureScaler]
     param_sampler: param_sampling.ParameterManager
+    mapper: mapping.PeakMapManager
 
     extra_bonds: List[ExtraBondParam]
     extra_restricted_angles: List[ExtraAngleParam]

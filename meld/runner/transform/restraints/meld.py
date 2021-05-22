@@ -15,6 +15,7 @@ from meld import interfaces
 from meld.system import restraints
 from meld.system import options
 from meld.system import param_sampling
+from meld.system import mapping
 from meld.runner import transform
 from meldplugin import MeldForce  # type: ignore
 
@@ -22,7 +23,7 @@ from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
 import numpy as np  # type: ignore
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 
 class _RestraintTracker:
@@ -69,12 +70,13 @@ class MeldRestraintTransformer(transform.TransformerBase):
     def __init__(
         self,
         param_manager: param_sampling.ParameterManager,
+        mapper: mapping.PeakMapManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        # We use the param_manager to update parameters that can be sampled over.
         self.param_manager = param_manager
+        self.mapper = mapper
 
         # Track indices of restraints, groups, and collections so that we can
         # update them.
@@ -107,9 +109,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
             if self.always_on:
                 group_list = []
                 for rest in self.always_on:
-                    rest_index = _add_meld_restraint(
-                        self.tracker, rest, meld_force, 0, 0
-                    )
+                    rest_index = self._add_meld_restraint(rest, meld_force, 0, 0, state)
                     # Each restraint goes in its own group.
                     group_index = meld_force.addGroup([rest_index], 1)
                     group_list.append(group_index)
@@ -131,9 +131,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 for group in coll.groups:
                     restraint_indices = []
                     for rest in group.restraints:
-                        rest_index = _add_meld_restraint(
-                            self.tracker, rest, meld_force, 0, 0
-                        )
+                        rest_index = self._add_meld_restraint(rest, meld_force, 0, 0, state)
                         restraint_indices.append(rest_index)
 
                     # Create the group in the meldplugin
@@ -165,7 +163,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         timestep: int,
     ) -> None:
         if self.active:
-            self._update_restraints(alpha, timestep)
+            self._update_restraints(alpha, timestep, state)
             self._update_groups_collections(state)
             self.force.updateParametersInContext(simulation.context)
 
@@ -186,16 +184,17 @@ class MeldRestraintTransformer(transform.TransformerBase):
             self.force.modifyGroupNumActive(i, num_active)
 
     def _update_restraints(
-        self,
-        alpha: float,
-        timestep: int,
+        self, alpha: float, timestep: int, state: interfaces.IState
     ) -> None:
         for i, dist_rest in enumerate(self.tracker.distance_restraints):
             scale = dist_rest.scaler(alpha) * dist_rest.ramp(timestep)
+            j, k = self._handle_mapping(
+                [dist_rest.atom_index_1, dist_rest.atom_index_2], state
+            )
             self.force.modifyDistanceRestraint(
                 i,
-                dist_rest.atom_index_1,
-                dist_rest.atom_index_2,
+                j,
+                k,
                 dist_rest.r1(alpha),
                 dist_rest.r2(alpha),
                 dist_rest.r3(alpha),
@@ -293,109 +292,136 @@ class MeldRestraintTransformer(transform.TransformerBase):
         else:
             return value
 
+    def _handle_mapping(
+        self, values: List[Union[int, mapping.PeakMapping]], state: interfaces.IState
+    ) -> List[int]:
+        indices: List[int] = []
+        for value in values:
+            if isinstance(value, mapping.PeakMapping):
+                index = self.mapper.extract_value(value, state.mappings)
+                if isinstance(index, mapping.NotMapped):
+                    index = -1
+            else:
+                index = value
+            indices.append(index)
 
-def _add_meld_restraint(
-    tracker: _RestraintTracker, rest, meld_force: MeldForce, alpha: float, timestep: int
-) -> int:
-    scale = rest.scaler(alpha) * rest.ramp(timestep)
+        # If any of the indices is un-mapped, we set them
+        # # all to -1.
+        if any(x == -1 for x in indices):
+            indices = [-1 for _ in values]
 
-    if isinstance(rest, restraints.DistanceRestraint):
-        rest_index = meld_force.addDistanceRestraint(
-            rest.atom_index_1,
-            rest.atom_index_2,
-            rest.r1(alpha),
-            rest.r2(alpha),
-            rest.r3(alpha),
-            rest.r4(alpha),
-            rest.k * scale,
-        )
-        tracker.distance_restraints.append(rest)
+        return indices
 
-    elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
-        rest_index = meld_force.addHyperbolicDistanceRestraint(
-            rest.atom_index_1,
-            rest.atom_index_2,
-            rest.r1,
-            rest.r2,
-            rest.r3,
-            rest.r4,
-            rest.k * scale,
-            rest.asymptote * scale,
-        )
-        tracker.hyperbolic_distance_restraints.append(rest)
+    def _add_meld_restraint(
+        self,
+        rest,
+        meld_force: MeldForce,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ) -> int:
+        scale = rest.scaler(alpha) * rest.ramp(timestep)
 
-    elif isinstance(rest, restraints.TorsionRestraint):
-        rest_index = meld_force.addTorsionRestraint(
-            rest.atom_index_1,
-            rest.atom_index_2,
-            rest.atom_index_3,
-            rest.atom_index_4,
-            rest.phi,
-            rest.delta_phi,
-            rest.k * scale,
-        )
-        tracker.torsion_restraints.append(rest)
+        if isinstance(rest, restraints.DistanceRestraint):
+            i, j = self._handle_mapping([rest.atom_index_1, rest.atom_index_2], state)
+            rest_index = meld_force.addDistanceRestraint(
+                i,
+                j,
+                rest.r1(alpha),
+                rest.r2(alpha),
+                rest.r3(alpha),
+                rest.r4(alpha),
+                rest.k * scale,
+            )
+            self.tracker.distance_restraints.append(rest)
 
-    elif isinstance(rest, restraints.DistProfileRestraint):
-        rest_index = meld_force.addDistProfileRestraint(
-            rest.atom_index_1,
-            rest.atom_index_2,
-            rest.r_min,
-            rest.r_max,
-            rest.n_bins,
-            rest.spline_params[:, 0],
-            rest.spline_params[:, 1],
-            rest.spline_params[:, 2],
-            rest.spline_params[:, 3],
-            rest.scale_factor * scale,
-        )
-        tracker.dist_prof_restraints.append(rest)
+        elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
+            rest_index = meld_force.addHyperbolicDistanceRestraint(
+                rest.atom_index_1,
+                rest.atom_index_2,
+                rest.r1,
+                rest.r2,
+                rest.r3,
+                rest.r4,
+                rest.k * scale,
+                rest.asymptote * scale,
+            )
+            self.tracker.hyperbolic_distance_restraints.append(rest)
 
-    elif isinstance(rest, restraints.TorsProfileRestraint):
-        rest_index = meld_force.addTorsProfileRestraint(
-            rest.atom_index_1,
-            rest.atom_index_2,
-            rest.atom_index_3,
-            rest.atom_index_4,
-            rest.atom_index_5,
-            rest.atom_index_6,
-            rest.atom_index_7,
-            rest.atom_index_8,
-            rest.n_bins,
-            rest.spline_params[:, 0],
-            rest.spline_params[:, 1],
-            rest.spline_params[:, 2],
-            rest.spline_params[:, 3],
-            rest.spline_params[:, 4],
-            rest.spline_params[:, 5],
-            rest.spline_params[:, 6],
-            rest.spline_params[:, 7],
-            rest.spline_params[:, 8],
-            rest.spline_params[:, 9],
-            rest.spline_params[:, 10],
-            rest.spline_params[:, 11],
-            rest.spline_params[:, 12],
-            rest.spline_params[:, 13],
-            rest.spline_params[:, 14],
-            rest.spline_params[:, 15],
-            rest.scale_factor * scale,
-        )
-        tracker.torsion_profile_restraints.append(rest)
+        elif isinstance(rest, restraints.TorsionRestraint):
+            rest_index = meld_force.addTorsionRestraint(
+                rest.atom_index_1,
+                rest.atom_index_2,
+                rest.atom_index_3,
+                rest.atom_index_4,
+                rest.phi,
+                rest.delta_phi,
+                rest.k * scale,
+            )
+            self.tracker.torsion_restraints.append(rest)
 
-    elif isinstance(rest, restraints.GMMDistanceRestraint):
-        nd = rest.n_distances
-        nc = rest.n_components
-        w = rest.weights
-        m = list(rest.means.flatten())
+        elif isinstance(rest, restraints.DistProfileRestraint):
+            rest_index = meld_force.addDistProfileRestraint(
+                rest.atom_index_1,
+                rest.atom_index_2,
+                rest.r_min,
+                rest.r_max,
+                rest.n_bins,
+                rest.spline_params[:, 0],
+                rest.spline_params[:, 1],
+                rest.spline_params[:, 2],
+                rest.spline_params[:, 3],
+                rest.scale_factor * scale,
+            )
+            self.tracker.dist_prof_restraints.append(rest)
 
-        d, o = _setup_precisions(rest.precisions, nd, nc)
-        rest_index = meld_force.addGMMRestraint(nd, nc, scale, rest.atoms, w, m, d, o)
-        tracker.gmm_restraints.append(rest)
+        elif isinstance(rest, restraints.TorsProfileRestraint):
+            rest_index = meld_force.addTorsProfileRestraint(
+                rest.atom_index_1,
+                rest.atom_index_2,
+                rest.atom_index_3,
+                rest.atom_index_4,
+                rest.atom_index_5,
+                rest.atom_index_6,
+                rest.atom_index_7,
+                rest.atom_index_8,
+                rest.n_bins,
+                rest.spline_params[:, 0],
+                rest.spline_params[:, 1],
+                rest.spline_params[:, 2],
+                rest.spline_params[:, 3],
+                rest.spline_params[:, 4],
+                rest.spline_params[:, 5],
+                rest.spline_params[:, 6],
+                rest.spline_params[:, 7],
+                rest.spline_params[:, 8],
+                rest.spline_params[:, 9],
+                rest.spline_params[:, 10],
+                rest.spline_params[:, 11],
+                rest.spline_params[:, 12],
+                rest.spline_params[:, 13],
+                rest.spline_params[:, 14],
+                rest.spline_params[:, 15],
+                rest.scale_factor * scale,
+            )
+            self.tracker.torsion_profile_restraints.append(rest)
 
-    else:
-        raise RuntimeError(f"Do not know how to handle restraint {rest}")
+        elif isinstance(rest, restraints.GMMDistanceRestraint):
+            nd = rest.n_distances
+            nc = rest.n_components
+            w = rest.weights
+            m = list(rest.means.flatten())
 
-    return rest_index
+            d, o = _setup_precisions(rest.precisions, nd, nc)
+            rest_index = meld_force.addGMMRestraint(
+                nd, nc, scale, rest.atoms, w, m, d, o
+            )
+            self.tracker.gmm_restraints.append(rest)
+
+        else:
+            raise RuntimeError(f"Do not know how to handle restraint {rest}")
+
+        return rest_index
 
 
 def _setup_precisions(

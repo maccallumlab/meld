@@ -27,6 +27,7 @@ class SystemState(interfaces.IState):
         energy: float,
         box_vector: np.ndarray,
         parameters: Optional[param_sampling.ParameterState] = None,
+        mappings: Optional[np.ndarray] = None,
     ) -> None:
         """
         Initialize a SystemState
@@ -37,6 +38,8 @@ class SystemState(interfaces.IState):
             alpha: alpha value, within ``[0, 1]``
             energy: total potential energy, including restraints, in kJ/mol
             box_vector: the box vectors, shape(3, 3) in nm
+            parameters: current state of sampled parameters
+            mappings: current state of peak mappings
         """
         self.positions = positions
         self.velocities = velocities
@@ -51,6 +54,10 @@ class SystemState(interfaces.IState):
             )
         else:
             self.parameters = parameters
+        if mappings is None:
+            self.mappings = np.array([], dtype=int)
+        else:
+            self.mappings = mappings
 
         self._validate()
 

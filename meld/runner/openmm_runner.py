@@ -20,7 +20,7 @@ import logging
 import numpy as np  # type: ignore
 import tempfile
 from collections import namedtuple
-from typing import Optional, List, Dict, NamedTuple, Tuple
+from typing import Optional, List, Dict, NamedTuple
 import random
 import math
 
@@ -96,6 +96,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._extra_restricted_angles = system.extra_restricted_angles
         self._extra_torsions = system.extra_torsions
         self._parameter_manager = system.param_sampler
+        self._mapper = system.mapper
 
     def prepare_for_timestep(
         self, state: interfaces.IState, alpha: float, timestep: int
@@ -275,6 +276,7 @@ class OpenMMRunner(interfaces.IRunner):
         for tt in trans_types:
             trans = tt(
                 self._parameter_manager,
+                self._mapper,
                 self._options,
                 self._always_on_restraints,
                 self._selectable_collections,
@@ -327,8 +329,11 @@ class OpenMMRunner(interfaces.IRunner):
         else:
             state = self._run_mc(state)
 
-        # Run MonteCarlo parameter updates
+        # Run Monte Carlo parameter updates
         state = self._run_param_mc(state)
+
+        # Run Monte Carlo mapper updates
+        state = self._run_mapper_mc(state)
 
         coordinates = u.Quantity(state.positions, u.nanometer)
         velocities = u.Quantity(state.velocities, u.nanometer / u.picosecond)
@@ -421,6 +426,7 @@ class OpenMMRunner(interfaces.IRunner):
                     state.energy,
                     state.box_vector,
                     trial_params,
+                    state.mappings,
                 )
                 trial_energy = self.get_energy(trial_state)
 
@@ -443,6 +449,51 @@ class OpenMMRunner(interfaces.IRunner):
         if not accept:
             self._transformers_update(state)
 
+        return state
+
+    def _run_mapper_mc(self, state):
+        if not self._mapper.has_mappers():
+            return state
+
+        if self._options.mapper_mcmc_steps is None:
+            raise RuntimeError(
+                "There are mapped atom groups, but mapper_mcmc_steps is not set."
+            )
+
+        energy = self.get_energy(state)
+
+        for _ in range(self._options.param_mcmc_steps):
+            trial_mappings = self._mapper.sample(state.mappings)
+
+            trial_state = SystemState(
+                state.positions,
+                state.velocities,
+                state.alpha,
+                state.energy,
+                state.box_vector,
+                state.parameters,
+                trial_mappings,
+            )
+            trial_energy = self.get_energy(trial_state)
+
+            delta = trial_energy - energy
+
+            if delta < 0:
+                accept = True
+            else:
+                if random.random() < math.exp(-delta):
+                    accept = True
+                else:
+                    accept = False
+
+            if accept:
+                state = trial_state
+                energy = trial_energy
+
+        # Update transfomers in case we rejected the
+        # last MCMC move
+        if not accept:
+            self._transformers_update(state)
         return state
 
 

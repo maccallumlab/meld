@@ -14,6 +14,7 @@ from meld.system import state
 from meld.system import options
 from meld.system import pdb_writer
 from meld.system import param_sampling
+from meld.system import mapping
 
 import contextlib
 import os
@@ -110,6 +111,7 @@ class DataStore:
         self._n_atoms = state_template.positions.shape[0]
         self._n_discrete_parameters = state_template.parameters.discrete.shape[0]
         self._n_continuous_parameters = state_template.parameters.continuous.shape[0]
+        self._n_mappings = state_template.mappings.shape[0]
         self._n_replicas = n_replicas
         self._block_size = block_size
         self._cdf_data_set = None
@@ -464,6 +466,8 @@ class DataStore:
         continuous_parameters = np.array(
             [s.parameters.continuous for s in states], dtype=np.float64
         )
+        mappings = np.array([s.mappings for s in states], dtype=int)
+
         self.save_positions(positions, stage)
         self.save_velocities(velocities, stage)
         self.save_box_vectors(box_vectors, stage)
@@ -471,6 +475,7 @@ class DataStore:
         self.save_energies(energies, stage)
         self.save_discrete_parameters(discrete_parameters, stage)
         self.save_continuous_parameters(continuous_parameters, stage)
+        self.save_mappings(mappings, stage)
 
     def load_states(self, stage: int) -> Sequence[interfaces.IState]:
         """
@@ -490,6 +495,8 @@ class DataStore:
         energies = self.load_energies(stage)
         discrete_parameters = self.load_discrete_parameters(stage)
         continuous_parameters = self.load_continuous_parameters(stage)
+        mappings = self.load_mappings(stage)
+
         states = []
         for i in range(self._n_replicas):
             s = state.SystemState(
@@ -498,7 +505,10 @@ class DataStore:
                 alphas[i],
                 energies[i],
                 box_vectors[i],
-                param_sampling.ParameterState(discrete_parameters[i], continuous_parameters[i]),
+                param_sampling.ParameterState(
+                    discrete_parameters[i], continuous_parameters[i]
+                ),
+                mappings[i],
             )
             states.append(s)
         return states
@@ -783,6 +793,17 @@ class DataStore:
         ds = self._cdf_data_set
         return ds.variables["continuous_parameters"][..., stage]
 
+    def save_mappings(self, data, stage):
+        self._can_save()
+        self._handle_save_stage(stage)
+        ds = self._cdf_data_set
+        ds.variables["mappings"][..., stage] = data
+
+    def load_mappings(self, stage):
+        self._handle_load_stage(stage)
+        ds = self._cdf_data_set
+        return ds.variables["mappings"][..., stage]
+
     def save_remd_runner(self, runner):
         """
         Save replica runner to disk
@@ -884,6 +905,7 @@ class DataStore:
         ds.createDimension("timesteps", None)
         ds.createDimension("n_discrete_parameters", self._n_discrete_parameters)
         ds.createDimension("n_continuous_parameters", self._n_continuous_parameters)
+        ds.createDimension("n_mappings", self._n_mappings)
 
         # setup variables
         ds.createVariable(
@@ -971,6 +993,16 @@ class DataStore:
             "continuous_parameters",
             float,
             ["n_replicas", "n_continuous_parameters", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+
+        ds.createVariable(
+            "mappings",
+            int,
+            ["n_replicas", "n_mappings", "timesteps"],
             zlib=True,
             fletcher32=True,
             shuffle=True,

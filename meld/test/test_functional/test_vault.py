@@ -14,6 +14,7 @@ from meld.system import options
 from meld.system import state
 from meld.system import pdb_writer
 from meld.system import param_sampling
+from meld.system import mapping
 from meld.remd import leader
 from meld.remd import ladder
 from meld.remd import adaptor
@@ -31,6 +32,7 @@ class DataStorePickleTestCase(unittest.TestCase):
         self.N_REPLICAS = 4
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
+        self.N_MAPPING = 10
         self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
@@ -41,6 +43,7 @@ class DataStorePickleTestCase(unittest.TestCase):
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
+            np.arange(self.N_MAPPING, dtype=int),
         )
 
     def test_init_mode_w_creates_directories(self):
@@ -180,6 +183,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
+        self.N_MAPPINGS = 10
         self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
@@ -190,6 +194,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
+            np.arange(self.N_MAPPINGS),
         )
 
         # dummy pdb writer; can't use a mock because they can't be pickled
@@ -295,7 +300,10 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            mappings = np.arange(self.N_MAPPINGS)
+            return state.SystemState(
+                pos, vel, lam, energy, np.zeros(3), params, mappings
+            )
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -320,7 +328,8 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            mappings = np.arange(self.N_MAPPINGS)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -362,6 +371,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
+        self.N_MAPPINGS = 10
         self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
@@ -372,6 +382,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
+            np.arange(self.N_MAPPINGS),
         )
 
         # setup objects to save to disk
@@ -392,7 +403,8 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            mappings = np.arange(self.N_MAPPINGS)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = leader.LeaderReplicaExchangeRunner(
@@ -440,6 +452,7 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
         self.N_REPLICAS = 16
         self.N_DISCRETE = 10
         self.N_CONTINUOUS = 5
+        self.N_MAPPINGS = 10
         self.state_template = state.SystemState(
             np.zeros((self.N_ATOMS, 3)),
             np.zeros((self.N_ATOMS, 3)),
@@ -450,6 +463,7 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
                 np.zeros(self.N_CONTINUOUS, dtype=np.float64),
             ),
+            np.arange(self.N_MAPPINGS),
         )
 
         # setup objects to save to disk
@@ -470,7 +484,8 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params)
+            mappings = np.arange(self.N_MAPPINGS)
+            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
 
         runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a

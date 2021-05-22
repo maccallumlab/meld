@@ -183,6 +183,7 @@ class LeaderReplicaExchangeRunner:
         old_box_vectors = [s.box_vector for s in states]
         old_energy = [s.energy for s in states]
         old_params = [s.parameters for s in states]
+        old_mappings = [s.mappings for s in states]
         assert system_runner.temperature_scaler is not None
         temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
 
@@ -194,6 +195,7 @@ class LeaderReplicaExchangeRunner:
             states[i].box_vector = old_box_vectors[index]
             states[i].energy = old_energy[index]
             states[i].parameters = old_params[index]
+            states[i].mappings = old_mappings[index]
         return states
 
     def _setup_alphas(self) -> None:

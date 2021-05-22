@@ -3,9 +3,8 @@
    All rights reserved
 */
 
-
 #ifdef WIN32
-  #define _USE_MATH_DEFINES // Needed to get M_PI
+#define _USE_MATH_DEFINES // Needed to get M_PI
 #endif
 #include "MeldCudaKernels.h"
 #include "CudaMeldKernelSources.h"
@@ -29,52 +28,58 @@ using namespace MeldPlugin;
 using namespace OpenMM;
 using namespace std;
 
-#define CHECK_RESULT(result) \
-    if (result != CUDA_SUCCESS) { \
-        std::stringstream m; \
-        m<<errorMessage<<": "<<cu.getErrorString(result)<<" ("<<result<<")"<<" at "<<__FILE__<<":"<<__LINE__; \
-        throw OpenMMException(m.str());\
+#define CHECK_RESULT(result)                                                            \
+    if (result != CUDA_SUCCESS)                                                         \
+    {                                                                                   \
+        std::stringstream m;                                                            \
+        m << errorMessage << ": " << cu.getErrorString(result) << " (" << result << ")" \
+          << " at " << __FILE__ << ":" << __LINE__;                                     \
+        throw OpenMMException(m.str());                                                 \
     }
 
-
-class CudaMeldForceInfo : public CudaForceInfo {
+class CudaMeldForceInfo : public CudaForceInfo
+{
 public:
-    std::vector<std::pair<int, int>> bonds;
+    std::vector<std::pair<int, int> > bonds;
 
-    CudaMeldForceInfo(const MeldForce& force) : force(force) {
+    CudaMeldForceInfo(const MeldForce &force) : force(force)
+    {
         bonds = force.getBondedParticles();
     }
 
-    int getNumParticleGroups() override {
+    int getNumParticleGroups() override
+    {
         return bonds.size();
     }
 
-    void getParticlesInGroup(int index, vector<int>& particles) override {
+    void getParticlesInGroup(int index, vector<int> &particles) override
+    {
         particles.clear();
         particles.push_back(bonds[index].first);
         particles.push_back(bonds[index].second);
     }
 
-    bool areParticlesIdentical(int particle1, int particle2) override {
-      if(force.containsParticle(particle1) || force.containsParticle(particle2))
-          return false;
-      return true;
+    bool areParticlesIdentical(int particle1, int particle2) override
+    {
+        if (force.containsParticle(particle1) || force.containsParticle(particle2))
+            return false;
+        return true;
     }
 
-  bool areGroupsIdentical(int group1, int group2) override {
-    return false;
-  }
+    bool areGroupsIdentical(int group1, int group2) override
+    {
+        return false;
+    }
 
 private:
-    const MeldForce& force;
+    const MeldForce &force;
 };
 
-
-CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platform& platform, CudaContext& cu,
-                                                 const System& system) :
-    CalcMeldForceKernel(name, platform), cu(cu), system(system)
+CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platform &platform, CudaContext &cu,
+                                                 const System &system) : CalcMeldForceKernel(name, platform), cu(cu), system(system)
 {
-    if (cu.getUseDoublePrecision()) {
+    if (cu.getUseDoublePrecision())
+    {
         cout << "***\n";
         cout << "*** MeldForce does not support double precision.\n";
         cout << "***" << endl;
@@ -144,7 +149,8 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     collectionEnergies = nullptr;
 }
 
-CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
+CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel()
+{
     cu.setAsCurrent();
     delete distanceRestRParams;
     delete distanceRestKParams;
@@ -196,8 +202,8 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel() {
     delete collectionEnergies;
 }
 
-
-void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
+void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
+{
     numDistRestraints = force.getNumDistRestraints();
     numHyperbolicDistRestraints = force.getNumHyperbolicDistRestraints();
     numTorsionRestraints = force.getNumTorsionRestraints();
@@ -211,247 +217,284 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce& force) {
     numCollections = force.getNumCollections();
 
     // setup device memory
-    if (numDistRestraints > 0) {
-        distanceRestRParams        = CudaArray::create<float4> ( cu, numDistRestraints, "distanceRestRParams");
-        distanceRestKParams        = CudaArray::create<float>  ( cu, numDistRestraints, "distanceRestKParams");
-        distanceRestAtomIndices    = CudaArray::create<int2>    ( cu, numDistRestraints, "distanceRestAtomIndices");
-        distanceRestGlobalIndices  = CudaArray::create<int>    ( cu, numDistRestraints, "distanceRestGlobalIndices");
-        distanceRestForces         = CudaArray::create<float3> ( cu, numDistRestraints, "distanceRestForces");
+    if (numDistRestraints > 0)
+    {
+        distanceRestRParams = CudaArray::create<float4>(cu, numDistRestraints, "distanceRestRParams");
+        distanceRestKParams = CudaArray::create<float>(cu, numDistRestraints, "distanceRestKParams");
+        distanceRestAtomIndices = CudaArray::create<int2>(cu, numDistRestraints, "distanceRestAtomIndices");
+        distanceRestGlobalIndices = CudaArray::create<int>(cu, numDistRestraints, "distanceRestGlobalIndices");
+        distanceRestForces = CudaArray::create<float3>(cu, numDistRestraints, "distanceRestForces");
     }
 
-    if (numHyperbolicDistRestraints > 0) {
-        hyperbolicDistanceRestRParams        = CudaArray::create<float4> ( cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestRParams");
-        hyperbolicDistanceRestParams         = CudaArray::create<float4> ( cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestParams");
-        hyperbolicDistanceRestAtomIndices    = CudaArray::create<int2>   ( cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestAtomIndices");
-        hyperbolicDistanceRestGlobalIndices  = CudaArray::create<int>    ( cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestGlobalIndices");
-        hyperbolicDistanceRestForces         = CudaArray::create<float3> ( cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestForces");
+    if (numHyperbolicDistRestraints > 0)
+    {
+        hyperbolicDistanceRestRParams = CudaArray::create<float4>(cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestRParams");
+        hyperbolicDistanceRestParams = CudaArray::create<float4>(cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestParams");
+        hyperbolicDistanceRestAtomIndices = CudaArray::create<int2>(cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestAtomIndices");
+        hyperbolicDistanceRestGlobalIndices = CudaArray::create<int>(cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestGlobalIndices");
+        hyperbolicDistanceRestForces = CudaArray::create<float3>(cu, numHyperbolicDistRestraints, "hyperbolicDistanceRestForces");
     }
 
-    if (numTorsionRestraints > 0) {
-        torsionRestParams          = CudaArray::create<float3> (cu, numTorsionRestraints,          "torsionRestParams");
-        torsionRestAtomIndices     = CudaArray::create<int4>   (cu, numTorsionRestraints,          "torsionRestAtomIndices");
-        torsionRestGlobalIndices   = CudaArray::create<int>    (cu, numTorsionRestraints,          "torsionRestGlobalIndices");
-        torsionRestForces          = CudaArray::create<float3> (cu, numTorsionRestraints * 4,      "torsionRestForces");
+    if (numTorsionRestraints > 0)
+    {
+        torsionRestParams = CudaArray::create<float3>(cu, numTorsionRestraints, "torsionRestParams");
+        torsionRestAtomIndices = CudaArray::create<int4>(cu, numTorsionRestraints, "torsionRestAtomIndices");
+        torsionRestGlobalIndices = CudaArray::create<int>(cu, numTorsionRestraints, "torsionRestGlobalIndices");
+        torsionRestForces = CudaArray::create<float3>(cu, numTorsionRestraints * 4, "torsionRestForces");
     }
 
-    if (numDistProfileRestraints > 0) {
-        distProfileRestAtomIndices = CudaArray::create<int2>   (cu, numDistProfileRestraints,      "distProfileRestAtomIndices");
-        distProfileRestDistRanges  = CudaArray::create<float2> (cu, numDistProfileRestraints,      "distProfileRestDistRanges");
-        distProfileRestNumBins     = CudaArray::create<int>    (cu, numDistProfileRestraints,      "distProfileRestNumBins");
-        distProfileRestParamBounds = CudaArray::create<int2>   (cu, numDistProfileRestraints,      "distProfileRestParamBounds");
-        distProfileRestParams      = CudaArray::create<float4> (cu, numDistProfileRestParams,      "distProfileRestParams");
-        distProfileRestScaleFactor = CudaArray::create<float>  (cu, numDistProfileRestraints,      "distProfileRestScaleFactor");
-        distProfileRestGlobalIndices=CudaArray::create<int>    (cu, numDistProfileRestraints,      "distProfileRestGlobalIndices");
-        distProfileRestForces      = CudaArray::create<float3> (cu, numDistProfileRestraints,      "distProfileRestForces");
+    if (numDistProfileRestraints > 0)
+    {
+        distProfileRestAtomIndices = CudaArray::create<int2>(cu, numDistProfileRestraints, "distProfileRestAtomIndices");
+        distProfileRestDistRanges = CudaArray::create<float2>(cu, numDistProfileRestraints, "distProfileRestDistRanges");
+        distProfileRestNumBins = CudaArray::create<int>(cu, numDistProfileRestraints, "distProfileRestNumBins");
+        distProfileRestParamBounds = CudaArray::create<int2>(cu, numDistProfileRestraints, "distProfileRestParamBounds");
+        distProfileRestParams = CudaArray::create<float4>(cu, numDistProfileRestParams, "distProfileRestParams");
+        distProfileRestScaleFactor = CudaArray::create<float>(cu, numDistProfileRestraints, "distProfileRestScaleFactor");
+        distProfileRestGlobalIndices = CudaArray::create<int>(cu, numDistProfileRestraints, "distProfileRestGlobalIndices");
+        distProfileRestForces = CudaArray::create<float3>(cu, numDistProfileRestraints, "distProfileRestForces");
     }
 
-    if (numTorsProfileRestraints > 0) {
-        torsProfileRestAtomIndices0= CudaArray::create<int4>   (cu, numTorsProfileRestraints,      "torsProfileRestAtomIndices0");
-        torsProfileRestAtomIndices1= CudaArray::create<int4>   (cu, numTorsProfileRestraints,      "torsProfileRestAtomIndices1");
-        torsProfileRestNumBins     = CudaArray::create<int>    (cu, numTorsProfileRestraints,      "torsProfileRestNumBins");
-        torsProfileRestParamBounds = CudaArray::create<int2>   (cu, numTorsProfileRestraints,      "torsProfileRestParamBounds");
-        torsProfileRestParams0     = CudaArray::create<float4> (cu, numTorsProfileRestParams,      "torsProfileRestParams0");
-        torsProfileRestParams1     = CudaArray::create<float4> (cu, numTorsProfileRestParams,      "torsProfileRestParams1");
-        torsProfileRestParams2     = CudaArray::create<float4> (cu, numTorsProfileRestParams,      "torsProfileRestParams2");
-        torsProfileRestParams3     = CudaArray::create<float4> (cu, numTorsProfileRestParams,      "torsProfileRestParams3");
-        torsProfileRestScaleFactor = CudaArray::create<float>  (cu, numTorsProfileRestraints,      "torsProfileRestScaleFactor");
-        torsProfileRestGlobalIndices=CudaArray::create<int>    (cu, numTorsProfileRestraints,      "torsProfileRestGlobalIndices");
-        torsProfileRestForces      = CudaArray::create<float3> (cu, 8 * numTorsProfileRestraints,  "torsProfileRestForces");
+    if (numTorsProfileRestraints > 0)
+    {
+        torsProfileRestAtomIndices0 = CudaArray::create<int4>(cu, numTorsProfileRestraints, "torsProfileRestAtomIndices0");
+        torsProfileRestAtomIndices1 = CudaArray::create<int4>(cu, numTorsProfileRestraints, "torsProfileRestAtomIndices1");
+        torsProfileRestNumBins = CudaArray::create<int>(cu, numTorsProfileRestraints, "torsProfileRestNumBins");
+        torsProfileRestParamBounds = CudaArray::create<int2>(cu, numTorsProfileRestraints, "torsProfileRestParamBounds");
+        torsProfileRestParams0 = CudaArray::create<float4>(cu, numTorsProfileRestParams, "torsProfileRestParams0");
+        torsProfileRestParams1 = CudaArray::create<float4>(cu, numTorsProfileRestParams, "torsProfileRestParams1");
+        torsProfileRestParams2 = CudaArray::create<float4>(cu, numTorsProfileRestParams, "torsProfileRestParams2");
+        torsProfileRestParams3 = CudaArray::create<float4>(cu, numTorsProfileRestParams, "torsProfileRestParams3");
+        torsProfileRestScaleFactor = CudaArray::create<float>(cu, numTorsProfileRestraints, "torsProfileRestScaleFactor");
+        torsProfileRestGlobalIndices = CudaArray::create<int>(cu, numTorsProfileRestraints, "torsProfileRestGlobalIndices");
+        torsProfileRestForces = CudaArray::create<float3>(cu, 8 * numTorsProfileRestraints, "torsProfileRestForces");
     }
 
-    if (numGMMRestraints > 0) {
-        gmmParams                  = CudaArray::create<int4>   (cu, numGMMRestraints,              "gmmParams");
-        gmmOffsets                 = CudaArray::create<int2>   (cu, numGMMRestraints,              "gmmOffsets");
-        gmmForces                  = CudaArray::create<float3> (cu, calcSizeGMMAtomIndices(force), "gmmForces");
-        gmmAtomIndices             = CudaArray::create<float>  (cu, calcSizeGMMAtomIndices(force), "gmmAtomIndices");
-        gmmData                    = CudaArray::create<float>  (cu, calcSizeGMMData(force),        "gmmData");
+    if (numGMMRestraints > 0)
+    {
+        gmmParams = CudaArray::create<int4>(cu, numGMMRestraints, "gmmParams");
+        gmmOffsets = CudaArray::create<int2>(cu, numGMMRestraints, "gmmOffsets");
+        gmmForces = CudaArray::create<float3>(cu, calcSizeGMMAtomIndices(force), "gmmForces");
+        gmmAtomIndices = CudaArray::create<float>(cu, calcSizeGMMAtomIndices(force), "gmmAtomIndices");
+        gmmData = CudaArray::create<float>(cu, calcSizeGMMData(force), "gmmData");
     }
 
-    restraintEnergies              = CudaArray::create<float>  ( cu, numRestraints,                "restraintEnergies");
-    restraintActive                = CudaArray::create<float>  ( cu, numRestraints,                "restraintActive");
-    groupRestraintIndices          = CudaArray::create<int>    ( cu, numRestraints,                "groupRestraintIndices");
-    groupEnergies                  = CudaArray::create<float>  ( cu, numGroups,                    "groupEnergies");
-    groupActive                    = CudaArray::create<float>  ( cu, numGroups,                    "groupActive");
-    groupBounds                    = CudaArray::create<int2>   ( cu, numGroups,                    "groupBounds");
-    groupNumActive                 = CudaArray::create<int>    ( cu, numGroups,                    "groupNumActive");
-    collectionGroupIndices         = CudaArray::create<int>    ( cu, numGroups,                    "collectionGroupIndices");
-    collectionBounds               = CudaArray::create<int2>   ( cu, numCollections,               "collectionBounds");
-    collectionNumActive            = CudaArray::create<int>    ( cu, numCollections,               "collectionNumActive");
-    collectionEnergies             = CudaArray::create<int>    ( cu, numCollections,               "collectionEnergies");
+    restraintEnergies = CudaArray::create<float>(cu, numRestraints, "restraintEnergies");
+    restraintActive = CudaArray::create<float>(cu, numRestraints, "restraintActive");
+    groupRestraintIndices = CudaArray::create<int>(cu, numRestraints, "groupRestraintIndices");
+    groupEnergies = CudaArray::create<float>(cu, numGroups, "groupEnergies");
+    groupActive = CudaArray::create<float>(cu, numGroups, "groupActive");
+    groupBounds = CudaArray::create<int2>(cu, numGroups, "groupBounds");
+    groupNumActive = CudaArray::create<int>(cu, numGroups, "groupNumActive");
+    collectionGroupIndices = CudaArray::create<int>(cu, numGroups, "collectionGroupIndices");
+    collectionBounds = CudaArray::create<int2>(cu, numCollections, "collectionBounds");
+    collectionNumActive = CudaArray::create<int>(cu, numCollections, "collectionNumActive");
+    collectionEnergies = CudaArray::create<int>(cu, numCollections, "collectionEnergies");
 
     // setup host memory
-    h_distanceRestRParams                 = std::vector<float4> (numDistRestraints, make_float4( 0, 0, 0, 0));
-    h_distanceRestKParams                 = std::vector<float>  (numDistRestraints, 0);
-    h_distanceRestAtomIndices             = std::vector<int2>   (numDistRestraints, make_int2( -1, -1));
-    h_distanceRestGlobalIndices           = std::vector<int>    (numDistRestraints, -1);
-    h_hyperbolicDistanceRestRParams       = std::vector<float4> (numHyperbolicDistRestraints, make_float4( 0, 0, 0, 0));
-    h_hyperbolicDistanceRestParams        = std::vector<float4> (numHyperbolicDistRestraints, make_float4( 0, 0, 0, 0));
-    h_hyperbolicDistanceRestAtomIndices   = std::vector<int2>   (numHyperbolicDistRestraints, make_int2( -1, -1));
-    h_hyperbolicDistanceRestGlobalIndices = std::vector<int>    (numHyperbolicDistRestraints, -1);
-    h_torsionRestParams                   = std::vector<float3> (numTorsionRestraints, make_float3(0, 0, 0));
-    h_torsionRestAtomIndices              = std::vector<int4>   (numTorsionRestraints, make_int4(-1,-1,-1,-1));
-    h_torsionRestGlobalIndices            = std::vector<int>    (numTorsionRestraints, -1);
-    h_distProfileRestAtomIndices          = std::vector<int2>   (numDistProfileRestraints, make_int2(-1, -1));
-    h_distProfileRestDistRanges           = std::vector<float2> (numDistProfileRestraints, make_float2(0, 0));
-    h_distProfileRestNumBins              = std::vector<int>    (numDistProfileRestraints, -1);
-    h_distProileRestParamBounds           = std::vector<int2>   (numDistProfileRestraints, make_int2(-1, -1));
-    h_distProfileRestParams               = std::vector<float4> (numDistProfileRestParams, make_float4(0, 0, 0, 0));
-    h_distProfileRestScaleFactor          = std::vector<float>  (numDistProfileRestraints, 0);
-    h_distProfileRestGlobalIndices        = std::vector<int>    (numDistProfileRestraints, -1);
-    h_torsProfileRestAtomIndices0         = std::vector<int4>   (numTorsProfileRestraints, make_int4(-1, -1, -1, -1));
-    h_torsProfileRestAtomIndices1         = std::vector<int4>   (numTorsProfileRestraints, make_int4(-1, -1, -1, -1));
-    h_torsProfileRestNumBins              = std::vector<int>    (numTorsProfileRestraints, -1);
-    h_torsProileRestParamBounds           = std::vector<int2>   (numTorsProfileRestraints, make_int2(-1, -1));
-    h_torsProfileRestParams0              = std::vector<float4> (numTorsProfileRestParams, make_float4(0, 0, 0, 0));
-    h_torsProfileRestParams1              = std::vector<float4> (numTorsProfileRestParams, make_float4(0, 0, 0, 0));
-    h_torsProfileRestParams2              = std::vector<float4> (numTorsProfileRestParams, make_float4(0, 0, 0, 0));
-    h_torsProfileRestParams3              = std::vector<float4> (numTorsProfileRestParams, make_float4(0, 0, 0, 0));
-    h_torsProfileRestScaleFactor          = std::vector<float>  (numTorsProfileRestraints, 0);
-    h_torsProfileRestGlobalIndices        = std::vector<int>    (numTorsProfileRestraints, -1);
-    h_gmmParams                           = std::vector<int4>   (numGMMRestraints, make_int4(0, 0, 0, 0));
-    h_gmmOffsets                          = std::vector<int2>   (numGMMRestraints, make_int2(0, 0));
-    h_gmmAtomIndices                      = std::vector<int>    (calcSizeGMMAtomIndices(force), 0);
-    h_gmmData                             = std::vector<float>  (calcSizeGMMData(force), 0);
-    h_groupRestraintIndices               = std::vector<int>    (numRestraints, -1);
-    h_groupBounds                         = std::vector<int2>   (numGroups, make_int2( -1, -1));
-    h_groupNumActive                      = std::vector<int>    (numGroups, -1);
-    h_collectionGroupIndices              = std::vector<int>    (numGroups, -1);
-    h_collectionBounds                    = std::vector<int2>   (numCollections, make_int2( -1, -1));
-    h_collectionNumActive                 = std::vector<int>    (numCollections, -1);
+    h_distanceRestRParams = std::vector<float4>(numDistRestraints, make_float4(0, 0, 0, 0));
+    h_distanceRestKParams = std::vector<float>(numDistRestraints, 0);
+    h_distanceRestAtomIndices = std::vector<int2>(numDistRestraints, make_int2(-1, -1));
+    h_distanceRestGlobalIndices = std::vector<int>(numDistRestraints, -1);
+    h_hyperbolicDistanceRestRParams = std::vector<float4>(numHyperbolicDistRestraints, make_float4(0, 0, 0, 0));
+    h_hyperbolicDistanceRestParams = std::vector<float4>(numHyperbolicDistRestraints, make_float4(0, 0, 0, 0));
+    h_hyperbolicDistanceRestAtomIndices = std::vector<int2>(numHyperbolicDistRestraints, make_int2(-1, -1));
+    h_hyperbolicDistanceRestGlobalIndices = std::vector<int>(numHyperbolicDistRestraints, -1);
+    h_torsionRestParams = std::vector<float3>(numTorsionRestraints, make_float3(0, 0, 0));
+    h_torsionRestAtomIndices = std::vector<int4>(numTorsionRestraints, make_int4(-1, -1, -1, -1));
+    h_torsionRestGlobalIndices = std::vector<int>(numTorsionRestraints, -1);
+    h_distProfileRestAtomIndices = std::vector<int2>(numDistProfileRestraints, make_int2(-1, -1));
+    h_distProfileRestDistRanges = std::vector<float2>(numDistProfileRestraints, make_float2(0, 0));
+    h_distProfileRestNumBins = std::vector<int>(numDistProfileRestraints, -1);
+    h_distProileRestParamBounds = std::vector<int2>(numDistProfileRestraints, make_int2(-1, -1));
+    h_distProfileRestParams = std::vector<float4>(numDistProfileRestParams, make_float4(0, 0, 0, 0));
+    h_distProfileRestScaleFactor = std::vector<float>(numDistProfileRestraints, 0);
+    h_distProfileRestGlobalIndices = std::vector<int>(numDistProfileRestraints, -1);
+    h_torsProfileRestAtomIndices0 = std::vector<int4>(numTorsProfileRestraints, make_int4(-1, -1, -1, -1));
+    h_torsProfileRestAtomIndices1 = std::vector<int4>(numTorsProfileRestraints, make_int4(-1, -1, -1, -1));
+    h_torsProfileRestNumBins = std::vector<int>(numTorsProfileRestraints, -1);
+    h_torsProileRestParamBounds = std::vector<int2>(numTorsProfileRestraints, make_int2(-1, -1));
+    h_torsProfileRestParams0 = std::vector<float4>(numTorsProfileRestParams, make_float4(0, 0, 0, 0));
+    h_torsProfileRestParams1 = std::vector<float4>(numTorsProfileRestParams, make_float4(0, 0, 0, 0));
+    h_torsProfileRestParams2 = std::vector<float4>(numTorsProfileRestParams, make_float4(0, 0, 0, 0));
+    h_torsProfileRestParams3 = std::vector<float4>(numTorsProfileRestParams, make_float4(0, 0, 0, 0));
+    h_torsProfileRestScaleFactor = std::vector<float>(numTorsProfileRestraints, 0);
+    h_torsProfileRestGlobalIndices = std::vector<int>(numTorsProfileRestraints, -1);
+    h_gmmParams = std::vector<int4>(numGMMRestraints, make_int4(0, 0, 0, 0));
+    h_gmmOffsets = std::vector<int2>(numGMMRestraints, make_int2(0, 0));
+    h_gmmAtomIndices = std::vector<int>(calcSizeGMMAtomIndices(force), 0);
+    h_gmmData = std::vector<float>(calcSizeGMMData(force), 0);
+    h_groupRestraintIndices = std::vector<int>(numRestraints, -1);
+    h_groupBounds = std::vector<int2>(numGroups, make_int2(-1, -1));
+    h_groupNumActive = std::vector<int>(numGroups, -1);
+    h_collectionGroupIndices = std::vector<int>(numGroups, -1);
+    h_collectionBounds = std::vector<int2>(numCollections, make_int2(-1, -1));
+    h_collectionNumActive = std::vector<int>(numCollections, -1);
 }
-
 
 /**
  * Error checking helper routines
  */
 
-void checkAtomIndex(const int numAtoms, const std::string& restType, const int atomIndex,
-                const int restIndex, const int globalIndex) {
+void checkAtomIndex(const int numAtoms, const std::string &restType, const int atomIndex,
+                    const int restIndex, const int globalIndex, const bool allowNegativeOne = true)
+{
     bool bad = false;
-    if (atomIndex < 0) {
+    if (allowNegativeOne)
+    {
+        if (atomIndex < -1)
+        {
+            bad = true;
+        }
+    }
+    else:
+        {
+            if (atomIndex < 0)
+            {
+                bad = true;
+            }
+        }
+    if (atomIndex >= numAtoms)
+    {
         bad = true;
     }
-    if (atomIndex >= numAtoms) {
-        bad = true;
-    }
-    if (bad) {
+    if (bad)
+    {
         std::stringstream m;
-        m<<"Bad index given in "<<restType<<". atomIndex is "<<atomIndex;
-        m<<", globalIndex is: "<<globalIndex<<", restraint index is: "<<restIndex;
+        m << "Bad index given in " << restType << ". atomIndex is " << atomIndex;
+        m << ", globalIndex is: " << globalIndex << ", restraint index is: " << restIndex;
         throw OpenMMException(m.str());
     }
 }
 
-
-void checkForceConstant(const float forceConst, const std::string& restType,
-                        const int restIndex, const int globalIndex) {
-    if (forceConst < 0) {
+void checkForceConstant(const float forceConst, const std::string &restType,
+                        const int restIndex, const int globalIndex)
+{
+    if (forceConst < 0)
+    {
         std::stringstream m;
-        m<<"Force constant is < 0 for "<<restType<<" at globalIndex "<<globalIndex<<", restraint index "<<restIndex;
+        m << "Force constant is < 0 for " << restType << " at globalIndex " << globalIndex << ", restraint index " << restIndex;
         throw OpenMMException(m.str());
     }
 }
-
 
 void checkDistanceRestraintRs(const float r1, const float r2, const float r3,
-                              const float r4, const int restIndex, const int globalIndex) {
+                              const float r4, const int restIndex, const int globalIndex)
+{
     std::stringstream m;
     bool bad = false;
-    m<<"Distance restraint has ";
+    m << "Distance restraint has ";
 
-    if (r1 > r2) {
-        m<<"r1 > r2. ";
+    if (r1 > r2)
+    {
+        m << "r1 > r2. ";
         bad = true;
-    } else if (r2 > r3) {
-        m<<"r2 > r3. ";
+    }
+    else if (r2 > r3)
+    {
+        m << "r2 > r3. ";
         bad = true;
-    } else if (r3 > r4) {
-        m<<"r3 > r4. ";
+    }
+    else if (r3 > r4)
+    {
+        m << "r3 > r4. ";
         bad = true;
     }
 
-    if (bad) {
-        m<<"Restraint has index "<<restIndex<<" and globalIndex "<<globalIndex<<".";
+    if (bad)
+    {
+        m << "Restraint has index " << restIndex << " and globalIndex " << globalIndex << ".";
         throw OpenMMException(m.str());
     }
 }
 
-
-void checkTorsionRestraintAngles(const float phi, const float deltaPhi, const int index, const int globalIndex) {
+void checkTorsionRestraintAngles(const float phi, const float deltaPhi, const int index, const int globalIndex)
+{
     std::stringstream m;
     bool bad = false;
 
-    if ((phi < -180.) || (phi > 180.)) {
-        m<<"Torsion restraint phi lies outside of [-180, 180]. ";
+    if ((phi < -180.) || (phi > 180.))
+    {
+        m << "Torsion restraint phi lies outside of [-180, 180]. ";
         bad = true;
     }
-    if ((deltaPhi < 0) || (deltaPhi > 180)) {
-        m<<"Torsion restraint deltaPhi lies outside of [0, 180]. ";
+    if ((deltaPhi < 0) || (deltaPhi > 180))
+    {
+        m << "Torsion restraint deltaPhi lies outside of [0, 180]. ";
         bad = true;
     }
-    if (bad) {
-        m<<"Restraint has index "<<index<<" and globalIndex "<<globalIndex<<".";
+    if (bad)
+    {
+        m << "Restraint has index " << index << " and globalIndex " << globalIndex << ".";
         throw OpenMMException(m.str());
     }
 }
 
-
-void checkGroupCollectionIndices(const int num, const std::vector<int>& indices,
-                                 std::vector<int>& assigned, const int index,
-                                 const std::string& type1, const std::string& type2) {
+void checkGroupCollectionIndices(const int num, const std::vector<int> &indices,
+                                 std::vector<int> &assigned, const int index,
+                                 const std::string &type1, const std::string &type2)
+{
     std::stringstream m;
-    for(std::vector<int>::const_iterator i=indices.begin(); i!=indices.end(); ++i) {
+    for (std::vector<int>::const_iterator i = indices.begin(); i != indices.end(); ++i)
+    {
         // make sure we're in range
-        if ((*i >= num) || (*i < 0)) {
-            m<<type2<<" with index "<<index<<" references "<<type1<<" outside of range[0,"<<(num-1)<<"].";
+        if ((*i >= num) || (*i < 0))
+        {
+            m << type2 << " with index " << index << " references " << type1 << " outside of range[0," << (num - 1) << "].";
             throw OpenMMException(m.str());
         }
         // check to see if this restraint is already assigned to another group
-        if (assigned[*i] != -1) {
-            m<<type1<<" with index "<<(*i)<<" is assinged to more than one "<<type2<<". ";
-            m<<type2<<"s are "<<assigned[*i]<<" and ";
-            m<<index<<".";
+        if (assigned[*i] != -1)
+        {
+            m << type1 << " with index " << (*i) << " is assinged to more than one " << type2 << ". ";
+            m << type2 << "s are " << assigned[*i] << " and ";
+            m << index << ".";
             throw OpenMMException(m.str());
         }
         // otherwise mark this group as belonging to us
-        else {
+        else
+        {
             assigned[*i] = index;
         }
     }
 }
 
-
-void checkNumActive(const std::vector<int>& indices, const int numActive, const int index, const std::string& type) {
-    if ( (numActive < 0) || (numActive > indices.size()) ) {
+void checkNumActive(const std::vector<int> &indices, const int numActive, const int index, const std::string &type)
+{
+    if ((numActive < 0) || (numActive > indices.size()))
+    {
         std::stringstream m;
-        m<<type<<" with index "<<index<<" has numActive out of range [0,"<<indices.size()<<"].";
+        m << type << " with index " << index << " has numActive out of range [0," << indices.size() << "].";
         throw OpenMMException(m.str());
     }
 }
 
-
-void checkAllAssigned(const std::vector<int>& assigned, const std::string& type1, const std::string& type2) {
-    for (std::vector<int>::const_iterator i=assigned.begin(); i!=assigned.end(); ++i) {
-        if (*i == -1) {
+void checkAllAssigned(const std::vector<int> &assigned, const std::string &type1, const std::string &type2)
+{
+    for (std::vector<int>::const_iterator i = assigned.begin(); i != assigned.end(); ++i)
+    {
+        if (*i == -1)
+        {
             std::stringstream m;
             int index = std::distance(assigned.begin(), i);
-            m<<type1<<" with index "<<index<<" is not assigned to a "<<type2<<".";
+            m << type1 << " with index " << index << " is not assigned to a " << type2 << ".";
             throw OpenMMException(m.str());
         }
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupDistanceRestraints(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupDistanceRestraints(const MeldForce &force)
+{
     int numAtoms = system.getNumParticles();
     std::string restType = "distance restraint";
-    for (int i=0; i < numDistRestraints; ++i) {
+    for (int i = 0; i < numDistRestraints; ++i)
+    {
         int atom_i, atom_j, global_index;
         float r1, r2, r3, r4, k;
         force.getDistanceRestraintParams(i, atom_i, atom_j, r1, r2, r3, r4, k, global_index);
 
-        checkAtomIndex(numAtoms, restType, atom_i, i, global_index);
-        checkAtomIndex(numAtoms, restType, atom_j, i, global_index);
+        checkAtomIndex(numAtoms, restType, atom_i, i, global_index, allowNegativeOne=true);
+        checkAtomIndex(numAtoms, restType, atom_j, i, global_index, allowNegativeOne=true);
         checkForceConstant(k, restType, i, global_index);
         checkDistanceRestraintRs(r1, r2, r3, r4, i, global_index);
 
@@ -462,11 +505,12 @@ void CudaCalcMeldForceKernel::setupDistanceRestraints(const MeldForce& force) {
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupHyperbolicDistanceRestraints(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupHyperbolicDistanceRestraints(const MeldForce &force)
+{
     int numAtoms = system.getNumParticles();
     std::string restType = "hyperbolic distance restraint";
-    for (int i=0; i < numHyperbolicDistRestraints; ++i) {
+    for (int i = 0; i < numHyperbolicDistRestraints; ++i)
+    {
         int atom_i, atom_j, global_index;
         float r1, r2, r3, r4, k1, k2, asymptote;
         force.getHyperbolicDistanceRestraintParams(i, atom_i, atom_j, r1, r2, r3, r4, k1, asymptote, global_index);
@@ -488,11 +532,12 @@ void CudaCalcMeldForceKernel::setupHyperbolicDistanceRestraints(const MeldForce&
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupTorsionRestraints(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupTorsionRestraints(const MeldForce &force)
+{
     int numAtoms = system.getNumParticles();
     std::string restType = "torsion restraint";
-    for (int i=0; i < numTorsionRestraints; ++i) {
+    for (int i = 0; i < numTorsionRestraints; ++i)
+    {
         int atom_i, atom_j, atom_k, atom_l, globalIndex;
         float phi, deltaPhi, forceConstant;
         force.getTorsionRestraintParams(i, atom_i, atom_j, atom_k, atom_l, phi, deltaPhi, forceConstant, globalIndex);
@@ -510,12 +555,13 @@ void CudaCalcMeldForceKernel::setupTorsionRestraints(const MeldForce& force) {
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupDistProfileRestraints(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupDistProfileRestraints(const MeldForce &force)
+{
     int numAtoms = system.getNumParticles();
     std::string restType = "distance profile restraint";
     int currentParamIndex = 0;
-    for (int i=0; i < numDistProfileRestraints; ++i) {
+    for (int i = 0; i < numDistProfileRestraints; ++i)
+    {
         int thisStart = currentParamIndex;
 
         int atom1, atom2, nBins, globalIndex;
@@ -523,7 +569,7 @@ void CudaCalcMeldForceKernel::setupDistProfileRestraints(const MeldForce& force)
         std::vector<double> a0, a1, a2, a3;
 
         force.getDistProfileRestraintParams(i, atom1, atom2, rMin, rMax, nBins,
-                a0, a1, a2, a3, scaleFactor, globalIndex);
+                                            a0, a1, a2, a3, scaleFactor, globalIndex);
 
         checkAtomIndex(numAtoms, restType, atom1, i, globalIndex);
         checkAtomIndex(numAtoms, restType, atom2, i, globalIndex);
@@ -535,12 +581,13 @@ void CudaCalcMeldForceKernel::setupDistProfileRestraints(const MeldForce& force)
         h_distProfileRestGlobalIndices[i] = globalIndex;
         h_distProfileRestScaleFactor[i] = scaleFactor;
 
-        for (int j=0; j<nBins; ++j) {
+        for (int j = 0; j < nBins; ++j)
+        {
             h_distProfileRestParams[currentParamIndex] = make_float4(
-                    (float)a0[j],
-                    (float)a1[j],
-                    (float)a2[j],
-                    (float)a3[j]);
+                (float)a0[j],
+                (float)a1[j],
+                (float)a2[j],
+                (float)a3[j]);
             currentParamIndex++;
         }
         int thisEnd = currentParamIndex;
@@ -548,11 +595,13 @@ void CudaCalcMeldForceKernel::setupDistProfileRestraints(const MeldForce& force)
     }
 }
 
-void CudaCalcMeldForceKernel::setupTorsProfileRestraints(const MeldForce& force){
+void CudaCalcMeldForceKernel::setupTorsProfileRestraints(const MeldForce &force)
+{
     int numAtoms = system.getNumParticles();
     std::string restType = "torsion profile restraint";
     int currentParamIndex = 0;
-    for (int i=0; i < numTorsProfileRestraints; ++i) {
+    for (int i = 0; i < numTorsProfileRestraints; ++i)
+    {
         int thisStart = currentParamIndex;
 
         int atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins, globalIndex;
@@ -560,9 +609,9 @@ void CudaCalcMeldForceKernel::setupTorsProfileRestraints(const MeldForce& force)
         std::vector<double> a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15;
 
         force.getTorsProfileRestraintParams(i, atom1, atom2, atom3, atom4,
-                atom5, atom6, atom7, atom8, nBins,
-                a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
-                scaleFactor, globalIndex);
+                                            atom5, atom6, atom7, atom8, nBins,
+                                            a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
+                                            scaleFactor, globalIndex);
 
         checkAtomIndex(numAtoms, restType, atom1, i, globalIndex);
         checkAtomIndex(numAtoms, restType, atom2, i, globalIndex);
@@ -580,27 +629,28 @@ void CudaCalcMeldForceKernel::setupTorsProfileRestraints(const MeldForce& force)
         h_torsProfileRestGlobalIndices[i] = globalIndex;
         h_torsProfileRestScaleFactor[i] = scaleFactor;
 
-        for (int j=0; j<nBins*nBins; ++j) {
+        for (int j = 0; j < nBins * nBins; ++j)
+        {
             h_torsProfileRestParams0[currentParamIndex] = make_float4(
-                    (float)a0[j],
-                    (float)a1[j],
-                    (float)a2[j],
-                    (float)a3[j]);
+                (float)a0[j],
+                (float)a1[j],
+                (float)a2[j],
+                (float)a3[j]);
             h_torsProfileRestParams1[currentParamIndex] = make_float4(
-                    (float)a4[j],
-                    (float)a5[j],
-                    (float)a6[j],
-                    (float)a7[j]);
+                (float)a4[j],
+                (float)a5[j],
+                (float)a6[j],
+                (float)a7[j]);
             h_torsProfileRestParams2[currentParamIndex] = make_float4(
-                    (float)a8[j],
-                    (float)a9[j],
-                    (float)a10[j],
-                    (float)a11[j]);
+                (float)a8[j],
+                (float)a9[j],
+                (float)a10[j],
+                (float)a11[j]);
             h_torsProfileRestParams3[currentParamIndex] = make_float4(
-                    (float)a12[j],
-                    (float)a13[j],
-                    (float)a14[j],
-                    (float)a15[j]);
+                (float)a12[j],
+                (float)a13[j],
+                (float)a14[j],
+                (float)a15[j]);
             currentParamIndex++;
         }
         int thisEnd = currentParamIndex;
@@ -608,12 +658,13 @@ void CudaCalcMeldForceKernel::setupTorsProfileRestraints(const MeldForce& force)
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
+void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce &force)
+{
     int atomBlockOffset = 0;
     int dataBlockOffset = 0;
 
-    for (int index=0; index<force.getNumGMMRestraints(); index++) {
+    for (int index = 0; index < force.getNumGMMRestraints(); index++)
+    {
         int nPairs, nComponents, globalIndex;
         float scale;
         std::vector<int> atomIndices;
@@ -626,28 +677,33 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
         h_gmmParams[index].x = nPairs;
         h_gmmParams[index].y = nComponents;
         h_gmmParams[index].z = globalIndex;
-        h_gmmParams[index].w = (int)(scale * 1e6);   // multiple by a million to store in an int
-                                                     // divide by a million and convert back to float
-                                                     // on gpu
+        h_gmmParams[index].w = (int)(scale * 1e6); // multiple by a million to store in an int
+                                                   // divide by a million and convert back to float
+                                                   // on gpu
 
         h_gmmOffsets[index].x = atomBlockOffset;
         h_gmmOffsets[index].y = dataBlockOffset;
 
-        for (int i=0; i<nPairs; i++) {
-            h_gmmAtomIndices[atomBlockOffset + 2*i] = atomIndices[2*i];
-            h_gmmAtomIndices[atomBlockOffset + 2*i + 1] = atomIndices[2*i + 1];
+        for (int i = 0; i < nPairs; i++)
+        {
+            h_gmmAtomIndices[atomBlockOffset + 2 * i] = atomIndices[2 * i];
+            h_gmmAtomIndices[atomBlockOffset + 2 * i + 1] = atomIndices[2 * i + 1];
         }
         atomBlockOffset += nPairs;
 
-        for (int i=0; i<nComponents; i++) {
+        for (int i = 0; i < nComponents; i++)
+        {
             // build the precision matrix
             auto precision = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>(nPairs, nPairs);
-            for (int j=0; j<nPairs; j++) {
-                precision(j, j) = diag[i*nPairs + j];
+            for (int j = 0; j < nPairs; j++)
+            {
+                precision(j, j) = diag[i * nPairs + j];
             }
             int count = 0;
-            for (int j=0; j<nPairs; ++j) {
-                for (int k=j+1; k<nPairs; ++k) {
+            for (int j = 0; j < nPairs; ++j)
+            {
+                for (int k = j + 1; k < nPairs; ++k)
+                {
                     precision(j, k) = offdiag[i * nPairs * (nPairs - 1) / 2 + count];
                     precision(k, j) = offdiag[i * nPairs * (nPairs - 1) / 2 + count];
                     count++;
@@ -655,11 +711,12 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
             }
 
             // compute the eigen values
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>> es(precision);
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> > es(precision);
             auto eigenvalues = es.eigenvalues();
 
             // check that precision is positive definite
-            if (eigenvalues.minCoeff() <= 0) {
+            if (eigenvalues.minCoeff() <= 0)
+            {
                 throw OpenMMException("The precision matrix must be positive definite.");
             }
 
@@ -671,25 +728,28 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce& force){
 
             // shove stuff in array
             h_gmmData[dataBlockOffset] = norm;
-            for (int j=0; j<nPairs; j++) {
-                h_gmmData[dataBlockOffset + j + 1] = means[i*nPairs + j];
-                h_gmmData[dataBlockOffset + nPairs + j + 1] = diag[i*nPairs + j];
+            for (int j = 0; j < nPairs; j++)
+            {
+                h_gmmData[dataBlockOffset + j + 1] = means[i * nPairs + j];
+                h_gmmData[dataBlockOffset + nPairs + j + 1] = diag[i * nPairs + j];
             }
-            for (int j=0; j<nPairs*(nPairs-1)/2; j++) {
-                h_gmmData[dataBlockOffset + 2*nPairs + j + 1] = offdiag[i*nPairs*(nPairs-1)/2 + j];
+            for (int j = 0; j < nPairs * (nPairs - 1) / 2; j++)
+            {
+                h_gmmData[dataBlockOffset + 2 * nPairs + j + 1] = offdiag[i * nPairs * (nPairs - 1) / 2 + j];
             }
-            dataBlockOffset += 1 + 2*nPairs + nPairs*(nPairs-1)/2;
+            dataBlockOffset += 1 + 2 * nPairs + nPairs * (nPairs - 1) / 2;
         }
     }
 }
 
-
-void CudaCalcMeldForceKernel::setupGroups(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupGroups(const MeldForce &force)
+{
     largestGroup = 0;
     std::vector<int> restraintAssigned(numRestraints, -1);
     int start = 0;
     int end = 0;
-    for (int i=0; i<numGroups; ++i) {
+    for (int i = 0; i < numGroups; ++i)
+    {
         std::vector<int> indices;
         int numActive;
         force.getGroupParams(i, indices, numActive);
@@ -698,7 +758,8 @@ void CudaCalcMeldForceKernel::setupGroups(const MeldForce& force) {
         checkNumActive(indices, numActive, i, "Group");
 
         int groupSize = indices.size();
-        if (groupSize > largestGroup) {
+        if (groupSize > largestGroup)
+        {
             largestGroup = groupSize;
         }
 
@@ -706,21 +767,23 @@ void CudaCalcMeldForceKernel::setupGroups(const MeldForce& force) {
         h_groupNumActive[i] = numActive;
         h_groupBounds[i] = make_int2(start, end);
 
-        for (int j=0; j<indices.size(); ++j) {
-            h_groupRestraintIndices[start+j] = indices[j];
+        for (int j = 0; j < indices.size(); ++j)
+        {
+            h_groupRestraintIndices[start + j] = indices[j];
         }
         start = end;
     }
     checkAllAssigned(restraintAssigned, "Restraint", "Group");
 }
 
-
-void CudaCalcMeldForceKernel::setupCollections(const MeldForce& force) {
+void CudaCalcMeldForceKernel::setupCollections(const MeldForce &force)
+{
     largestCollection = 0;
     std::vector<int> groupAssigned(numGroups, -1);
-    int start=0;
-    int end=0;
-    for (int i=0; i<numCollections; ++i) {
+    int start = 0;
+    int end = 0;
+    for (int i = 0; i < numCollections; ++i)
+    {
         std::vector<int> indices;
         int numActive;
         force.getCollectionParams(i, indices, numActive);
@@ -729,23 +792,25 @@ void CudaCalcMeldForceKernel::setupCollections(const MeldForce& force) {
 
         int collectionSize = indices.size();
 
-        if (collectionSize > largestCollection) {
+        if (collectionSize > largestCollection)
+        {
             largestCollection = collectionSize;
         }
 
         end = start + collectionSize;
         h_collectionNumActive[i] = numActive;
         h_collectionBounds[i] = make_int2(start, end);
-        for (int j=0; j<indices.size(); ++j) {
-            h_collectionGroupIndices[start+j] = indices[j];
+        for (int j = 0; j < indices.size(); ++j)
+        {
+            h_collectionGroupIndices[start + j] = indices[j];
         }
         start = end;
     }
     checkAllAssigned(groupAssigned, "Group", "Collection");
 }
 
-
-int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce& force) {
+int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce &force)
+{
     int total = 0;
     int nPairs;
     int nComponents;
@@ -757,7 +822,8 @@ int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce& force) {
     std::vector<double> diags;
     std::vector<double> offdiags;
 
-    for (int i=0; i<force.getNumGMMRestraints(); ++i) {
+    for (int i = 0; i < force.getNumGMMRestraints(); ++i)
+    {
         force.getGMMRestraintParams(i, nPairs, nComponents, scale,
                                     atomIndices, weights, means,
                                     diags, offdiags, globalIndex);
@@ -766,8 +832,8 @@ int CudaCalcMeldForceKernel::calcSizeGMMAtomIndices(const MeldForce& force) {
     return total;
 }
 
-
-int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce& force) {
+int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce &force)
+{
     int total = 0;
     int nPairs;
     int nComponents;
@@ -779,42 +845,47 @@ int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce& force) {
     std::vector<double> diags;
     std::vector<double> offdiags;
 
-    for (int i=0; i<force.getNumGMMRestraints(); ++i) {
+    for (int i = 0; i < force.getNumGMMRestraints(); ++i)
+    {
         force.getGMMRestraintParams(i, nPairs, nComponents, scale,
                                     atomIndices, weights, means,
                                     diags, offdiags, globalIndex);
         total +=
-            nComponents +                          // weights
-            nComponents * nPairs +                 // means
-            nComponents * nPairs +                 // precision diagonals
-            nComponents * nPairs * (nPairs-1) / 2; // precision off diagonals
+            nComponents +                            // weights
+            nComponents * nPairs +                   // means
+            nComponents * nPairs +                   // precision diagonals
+            nComponents * nPairs * (nPairs - 1) / 2; // precision off diagonals
     }
     return total;
 }
 
-
-void CudaCalcMeldForceKernel::validateAndUpload() {
-    if (numDistRestraints > 0) {
+void CudaCalcMeldForceKernel::validateAndUpload()
+{
+    if (numDistRestraints > 0)
+    {
         distanceRestRParams->upload(h_distanceRestRParams);
         distanceRestKParams->upload(h_distanceRestKParams);
         distanceRestAtomIndices->upload(h_distanceRestAtomIndices);
         distanceRestGlobalIndices->upload(h_distanceRestGlobalIndices);
     }
 
-    if (numHyperbolicDistRestraints > 0) {
+    if (numHyperbolicDistRestraints > 0)
+    {
         hyperbolicDistanceRestRParams->upload(h_hyperbolicDistanceRestRParams);
         hyperbolicDistanceRestParams->upload(h_hyperbolicDistanceRestParams);
         hyperbolicDistanceRestAtomIndices->upload(h_hyperbolicDistanceRestAtomIndices);
         hyperbolicDistanceRestGlobalIndices->upload(h_hyperbolicDistanceRestGlobalIndices);
     }
 
-    if (numTorsionRestraints > 0) {
+    if (numTorsionRestraints > 0)
+    {
         torsionRestParams->upload(h_torsionRestParams);
         torsionRestAtomIndices->upload(h_torsionRestAtomIndices);
         torsionRestGlobalIndices->upload(h_torsionRestGlobalIndices);
     }
 
-    if (numDistProfileRestraints > 0) {
+    if (numDistProfileRestraints > 0)
+    {
         distProfileRestAtomIndices->upload(h_distProfileRestAtomIndices);
         distProfileRestDistRanges->upload(h_distProfileRestDistRanges);
         distProfileRestNumBins->upload(h_distProfileRestNumBins);
@@ -824,7 +895,8 @@ void CudaCalcMeldForceKernel::validateAndUpload() {
         distProfileRestGlobalIndices->upload(h_distProfileRestGlobalIndices);
     }
 
-    if (numTorsProfileRestraints > 0) {
+    if (numTorsProfileRestraints > 0)
+    {
         torsProfileRestAtomIndices0->upload(h_torsProfileRestAtomIndices0);
         torsProfileRestAtomIndices1->upload(h_torsProfileRestAtomIndices1);
         torsProfileRestNumBins->upload(h_torsProfileRestNumBins);
@@ -837,7 +909,8 @@ void CudaCalcMeldForceKernel::validateAndUpload() {
         torsProfileRestGlobalIndices->upload(h_torsProfileRestGlobalIndices);
     }
 
-    if (numGMMRestraints > 0) {
+    if (numGMMRestraints > 0)
+    {
         gmmParams->upload(h_gmmParams);
         gmmOffsets->upload(h_gmmOffsets);
         gmmAtomIndices->upload(h_gmmAtomIndices);
@@ -852,8 +925,8 @@ void CudaCalcMeldForceKernel::validateAndUpload() {
     collectionNumActive->upload(h_collectionNumActive);
 }
 
-
-void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& force) {
+void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &force)
+{
     cu.setAsCurrent();
 
     allocateMemory(force);
@@ -911,8 +984,8 @@ void CudaCalcMeldForceKernel::initialize(const System& system, const MeldForce& 
     cu.addForce(new CudaMeldForceInfo(force));
 }
 
-
-void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl& context, const MeldForce& force) {
+void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl &context, const MeldForce &force)
+{
     cu.setAsCurrent();
 
     setupDistanceRestraints(force);
@@ -929,11 +1002,12 @@ void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl& context, cons
     cu.invalidateMolecules();
 }
 
-
-double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces, bool includeEnergy) {
+double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces, bool includeEnergy)
+{
     // compute the forces and energies
-    if (numDistRestraints > 0) {
-        void* distanceArgs[] = {
+    if (numDistRestraints > 0)
+    {
+        void *distanceArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &distanceRestAtomIndices->getDevicePointer(),
             &distanceRestRParams->getDevicePointer(),
@@ -945,8 +1019,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(computeDistRestKernel, distanceArgs, numDistRestraints);
     }
 
-    if (numHyperbolicDistRestraints > 0) {
-        void* hyperbolicDistanceArgs[] = {
+    if (numHyperbolicDistRestraints > 0)
+    {
+        void *hyperbolicDistanceArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &hyperbolicDistanceRestAtomIndices->getDevicePointer(),
             &hyperbolicDistanceRestRParams->getDevicePointer(),
@@ -958,8 +1033,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(computeHyperbolicDistRestKernel, hyperbolicDistanceArgs, numHyperbolicDistRestraints);
     }
 
-    if (numTorsionRestraints > 0) {
-        void* torsionArgs[] = {
+    if (numTorsionRestraints > 0)
+    {
+        void *torsionArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &torsionRestAtomIndices->getDevicePointer(),
             &torsionRestParams->getDevicePointer(),
@@ -970,8 +1046,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(computeTorsionRestKernel, torsionArgs, numTorsionRestraints);
     }
 
-    if (numDistProfileRestraints > 0) {
-        void * distProfileArgs[] = {
+    if (numDistProfileRestraints > 0)
+    {
+        void *distProfileArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &distProfileRestAtomIndices->getDevicePointer(),
             &distProfileRestDistRanges->getDevicePointer(),
@@ -982,12 +1059,13 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &distProfileRestGlobalIndices->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &distProfileRestForces->getDevicePointer(),
-            &numDistProfileRestraints };
+            &numDistProfileRestraints};
         cu.executeKernel(computeDistProfileRestKernel, distProfileArgs, numDistProfileRestraints);
     }
 
-    if (numTorsProfileRestraints > 0) {
-        void * torsProfileArgs[] = {
+    if (numTorsProfileRestraints > 0)
+    {
+        void *torsProfileArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &torsProfileRestAtomIndices0->getDevicePointer(),
             &torsProfileRestAtomIndices1->getDevicePointer(),
@@ -1001,12 +1079,13 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &torsProfileRestGlobalIndices->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &torsProfileRestForces->getDevicePointer(),
-            &numTorsProfileRestraints };
+            &numTorsProfileRestraints};
         cu.executeKernel(computeTorsProfileRestKernel, torsProfileArgs, numTorsProfileRestraints);
     }
 
-    if (numGMMRestraints > 0) {
-        void* gmmArgs[] = {
+    if (numGMMRestraints > 0)
+    {
+        void *gmmArgs[] = {
             &cu.getPosq().getDevicePointer(),
             &numGMMRestraints,
             &gmmParams->getDevicePointer(),
@@ -1015,11 +1094,11 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &gmmData->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &gmmForces->getDevicePointer()};
-        cu.executeKernel(computeGMMRestKernel, gmmArgs, numGMMRestraints*32, 32*16, 2*16*32*sizeof(float));
+        cu.executeKernel(computeGMMRestKernel, gmmArgs, numGMMRestraints * 32, 32 * 16, 2 * 16 * 32 * sizeof(float));
     }
 
     // now evaluate and activate restraints based on groups
-    void* groupArgs[] = {
+    void *groupArgs[] = {
         &numGroups,
         &groupNumActive->getDevicePointer(),
         &groupBounds->getDevicePointer(),
@@ -1028,30 +1107,30 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         &restraintActive->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
     };
-    cu.executeKernel(evaluateAndActivateKernel, groupArgs, threadsPerGroup*numGroups, threadsPerGroup);
+    cu.executeKernel(evaluateAndActivateKernel, groupArgs, threadsPerGroup * numGroups, threadsPerGroup);
 
     // now evaluate and activate groups based on collections
-    void* collArgs[] = {
+    void *collArgs[] = {
         &numCollections,
         &collectionNumActive->getDevicePointer(),
         &collectionBounds->getDevicePointer(),
         &collectionGroupIndices->getDevicePointer(),
         &groupEnergies->getDevicePointer(),
-        &groupActive->getDevicePointer()
-    };
-    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection*numCollections, threadsPerCollection);
+        &groupActive->getDevicePointer()};
+    cu.executeKernel(evaluateAndActivateCollectionsKernel, collArgs, threadsPerCollection * numCollections, threadsPerCollection);
 
     // Now set the restraints active based on if the groups are active
-    void* applyGroupsArgs[] = {
+    void *applyGroupsArgs[] = {
         &groupActive->getDevicePointer(),
         &restraintActive->getDevicePointer(),
         &groupBounds->getDevicePointer(),
         &numGroups};
-    cu.executeKernel(applyGroupsKernel, applyGroupsArgs, 32*numGroups, 32);
+    cu.executeKernel(applyGroupsKernel, applyGroupsArgs, 32 * numGroups, 32);
 
     // Now apply the forces and energies if the restraints are active
-    if (numDistRestraints > 0) {
-        void* applyDistRestArgs[] = {
+    if (numDistRestraints > 0)
+    {
+        void *applyDistRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
             &distanceRestAtomIndices->getDevicePointer(),
@@ -1063,8 +1142,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(applyDistRestKernel, applyDistRestArgs, numDistRestraints);
     }
 
-    if (numHyperbolicDistRestraints > 0) {
-        void* applyHyperbolicDistRestArgs[] = {
+    if (numHyperbolicDistRestraints > 0)
+    {
+        void *applyHyperbolicDistRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
             &hyperbolicDistanceRestAtomIndices->getDevicePointer(),
@@ -1076,8 +1156,9 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(applyHyperbolicDistRestKernel, applyHyperbolicDistRestArgs, numHyperbolicDistRestraints);
     }
 
-    if (numTorsionRestraints > 0) {
-        void* applyTorsionRestArgs[] = {
+    if (numTorsionRestraints > 0)
+    {
+        void *applyTorsionRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
             &torsionRestAtomIndices->getDevicePointer(),
@@ -1089,7 +1170,8 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
         cu.executeKernel(applyTorsionRestKernel, applyTorsionRestArgs, numTorsionRestraints);
     }
 
-    if (numDistProfileRestraints > 0) {
+    if (numDistProfileRestraints > 0)
+    {
         void *applyDistProfileRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
@@ -1098,12 +1180,12 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &distProfileRestForces->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &restraintActive->getDevicePointer(),
-            &numDistProfileRestraints
-        };
+            &numDistProfileRestraints};
         cu.executeKernel(applyDistProfileRestKernel, applyDistProfileRestArgs, numDistProfileRestraints);
     }
 
-    if (numTorsProfileRestraints > 0) {
+    if (numTorsProfileRestraints > 0)
+    {
         void *applyTorsProfileRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
@@ -1113,12 +1195,12 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &torsProfileRestForces->getDevicePointer(),
             &restraintEnergies->getDevicePointer(),
             &restraintActive->getDevicePointer(),
-            &numTorsProfileRestraints
-        };
+            &numTorsProfileRestraints};
         cu.executeKernel(applyTorsProfileRestKernel, applyTorsProfileRestArgs, numTorsProfileRestraints);
     }
 
-    if (numGMMRestraints > 0) {
+    if (numGMMRestraints > 0)
+    {
         void *applyGMMRestArgs[] = {
             &cu.getForce().getDevicePointer(),
             &cu.getEnergyBuffer().getDevicePointer(),
@@ -1128,8 +1210,7 @@ double CudaCalcMeldForceKernel::execute(ContextImpl& context, bool includeForces
             &restraintActive->getDevicePointer(),
             &gmmOffsets->getDevicePointer(),
             &gmmAtomIndices->getDevicePointer(),
-            &gmmForces->getDevicePointer() 
-        };
+            &gmmForces->getDevicePointer()};
         cu.executeKernel(applyGMMRestKernel, applyGMMRestArgs, 32 * numGMMRestraints);
     }
 

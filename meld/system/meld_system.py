@@ -15,6 +15,7 @@ from meld.system import indexing
 from meld.system import temperature
 from meld.system import param_sampling
 from meld.system import state
+from meld.system import mapping
 
 import numpy as np  # type: ignore
 from typing import List, Optional, Any
@@ -63,6 +64,7 @@ class System(interfaces.ISystem):
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()
         self.index = indexer
+        self.mapper = mapping.PeakMapManager()
 
         self.extra_bonds = []
         self.extra_restricted_angles = []
@@ -124,8 +126,8 @@ class System(interfaces.ISystem):
         if box_vectors is None:
             box_vectors = np.array([0.0, 0.0, 0.0])
         params = self.param_sampler.get_initial_state()
-        return state.SystemState(pos, vel, alpha, energy, box_vectors, params)
-
+        mappings = self.mapper.get_initial_state()
+        return state.SystemState(pos, vel, alpha, energy, box_vectors, params, mappings)
 
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """

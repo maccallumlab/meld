@@ -48,60 +48,76 @@ void computeDistRest(
         // get atom indices and compute distance
         int atomIndexA = get<0>(atomIndices[index]);
         int atomIndexB = get<1>(atomIndices[index]);
-        RealVec delta = pos[atomIndexA] - pos[atomIndexB];
-        float distSquared = delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
-        float r = SQRT(distSquared);
 
-        // compute force and energy
-        float energy = 0.0;
-        float dEdR = 0.0;
-        float diff = 0.0;
-        float diff2 = 0.0;
-        float3 f;
-
-        if (r < r1)
+        if (atomIndexA == -1)
         {
-            energy = k * (r - r1) * (r1 - r2) + 0.5 * k * (r1 - r2) * (r1 - r2);
-            dEdR = k * (r1 - r2);
-        }
-        else if (r < r2)
-        {
-            diff = r - r2;
-            diff2 = diff * diff;
-            energy = 0.5 * k * diff2;
-            dEdR = k * diff;
-        }
-        else if (r < r3)
-        {
-            dEdR = 0.0;
-            energy = 0.0;
-        }
-        else if (r < r4)
-        {
-            diff = r - r3;
-            diff2 = diff * diff;
-            energy = 0.5 * k * diff2;
-            dEdR = k * diff;
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to MAXFLOAT, so that this
+            // restraint will not be selected during sorting when
+            // the groups are evaluated. Later, when we apply
+            // restraints, this restraint will be applied with
+            // an energy of zero should it be selected.
+            forceBuffer[index] = float3(0, 0, 0);
+            energies[globalIndex] = MAXFLOAT;
         }
         else
         {
-            energy = k * (r - r4) * (r4 - r3) + 0.5 * k * (r4 - r3) * (r4 - r3);
-            dEdR = k * (r4 - r3);
-        }
+            RealVec delta = pos[atomIndexA] - pos[atomIndexB];
+            float distSquared = delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
+            float r = SQRT(distSquared);
 
-        // store force into local buffer
-        if (r > 0)
-        {
-            f = float3(delta[0] * dEdR / r, delta[1] * dEdR / r, delta[2] * dEdR / r);
-        }
-        else
-        {
-            f = float3(0, 0, 0);
-        }
-        forceBuffer[index] = f;
+            // compute force and energy
+            float energy = 0.0;
+            float dEdR = 0.0;
+            float diff = 0.0;
+            float diff2 = 0.0;
+            float3 f;
 
-        // store energy into global buffer
-        energies[globalIndex] = energy;
+            if (r < r1)
+            {
+                energy = k * (r - r1) * (r1 - r2) + 0.5 * k * (r1 - r2) * (r1 - r2);
+                dEdR = k * (r1 - r2);
+            }
+            else if (r < r2)
+            {
+                diff = r - r2;
+                diff2 = diff * diff;
+                energy = 0.5 * k * diff2;
+                dEdR = k * diff;
+            }
+            else if (r < r3)
+            {
+                dEdR = 0.0;
+                energy = 0.0;
+            }
+            else if (r < r4)
+            {
+                diff = r - r3;
+                diff2 = diff * diff;
+                energy = 0.5 * k * diff2;
+                dEdR = k * diff;
+            }
+            else
+            {
+                energy = k * (r - r4) * (r4 - r3) + 0.5 * k * (r4 - r3) * (r4 - r3);
+                dEdR = k * (r4 - r3);
+            }
+
+            // store force into local buffer
+            if (r > 0)
+            {
+                f = float3(delta[0] * dEdR / r, delta[1] * dEdR / r, delta[2] * dEdR / r);
+            }
+            else
+            {
+                f = float3(0, 0, 0);
+            }
+            forceBuffer[index] = f;
+
+            // store energy into global buffer
+            energies[globalIndex] = energy;
+        }
     }
 }
 
@@ -404,15 +420,23 @@ float applyDistRest(
         auto index = distanceRestGlobalIndices[i];
         if (restraintActive[index])
         {
-            totalEnergy += restraintEnergies[index];
+            if (get<0>(distanceRestAtomIndices[i]) == -1)
+            {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            }
+            else
+            {
+                totalEnergy += restraintEnergies[index];
 
-            auto fx = get<0>(distanceRestForces[i]);
-            auto fy = get<1>(distanceRestForces[i]);
-            auto fz = get<2>(distanceRestForces[i]);
-            auto atom1 = get<0>(distanceRestAtomIndices[i]);
-            auto atom2 = get<1>(distanceRestAtomIndices[i]);
-            force[atom1] += Vec3(-fx, -fy, -fz);
-            force[atom2] += Vec3(fx, fy, fz);
+                auto fx = get<0>(distanceRestForces[i]);
+                auto fy = get<1>(distanceRestForces[i]);
+                auto fz = get<2>(distanceRestForces[i]);
+                auto atom1 = get<0>(distanceRestAtomIndices[i]);
+                auto atom2 = get<1>(distanceRestAtomIndices[i]);
+                force[atom1] += Vec3(-fx, -fy, -fz);
+                force[atom2] += Vec3(fx, fy, fz);
+            }
         }
     }
     return totalEnergy;

@@ -144,6 +144,7 @@ from meld.util import strip_unit
 from meld import interfaces
 from meld.system import indexing
 from meld.system import param_sampling
+from meld.system import mapping
 from simtk.openmm import unit as u  # type: ignore
 
 import math
@@ -219,14 +220,16 @@ class DistanceRestraint(SelectableRestraint):
     """
 
     _restraint_key_ = "distance"
+    atom_index_1: Union[int, mapping.PeakMapping]
+    atom_index_2: Union[int, mapping.PeakMapping]
 
     def __init__(
         self,
         system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: indexing.AtomIndex,
-        atom2: indexing.AtomIndex,
+        atom1: Union[indexing.AtomIndex, mapping.PeakMapping],
+        atom2: Union[indexing.AtomIndex, mapping.PeakMapping],
         r1: Union[u.Quantity, u.Positioner],
         r2: Union[u.Quantity, Positioner],
         r3: Union[u.Quantity, Positioner],
@@ -255,10 +258,16 @@ class DistanceRestraint(SelectableRestraint):
             r4: distance
             k: force constant
         """
-        assert isinstance(atom1, indexing.AtomIndex)
-        self.atom_index_1 = int(atom1)
-        assert isinstance(atom2, indexing.AtomIndex)
-        self.atom_index_2 = int(atom2)
+        if isinstance(atom1, mapping.PeakMapping):
+            self.atom_index_1 = atom1
+        else:
+            assert isinstance(atom1, indexing.AtomIndex)
+            self.atom_index_1 = int(atom1)
+        if isinstance(atom2, mapping.PeakMapping):
+            self.atom_index_2 = atom2
+        else:
+            assert isinstance(atom2, indexing.AtomIndex)
+            self.atom_index_2 = int(atom2)
 
         if isinstance(r1, Positioner):
             self.r1 = r1

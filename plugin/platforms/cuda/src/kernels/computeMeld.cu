@@ -64,56 +64,73 @@ extern "C" __global__ void computeDistRest(
         // get atom indices and compute distance
         int atomIndexA = atomIndices[index].x;
         int atomIndexB = atomIndices[index].y;
-        real4 delta = posq[atomIndexA] - posq[atomIndexB];
-        real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
-        real r = SQRT(distSquared);
 
-        // compute force and energy
-        float energy = 0.0;
-        float dEdR = 0.0;
-        float diff = 0.0;
-        float diff2 = 0.0;
-        float3 f;
-
-        if(r < r1) {
-            energy = k * (r - r1) * (r1 - r2) + 0.5 * k * (r1 - r2) * (r1 - r2);
-            dEdR = k * (r1 - r2);
-        }
-        else if(r < r2) {
-            diff = r - r2;
-            diff2 = diff * diff;
-            energy = 0.5 * k * diff2;
-            dEdR = k * diff;
-        }
-        else if(r < r3) {
-            dEdR = 0.0;
-            energy = 0.0;
-        }
-        else if(r < r4) {
-            diff = r - r3;
-            diff2 = diff * diff;
-            energy = 0.5 * k * diff2;
-            dEdR = k * diff;
-        }
-        else {
-            energy = k * (r - r4) * (r4 - r3) + 0.5 * k * (r4 - r3) * (r4 - r3);
-            dEdR = k * (r4 - r3);
-        }
-
-        // store force into local buffer
-        if (r > 0) {
-            f.x = delta.x * dEdR / r;
-            f.y = delta.y * dEdR / r;
-            f.z = delta.z * dEdR / r;
-        } else {
+        if (atomIndexA == -1) {
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to MAXFLOAT, so that this
+            // restraint will not be selected during sorting when
+            // the groups are evaluated. Later, when we apply
+            // restraints, this restraint will be applied with
+            // an energy of zero should it be selected.
+            float3 f;
             f.x = 0.0;
             f.y = 0.0;
             f.z = 0.0;
-        }
-        forceBuffer[index] = f;
+            forceBuffer[index] = f;
+            energies[globalIndex] = MAXFLOAT;
+        } else {
+            real4 delta = posq[atomIndexA] - posq[atomIndexB];
+            real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
+            real r = SQRT(distSquared);
 
-        // store energy into global buffer
-        energies[globalIndex] = energy;
+            // compute force and energy
+            float energy = 0.0;
+            float dEdR = 0.0;
+            float diff = 0.0;
+            float diff2 = 0.0;
+            float3 f;
+
+            if(r < r1) {
+                energy = k * (r - r1) * (r1 - r2) + 0.5 * k * (r1 - r2) * (r1 - r2);
+                dEdR = k * (r1 - r2);
+            }
+            else if(r < r2) {
+                diff = r - r2;
+                diff2 = diff * diff;
+                energy = 0.5 * k * diff2;
+                dEdR = k * diff;
+            }
+            else if(r < r3) {
+                dEdR = 0.0;
+                energy = 0.0;
+            }
+            else if(r < r4) {
+                diff = r - r3;
+                diff2 = diff * diff;
+                energy = 0.5 * k * diff2;
+                dEdR = k * diff;
+            }
+            else {
+                energy = k * (r - r4) * (r4 - r3) + 0.5 * k * (r4 - r3) * (r4 - r3);
+                dEdR = k * (r4 - r3);
+            }
+
+            // store force into local buffer
+            if (r > 0) {
+                f.x = delta.x * dEdR / r;
+                f.y = delta.y * dEdR / r;
+                f.z = delta.z * dEdR / r;
+            } else {
+                f.x = 0.0;
+                f.y = 0.0;
+                f.z = 0.0;
+            }
+            forceBuffer[index] = f;
+
+            // store energy into global buffer
+            energies[globalIndex] = energy;
+        }
     }
 }
 
@@ -768,16 +785,21 @@ extern "C" __global__ void applyDistRest(
         if (globalActive[globalIndex]) {
             int index1 = atomIndices[restraintIndex].x;
             int index2 = atomIndices[restraintIndex].y;
-            energyAccum += globalEnergies[globalIndex];
-            float3 f = restForces[restraintIndex];
+            if (index1 == -1) {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            } else {
+                energyAccum += globalEnergies[globalIndex];
+                float3 f = restForces[restraintIndex];
 
-            atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
-            atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
-            atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
+                atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
+                atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
+                atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
 
-            atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
-            atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
-            atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+                atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+                atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+                atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+            }
         }
     }
     energyBuffer[threadIndex] += energyAccum;

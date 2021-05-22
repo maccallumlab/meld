@@ -252,6 +252,12 @@ public:
      * V:   r4 < r
      *
      * The energy is linear in regions I and V, quadratic in II and IV, and zero in III.
+     * 
+     * There is special handling of the restraints if particle1=-1. In this case,
+     * the energy and force will be zero. However, when selecting active restraints
+     * within a group, the energy will be treated as MAX_FLOAT. This behavior is
+     * to facilitate support for peak mapping, which needs a way for a restraint
+     * to be effectively ignored.
      *
      * @param particle1  the first atom
      * @param particle2  the second atom
