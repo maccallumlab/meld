@@ -347,13 +347,13 @@ void checkAtomIndex(const int numAtoms, const std::string &restType, const int a
             bad = true;
         }
     }
-    else:
+    else
+    {
+        if (atomIndex < 0)
         {
-            if (atomIndex < 0)
-            {
-                bad = true;
-            }
+            bad = true;
         }
+    }
     if (atomIndex >= numAtoms)
     {
         bad = true;
@@ -493,8 +493,8 @@ void CudaCalcMeldForceKernel::setupDistanceRestraints(const MeldForce &force)
         float r1, r2, r3, r4, k;
         force.getDistanceRestraintParams(i, atom_i, atom_j, r1, r2, r3, r4, k, global_index);
 
-        checkAtomIndex(numAtoms, restType, atom_i, i, global_index, allowNegativeOne=true);
-        checkAtomIndex(numAtoms, restType, atom_j, i, global_index, allowNegativeOne=true);
+        checkAtomIndex(numAtoms, restType, atom_i, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom_j, i, global_index, true);
         checkForceConstant(k, restType, i, global_index);
         checkDistanceRestraintRs(r1, r2, r3, r4, i, global_index);
 
