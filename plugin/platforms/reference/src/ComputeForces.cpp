@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <limits>
 
 using namespace OpenMM;
 using namespace std;
@@ -53,13 +54,13 @@ void computeDistRest(
         {
             // If the first index is -1, this restraint
             // is marked as being not mapped.  We set the force to
-            // zero. We set the energy to MAXFLOAT, so that this
-            // restraint will not be selected during sorting when
-            // the groups are evaluated. Later, when we apply
-            // restraints, this restraint will be applied with
-            // an energy of zero should it be selected.
+            // zero. We set the energy to the maximum float value,
+            // so that this restraint will not be selected during
+            // sorting when the groups are evaluated. Later,
+            // when we apply restraints, this restraint will be
+            // applied with an energy of zero should it be selected.
             forceBuffer[index] = float3(0, 0, 0);
-            energies[globalIndex] = MAXFLOAT;
+            energies[globalIndex] = std::numeric_limits<float>::max();
         }
         else
         {
