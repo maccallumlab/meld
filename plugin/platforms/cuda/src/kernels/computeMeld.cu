@@ -4,6 +4,7 @@
 */
 
 #include <cub/cub.cuh>
+#include <cfloat>
 
 __device__ void computeTorsionAngle(const real4* __restrict__ posq, int atom_i, int atom_j, int atom_k, int atom_l,
         float3& r_ij, float3& r_kj, float3& r_kl, float3& m, float3& n,
@@ -68,7 +69,7 @@ extern "C" __global__ void computeDistRest(
         if (atomIndexA == -1) {
             // If the first index is -1, this restraint
             // is marked as being not mapped.  We set the force to
-            // zero. We set the energy to fLOAT_MAX, so that this
+            // zero. We set the energy to FLT_MAX, so that this
             // restraint will not be selected during sorting when
             // the groups are evaluated. Later, when we apply
             // restraints, this restraint will be applied with
@@ -78,7 +79,7 @@ extern "C" __global__ void computeDistRest(
             f.y = 0.0;
             f.z = 0.0;
             forceBuffer[index] = f;
-            energies[globalIndex] = FLOAT_MAX;
+            energies[globalIndex] = FLT_MAX;
         } else {
             real4 delta = posq[atomIndexA] - posq[atomIndexB];
             real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;

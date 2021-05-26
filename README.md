@@ -64,6 +64,7 @@ MELD requires a CUDA compatible GPU.
 * sklearn
 * parmed
 * tqdm
+* eigen3
 * mpi4py (see below)
 
 To install the python portion:
