@@ -202,7 +202,7 @@ def extract_traj_dcd(store, args):
                     numpy.array([90.0, 90.0, 90.0]),
                 )
             else:
-                output_file.write(positions[replica_index, :, :])
+                output_file.write(positions[replica_index, :, :] * 10.0)    # nm -> Angstrom
     bar.finish()
 
 
@@ -336,7 +336,7 @@ def follow_structure_dcd(store, args):
                     numpy.array([90.0, 90.0, 90.0]),
                 )
             else:
-                output_file.write(positions[structure_index, :, :])
+                output_file.write(positions[structure_index, :, :] * 10.0)    # nm -> Angstrom
     bar.finish()
 
 
