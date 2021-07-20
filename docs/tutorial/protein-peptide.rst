@@ -9,11 +9,11 @@ Here we will learn how to setup a protein-peptide system and run simulation and 
 
 Setup of the starting system
 ============================
-The protein sequence is 
-.. code-block:: shell
-    HHHHHHSHMGKQASASYDSEEEEEGLPMSYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFETLKPTTLRELERYVKSCLQKK'
+The protein sequence is
+
+    HHHHHHSHMGKQASASYDSEEEEEGLPMSYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFETLKPTTLRELERYVKSCLQKK
 where first 28 residues are purification tag. So we will exclude that in the simulation and we have 
-.. code-block:: shell
+
     SYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFETLKPTTLRELERYVKSCLQKK
 and the peptide sequence is 
 
