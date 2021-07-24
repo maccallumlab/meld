@@ -86,7 +86,7 @@ Then we define some important parameters:
 .. code-block:: python
 
     N_REPLICAS = 30              #number of replica
-    N_STEPS =20000               #total step of simulaion. 20000 step is 1 micro second
+    N_STEPS =20000               #total step of simulaion. 20000 step is 1 micro second (default timestep in MELD is 4.5 fs)
     BLOCK_SIZE = 100             #save the trajectory in 'chunk' of 100 frames.
 
 Then some functions to generate intial state and read the restraint files:
@@ -182,8 +182,81 @@ Now that we have defined all the required function, it is time to call them. Her
         prot_rest = get_dist_restraints_protein('protein_contacts.dat',s,scaler=prot_scaler)        #Enforcing intra protein restraints with constant scaler so that it does not unfold.
         s.restraints.add_selectively_active_collection(prot_rest, int(len(prot_rest)*0.90))        # Trusting 90% the groups in the restraint file providing flexibility to the receptor. 
 
+        options = system.RunOptions()
+        options.implicit_solvent_model = 'gbNeck2'         #implicit solvent gbNeck2 model
+        options.use_big_timestep = False
+        options.use_bigger_timestep = True
+        options.cutoff = 1.8
+
+        options.use_amap = False
+        options.amap_alpha_bias = 1.0
+        options.amap_beta_bias = 1.0
+        options.timesteps = 11111                          #We save 1 frame in each 11111 frames, i.e. every 50 ps 
+        options.minimize_steps = 20000
+        options.min_mc = None
+        options.run_mc = None
+        ### here we define some important parameters which are with their optimized values 
+        # create a store
+        store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE)
+        store.initialize(mode='w')
+        store.save_system(s)
+        store.save_run_options(options)
+
+        # create and store the remd_runner
+        l = ladder.NearestNeighborLadder(n_trials=100)
+        policy = adaptor.AdaptationPolicy(2.0, 50, 50)
+        a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
+
+        remd_runner = leader.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)  #launching replica exchange
+        store.save_remd_runner(remd_runner)
+
+        c = comm.MPICommunicator(s.n_atoms, N_REPLICAS)               # create and store the communicator
+        store.save_communicator(c)
+        
+        states = [gen_state_templates(i,templates) for i in range(N_REPLICAS)]         # create and save the initial states
+        store.save_states(states, 0)
+
+        # save data_store
+        store.save_data_store()
+
+        return s.n_atoms
+
+    setup_system()
 
 
+Now we know how setup_MELD.py file looks like. WIth all the abovementioned files in the working director, next step is to execute this file:
+    python setup_MELD.py
+    
+This will create a /Data directory in the working direcotry with following files and folder:
+    Backup/  Blocks/  communicator.dat  data_store.dat  remd_runner.dat  run_options.dat  system.dat
+
+*Backup* directory has information needed for restarting the simulation if fails in between and /Blocks direcotry has those 'chunk' trajectories of 100 frmaes.
+
+At this point we are ready to launch the simulation. This will be done using:
+
+.. code-block:: bash
+    
+    srun --mpi=pmix_v3  launch_remd --debug          #it might chnage depending on the cluster we are using
+
+Notice that we are launching a mpi job. Here we use 30 GPUs in mip manner with 1 GPU for each replica. We need to submit this in queueing system. 
+
+If the job fails before finishing, we can restart it by first executing following command:
+    
+    *prepare_restart --prepare-run*
+
+Then resubmitting the previous submission script.
+
+Once the job start to run, it will generate *trajectory.pdb* in /Data directory with all the saved frame of the lowest temperature replica which we can visualize with any visualization tool and it will also generate *remd.log* file with the real time progress of the simulation.
+
+Analysis
+=====================
+
+When the simulation is completed i.e. run for the intended steps, we can do several analyses. We have 30 replicas in our simulation and they exchnage at certain interval assing them different temperature and force constant. We can extract those 30 trajectories along the temperature range and as well as force constant range using the following command:
+
+    *extract_trajectory extract_traj_dcd --replica 0 trajectory.00.dcd*          # to extract the 1st temperature replica i.e. lowest temperature replica
+    
+    *extract_trajectory extract_follow_dcd --replica 0 follow.00.dcd*            # To extract the 1st walker which walks through different temperature.
+    
 
 
 
