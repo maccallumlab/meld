@@ -225,10 +225,11 @@ Now that we have defined all the required function, it is time to call them. Her
 
 
 Now we know how setup_MELD.py file looks like. WIth all the abovementioned files in the working director, next step is to execute this file:
-    python setup_MELD.py
+    
+    *python setup_MELD.py*
     
 This will create a /Data directory in the working direcotry with following files and folder:
-    Backup/  Blocks/  communicator.dat  data_store.dat  remd_runner.dat  run_options.dat  system.dat
+    *Backup/  Blocks/  communicator.dat  data_store.dat  remd_runner.dat  run_options.dat  system.dat*
 
 *Backup* directory has information needed for restarting the simulation if fails in between and /Blocks direcotry has those 'chunk' trajectories of 100 frmaes.
 
