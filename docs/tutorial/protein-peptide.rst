@@ -258,6 +258,18 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
     *extract_trajectory extract_follow_dcd --replica 0 follow.00.dcd*            # To extract the 1st walker which walks through different temperature.
     
+We can perform regular clustering on few low temperature replicas with cpptraj to find the most populated state which is our predicted native state. For this example have used *hierarchical* clustering with the script *clustering.sh* and the most population cluster and it's comparision to the native structure is shown below:
+
+
+
+
+We can check if replica exchange is optimal in our simulation using the following commands:
+
+    *analyze_remd visualize_trace*
+    
+    *analyze_remd visualize_fup*
+   
+Here are a couple of example of bad and good replica exchange:
 
 
 
