@@ -86,7 +86,7 @@ Then we define some important parameters:
 .. code-block:: python
 
     N_REPLICAS = 30              #number of replica
-    N_STEPS =20000               #total step of simulaion. 20000 step is 1 micro second (default timestep in MELD is 4.5 fs)
+    N_STEPS =10000               #total step of simulaion. 10000 step is  500 nano second (default timestep in MELD is 4.5 fs). Since we are using all true data only, 500 ns will be sufficient, in real case we might need to run for 1 micro second or more. 
     BLOCK_SIZE = 100             #save the trajectory in 'chunk' of 100 frames.
 
 Then some functions to generate intial state and read the restraint files:
@@ -260,8 +260,11 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
 We can perform regular clustering on few low temperature replicas with cpptraj to find the most populated state which is our predicted native state. For this example have used *hierarchical* clustering with the script *clustering.sh* and the most population cluster and it's comparision to the native structure is shown below:
 
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/side_by_side.png
 
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/superpose.png
 
+Here in the first image we are showing native in cyan and prediction (most populated cluster centroid) in red side by side. In the second image we are showing superimposition of them. Notice they prediction matches pretty well with native except the flexible loop region.
 
 We can check if replica exchange is optimal in our simulation using the following commands:
 
@@ -271,8 +274,11 @@ We can check if replica exchange is optimal in our simulation using the followin
    
 Here are a couple of example of bad and good replica exchange:
 
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/compare_trace.png
 
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/compare_fup.png
 
+In both the example on the left, we have good exchange and on the right we have poor exchange. In the first image, different colors define different replicas. On the lest we see good mixing of them i.e. we have good exchnage among replicas and on the right mixing of colors is very poor suggesting a poor exchange.
 
 
 
