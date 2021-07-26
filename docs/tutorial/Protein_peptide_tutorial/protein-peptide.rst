@@ -259,6 +259,10 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
     *extract_trajectory extract_follow_dcd --replica 0 follow.00.dcd*            # To extract the 1st walker which walks through different temperature.
     
+We can load these trajectory filed in any visualization tool to visualize the binding process step by step. Here we have added the lowest temperature trajectory *trajectory.00.dcd* as well as a screenshort showing rmsd of the peptide after aliging on the protein for the lowest temperature trajectory. Notice just slightly after 100 steps peptide finds the binding site with correct conformation and it stays there.
+
+.. image:: trajrmsd.png
+    
 We can perform regular clustering on few low temperature replicas with cpptraj to find the most populated state which is our predicted native state. For this example have used *hierarchical* clustering with the script *clustering.sh* and the most population cluster and it's comparision to the native structure is shown below:
 
 .. image:: side_by_side.png
