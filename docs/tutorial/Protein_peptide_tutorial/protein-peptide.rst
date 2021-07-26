@@ -259,7 +259,7 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
     *extract_trajectory extract_follow_dcd --replica 0 follow.00.dcd*            # To extract the 1st walker which walks through different temperature.
     
-We can load these trajectory filed in any visualization tool to visualize the binding process step by step. Here we have added the lowest temperature trajectory *trajectory.00.dcd* (100 frames due to size limit) as well as a screenshort showing rmsd of the peptide after aliging on the protein for the lowest temperature trajectory. Notice just slightly after 100 steps peptide finds the binding site with correct conformation and it stays there.
+We can load these trajectory filed in any visualization tool to visualize the binding process step by step. Here we have added the lowest temperature trajectory *trajectory.00.dcd* (1000 frames due to size limit) as well as a screenshort showing rmsd of the peptide after aliging on the protein for the lowest temperature trajectory. Notice just slightly after 100 steps peptide finds the binding site with correct conformation and it stays there.
 
 .. image:: trajrmsd.png
     
