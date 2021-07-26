@@ -61,10 +61,15 @@ Setup of the MELD simulation
 ============================
 
 At this point if we have the following files, we are ready to setup a simulation--
-1. minimized_complex.pdb in the /TEMPLATES directory     #starting structure 
-2. protein_contacts.dat                                  #restraints to keep recpetor folded
-3. protein_pep_all.dat                                   #restraints to guide binding
-4. setup_MELD.py                                         #python script to setup the simulation.
+
+    1. minimized_complex.pdb in the /TEMPLATES directory     #starting structure 
+
+    2. protein_contacts.dat                                  #restraints to keep recpetor folded
+
+    3. protein_pep_all.dat                                   #restraints to guide binding
+
+    4. setup_MELD.py                                         #python script to setup the simulation.
+
 
 By this point we are familiar with all three files except *setup_MELD.py*. This is a python script which is creates the platform of the simulation we are going to carry out. With this we read the restraint files, generate the initial states for each replica at different temperature and hamiltonial (force constant/ restraint strength) and launch OpenMM jobs associated with replica exchange protocol. Here is how we write the file:
 
