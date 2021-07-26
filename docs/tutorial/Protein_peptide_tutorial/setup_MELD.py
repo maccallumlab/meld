@@ -13,7 +13,7 @@ import glob as glob
 
 
 N_REPLICAS = 30
-N_STEPS =20000
+N_STEPS =2000
 BLOCK_SIZE = 100
 
 
