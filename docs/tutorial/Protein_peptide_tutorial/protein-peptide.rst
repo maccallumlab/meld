@@ -87,7 +87,7 @@ Then we define some important parameters:
 .. code-block:: python
 
     N_REPLICAS = 30              #number of replica
-    N_STEPS =10000               #total step of simulaion. 10000 step is  500 nano second (default timestep in MELD is 4.5 fs). Since we are using all true data only, 500 ns will be sufficient, in real case we might need to run for 1 micro second or more. 
+    N_STEPS =2000               #total step of simulaion. 2000 step is  100 nano second (default timestep in MELD is 4.5 fs). Since we are using all true data only, 100 ns will be sufficient, in real case we might need to run for 1 micro second or more. 
     BLOCK_SIZE = 100             #save the trajectory in 'chunk' of 100 frames.
 
 Then some functions to generate intial state and read the restraint files:
@@ -259,7 +259,7 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
     *extract_trajectory extract_follow_dcd --replica 0 follow.00.dcd*            # To extract the 1st walker which walks through different temperature.
     
-We can load these trajectory filed in any visualization tool to visualize the binding process step by step. Here we have added the lowest temperature trajectory *trajectory.00.dcd* as well as a screenshort showing rmsd of the peptide after aliging on the protein for the lowest temperature trajectory. Notice just slightly after 100 steps peptide finds the binding site with correct conformation and it stays there.
+We can load these trajectory filed in any visualization tool to visualize the binding process step by step. Here we have added the lowest temperature trajectory *trajectory.00.dcd* (100 frames due to size limit) as well as a screenshort showing rmsd of the peptide after aliging on the protein for the lowest temperature trajectory. Notice just slightly after 100 steps peptide finds the binding site with correct conformation and it stays there.
 
 .. image:: trajrmsd.png
     
