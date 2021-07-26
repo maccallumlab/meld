@@ -33,7 +33,7 @@ Since we want to start from a free peptide conformation, we generate a minimized
 
 We will combine this minimized peptide pdb and unbound protein pdb (minimized as well) together. One thing we have to make sure is that peptide is atleast 30 angstrom far away from the receptor. There are several ways to shift coordinate of either receptor or peptide. Using *change_coor.py* script is one of the ways. Finally we have *minimized_complex.pdb*. A ascreenshot of the starting system from vmd is given below.
 
-.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/start.png 
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/Protein_peptide_tutorial/start.png 
 
 Prepare the input restraint file for this system:
 =================================================
@@ -260,9 +260,9 @@ When the simulation is completed i.e. run for the intended steps, we can do seve
     
 We can perform regular clustering on few low temperature replicas with cpptraj to find the most populated state which is our predicted native state. For this example have used *hierarchical* clustering with the script *clustering.sh* and the most population cluster and it's comparision to the native structure is shown below:
 
-.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/side_by_side.png
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/Protein_peptide_tutorial/side_by_side.png
 
-.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/superpose.png
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/Protein_peptide_tutorial/superpose.png
 
 Here in the first image we are showing native in cyan and prediction (most populated cluster centroid) in red side by side. In the second image we are showing superimposition of them. Notice they prediction matches pretty well with native except the flexible loop region.
 
@@ -274,9 +274,9 @@ We can check if replica exchange is optimal in our simulation using the followin
    
 Here are a couple of example of bad and good replica exchange:
 
-.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/compare_trace.png
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/Protein_peptide_tutorial/compare_trace.png
 
-.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/compare_fup.png
+.. image:: https://github.com/arupmondal835/meld/tree/master/docs/tutorial/Protein_peptide_tutorial/compare_fup.png
 
 In both the example on the left, we have good exchange and on the right we have poor exchange. In the first image, different colors define different replicas. On the lest we see good mixing of them i.e. we have good exchnage among replicas and on the right mixing of colors is very poor suggesting a poor exchange.
 
