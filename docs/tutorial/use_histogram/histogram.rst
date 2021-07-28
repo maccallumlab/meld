@@ -7,7 +7,7 @@ the following figure using predicted protein residue-residue pairwise distance h
 
 .. image:: distogram_sample.png 
 
-Loading Some Helpful Modules
+Load Some Helpful Modules
 ----------------------------
 .. code-block:: python
 
@@ -23,7 +23,7 @@ Loading Some Helpful Modules
     from simtk.openmm import unit as u 
 
 
-Setting up the system
+Set up the system
 ----------------------
 .. code-block:: python
 
@@ -35,11 +35,11 @@ Setting up the system
     # select temparature for replicas
     s.temperature_scaler = system.temperature.GeometricTemperatureScaler(0, 0.4, 400.0 * u.kelvin, 550.0 * u.kelvin)
 
-Analysis histogram data
------------------------
+Analysis of histogram data
+--------------------------
 
 As illustrated in the above figure, for each histogram, we first evalute where the sum of density over 
-a certain range (5 :math:`\AA` here) is larger than threshold (0.8 here), which indicates the most possible distance range between two residues. 
+a certain range (5 :raw-latex:`\AA` here) is larger than threshold (0.8 here), which indicates the most possible distance range between two residues. 
 An example analysis script is provided in analyze_distograms.py. After this step, we should obtain pairwise distance information like the following:
 
     0 CB 12 CB 14.3     
@@ -48,7 +48,7 @@ An example analysis script is provided in analyze_distograms.py. After this step
     
     0 CB 28 CB 15.3
     ...
-The first line indicates the predicted lower bound distance between residue 1 and residue 13 is 14.3 :math:`\AA` and upper bound is 14.3+5 :math:`\AA`.
+The first line indicates the predicted lower bound distance between residue 1 and residue 13 is 14.3 :raw-latex:`\AA` and upper bound is 14.3+5 :math:`\AA`.
 
 Integrate processed histogram data in MELD
 ------------------------------------------
@@ -104,6 +104,6 @@ Here we provide examples of deriving distance restraints and dihedral restraints
         torsion_rests.append(phi_rest)
     s.restraints.add_selectively_active_collection(torsion_rests, int(len(torsion_rests)*0.8))
 
-The full sample setup script can be found in `setup_aMELD.py`. 
+The full sample setup script can be found in :math:`setup_aMELD.py`. 
 
 
