@@ -10,6 +10,8 @@ ladder and the way we do it is very customizable. The minimum number of replicas
 
 Loading Some Helpful Modules
 ----------------------------
+.. code-block:: python
+
 import numpy as np
 from meld.remd import ladder, adaptor, leader
 from meld import comm, vault
