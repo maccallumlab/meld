@@ -14,7 +14,7 @@ Prerequisite: histogram file e.g. :code:`distance_histogram.npy`
 As illustrated in the above figure, for each histogram, we first evalute where the sum of density over a certain range (5 Å here) is larger than threshold (0.8 here), 
 which indicates where is the most possible distance range between two residues. 
 
-An example analysis script is provided in `analyze_distograms <https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_distograms.py>`_. 
+An example analysis script is provided in `analyze_histograms <https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_histograms.py>`_. 
 
 After this step, we should obtain pairwise distance information like the following:
 
@@ -90,13 +90,13 @@ Here we provide examples of deriving distance restraints and dihedral restraints
                                                     atom1=s.index.atom(i, name_i),atom2=s.index.atom(j, name_j))
                 rest_group.append(rest)
         return dists
-
-    distogram = get_distogram('contacts.dat',s,scaler=NMR_scaler) #contacts.dat file contains processed distance histogram data like the above
+    dist_scaler = s.restraints.create_scaler('nonlinear', alpha_min=0.4, alpha_max=1.0, factor=4.0)
+    distogram = get_distogram('contacts.dat',s,scaler=dist_scaler)                     #contacts.dat file contains processed distance histogram data like the above
     s.restraints.add_selectively_active_collection(distogram, int(len(distogram)*0.8)) #we trust 80% of predicted pairwise distance data
 
     #generate dihedral restraints 
     torsion_rests = []
-    for line in open('phi.dat','r'):         #phi.dat file contains processed dihedral histogram data
+    for line in open('phi.dat','r'):                                                   #phi.dat file contains processed dihedral histogram data
         cols = line.split()
         res = int(cols[0])
         atoms = [s.index.atom(res-1, 'C'),s.index.atom(res, 'N'),s.index.atom(res, 'CA'),s.index.atom(res, 'C')]
