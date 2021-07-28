@@ -9,12 +9,12 @@ the following figure using predicted protein residue-residue pairwise distance h
 
 Analysis of histogram data
 --------------------------
-Prerequisite: histogram file e.g. :math:`distance_histogram.npy`
+Prerequisite: histogram file e.g. :code:`distance_histogram.npy`
 
 As illustrated in the above figure, for each histogram, we first evalute where the sum of density over a certain range (5 Å here) is larger than threshold (0.8 here), 
 which indicates where is the most possible distance range between two residues. 
 
-An example analysis script is provided in :ref:`analyze_distograms<https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_distograms.py>`. 
+An example analysis script is provided in `analyze_distograms <https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_distograms.py>`_. 
 
 After this step, we should obtain pairwise distance information like the following:
 
@@ -29,7 +29,7 @@ The first line indicates the predicted lower bound distance between residue 1 an
 
 Set up the system
 -----------------
-Prerequisite: sequence file :math:`sequence.dat`
+Prerequisite: sequence file :code:`sequence.dat`
 
 .. code-block:: python
 
@@ -54,7 +54,7 @@ Prerequisite: sequence file :math:`sequence.dat`
 
 Integrate processed histogram data in MELD
 ------------------------------------------
-Prerequisite: processed histogram file e.g. :math:`contacts.dat`
+Prerequisite: processed histogram file e.g. :code:`contacts.dat`
 
 For each processed histogram, we convert it into a flat-bottom harmonic restraints, where the restraints between lower bound and upper 
 bound is set to be 0 and will have restraints energy penalty outside of this range.
@@ -109,7 +109,7 @@ Here we provide examples of deriving distance restraints and dihedral restraints
         torsion_rests.append(phi_rest)
     s.restraints.add_selectively_active_collection(torsion_rests, int(len(torsion_rests)*0.8))
 
-The full sample setup script can be found in :ref:`setup_MELD<https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/setup_MELD.py>`. 
+The full sample setup script can be found in `setup_MELD <https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/setup_MELD.py>`_. 
 
-After generating :math:`Data/ and Logs/` from :math:`python setup_MELD.py`, we can start to run replica exchange simulation 
-on queue system through e.g. :math:`srun --mpi=pmix  launch_remd --debug`.
+After generating :code:`Data/ and Logs/` from :code:`python setup_MELD.py`, we can start to run replica exchange simulation 
+on queue system through e.g. :code:`srun --mpi=pmix  launch_remd --debug`.
