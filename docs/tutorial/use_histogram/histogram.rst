@@ -2,13 +2,30 @@
 Integrate histogram data in MELD simulation
 ===========================================
 
-In this tutorial, we show how to analyze histogram data and guide simulation as external force in MELD. The central idea is illustrated by
-the following figure using predicted protein residue-residue pairwise distance histogram data. 
+In this tutorial, we show how to analyze histogram data and guide simulation as external force in MELD. The central idea is illustrated in
+the following figure using predicted protein residue-residue pairwise distance histogram data as an example. 
 
 .. image:: distogram_sample.png 
 
-Load Some Helpful Modules
-----------------------------
+Analysis of histogram data
+--------------------------
+Prerequisite: histogram file e.g.:math:`distance_histogram.npy`
+As illustrated in the above figure, for each histogram, we first evalute where the sum of density over a certain range (5 Å here) is larger than threshold (0.8 here), 
+which indicates where is the most possible distance range between two residues. 
+An example analysis script is provided in :ref:`https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_distograms.py`. After this step, we should obtain pairwise distance information like the following:
+
+    0 CB 12 CB 14.3     
+    
+    0 CB 27 CB 14.0
+    
+    0 CB 28 CB 15.3
+    ...
+The first line indicates the predicted lower bound distance between residue 1 and residue 13 is 14.3 Å and upper bound is 14.3+5 Å.
+
+Set up the system
+-----------------
+Prerequisite: sequence file :math:`sequence.dat`
+
 .. code-block:: python
 
     import numpy as np
@@ -22,11 +39,6 @@ Load Some Helpful Modules
     import glob as glob
     from simtk.openmm import unit as u 
 
-
-Set up the system
-----------------------
-.. code-block:: python
-
     # build the system
     sequence = parse.get_sequence_from_AA1(filename='sequence.dat')  #sequence.dat contains the sequence of system
     p = system.ProteinMoleculeFromSequence(sequence)
@@ -34,21 +46,6 @@ Set up the system
     s = b.build_system([p])
     # select temparature for replicas
     s.temperature_scaler = system.temperature.GeometricTemperatureScaler(0, 0.4, 400.0 * u.kelvin, 550.0 * u.kelvin)
-
-Analysis of histogram data
---------------------------
-
-As illustrated in the above figure, for each histogram, we first evalute where the sum of density over 
-a certain range (5 :raw-latex:`\AA` here) is larger than threshold (0.8 here), which indicates the most possible distance range between two residues. 
-An example analysis script is provided in analyze_distograms.py. After this step, we should obtain pairwise distance information like the following:
-
-    0 CB 12 CB 14.3     
-    
-    0 CB 27 CB 14.0
-    
-    0 CB 28 CB 15.3
-    ...
-The first line indicates the predicted lower bound distance between residue 1 and residue 13 is 14.3 :raw-latex:`\AA` and upper bound is 14.3+5 :math:`\AA`.
 
 Integrate processed histogram data in MELD
 ------------------------------------------
@@ -104,6 +101,7 @@ Here we provide examples of deriving distance restraints and dihedral restraints
         torsion_rests.append(phi_rest)
     s.restraints.add_selectively_active_collection(torsion_rests, int(len(torsion_rests)*0.8))
 
-The full sample setup script can be found in :math:`setup_aMELD.py`. 
+The full sample setup script can be found in :ref:`https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/setup_MELD.py`. 
 
-
+After generating :math:`Data/ and Logs/` from :math:`python setup_MELD.py`, we can start to run replica exchange simulation 
+on queue system through e.g. :math:`srun --mpi=pmix  launch_remd --debug`.
