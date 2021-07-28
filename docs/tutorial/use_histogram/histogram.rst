@@ -9,9 +9,11 @@ the following figure using predicted protein residue-residue pairwise distance h
 
 Analysis of histogram data
 --------------------------
-Prerequisite: histogram file e.g.:math:`distance_histogram.npy`
+Prerequisite: histogram file e.g. :math:`distance_histogram.npy`
+
 As illustrated in the above figure, for each histogram, we first evalute where the sum of density over a certain range (5 Å here) is larger than threshold (0.8 here), 
 which indicates where is the most possible distance range between two residues. 
+
 An example analysis script is provided in `https://github.com/ccccclw/meld/blob/del_simtk/docs/tutorial/use_histogram/analyze_distograms.py`. After this step, we should obtain pairwise distance information like the following:
 
     0 CB 12 CB 14.3     
@@ -49,8 +51,11 @@ Prerequisite: sequence file :math:`sequence.dat`
 
 Integrate processed histogram data in MELD
 ------------------------------------------
+Prerequisite: processed histogram file e.g. :math:`contacts.dat`
+
 For each processed histogram, we convert it into a flat-bottom harmonic restraints, where the restraints between lower bound and upper 
 bound is set to be 0 and will have restraints energy penalty outside of this range.
+
 Here we provide examples of deriving distance restraints and dihedral restraints that are common in protein structure prediction.
 
 .. code-block:: python
