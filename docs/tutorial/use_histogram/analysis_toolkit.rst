@@ -11,6 +11,7 @@ After simulation is done, we can use :code:`extract_trajectory` to extract frame
 saved in :code:`Data/`. The options can be seen from :code:`extract_trajectory --help`
 
 .. code-block:: python
+    
     usage: extract_trajectory [-h] {extract_traj,extract_traj_dcd,extract_last,extract_random,follow_structure,follow_dcd} ...
 
     Extract frames from a trajectory.
