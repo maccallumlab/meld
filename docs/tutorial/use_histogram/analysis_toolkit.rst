@@ -58,6 +58,7 @@ several ways to extract such information. The two of them used mostly are:
 which will show plot like the following:
 
 .. image:: compare_trace.png
+    :width: 450
 
 Each color represents where each replica is along simulation. The left plot shows 
 better exchanges because replicas got exchanged frequently among replica ladders. This 
@@ -70,11 +71,10 @@ can also be seen from:
 which will show plot like the following:
 
 .. image:: compare_fup.png
-
-.. role:: red
+    :width: 450
 
 The x-axis indicates all 30 replicas and y-axis represents the probability of going 
-up (black) or down (:red:`red`) along replica ladders. The right plot reflects higher
+up (black) or down (red) along replica ladders. The right plot reflects higher
 probability of going up, which shows worse exchange than the left one.
 
 Extract representative
