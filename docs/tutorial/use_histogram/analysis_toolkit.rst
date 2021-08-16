@@ -80,7 +80,7 @@ Extract representative
 Once simulation is done, we want to see what is the representative structure
 among all conformations it sampled. This requires a similarity measure like RMSD between 
 selected atoms of conformations and usually use clustering tools available in open source 
-packages such as :code:`scikit-learn <https://scikit-learn.org/stable/modules/clustering.html#clustering>`_ and :code:`cpptraj <https://amber-md.github.io/cpptraj/CPPTRAJ.xhtml>`_ to group conformations with high similarity.
+packages such as `scikit-learn <https://scikit-learn.org/stable/modules/clustering.html#clustering>`_ and `cpptraj <https://amber-md.github.io/cpptraj/CPPTRAJ.xhtml>`_ to group conformations with high similarity.
 Here we provide a rather simple but effective tool :code:`density_rank` to extract the representative among selected
 samples. The calculation is based on the contacts formed between selected atoms and the assumption 
 is that the representative should be the conformation having more contacts formed and got sampled
