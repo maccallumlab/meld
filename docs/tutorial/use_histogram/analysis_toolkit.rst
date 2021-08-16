@@ -80,7 +80,7 @@ Extract representative
 Once simulation is done, we want to see what is the representative structure
 among all conformations it sampled. This requires a similarity measure like RMSD between 
 selected atoms of conformations and usually use clustering tools available in open source 
-packages such as :code:`scikit-learn` and :code:`cpptraj` to group conformations with high similarity.
+packages such as :code:`scikit-learn <https://scikit-learn.org/stable/modules/clustering.html#clustering>`_ and :code:`cpptraj <https://amber-md.github.io/cpptraj/CPPTRAJ.xhtml>`_ to group conformations with high similarity.
 Here we provide a rather simple but effective tool :code:`density_rank` to extract the representative among selected
 samples. The calculation is based on the contacts formed between selected atoms and the assumption 
 is that the representative should be the conformation having more contacts formed and got sampled
@@ -119,7 +119,7 @@ The full description can be seen from :code:`density_rank --help`
 
 Here are a couple of examples:
 
-For extracting representative in binding simulation, we usually define the contacts
+* For extracting representative in binding simulation, we usually define the contacts
 between selected residues in host and ligand. In addition, a cutoff needs to be set, which can be estimated
 from sampled conformations.
 
@@ -132,7 +132,7 @@ This will process contacts between residues 1-67 and residues 68-89 with cutoff 
 The output files are :code:`density.npy` (density value of each conformation) with associated plot :code:`density_rank.png` and the pdb file :code:`top_density.pdb` of conformation with 
 highest density as representative of selected trajectory set.
 
-For extracting representative in folding simulation, we usually define the the intra-contacts among selected residues in the molecule.
+* For extracting representative in folding simulation, we usually define the the intra-contacts among selected residues in the molecule.
 
 .. code-block:: python
     
