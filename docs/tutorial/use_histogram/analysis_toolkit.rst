@@ -71,6 +71,8 @@ which will show plot like the following:
 
 .. image:: compare_fup.png
 
+.. role:: red
+
 The x-axis indicates all 30 replicas and y-axis represents the probability of going 
 up (black) or down (:red:`red`) along replica ladders. The right plot reflects higher
 probability of going up, which shows worse exchange than the left one.
