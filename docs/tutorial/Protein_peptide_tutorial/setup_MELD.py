@@ -84,6 +84,25 @@ def get_dist_restraints_protein(filename, s, scaler):
             rest_group.append(rest)
     return dists
     #return rest_group
+    
+    
+def make_cartesian_collections(s, scaler, residues, delta=0.2, k=250.):
+    cart = []
+    backbone = ['CA']
+    #Residues are 1 based
+    #index of atoms are 1 base
+    for i in residues:
+        # print i
+        for b in backbone:
+            # print b
+            atom_index = s.index_of_atom(i,b) - 1
+            x,y,z = s.coordinates[atom_index]/10.
+            rest = s.restraints.create_restraint('cartesian',scaler, LinearRamp(0,15,0,1),res_index=i, atom_name=b,
+                x=x, y=y, z=z, delta=delta,force_const=k)
+            cart.append(rest)
+    return cart    
+    
+    
 
 def setup_system():
     # load the sequence
@@ -115,8 +134,11 @@ def setup_system():
     #restrain to keep prot fix
     prot_rest = get_dist_restraints_protein('protein_contacts.dat',s,scaler=prot_scaler)
     s.restraints.add_selectively_active_collection(prot_rest, int(len(prot_rest)*0.90))
-
- 
+    
+    #pro_res= list(range(1,69))
+    #rest = make_cartesian_collections(s, prot_scaler, pro_res)
+    #s.restraints.add_as_always_active_list(rest)
+   
     # create the options
     options = system.RunOptions()
     options.implicit_solvent_model = 'gbNeck2'
