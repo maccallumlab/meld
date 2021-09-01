@@ -49,7 +49,7 @@ To configure the MELD simulation we use a python script *setup_MELD.py*
 First we need to import the libraries:
 
 .. code-block:: python
-
+    
     import numpy as np
     from meld.remd import ladder, adaptor, leader
     from meld import comm, vault
@@ -59,7 +59,5 @@ First we need to import the libraries:
     from meld.system.restraints import LinearRamp,ConstantRamp
     from collections import namedtuple
     import glob as glob
-    import os
 
-Then we define some parameter:
 
