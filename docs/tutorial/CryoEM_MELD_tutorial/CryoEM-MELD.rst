@@ -164,8 +164,7 @@ Now setup the other important parameter and call these functions:
          store.save_data_store()
 
          return s.n_atoms
-
-     setup_system()
+    setup_system()
      
      
 
