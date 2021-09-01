@@ -25,3 +25,19 @@ Here, as score increases color changes from blue--> white --> red. In other word
 
 To refine/remodel these region, we run MELD simulation starting from the AF2 prediction. We put cartesian restraint on the coordinate of CA atom in the region where the confidence score is higher that 90% and no restraint for less that 90%. We can find this score in the second last column in *AF-P07900-F1-model_v1_short.pdb* file.
 
+==========================================
+Starting conformation for MELD simulation
+==========================================
+
+To run MELD simulation, first we need to install MELD in the cluster. Instruction for Conda installation of MELD is given in the github page. Once we have MELD installed successfully, we then need to minimize AF2 predicted model with AMBER. Before that, we used tleap to generate topology and coordinate file using *tleap.in* file. We execute this as:
+
+*tleap -f tleap.in*
+
+This returns *system.top* and *system.mdcrd* files and we minimize the coordinate with *minimize_GPU.sh*. This returns minimized coordinate *eq0_template.rst* which can be converted to a pdb file:
+
+*ambpdb -p system.top -c eq0_template.rst >minmized.pdb*
+
+The *minimized.pdb* is moved to *TEMPLATES/* directory.
+
+Now as we have the starting conformation, we are reasy to submit MELD simulation.
+
