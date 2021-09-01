@@ -175,7 +175,10 @@ The job can be started with the following command:
 
 *srun --mpi=pmix_v3 /home/arup/miniconda3/envs/meld_conda/bin/launch_remd*   
 
+Ideally we need to submit this on a cluster. *job.sh* will help to do that. but the headers and the path have to be changed depending on the users.
+
+*sbatch job.sh*
+THis will start generating *remd.log* file once the job starts and it will take about 8-10 hours in  astandard machines.
 
 
-          
   
