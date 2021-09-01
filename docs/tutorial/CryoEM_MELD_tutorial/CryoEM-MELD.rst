@@ -1,3 +1,6 @@
+
+
+
 =========================
 Refining AF2 prediction with MELD using Cryo-EM density map. 
 =========================
@@ -180,5 +183,23 @@ Ideally we need to submit this on a cluster. *job.sh* will help to do that. but 
 *sbatch job.sh*
 THis will start generating *remd.log* file once the job starts and it will take about 8-10 hours in  astandard machines.
 
+Now when the job is done, we extract the lowest temperature replcia.
 
+*extract_trajectory extract_traj_dcd --replica 0 trajectory.00.dcd*          # to extract the 1st temperature replica i.e. lowest temperature replica
+
+*trajectory.00.dcd* will have 5000 frames. To extract the best structures from this ensembles, we can several analyss e.g. clustering, RMSD compared to native and etc.
+
+For this particular example we used density map and calculated the cross-corelation of our trajectory with the map in VMD. The real map *2xhx_potential-map.dx* is not a Cryo-EM map, this is generated them X-ray crystallography. This continuing map is tricky to work with. So here we used a simulated map. Simulated map *2xhx-sim.dx* was calculated using the native structure. 
+
+In VMD we used we loaded our trajectory *trajectory.00.dcd* along with topology file and then calculated cross corellation:
+
+*mdff check -ccc -map 2xhx-sim.dx -res 4 -cccfile "ccc.dat"*
   
+This will give the following map and *ccc.dat* file.
+
+.. image:: ccc.png
+
+We the sorted the valued of correlation *corr-sorted.dat* and from this we get frame 1942 has the highest correlation values. We extracted this frame *from_density_1942.pdb* from the whole trajectory and it now matching well with the native, the loop is rearranged properly and the terminal also forming the beta-strand pairing. (we reformateted the native with tleap as *2xhx_short_leap.pdb* in order to have similar residue numbering whihch helps to align them in VMD easily)
+
+.. image:: MELD.png
+
