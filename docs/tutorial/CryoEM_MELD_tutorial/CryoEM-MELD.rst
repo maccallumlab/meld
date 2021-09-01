@@ -143,7 +143,7 @@ Now setup the other important parameter and call these functions:
          store.save_system(s)
          store.save_run_options(options)
 
-     # create and store the remd_runner
+         # create and store the remd_runner
          l = ladder.NearestNeighborLadder(n_trials=100)
          policy = adaptor.AdaptationPolicy(2.0, 50, 50)
          a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
@@ -151,21 +151,54 @@ Now setup the other important parameter and call these functions:
          remd_runner = leader.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)    #launching replica exchange
          store.save_remd_runner(remd_runner)
 
-    # create and store the communicator
+         # create and store the communicator
          c = comm.MPICommunicator(s.n_atoms, N_REPLICAS)
          store.save_communicator(c)
 
-    # create and save the initial states
-    #states = [gen_state(s, i) for i in range(N_REPLICAS)]
+          # create and save the initial states
+          #states = [gen_state(s, i) for i in range(N_REPLICAS)]
          states = [gen_state_templates(i,templates) for i in range(N_REPLICAS)]
          store.save_states(states, 0)
 
-      #sve data_store
+         #sve data_store
          store.save_data_store()
 
          return s.n_atoms
     setup_system()
      
-     
+Now we have the *setup_MELD.py* file and we will execute it 
+
+*python setup_MELD.py*
+
+THis would generate a *Data/* directory in the working directory and it this point we are ready to submit it to remote clusters.
+
+The job can be started with the following command:
+
+*srun --mpi=pmix_v3 /home/arup/miniconda3/envs/meld_conda/bin/launch_remd*   
+
+Ideally we need to submit this on a cluster. *job.sh* will help to do that. but the headers and the path have to be changed depending on the users.
+
+*sbatch job.sh*
+THis will start generating *remd.log* file once the job starts and it will take about 8-10 hours in  astandard machines.
+
+Now when the job is done, we extract the lowest temperature replcia.
+
+*extract_trajectory extract_traj_dcd --replica 0 trajectory.00.dcd*          # to extract the 1st temperature replica i.e. lowest temperature replica
+
+*trajectory.00.dcd* will have 5000 frames. To extract the best structures from this ensembles, we can several analyss e.g. clustering, RMSD compared to native and etc.
+
+For this particular example we used density map and calculated the cross-corelation of our trajectory with the map in VMD. The real map *2xhx_potential-map.dx* is not a Cryo-EM map, this is generated them X-ray crystallography. This continuing map is tricky to work with. So here we used a simulated map. Simulated map *2xhx-sim.dx* was calculated using the native structure. 
+
+In VMD we used we loaded our trajectory *trajectory.00.dcd* along with topology file and then calculated cross corellation:
+
+*mdff check -ccc -map 2xhx-sim.dx -res 4 -cccfile "ccc.dat"*
+  
+This will give the following map and *ccc.dat* file.
+
+.. image:: ccc.png
+
+We the sorted the valued of correlation *corr-sorted.dat* and from this we get frame 1942 has the highest correlation values. We extracted this frame *from_density_1942.pdb* from the whole trajectory and it now matching well with the native, the loop is rearranged properly and the terminal also forming the beta-strand pairing. (we reformateted the native with tleap as *2xhx_short_leap.pdb* in order to have similar residue numbering whihch helps to align them in VMD easily)
+
+.. image:: MELD.png     
 
 
