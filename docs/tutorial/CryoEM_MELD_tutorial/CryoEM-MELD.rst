@@ -26,7 +26,7 @@ To refine/remodel these region, we run MELD simulation starting from the AF2 pre
 Starting conformation for MELD simulation
 ==========================================
 
-To run MELD simulation, first we need to  predicted model with AMBER. Before that, we used tleap to generate topology and coordinate file using *tleap.in* file. We execute this as:
+To run MELD simulation, first we need to install MELD in the cluster. Instruction for Conda installation of MELD is given in the github page. Once we have MELD installed successfully, we then need to minimize AF2 predicted model with AMBER. Before that, we used tleap to generate topology and coordinate file using *tleap.in* file. We execute this as:
 
 *tleap -f tleap.in*
 
@@ -40,7 +40,7 @@ Now as we have the starting conformation, we are reasy to submit MELD simulation
 
 ===================================================
 Configuring the MELD simulation
-====================================================
+==================================================
 
 To configure the MELD simulation we use a python script *setup_MELD.py*
 
