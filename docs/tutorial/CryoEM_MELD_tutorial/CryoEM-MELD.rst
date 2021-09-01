@@ -15,6 +15,7 @@ On the left we have the native structure and on the right we have ALphaFold2 pre
 Here we are only showing the part that matches well. In blue we have native and in orange we have the prediction.
 
 We looked at the per residue confidence score for the model prediction AF2. The scores correlate well with the quality of the predicted structure:
+
 .. image:: confidence.png
     :width: 450
 Here, as score increases color changes from blue--> white --> red. In other words blue represent the lower score and Red represent the higher score. Notice, the region which do not match with native, mostly have blue, white or faded red color. Also some hehix-turn have faded red color. 
