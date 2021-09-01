@@ -1,6 +1,3 @@
-
-
-
 =========================
 Refining AF2 prediction with MELD using Cryo-EM density map. 
 =========================
