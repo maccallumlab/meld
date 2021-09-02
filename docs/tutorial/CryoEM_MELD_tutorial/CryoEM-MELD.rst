@@ -179,6 +179,9 @@ Now when the job is done, we extract the lowest temperature replcia.
 
 *extract_trajectory extract_traj_dcd --replica 0 trajectory.00.dcd*          # to extract the 1st temperature replica i.e. lowest temperature replica
 
+Since the trajectory is very large, we put it in onedrive:
+https://uflorida-my.sharepoint.com/:u:/g/personal/arup_mondal_ufl_edu/EX-BiN3kDFlPjZwjn7N6808BGhO80HUtKkbt8Zz7FkgBuQ?e=Og6SI2
+
 *trajectory.00.dcd* will have 5000 frames. To extract the best structures from this ensembles, we can several analyss e.g. clustering, RMSD compared to native and etc.
 
 For this particular example we used density map and calculated the cross-corelation of our trajectory with the map in VMD. The real map *2xhx_potential-map.dx* is not a Cryo-EM map, this is generated them X-ray crystallography. This continuing map is tricky to work with. So here we used a simulated map. Simulated map *2xhx-sim.dx* was calculated using the native structure. 
