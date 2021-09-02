@@ -193,12 +193,15 @@ In VMD we used we loaded our trajectory *trajectory.00.dcd* along with topology 
 This will give the following map and *ccc.dat* file.
 
 .. image:: ccc.png
+     :width: 450
 
 We the sorted the valued of correlation *corr-sorted.dat* and from this we get frame 1942 has the highest correlation values. We extracted this frame *from_density_1942.pdb* from the whole trajectory and it now matching well with the native, the loop is rearranged properly and the terminal also forming the beta-strand pairing. (we reformateted the native with tleap as *2xhx_short_leap.pdb* in order to have similar residue numbering whihch helps to align them in VMD easily)
 
 .. image:: MELD.png 
+     :width: 450
 
 .. image:: MELD1.png
+     :width: 450
 
 In the first image, on the right we have the native and on the left we have MELD prediction. Overlap has been shown in the second image.
  
