@@ -47,3 +47,16 @@ Configuring the MELD simulation
 To configure the MELD simulation we use a python script *setup_MELD.py*
 
 First we need to import the libraries:
+
+
+.. code-block:: python
+    
+    import numpy as np
+    from meld.remd import ladder, adaptor, leader
+    from meld import comm, vault
+    from meld import system
+    from meld import parse
+    import meld.system.montecarlo as mc
+    from meld.system.restraints import LinearRamp,ConstantRamp
+    from collections import namedtuple
+    import glob as glob
