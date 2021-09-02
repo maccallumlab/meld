@@ -20,6 +20,11 @@ We looked at the per residue confidence score for the model prediction AF2. The 
     :width: 450
 Here, as score increases color changes from blue--> white --> red. In other words blue represent the lower score and Red represent the higher score. Notice, the region which do not match with native, mostly have blue, white or faded red color. Also some hehix-turn have faded red color. 
 
+Also if we look at the superposition of the prediction on map, these two region are not fitting well. They are sticking out of the density map:
+
+.. image:: AF_map.png
+     :width: 450
+
 To refine/remodel these region, we run MELD simulation starting from the AF2 prediction. We put cartesian restraint on the coordinate of CA atom in the region where the confidence score is higher that 90% and no restraint for less that 90%. We can find this score in the second last column in *AF-P07900-F1-model_v1_short.pdb* file.
 
 
@@ -204,4 +209,8 @@ We the sorted the valued of correlation *corr-sorted.dat* and from this we get f
      :width: 450
 
 In the first image, on the right we have the native and on the left we have MELD prediction. Overlap has been shown in the second image.
- 
+
+Just to verify, this prediction fits really in the density map we are provided.
+
+.. image:: pred_map.png
+     :width: 450
