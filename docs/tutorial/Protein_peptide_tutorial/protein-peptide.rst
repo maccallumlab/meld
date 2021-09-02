@@ -87,6 +87,22 @@ We first import some necessary python modules:
     from collections import namedtuple
     import glob as glob
 
+
+
+
+
+.. code-block:: python
+    
+    import numpy as np
+    from meld.remd import ladder, adaptor, leader
+    from meld import comm, vault
+    from meld import system
+    from meld import parse
+    import meld.system.montecarlo as mc
+    from meld.system.restraints import LinearRamp,ConstantRamp
+    from collections import namedtuple
+    import glob as glob
+
 Then we define some important parameters:
     
 .. code-block:: python
