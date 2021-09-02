@@ -1,0 +1,5 @@
+set default PBradii mbondi3
+source leaprc.protein.ff14SB
+aa = loadpdb AF-P07900-F1-model_v1_short.pdb
+saveamberparm aa system.top system.mdcrd
+quit
