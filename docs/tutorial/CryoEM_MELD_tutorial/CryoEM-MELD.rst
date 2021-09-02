@@ -40,9 +40,8 @@ The *minimized.pdb* is moved to *TEMPLATES/* directory.
 
 Now as we have the starting conformation, we are reasy to submit MELD simulation.
 
-===================================================
 Configuring the MELD simulation
-==================================================
+
 
 To configure the MELD simulation we use a python script *setup_MELD.py*
 
