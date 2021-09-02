@@ -75,19 +75,6 @@ By this point we are familiar with all three files except *setup_MELD.py*. This 
 
 We first import some necessary python modules:
 
-.. code-block:: python
-    
-    import numpy as np
-    from meld.remd import ladder, adaptor, leader
-    from meld import comm, vault
-    from meld import system
-    from meld import parse
-    import meld.system.montecarlo as mc
-    from meld.system.restraints import LinearRamp,ConstantRamp
-    from collections import namedtuple
-    import glob as glob
-
-
 
 
 
