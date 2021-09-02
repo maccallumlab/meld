@@ -283,18 +283,36 @@ class ParameterManager:
         return total
 
     def sample(self, param_state: ParameterState) -> ParameterState:
-        assert len(self._discrete_by_index) == len(param_state.discrete)
-        assert len(self._continuous_by_index) == len(param_state.continuous)
+        n_discrete = len(param_state.discrete)
+        n_continuous = len(param_state.continuous)
+        assert len(self._discrete_by_index) == n_discrete
+        assert len(self._continuous_by_index) == n_continuous
+
+        if random.random() < n_discrete / (n_discrete + n_continuous):
+            sample_discrete = True
+        else:
+            sample_discrete = False
+
+        if sample_discrete:
+            sample_index = random.randrange(n_discrete)
+        else:
+            sample_index = random.randrange(n_continuous)
 
         new_discrete = np.zeros_like(param_state.discrete)
         new_continuous = np.zeros_like(param_state.continuous)
 
         for i, p_disc in enumerate(self._discrete_by_index):
             v = self.extract_value(self._discrete_by_index[i], param_state)
-            new_discrete[i] = p_disc.sample(v)
+            if not sample_discrete or i != sample_index:
+                new_discrete[i] = v
+            else:
+                new_discrete[i] = p_disc.sample(v)
 
         for i, p_cont in enumerate(self._continuous_by_index):
             v = self.extract_value(self._continuous_by_index[i], param_state)
-            new_continuous[i] = p_cont.sample(v)
+            if sample_discrete or i != sample_index:
+                new_continuous[i] = v
+            else:
+                new_continuous[i] = p_cont.sample(v)
 
         return ParameterState(new_discrete, new_continuous)
