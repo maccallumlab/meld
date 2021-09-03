@@ -43,7 +43,7 @@ public:
     /**
      * @return A bool indicating if particle is involved in MELD force
      */
-    bool containsParticle(int particle) const;
+    bool containsParticle(int particle);
 
     /**
      * @return The number of distance restraints.
@@ -596,6 +596,7 @@ private:
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
     std::set<int> meldParticleSet;
+    bool isDirty;
     void updateMeldParticleSet();
 
     class DistanceRestraintInfo {

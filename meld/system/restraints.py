@@ -230,7 +230,7 @@ class DistanceRestraint(SelectableRestraint):
         ramp: Optional[TimeRamp],
         atom1: Union[indexing.AtomIndex, mapping.PeakMapping],
         atom2: Union[indexing.AtomIndex, mapping.PeakMapping],
-        r1: Union[u.Quantity, u.Positioner],
+        r1: Union[u.Quantity, Positioner],
         r2: Union[u.Quantity, Positioner],
         r3: Union[u.Quantity, Positioner],
         r4: Union[u.Quantity, Positioner],
@@ -1251,7 +1251,7 @@ class SelectivelyActiveCollection:
         self._groups: List[RestraintGroup] = []
         if not restraint_list:
             raise RuntimeError(
-                "SelectivelyActiveCollection cannot have empty" "restraint list."
+                "SelectivelyActiveCollection cannot have empty restraint list."
             )
         for rest in restraint_list:
             self._add_restraint(rest)
@@ -2113,7 +2113,11 @@ class LinearPositioner(Positioner):
     _scaler_key_ = "linear_positioner"
 
     def __init__(
-        self, alpha_min: float, alpha_max: float, pos_min: u.Quantity, pos_max: u.Quantity
+        self,
+        alpha_min: float,
+        alpha_max: float,
+        pos_min: u.Quantity,
+        pos_max: u.Quantity,
     ) -> None:
         """
         Initialize a LinearPositioner
