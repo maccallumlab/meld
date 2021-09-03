@@ -100,8 +100,7 @@ std::vector<std::pair<int, int>> MeldForce::getBondedParticles() const
 }
 
 
-bool MeldForce::containsParticle(int particle) {
-    updateMeldParticleSet();
+bool MeldForce::containsParticle(int particle) const {
     std::set<int>::const_iterator loc=meldParticleSet.find(particle);
     if(loc==meldParticleSet.end()) {
         return false;
@@ -161,6 +160,7 @@ void MeldForce::updateMeldParticleSet() {
 }
 
 void MeldForce::updateParametersInContext(Context& context) {
+    updateMeldParticleSet();
     dynamic_cast<MeldForceImpl&>(getImplInContext(context)).updateParametersInContext(getContextImpl(context));
 }
 

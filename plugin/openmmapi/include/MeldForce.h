@@ -43,7 +43,7 @@ public:
     /**
      * @return A bool indicating if particle is involved in MELD force
      */
-    bool containsParticle(int particle);
+    bool containsParticle(int particle) const;
 
     /**
      * @return The number of distance restraints.
