@@ -1,23 +1,31 @@
 
-=========================
+==============================================================
 Simulating protein-peptide complex and predicting native state
-=========================
+==============================================================
+
 Introduction
-=========================
+============
 
 Here we will learn how to setup a protein-peptide system and run simulation and analyze the trajectory to predict the native complex structure. For that we will start the simulation from unbound conformation of both receptor (protein) and ligand (peptide) and allow data and force field to guide to the native bound conformation of the complex. Here we will work with a known protein complex of ET domain of BRD3 protein with MLV peptide (RCSB PDB code 7jq8). Unbound form of BRD3 ET protein is also available as PDB code 7jmy. Here this tutorial is done with meld/0.4.20 version. 
 
 Setup of the starting system
 ============================
+
 The protein sequence is
 
-    HHHHHHSHMGKQASASYDSEEEEEGLPMSYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFETLKPTTLRELERYVKSCLQKK
+    HHHHHHSHMGKQASASYDSEEEEEGLPMSYDEKRQLSL
+    DINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFET
+    LKPTTLRELERYVKSCLQKK
+
 where first 28 residues are purification tag. So we will exclude that in the simulation and we have 
 
-    SYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSNPDEIEIDFETLKPTTLRELERYVKSCLQKK
+    SYDEKRQLSLDINRLPGEKLGRVVHIIQSREPSLRDSN
+    PDEIEIDFETLKPTTLRELERYVKSCLQKK
+
 and the peptide sequence is 
     
     SRLTWRVQRSQNPLKIRLTREAP
+
 Since we want to start from a free peptide conformation, we generate a minimized PDB file for the peptide in an extended conformation. We can use *setup_from_random.sh* script in this directory for this purpose. This script uses 'setup_system' function to generate tleap input. Then tleap generates topology and initial coordinate which we minimize using amber to generate a minimized pdb for the peptide. The 'setup_system' script follows as:
 
 .. code-block:: python
@@ -38,6 +46,7 @@ We will combine this minimized peptide pdb and unbound protein pdb (minimized as
 
 Prepare the input restraint file for this system:
 =================================================
+
 As we already learned, MELD is based on Bayesian frameworks, it uses data coming from all sort of sources and an atomistic force field. Data plays a major role here, it helps to limit the conformational landscape and help to find minima faster. The principle of MELD is explained in detailed somewhere else. 
 For this particular example we will use distance restraints between protein -peptide residue pairs. Since the structure is known, we use the native complex structure to determine protein-peptide CA pairs which are within 8 angstrom from each other and use those in the simulation to guide the binding. This protein-peptide restrain file is added here as *protein_pep_all.dat* which is calculated using popular python library MDTraj and the script is also given here as *pdb_contacts.py*. Few restraints from this file are shown here: 
     5 CA 82 CA 0.5846176743507385
@@ -259,7 +268,7 @@ Then resubmitting the previous submission script.
 Once the job start to run, it will generate *trajectory.pdb* in /Data directory with all the saved frame of the lowest temperature replica which we can visualize with any visualization tool and it will also generate *remd.log* file with the real time progress of the simulation.
 
 Analysis
-=====================
+========
 
 When the simulation is completed i.e. run for the intended steps, we can do several analyses. We have 30 replicas in our simulation and they exchnage at certain interval assing them different temperature and force constant. We can extract those 30 trajectories along the temperature range and as well as force constant range using the following command:
 
