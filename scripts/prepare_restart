@@ -97,7 +97,7 @@ def copy_store(do_it):
         print("    Skipped.")
         print("")
         return
-    shutil.copy(vault.DataStore.data_store_backup_path, vault.DataStore.data_store_path)
+    shutil.copy(vault.DataStore._data_store_backup_path, vault.DataStore._data_store_path)
     print("    Done.")
     print("")
 
@@ -109,7 +109,7 @@ def copy_runner(do_it):
         print("")
         return
     shutil.copy(
-        vault.DataStore.remd_runner_backup_path, vault.DataStore.remd_runner_path
+        vault.DataStore._remd_runner_backup_path, vault.DataStore._remd_runner_path
     )
     print("    Done.")
     print("")
@@ -117,7 +117,7 @@ def copy_runner(do_it):
 
 def get_all_blocks():
     print("Getting a list of all blocks.")
-    blocks = glob(os.path.join(vault.DataStore.blocks_dir, "block_*.nc"))
+    blocks = glob(os.path.join(vault.DataStore._blocks_dir, "block_*.nc"))
     blocks = [os.path.basename(block) for block in blocks]
     blocks = [int(block[6:12]) for block in blocks]
     print("    Found {} blocks.".format(len(blocks)))
@@ -141,7 +141,7 @@ def remove_blocks(do_it, max_block):
             continue
         else:
             block_name = "block_{:06d}.nc".format(block)
-            os.remove(os.path.join(vault.DataStore.blocks_dir, block_name))
+            os.remove(os.path.join(vault.DataStore._blocks_dir, block_name))
 
 
 if __name__ == "__main__":
