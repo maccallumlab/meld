@@ -1,6 +1,7 @@
 import unittest
 from meld.runner.transform.restraints.meld import tracker
 from meld.system import restraints
+from meld.system import scalers
 from meld.system import param_sampling
 from meld.system import mapping
 import numpy as np
@@ -73,8 +74,8 @@ class TestTrackerWithScalerDependency(unittest.TestCase):
             self.system.param_sampler, self.system.mapper
         )
 
-        self.scaler1 = restraints.LinearScaler(0.0, 0.5)
-        self.scaler2 = restraints.LinearScaler(0.5, 1.0)
+        self.scaler1 = scalers.LinearScaler(0.0, 0.5)
+        self.scaler2 = scalers.LinearScaler(0.5, 1.0)
         r1 = restraints.DistanceRestraint(
             self.system,
             self.scaler1,
@@ -162,8 +163,8 @@ class TestTrackerWithRampDependency(unittest.TestCase):
             self.system.param_sampler, self.system.mapper
         )
 
-        self.ramp1 = restraints.LinearRamp(0, 100, 0.0, 1.0)
-        self.ramp2 = restraints.LinearRamp(0, 200, 0.0, 1.0)
+        self.ramp1 = scalers.LinearRamp(0, 100, 0.0, 1.0)
+        self.ramp2 = scalers.LinearRamp(0, 200, 0.0, 1.0)
         r1 = restraints.DistanceRestraint(
             self.system,
             None,
@@ -251,10 +252,10 @@ class TestTrackerWithPositionerDependency(unittest.TestCase):
             self.system.param_sampler, self.system.mapper
         )
 
-        self.positioner1 = restraints.LinearPositioner(
+        self.positioner1 = scalers.LinearPositioner(
             0.0, 0.5, 1.0 * u.nanometer, 2.0 * u.nanometer
         )
-        self.positioner2 = restraints.LinearPositioner(
+        self.positioner2 = scalers.LinearPositioner(
             0.5, 1.0, 1.0 * u.nanometer, 2.0 * u.nanometer
         )
         r1 = restraints.DistanceRestraint(
