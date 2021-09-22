@@ -9,6 +9,7 @@ Functions to read in sequences, secondary structures, and RDCs
 """
 
 from meld import interfaces
+from meld.system import scalers
 from meld.system import restraints
 from meld.system import patchers
 from meld.system import indexing
@@ -175,8 +176,8 @@ def get_sequence_from_AA3(
 
 def get_secondary_structure_restraints(
     system: interfaces.ISystem,
-    scaler: restraints.RestraintScaler,
-    ramp: Optional[restraints.TimeRamp] = None,
+    scaler: scalers.RestraintScaler,
+    ramp: Optional[scalers.TimeRamp] = None,
     torsion_force_constant: Optional[u.Quantity] = None,
     distance_force_constant: Optional[u.Quantity] = None,
     quadratic_cut: Optional[u.Quantity] = None,
