@@ -38,6 +38,7 @@ from meld.system.param_sampling import (
     UniformContinuousPrior,
     ExponentialDiscretePrior,
     ExponentialContinuousPrior,
+    ScaledExponentialDiscretePrior,
     DiscreteSampler,
     ContinuousSampler,
 )
