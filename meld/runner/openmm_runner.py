@@ -142,7 +142,7 @@ class OpenMMRunner(interfaces.IRunner):
         )
 
         # get the log_prior for parameters being sampled
-        log_prior = self._parameter_manager.log_prior(state.parameters)
+        log_prior = self._parameter_manager.log_prior(state.parameters, self._alpha)
 
         return e_potential - log_prior
 
