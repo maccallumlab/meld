@@ -241,7 +241,7 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
     if(distanceRestraints[index].particle2!=particle2)
         isDirty=true;
 
-    distanceRestraints[index] =
+    distanceRestraints.at(index) =
             DistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, oldGlobal);
 }
 
@@ -343,7 +343,7 @@ void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents, float
         throw OpenMMException("Cannot change nComponents after a gmm restraint is created.");
     }
 
-    gmmRestraints[index] = GMMRestraintInfo(nPairs, nComponents, oldGlobal, scale,
+    gmmRestraints.at(index) = GMMRestraintInfo(nPairs, nComponents, oldGlobal, scale,
                                             atomIndices, weights, means,
                                             precisionOnDiagonal, precisionOffDiagonal);
 }
@@ -367,7 +367,7 @@ void MeldForce::modifyHyperbolicDistanceRestraint(int index, int particle1, int 
     if(hyperbolicDistanceRestraints[index].particle2 != particle2)
         isDirty=true;
 
-    hyperbolicDistanceRestraints[index] =
+    hyperbolicDistanceRestraints.at(index) =
             HyperbolicDistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, asymptote, oldGlobal);
 }
 
@@ -396,7 +396,7 @@ void MeldForce::modifyTorsionRestraint(int index, int atom1, int atom2, int atom
     if(torsions[index].atom4 != atom4)
         isDirty=true;
 
-    torsions[index] =
+    torsions.at(index) =
             TorsionRestraintInfo(atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, oldIndex);
 }
 
@@ -421,7 +421,7 @@ void MeldForce::modifyDistProfileRestraint(int index, int atom1, int atom2, floa
     if(distProfileRestraints[index].atom2 != atom2)
         isDirty=true;
 
-    distProfileRestraints[index] =
+    distProfileRestraints.at(index) =
         DistProfileRestraintInfo(atom1, atom2, rMin, rMax, nBins, a0, a1, a2, a3, scaleFactor, oldIndex);
 }
 
@@ -475,7 +475,7 @@ void MeldForce::modifyTorsProfileRestraint(int index, int atom1, int atom2, int 
     if(torsProfileRestraints[index].atom8 != atom8)
         isDirty=true;
 
-    torsProfileRestraints[index] =
+    torsProfileRestraints.at(index) =
         TorsProfileRestraintInfo(atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins, a0, a1,
                 a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
                 scaleFactor, oldIndex);
@@ -492,7 +492,7 @@ int MeldForce::addGroup(std::vector<int> restraint_indices, int n_active) {
 
 void MeldForce::modifyGroupNumActive(int index, int n_active) {
     auto oldIndices = groups[index].restraint_indices;
-    groups[index] = GroupInfo(oldIndices, n_active);
+    groups.at(index) = GroupInfo(oldIndices, n_active);
 }
 
 int MeldForce::addCollection(std::vector<int> group_indices, int n_active) {
@@ -505,7 +505,7 @@ int MeldForce::addCollection(std::vector<int> group_indices, int n_active) {
 
 void MeldForce::modifyCollectionNumActive(int index, int n_active) {
     auto oldIndices = collections[index].group_indices;
-    collections[index] = CollectionInfo(oldIndices, n_active);
+    collections.at(index) = CollectionInfo(oldIndices, n_active);
 }
 
 
