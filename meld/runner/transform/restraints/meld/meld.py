@@ -114,7 +114,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                     self.tracker.groups.append(group)
 
                 # Create the collection in the meldplugin
-                coll_num_active = self._handle_num_active(group.num_active, state)
+                coll_num_active = self._handle_num_active(coll.num_active, state)
                 meld_force.addCollection(group_indices, coll_num_active)
 
                 # Add the collection to the tracker so we can update it
