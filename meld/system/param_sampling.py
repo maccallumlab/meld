@@ -96,7 +96,7 @@ class ScaledExponentialDiscretePrior(DiscretePrior):
     def log_prior(self, value: int, alpha: float) -> float:
         T0 = self.temperature_scaler(0.0)
         T = self.temperature_scaler(alpha)
-        return self.u0 * self.scaler(alpha) * T0 / T
+        return self.u0 * self.scaler(alpha) * T0 / T * value
 
 
 class ExponentialContinuousPrior(ContinuousPrior):
