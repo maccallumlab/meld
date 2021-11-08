@@ -9,7 +9,7 @@ Module to handle sampling the mappings of peaks to atom indices
 
 import random
 import itertools
-from typing import List, Dict, NamedTuple, Union, Tuple
+from typing import List, Dict, NamedTuple, Union, Tuple, Any
 import numpy as np  # type: ignore
 from meld.system import indexing
 
@@ -113,7 +113,7 @@ class PeakMapper:
         else:
             return self.atom_groups[group_index][mapping.atom_name]
 
-    def sample_permutations(self, state: np.ndarray) -> np.ndarray:
+    def sample_permutations(self, state: np.ndarray) -> List[np.ndarray]:
         indices = list(range(state.shape[0]))
         indices = random.sample(indices, k=self.mc_perms)
 
@@ -174,7 +174,7 @@ class PeakMapManager:
         sub_state = state[range_[0] : range_[1]]
         return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
 
-    def sample_permutations(self, state: np.ndarray) -> np.ndarray:
+    def sample_permutations(self, state: np.ndarray) -> List[np.ndarray]:
         if self._name_to_range is None:
             self._setup_name_to_range()
 
@@ -190,7 +190,7 @@ class PeakMapManager:
         # for one of the mappings, whereas the rest will simply
         # be an infinite iterator that repeats the unpermuted
         # mappings.
-        sub_state_permutations = []
+        sub_state_permutations: List[Any] = []
         perturbed = random.randrange(0, len(sub_states))
         for i, (mapper, sub_state) in enumerate(zip(self.mappers.values(), sub_states)):
             if i == perturbed:
