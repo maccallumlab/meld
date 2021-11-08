@@ -195,12 +195,15 @@ class TestPeakMapper(unittest.TestCase):
         self.assertIsInstance(val6, mapping.NotMapped)
 
     def test_sample_has_correct_shape(self):
-        mapper = mapping.PeakMapper("test", n_peaks=3, atom_names=["N", "H"])
+        mapper = mapping.PeakMapper(
+            "test", n_peaks=5, atom_names=["N", "H"], mc_perms=5
+        )
         state = mapper.get_initial_state()
 
-        trial_state = mapper.sample(state)
+        trial_states = mapper.sample_permutations(state)
 
-        self.assertEqual(trial_state.shape[0], 3)
+        self.assertEqual(len(trial_states), 120)  # 5! = 120 permutations
+        self.assertEqual(trial_states[0].shape[0], 5)  # 5 peaks
 
 
 class TestPeakMapManager(unittest.TestCase):
@@ -303,11 +306,12 @@ class TestPeakMapManager(unittest.TestCase):
 
     def test_sample_has_correct_shape(self):
         manager = mapping.PeakMapManager()
-        manager.add_map("map1", n_peaks=3, atom_names=["N", "H"])
-        manager.add_map("map2", n_peaks=3, atom_names=["N", "H"])
+        manager.add_map("map1", n_peaks=5, atom_names=["N", "H"], mc_perms=5)
+        manager.add_map("map2", n_peaks=5, atom_names=["N", "H"], mc_perms=5)
 
         state = manager.get_initial_state()
 
-        trial_state = manager.sample(state)
+        trial_state = manager.sample_permutations(state)
 
-        self.assertEqual(trial_state.shape[0], 6)
+        self.assertEqual(len(trial_state), 120)  # 5! = 120 permutations
+        self.assertEqual(trial_state[0].shape[0], 10)  # 5 + 5 peaks

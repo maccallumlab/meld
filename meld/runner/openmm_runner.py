@@ -24,6 +24,7 @@ from typing import Optional, List, Dict, NamedTuple
 import random
 import math
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -463,37 +464,45 @@ class OpenMMRunner(interfaces.IRunner):
         energy = self.get_energy(state)
 
         for _ in range(self._options.mapper_mcmc_steps):
-            trial_mappings = self._mapper.sample(state.mappings)
+            trial_mappings = self._mapper.sample_permutations(state.mappings)
 
-            trial_state = SystemState(
+            # compute energy for each trial mapping
+            trial_energies = []
+            for trial_mapping in trial_mappings:
+                trial_state = SystemState(
+                    state.positions,
+                    state.velocities,
+                    state.alpha,
+                    state.energy,
+                    state.box_vector,
+                    state.parameters,
+                    trial_mapping,
+                )
+                trial_energy = self.get_energy(trial_state)
+                trial_energies.append(trial_energy)
+
+            # compute weights
+            log_weights = _calculate_log_weights(trial_energies)
+            weights = np.exp(log_weights)
+            # These should be normalized, but there is a tiny residual error from
+            # going from log space, so we normalize again
+            weights = weights / np.sum(weights)
+
+            # sample mapping
+            new_index = np.random.choice(len(trial_mappings), p=weights)
+            new_mapping = trial_mappings[new_index]
+
+            # update state
+            state = SystemState(
                 state.positions,
                 state.velocities,
                 state.alpha,
                 state.energy,
                 state.box_vector,
                 state.parameters,
-                trial_mappings,
+                new_mapping,
             )
-            trial_energy = self.get_energy(trial_state)
 
-            delta = trial_energy - energy
-
-            if delta < 0:
-                accept = True
-            else:
-                if random.random() < math.exp(-delta):
-                    accept = True
-                else:
-                    accept = False
-
-            if accept:
-                state = trial_state
-                energy = trial_energy
-
-        # Update transfomers in case we rejected the
-        # last MCMC move
-        if not accept:
-            self._transformers_update(state)
         return state
 
 
@@ -750,3 +759,10 @@ def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
         logger.info("Creating integrator with 2.0 fs timestep")
         timestep = 2.0 * u.femtosecond
     return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)
+
+
+def _calculate_log_weights(energies):
+    neg_energies = -np.array(energies)
+    c = neg_energies.max()
+    log_Z = c + np.log(np.sum(np.exp(neg_energies - c)))
+    return neg_energies - log_Z

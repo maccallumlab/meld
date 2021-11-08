@@ -7,11 +7,11 @@
 Module to handle sampling the mappings of peaks to atom indices
 """
 
-from meld.system import indexing
-
-import numpy as np  # type: ignore
 import random
-from typing import List, Dict, NamedTuple, Union, Tuple
+import itertools
+from typing import List, Dict, NamedTuple, Union, Tuple, Any
+import numpy as np  # type: ignore
+from meld.system import indexing
 
 
 class PeakMapping(NamedTuple):
@@ -39,13 +39,16 @@ class PeakMapper:
     atom_groups: List[Dict[str, int]]
     _frozen: bool
 
-    def __init__(self, name: str, n_peaks: int, atom_names: List[str]):
+    def __init__(
+        self, name: str, n_peaks: int, atom_names: List[str], mc_perms: int = 5
+    ):
         if n_peaks <= 0:
             raise ValueError("n_peaks must be > 0")
         self.name = name
         self.n_peaks = n_peaks
         self.atom_names = atom_names
         self.atom_groups = []
+        self.mc_perms = mc_perms
         self.frozen = False
 
     def add_atom_group(self, **kwargs: indexing.AtomIndex):
@@ -110,14 +113,16 @@ class PeakMapper:
         else:
             return self.atom_groups[group_index][mapping.atom_name]
 
-    def sample(self, state: np.ndarray) -> np.ndarray:
-        trial_state = state.copy()
+    def sample_permutations(self, state: np.ndarray) -> List[np.ndarray]:
+        indices = list(range(state.shape[0]))
+        indices = random.sample(indices, k=self.mc_perms)
 
-        indices = list(range(trial_state.shape[0]))
-        i, j = random.sample(indices, k=2)
-        trial_state[[i, j]] = trial_state[[j, i]]
-
-        return trial_state
+        permuted_states = []
+        for p in itertools.permutations(indices):
+            permuted = state.copy()
+            permuted[[*p]] = state[[*indices]]
+            permuted_states.append(permuted)
+        return permuted_states
 
     @property
     def n_atom_groups(self) -> int:
@@ -132,12 +137,14 @@ class PeakMapManager:
         self.mappers = {}
         self._name_to_range = None
 
-    def add_map(self, name: str, n_peaks: int, atom_names: List[str]) -> PeakMapper:
+    def add_map(
+        self, name: str, n_peaks: int, atom_names: List[str], mc_perms: int = 5
+    ) -> PeakMapper:
         # don't allow duplicates
         if name in self.mappers:
             raise ValueError(f"Trying to insert duplicate entry for {name}.")
 
-        mapper = PeakMapper(name, n_peaks, atom_names)
+        mapper = PeakMapper(name, n_peaks, atom_names, mc_perms)
         self.mappers[name] = mapper
 
         return mapper
@@ -167,26 +174,38 @@ class PeakMapManager:
         sub_state = state[range_[0] : range_[1]]
         return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
 
-    def sample(self, state: np.ndarray) -> np.ndarray:
+    def sample_permutations(self, state: np.ndarray) -> List[np.ndarray]:
         if self._name_to_range is None:
             self._setup_name_to_range()
 
+        # Extract the mapping for each mapper out of the state
         sub_states = []
         for name in self.mappers:
             range_ = self._name_to_range[name]
             sub_state = state[range_[0] : range_[1]]
             sub_states.append(sub_state)
 
-        trial_sub_samples = []
+        # Produce a set of permutations for each mapping.
+        # One of these will be an actual sampled permutation
+        # for one of the mappings, whereas the rest will simply
+        # be an infinite iterator that repeats the unpermuted
+        # mappings.
+        sub_state_permutations: List[Any] = []
         perturbed = random.randrange(0, len(sub_states))
         for i, (mapper, sub_state) in enumerate(zip(self.mappers.values(), sub_states)):
             if i == perturbed:
-                trial_sub_sample = mapper.sample(sub_state)
-                trial_sub_samples.append(trial_sub_sample)
+                trial_perms = mapper.sample_permutations(sub_state)
+                sub_state_permutations.append(trial_perms)
             else:
-                trial_sub_samples.append(sub_state)
+                sub_state_permutations.append(itertools.repeat(sub_state))
 
-        return np.hstack(trial_sub_samples)
+        # Now we assemble all of the permutations into a list of output states.
+        output_states = []
+        for perms in zip(*sub_state_permutations):
+            perm_state = np.hstack(perms)
+            output_states.append(perm_state)
+
+        return output_states
 
     def has_mappers(self) -> bool:
         if self.mappers:
