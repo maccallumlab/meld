@@ -78,19 +78,15 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 for rest in self.always_on:
                     rest_index = self._add_meld_restraint(rest, meld_force, 0, 0, state)
                     # Each restraint goes in its own group.
+                    # This group does not depend on parameter sampling,
+                    # so we will never need to update it
                     group_index = meld_force.addGroup([rest_index], 1)
                     group_list.append(group_index)
 
-                    # Add the group to the tracker, but as None, so
-                    # we won't update it.
-                    self.tracker.groups.append(None)
-
                 # All of the always-on restraints go in a single collection
+                # This collection does not depend on parameter sampling,
+                # so we will never need to update it.
                 meld_force.addCollection(group_list, len(group_list))
-
-                # Add this collection to the tracker, but as
-                # None, so we won't update it
-                self.tracker.collections.append(None)
 
             # Add the selectively active restraints
             for coll in self.selective_on:
@@ -110,15 +106,19 @@ class MeldRestraintTransformer(transform.TransformerBase):
                     )
                     group_indices.append(group_index)
 
-                    # Add the group to the tracker so we can update it
-                    self.tracker.groups.append(group)
+                    # If the group depends on parameter sampling, add it to the tracker
+                    # so that it can be updated.
+                    if isinstance(group.num_active, param_sampling.Parameter):
+                        self.tracker.groups_with_dep.append((group, group_index))
 
                 # Create the collection in the meldplugin
                 coll_num_active = self._handle_num_active(coll.num_active, state)
-                meld_force.addCollection(group_indices, coll_num_active)
+                coll_index = meld_force.addCollection(group_indices, coll_num_active)
 
-                # Add the collection to the tracker so we can update it
-                self.tracker.collections.append(coll)
+                # If the collection depends on parameter sampling, add it to the tracker
+                # so that it can be updated.
+                if isinstance(coll.num_active, param_sampling.Parameter):
+                    self.tracker.collections_with_dep.append((coll, coll_index))
 
             system.addForce(meld_force)
             self.force = meld_force
@@ -140,17 +140,13 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self,
         state: interfaces.IState,
     ) -> None:
-        for i, coll in enumerate(self.tracker.collections):
-            if coll is None:
-                continue
+        for coll, index in self.tracker.collections_with_dep:
             num_active = self._handle_num_active(coll.num_active, state)
-            self.force.modifyCollectionNumActive(i, num_active)
+            self.force.modifyCollectionNumActive(index, num_active)
 
-        for i, group in enumerate(self.tracker.groups):
-            if group is None:
-                continue
+        for group, index in self.tracker.groups_with_dep:
             num_active = self._handle_num_active(group.num_active, state)
-            self.force.modifyGroupNumActive(i, num_active)
+            self.force.modifyGroupNumActive(index, num_active)
 
     def _update_restraints(
         self, alpha: float, timestep: int, state: interfaces.IState
@@ -259,7 +255,9 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 w = gmm_rest.weights
                 m = list(gmm_rest.means.flatten())
                 d, o = _setup_precisions(gmm_rest.precisions, nd, nc)
-                self.force.modifyGMMRestraint(index, nd, nc, scale, gmm_rest.atoms, w, m, d, o)
+                self.force.modifyGMMRestraint(
+                    index, nd, nc, scale, gmm_rest.atoms, w, m, d, o
+                )
             else:
                 raise RuntimeError(f"Unknown restraint category {category}")
 

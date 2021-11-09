@@ -10,14 +10,13 @@ class RestraintTracker:
     """
     A data structure to keep track of restraints, groups, and collections.
 
-    Each restraint, group, or collection is added to the appropriate list
-    in the order that it was added to the MeldForce. This allows us to
-    later enumerate the list in the same order when updating the MeldForce.
+    For restraints, we keep track of the dependence on scalers,
+    ramps, positioners, and peak mappings. We only update a
+    restraint when those dependencies have changed.
 
-    The always active collection will never be updated, so it is added as
-    None. Similarly, every restraint in the always active collection
-    will have its own group that will never be udpated, so these singleton
-    groups are added as None.
+    For groups and collections, we keep track of which ones
+    depend on parameter sampling. Only those ones are updated
+    each step.
     """
 
     param_manager: param_sampling.ParameterManager
@@ -28,8 +27,8 @@ class RestraintTracker:
     dist_prof_restraints: List[restraints.DistProfileRestraint]
     torsion_profile_restraints: List[restraints.TorsProfileRestraint]
     gmm_restraints: List[restraints.GMMDistanceRestraint]
-    groups: List[Optional[restraints.RestraintGroup]]
-    collections: List[Optional[restraints.SelectivelyActiveCollection]]
+    groups_with_dep: List[Tuple[restraints.RestraintGroup, int]]
+    collections_with_dep: List[Tuple[restraints.SelectivelyActiveCollection, int]]
     scaler_map: DefaultDict[restraints.RestraintScaler, List[Tuple[str, int]]]
     ramp_map: DefaultDict[restraints.TimeRamp, List[Tuple[str, int]]]
     positioner_map: DefaultDict[restraints.Positioner, List[Tuple[str, int]]]
@@ -57,8 +56,8 @@ class RestraintTracker:
         self.torsion_profile_restraints = []
         self.gmm_restraints = []
 
-        self.groups = []
-        self.collections = []
+        self.groups_with_dep = []
+        self.collections_with_dep = []
 
         # These map from scalers, ramps, etc to the restraints that depend on them.
         self.scaler_map = collections.defaultdict(list)
