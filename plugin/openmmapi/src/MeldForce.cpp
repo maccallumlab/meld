@@ -508,6 +508,30 @@ void MeldForce::modifyCollectionNumActive(int index, int n_active) {
     collections.at(index) = CollectionInfo(oldIndices, n_active);
 }
 
+int MeldForce::addGridPotential(
+    std::vector<double> potential,
+    double originx,
+    double originy,
+    double originz,
+    double gridx,
+    double gridy,
+    double gridz,
+    int nx,
+    int ny,
+    int nz) {
+
+}
+
+void MeldForce::modifyGridPotential(int index, std::vector<double> potential) {
+
+}
+
+int MeldForce::addGridPotentialRestraint(
+    int particle,
+    int potentialGridIndex,
+    float strength) {
+
+}
 
 ForceImpl* MeldForce::createImpl() const {
     return new MeldForceImpl(*this);

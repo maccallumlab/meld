@@ -26,6 +26,7 @@ from meld.system import options
 from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
+from meld.system import density
 from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
@@ -65,6 +66,7 @@ class TransformerBase:
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        density_manager: density.DensityManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],

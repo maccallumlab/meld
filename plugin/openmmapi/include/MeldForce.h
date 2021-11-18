@@ -572,6 +572,32 @@ public:
 
     bool usesPeriodicBoundaryConditions() const override;
 
+    /**
+     * Add a new grid potential to the system
+     */
+    int addGridPotential(
+        std::vector<double> potential,
+        double originx,
+        double originy,
+        double originz,
+        double gridx,
+        double gridy,
+        double gridz,
+        int nx,
+        int ny,
+        int nz);
+
+    /**
+     * Modify a grid potential
+     */
+    void modifyGridPotential(int index, std::vector<double> potential);
+
+    /**
+     * Add a grid potential restraint
+     */
+    int addGridPotentialRestraint(int particle, int potentialGridIndex, float strength);
+
+
     std::vector<std::pair<int, int> > getBondedParticles() const;
 
 protected:
