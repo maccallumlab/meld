@@ -118,10 +118,15 @@ void MeldForce::updateMeldParticleSet() {
     if(isDirty) {
         meldParticleSet.clear();
 
+        for(const auto& r : gridPotentialRestraints) {
+            meldParticleSet.insert(r.particle);
+        }
+
         for(const auto& r : distanceRestraints) {
             meldParticleSet.insert(r.particle1);
             meldParticleSet.insert(r.particle2);
         }
+
 
         for(const auto& r : hyperbolicDistanceRestraints) {
             meldParticleSet.insert(r.particle1);
@@ -206,9 +211,14 @@ int MeldForce::getNumGMMRestraints() const {
     return gmmRestraints.size();
 }
 
+int MeldForce::getNumGridPotentialRestraints() const {
+    return gridPotentialRestraints.size();
+}
+
 int MeldForce::getNumTotalRestraints() const {
     return distanceRestraints.size() + hyperbolicDistanceRestraints.size() + torsions.size() +
-           distProfileRestraints.size() + torsProfileRestraints.size() + gmmRestraints.size();
+           distProfileRestraints.size() + torsProfileRestraints.size() + gmmRestraints.size() +
+           gridPotentialRestraints.size();
 }
 
 
@@ -519,11 +529,11 @@ int MeldForce::addGridPotential(
     int nx,
     int ny,
     int nz) {
-
+    // TODO Implement
 }
 
 void MeldForce::modifyGridPotential(int index, std::vector<double> potential) {
-
+    //TODO implement
 }
 
 int MeldForce::addGridPotentialRestraint(
@@ -531,12 +541,20 @@ int MeldForce::addGridPotentialRestraint(
     int potentialGridIndex,
     float strength) {
 
+    meldParticleSet.insert(particle);
+    gridPotentialRestraints.push_back(
+            GridPotentialRestraintInfo(particle, potentialGridIndex, strength, n_restraints));
+    n_restraints++;
+    return n_restraints - 1;
 }
+
+// TODO Implement modifyGridPotentialRestraint
 
 ForceImpl* MeldForce::createImpl() const {
     return new MeldForceImpl(*this);
 }
 
+// TODO Implement getGridPotentialRestraint
 
 void MeldForce::getDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
             float& r4, float& forceConstant, int& globalIndex) const {

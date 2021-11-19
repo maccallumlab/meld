@@ -86,6 +86,11 @@ public:
     int getNumGMMRestraints() const;
 
     /**
+     * @return The number of grid potential restraints
+     */
+    int getNumGridPotentialRestraints() const;
+
+    /**
      * @return The total number of distance and torsion restraints.
      */
     int getNumTotalRestraints() const;
@@ -610,6 +615,7 @@ private:
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
     class GMMRestraintInfo;
+    class GridPotentialRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
     int n_restraints;
@@ -619,6 +625,7 @@ private:
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
     std::vector<GMMRestraintInfo> gmmRestraints;
+    std::vector<GridPotentialRestraintInfo> gridPotentialRestraints;
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
     std::set<int> meldParticleSet;
@@ -790,6 +797,26 @@ private:
       weights(weights), means(means), precisionOffDiagonal(precisionOffDiagonal),
       precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
     };
+
+    class GridPotentialRestraintInfo {
+    public:
+        int particle;
+        int potential_index;
+        float strength;
+        int global_index;
+
+        GridPotentialRestraintInfo() {
+            particle = -1;
+            potential_index = -1;
+            strength = 0.0;
+            global_index = -1;
+        }
+
+        GridPotentialRestraintInfo(int particle, int potential_index, float strength, int global_index):
+            particle(particle), potential_index(potential_index), strength(strength), global_index(global_index) {
+        }
+    };
+
 
 };
 

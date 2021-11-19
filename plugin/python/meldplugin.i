@@ -56,6 +56,8 @@ namespace MeldPlugin {
 
         int getNumGMMRestraints() const;
 
+        int getNumGridPotentialRestraints() const;
+
         int getNumTotalRestraints() const;
 
         int getNumGroups() const;
