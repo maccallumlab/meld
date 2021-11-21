@@ -16,7 +16,7 @@ using namespace MeldPlugin;
 using namespace OpenMM;
 using namespace std;
 
-MeldForce::MeldForce() : n_restraints(0) {
+MeldForce::MeldForce() : n_restraints(0), isDirty(true) {
 }
 
 
@@ -115,48 +115,52 @@ bool MeldForce::usesPeriodicBoundaryConditions() const {
 
 
 void MeldForce::updateMeldParticleSet() {
-    meldParticleSet.clear();
+    if(isDirty) {
+        meldParticleSet.clear();
 
-    for(const auto& r : distanceRestraints) {
-        meldParticleSet.insert(r.particle1);
-        meldParticleSet.insert(r.particle2);
-    }
-
-    for(const auto& r : hyperbolicDistanceRestraints) {
-        meldParticleSet.insert(r.particle1);
-        meldParticleSet.insert(r.particle2);
-    }
-
-    for(const auto& r : distProfileRestraints) {
-        meldParticleSet.insert(r.atom1);
-        meldParticleSet.insert(r.atom2);
-    }
-
-    for(const auto& r : torsions) {
-        meldParticleSet.insert(r.atom1);
-        meldParticleSet.insert(r.atom2);
-        meldParticleSet.insert(r.atom3);
-        meldParticleSet.insert(r.atom4);
-    }
-
-    for(const auto& r : torsProfileRestraints) {
-        meldParticleSet.insert(r.atom1);
-        meldParticleSet.insert(r.atom2);
-        meldParticleSet.insert(r.atom3);
-        meldParticleSet.insert(r.atom4);
-        meldParticleSet.insert(r.atom5);
-        meldParticleSet.insert(r.atom6);
-        meldParticleSet.insert(r.atom7);
-        meldParticleSet.insert(r.atom8);
-    }
-    for(const auto& r : gmmRestraints) {
-        for(const auto& atom : r.atomIndices) {
-            meldParticleSet.insert(atom);
+        for(const auto& r : distanceRestraints) {
+            meldParticleSet.insert(r.particle1);
+            meldParticleSet.insert(r.particle2);
         }
+
+        for(const auto& r : hyperbolicDistanceRestraints) {
+            meldParticleSet.insert(r.particle1);
+            meldParticleSet.insert(r.particle2);
+        }
+
+        for(const auto& r : distProfileRestraints) {
+            meldParticleSet.insert(r.atom1);
+            meldParticleSet.insert(r.atom2);
+        }
+
+        for(const auto& r : torsions) {
+            meldParticleSet.insert(r.atom1);
+            meldParticleSet.insert(r.atom2);
+            meldParticleSet.insert(r.atom3);
+            meldParticleSet.insert(r.atom4);
+        }
+
+        for(const auto& r : torsProfileRestraints) {
+            meldParticleSet.insert(r.atom1);
+            meldParticleSet.insert(r.atom2);
+            meldParticleSet.insert(r.atom3);
+            meldParticleSet.insert(r.atom4);
+            meldParticleSet.insert(r.atom5);
+            meldParticleSet.insert(r.atom6);
+            meldParticleSet.insert(r.atom7);
+            meldParticleSet.insert(r.atom8);
+        }
+        for(const auto& r : gmmRestraints) {
+            for(const auto& atom : r.atomIndices) {
+                meldParticleSet.insert(atom);
+            }
+        }
+        isDirty = false;
     }
 }
 
 void MeldForce::updateParametersInContext(Context& context) {
+    updateMeldParticleSet();
     dynamic_cast<MeldForceImpl&>(getImplInContext(context)).updateParametersInContext(getContextImpl(context));
 }
 
@@ -232,17 +236,13 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
                                         float r3, float r4, float force_constant) {
     int oldGlobal = distanceRestraints[index].global_index;
 
-    bool updateParticles = false;
     if(distanceRestraints[index].particle1!=particle1)
-        updateParticles=true;
+        isDirty=true;
     if(distanceRestraints[index].particle2!=particle2)
-        updateParticles=true;
+        isDirty=true;
 
-    distanceRestraints[index] =
+    distanceRestraints.at(index) =
             DistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, oldGlobal);
-
-    if(updateParticles)
-        updateMeldParticleSet();
 }
 
 int MeldForce::addGMMRestraint(int nPairs, int nComponents, float scale,
@@ -303,9 +303,8 @@ void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents, float
                                    std::vector<double> precisionOffDiagonal) {
     int oldGlobal = gmmRestraints[index].globalIndex;
 
-    bool updateParticles = false;
     if(gmmRestraints[index].atomIndices != atomIndices) {
-        updateParticles = true;
+        isDirty = true;
     }
 
     // sanity checks
@@ -344,12 +343,9 @@ void MeldForce::modifyGMMRestraint(int index, int nPairs, int nComponents, float
         throw OpenMMException("Cannot change nComponents after a gmm restraint is created.");
     }
 
-    gmmRestraints[index] = GMMRestraintInfo(nPairs, nComponents, oldGlobal, scale,
+    gmmRestraints.at(index) = GMMRestraintInfo(nPairs, nComponents, oldGlobal, scale,
                                             atomIndices, weights, means,
                                             precisionOnDiagonal, precisionOffDiagonal);
-    if(updateParticles) {
-        updateMeldParticleSet();
-    }
 }
 
 int MeldForce::addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2,
@@ -366,17 +362,13 @@ void MeldForce::modifyHyperbolicDistanceRestraint(int index, int particle1, int 
                                         float r3, float r4, float force_constant, float asymptote) {
     int oldGlobal = hyperbolicDistanceRestraints[index].global_index;
 
-    bool updateParticles=false;
     if(hyperbolicDistanceRestraints[index].particle1 != particle1)
-        updateParticles=true;
+        isDirty=true;
     if(hyperbolicDistanceRestraints[index].particle2 != particle2)
-        updateParticles=true;
+        isDirty=true;
 
-    hyperbolicDistanceRestraints[index] =
+    hyperbolicDistanceRestraints.at(index) =
             HyperbolicDistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, asymptote, oldGlobal);
-
-    if(updateParticles)
-        updateMeldParticleSet();
 }
 
 int MeldForce::addTorsionRestraint(int atom1, int atom2, int atom3, int atom4,
@@ -395,21 +387,17 @@ void MeldForce::modifyTorsionRestraint(int index, int atom1, int atom2, int atom
                                        float phi, float deltaPhi, float forceConstant) {
     int oldIndex = torsions[index].globalIndex;
 
-    bool updateParticles=false;
     if(torsions[index].atom1 != atom1)
-        updateParticles=true;
+        isDirty=true;
     if(torsions[index].atom2 != atom2)
-        updateParticles=true;
+        isDirty=true;
     if(torsions[index].atom3 != atom3)
-        updateParticles=true;
+        isDirty=true;
     if(torsions[index].atom4 != atom4)
-        updateParticles=true;
+        isDirty=true;
 
-    torsions[index] =
+    torsions.at(index) =
             TorsionRestraintInfo(atom1, atom2, atom3, atom4, phi, deltaPhi, forceConstant, oldIndex);
-
-    if(updateParticles)
-        updateMeldParticleSet();
 }
 
 int MeldForce::addDistProfileRestraint(int atom1, int atom2, float rMin, float rMax,
@@ -428,17 +416,13 @@ void MeldForce::modifyDistProfileRestraint(int index, int atom1, int atom2, floa
         std::vector<double> a3, float scaleFactor) {
     int oldIndex = distProfileRestraints[index].globalIndex;
 
-    bool updateParticles=false;
     if(distProfileRestraints[index].atom1 != atom1)
-        updateParticles=true;
+        isDirty=true;
     if(distProfileRestraints[index].atom2 != atom2)
-        updateParticles=true;
+        isDirty=true;
 
-    distProfileRestraints[index] =
+    distProfileRestraints.at(index) =
         DistProfileRestraintInfo(atom1, atom2, rMin, rMax, nBins, a0, a1, a2, a3, scaleFactor, oldIndex);
-
-    if(updateParticles)
-        updateMeldParticleSet();
 }
 
 int MeldForce::addTorsProfileRestraint(int atom1, int atom2, int atom3, int atom4,
@@ -474,31 +458,27 @@ void MeldForce::modifyTorsProfileRestraint(int index, int atom1, int atom2, int 
         std::vector<double> a15, float scaleFactor) {
     int oldIndex = torsProfileRestraints[index].globalIndex;
 
-    bool updateParticles=false;
     if(torsProfileRestraints[index].atom1 != atom1)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom2 != atom2)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom3 != atom3)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom4 != atom4)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom5 != atom5)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom6 != atom6)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom7 != atom7)
-        updateParticles=true;
+        isDirty=true;
     if(torsProfileRestraints[index].atom8 != atom8)
-        updateParticles=true;
+        isDirty=true;
 
-    torsProfileRestraints[index] =
+    torsProfileRestraints.at(index) =
         TorsProfileRestraintInfo(atom1, atom2, atom3, atom4, atom5, atom6, atom7, atom8, nBins, a0, a1,
                 a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15,
                 scaleFactor, oldIndex);
-
-    if(updateParticles)
-        updateMeldParticleSet();
 }
 
 
@@ -512,7 +492,7 @@ int MeldForce::addGroup(std::vector<int> restraint_indices, int n_active) {
 
 void MeldForce::modifyGroupNumActive(int index, int n_active) {
     auto oldIndices = groups[index].restraint_indices;
-    groups[index] = GroupInfo(oldIndices, n_active);
+    groups.at(index) = GroupInfo(oldIndices, n_active);
 }
 
 int MeldForce::addCollection(std::vector<int> group_indices, int n_active) {
@@ -525,7 +505,7 @@ int MeldForce::addCollection(std::vector<int> group_indices, int n_active) {
 
 void MeldForce::modifyCollectionNumActive(int index, int n_active) {
     auto oldIndices = collections[index].group_indices;
-    collections[index] = CollectionInfo(oldIndices, n_active);
+    collections.at(index) = CollectionInfo(oldIndices, n_active);
 }
 
 

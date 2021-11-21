@@ -464,7 +464,7 @@ void checkNumActive(const std::vector<int> &indices, const int numActive, const 
     if ((numActive < 0) || (numActive > indices.size()))
     {
         std::stringstream m;
-        m << type << " with index " << index << " has numActive out of range [0," << indices.size() << "].";
+        m << type << " with index " << index << " has numActive=" << numActive << " out of range [0," << indices.size() << "].";
         throw OpenMMException(m.str());
     }
 }

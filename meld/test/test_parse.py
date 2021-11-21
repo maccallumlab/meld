@@ -8,6 +8,7 @@ from meld import parse
 from meld import system
 from meld.system import patchers
 from meld.system import restraints
+from meld.system import scalers
 
 
 class TestGetAA1(unittest.TestCase):
@@ -177,7 +178,7 @@ class TestGetSecondaryStructures(unittest.TestCase):
         b = system.builder.SystemBuilder()
         self.system = b.build_system([p])
         self.ss = "HHHHHEEEEE"
-        self.scaler = restraints.LinearScaler(0, 1)
+        self.scaler = scalers.LinearScaler(0, 1)
 
     def test_adds_correct_number_of_groups(self):
         results = parse.get_secondary_structure_restraints(
@@ -201,7 +202,7 @@ class TestGetRdcRestraints(unittest.TestCase):
             "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
         )
         b = system.builder.SystemBuilder()
-        self.scaler = restraints.LinearScaler(0, 1)
+        self.scaler = scalers.LinearScaler(0, 1)
         self.patcher = patchers.RdcAlignmentPatcher(n_tensors=1)
         self.system = b.build_system([p], patchers=[self.patcher])
 

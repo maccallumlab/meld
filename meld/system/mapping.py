@@ -178,9 +178,13 @@ class PeakMapManager:
             sub_states.append(sub_state)
 
         trial_sub_samples = []
-        for mapper, sub_state in zip(self.mappers.values(), sub_states):
-            trial_sub_sample = mapper.sample(sub_state)
-            trial_sub_samples.append(trial_sub_sample)
+        perturbed = random.randrange(0, len(sub_states))
+        for i, (mapper, sub_state) in enumerate(zip(self.mappers.values(), sub_states)):
+            if i == perturbed:
+                trial_sub_sample = mapper.sample(sub_state)
+                trial_sub_samples.append(trial_sub_sample)
+            else:
+                trial_sub_samples.append(sub_state)
 
         return np.hstack(trial_sub_samples)
 

@@ -9,6 +9,7 @@ Functions to read in sequences, secondary structures, and RDCs
 """
 
 from meld import interfaces
+from meld.system import scalers
 from meld.system import restraints
 from meld.system import patchers
 from meld.system import indexing
@@ -175,8 +176,8 @@ def get_sequence_from_AA3(
 
 def get_secondary_structure_restraints(
     system: interfaces.ISystem,
-    scaler: restraints.RestraintScaler,
-    ramp: Optional[restraints.TimeRamp] = None,
+    scaler: scalers.RestraintScaler,
+    ramp: Optional[scalers.TimeRamp] = None,
     torsion_force_constant: Optional[u.Quantity] = None,
     distance_force_constant: Optional[u.Quantity] = None,
     quadratic_cut: Optional[u.Quantity] = None,
@@ -489,6 +490,9 @@ def get_rdc_restraints(
        of 1e-4, the default value of 1e4 is a reasonable guess. The value
        of `scale_factor` must be the same for all experiments that share the
        same alignment.
+
+    .. note::
+        The value of kappa is assumed to be in units of Hz A^3.
     """
 
     quadratic_cut = 999.0 / u.seconds if quadratic_cut is None else quadratic_cut
@@ -523,7 +527,7 @@ def get_rdc_restraints(
             ramp,
             atom_index_i,
             atom_index_j,
-            kappa * u.second ** -1 * u.angstrom ** -3,
+            kappa * u.second ** -1 * u.angstrom ** 3,
             obs * u.second ** -1,
             tolerance * u.second ** -1,
             force_const * u.kilojoule_per_mole * u.second ** 2,

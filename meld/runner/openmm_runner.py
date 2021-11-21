@@ -142,7 +142,7 @@ class OpenMMRunner(interfaces.IRunner):
         )
 
         # get the log_prior for parameters being sampled
-        log_prior = self._parameter_manager.log_prior(state.parameters)
+        log_prior = self._parameter_manager.log_prior(state.parameters, self._alpha)
 
         return e_potential - log_prior
 
@@ -462,7 +462,7 @@ class OpenMMRunner(interfaces.IRunner):
 
         energy = self.get_energy(state)
 
-        for _ in range(self._options.param_mcmc_steps):
+        for _ in range(self._options.mapper_mcmc_steps):
             trial_mappings = self._mapper.sample(state.mappings)
 
             trial_state = SystemState(

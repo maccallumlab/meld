@@ -596,6 +596,7 @@ private:
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
     std::set<int> meldParticleSet;
+    bool isDirty;
     void updateMeldParticleSet();
 
     class DistanceRestraintInfo {

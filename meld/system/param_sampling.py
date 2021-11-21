@@ -3,11 +3,14 @@
 # All rights reserved
 #
 
+from meld.system import scalers
+from meld.system import temperature
 import random
 from collections import OrderedDict
-from typing import NamedTuple, Union, TypeVar, Generic, List
+from typing import NamedTuple, Optional, TypeVar, Generic, List
 from abc import ABCMeta, abstractmethod
 import numpy as np  # type: ignore
+from simtk.openmm import unit as u  # type: ignore
 
 
 Number = TypeVar("Number", int, float)
@@ -17,29 +20,29 @@ Number = TypeVar("Number", int, float)
 #
 class Prior(Generic[Number], metaclass=ABCMeta):
     @abstractmethod
-    def log_prior(self, value: Number) -> float:
+    def log_prior(self, value: Number, alpha: float) -> float:
         pass
 
 
 class ContinuousPrior(Prior[float], metaclass=ABCMeta):
     @abstractmethod
-    def log_prior(self, value: float) -> float:
+    def log_prior(self, value: float, alpha: float) -> float:
         pass
 
 
 class DiscretePrior(Prior[int], metaclass=ABCMeta):
     @abstractmethod
-    def log_prior(self, value: int) -> float:
+    def log_prior(self, value: int, alpha: float) -> float:
         pass
 
 
 class UniformDiscretePrior(DiscretePrior):
-    def log_prior(self, value: int) -> float:
+    def log_prior(self, value: int, alpha: float) -> float:
         return 0.0
 
 
 class UniformContinuousPrior(ContinuousPrior):
-    def log_prior(self, value: float) -> float:
+    def log_prior(self, value: float, alpha: float) -> float:
         return 0.0
 
 
@@ -49,8 +52,51 @@ class ExponentialDiscretePrior(DiscretePrior):
     def __init__(self, k: float):
         self.k = k
 
-    def log_prior(self, value: int) -> float:
+    def log_prior(self, value: int, alpha: float) -> float:
         return self.k * value
+
+
+class ScaledExponentialDiscretePrior(DiscretePrior):
+    """
+    Exponential prior on a discrete variable, scaled by temperature and force constant.
+
+    Args:
+        u0: log_prior in units of kT at T(alpha=0)
+        temperature_scaler: determines temperature as a function of alpha
+        scaler: scales prior based on alpha
+
+    The log_prior is calculated as:
+
+        log_prior = u0 * scaler(alpha) * temperature_scaler(0.0) / temperature_scaler(alpha)
+    """
+
+    temperature_scaler: temperature.TemperatureScaler
+    scaler: scalers.RestraintScaler
+    u0: float
+
+    def __init__(
+        self,
+        u0: float,
+        temperature_scaler: Optional[temperature.TemperatureScaler],
+        scaler: Optional[scalers.RestraintScaler],
+    ):
+        self.u0 = u0
+        if temperature_scaler is None:
+            self.temperature_scaler = temperature.ConstantTemperatureScaler(
+                298 * u.kelvin
+            )
+        else:
+            self.temperature_scaler = temperature_scaler
+
+        if scaler is None:
+            self.scaler = scalers.ConstantScaler()
+        else:
+            self.scaler = scaler
+
+    def log_prior(self, value: int, alpha: float) -> float:
+        T0 = self.temperature_scaler(0.0)
+        T = self.temperature_scaler(alpha)
+        return self.u0 * self.scaler(alpha) * T0 / T * value
 
 
 class ExponentialContinuousPrior(ContinuousPrior):
@@ -59,7 +105,7 @@ class ExponentialContinuousPrior(ContinuousPrior):
     def __init__(self, k: float):
         self.k = k
 
-    def log_prior(self, value: float) -> float:
+    def log_prior(self, value: float, alpha: float) -> float:
         return self.k * value
 
 
@@ -126,7 +172,7 @@ class Parameter(Generic[Number], metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def log_prior(self, value: Number) -> float:
+    def log_prior(self, value: Number, alpha: float) -> float:
         pass
 
 
@@ -153,8 +199,8 @@ class DiscreteParameter(Parameter[int]):
     def sample(self, value: int) -> int:
         return self._sampler.sample(value)
 
-    def log_prior(self, value: int) -> float:
-        return self._prior.log_prior(value)
+    def log_prior(self, value: int, alpha: float) -> float:
+        return self._prior.log_prior(value, alpha)
 
 
 class ContinuousParameter(Parameter[float]):
@@ -180,8 +226,8 @@ class ContinuousParameter(Parameter[float]):
     def sample(self, value: float) -> float:
         return self._sampler.sample(value)
 
-    def log_prior(self, value: float) -> float:
-        return self._prior.log_prior(value)
+    def log_prior(self, value: float, alpha: float) -> float:
+        return self._prior.log_prior(value, alpha)
 
 
 #
@@ -268,33 +314,51 @@ class ParameterManager:
             valid = valid and p_cont.is_valid(v)
         return valid
 
-    def log_prior(self, param_state: ParameterState) -> float:
+    def log_prior(self, param_state: ParameterState, alpha: float) -> float:
         total = 0.0
         assert len(self._discrete_by_index) == len(param_state.discrete)
         assert len(self._continuous_by_index) == len(param_state.continuous)
 
         for i, p_disc in enumerate(self._discrete_by_index):
             v = param_state.discrete[i]
-            total += p_disc.log_prior(v)
+            total += p_disc.log_prior(v, alpha)
 
         for i, p_cont in enumerate(self._continuous_by_index):
             v = param_state.continuous[i]
-            total += p_cont.log_prior(v)
+            total += p_cont.log_prior(v, alpha)
         return total
 
     def sample(self, param_state: ParameterState) -> ParameterState:
-        assert len(self._discrete_by_index) == len(param_state.discrete)
-        assert len(self._continuous_by_index) == len(param_state.continuous)
+        n_discrete = len(param_state.discrete)
+        n_continuous = len(param_state.continuous)
+        assert len(self._discrete_by_index) == n_discrete
+        assert len(self._continuous_by_index) == n_continuous
+
+        if random.random() < n_discrete / (n_discrete + n_continuous):
+            sample_discrete = True
+        else:
+            sample_discrete = False
+
+        if sample_discrete:
+            sample_index = random.randrange(n_discrete)
+        else:
+            sample_index = random.randrange(n_continuous)
 
         new_discrete = np.zeros_like(param_state.discrete)
         new_continuous = np.zeros_like(param_state.continuous)
 
         for i, p_disc in enumerate(self._discrete_by_index):
             v = self.extract_value(self._discrete_by_index[i], param_state)
-            new_discrete[i] = p_disc.sample(v)
+            if not sample_discrete or i != sample_index:
+                new_discrete[i] = v
+            else:
+                new_discrete[i] = p_disc.sample(v)
 
         for i, p_cont in enumerate(self._continuous_by_index):
             v = self.extract_value(self._continuous_by_index[i], param_state)
-            new_continuous[i] = p_cont.sample(v)
+            if sample_discrete or i != sample_index:
+                new_continuous[i] = v
+            else:
+                new_continuous[i] = p_cont.sample(v)
 
         return ParameterState(new_discrete, new_continuous)
