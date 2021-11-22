@@ -2,6 +2,7 @@ from meld import interfaces
 from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
+from meld.system import density
 import collections
 from typing import List, Tuple, Optional, Union, Set, Dict, DefaultDict
 
@@ -38,6 +39,11 @@ class RestraintTracker:
     positioner_values: Dict[restraints.Positioner, float]
     peak_mapping_values: Dict[mapping.PeakMapping, int]
     need_update: Set[Tuple[str, int]]
+    densities: List[density.DensityMap]
+    scaler_density_map: DefaultDict[
+        restraints.BlurScaler, List[Tuple[int, density.DensityMap]]
+    ]
+    scaler_density_values: Dict[restraints.BlurScaler, float]
 
     def __init__(
         self,
@@ -55,6 +61,7 @@ class RestraintTracker:
         self.dist_prof_restraints = []
         self.torsion_profile_restraints = []
         self.gmm_restraints = []
+        self.densities = []
 
         self.groups_with_dep = []
         self.collections_with_dep = []
@@ -64,12 +71,14 @@ class RestraintTracker:
         self.ramp_map = collections.defaultdict(list)
         self.positioner_map = collections.defaultdict(list)
         self.peak_mapping_map = collections.defaultdict(list)
+        self.scaler_density_map = collections.defaultdict(list)
 
         # These maintain the previous values for these quantities
         self.scaler_values = {}
         self.ramp_values = {}
         self.positioner_values = {}
         self.peak_mapping_values = {}
+        self.scaler_density_values = {}
 
         # We maintain a set of restraints that need to be updated.
         self.need_update = set()
@@ -84,6 +93,16 @@ class RestraintTracker:
         need_update = self.need_update
         self.need_update = set()
         return need_update
+
+    def density_to_update(self, alpha):
+        to_update = []
+        for scaler in self.scaler_density_values:
+            old_value = self.scaler_density_values[scaler]
+            new_value = scaler(alpha)
+            if new_value != old_value:
+                to_update.extend(self.scaler_density_map[scaler])
+                self.scaler_density_values[scaler] = new_value
+        return to_update
 
     def _update_scalers(self, alpha: float):
         for scaler in self.scaler_values:
@@ -122,6 +141,19 @@ class RestraintTracker:
                 for category, index in self.peak_mapping_map[peak_mapping]:
                     self.need_update.add((category, index))
                 self.peak_mapping_values[peak_mapping] = new_value
+
+    def add_density(self, density):
+        pass
+
+    def add_density_restraint(
+        self,
+        rest: restraints.DensityRestraint,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ):
+        assert isinstance(rest, restraints.DensityRestraint)
+        # TODO Finish me
 
     def add_distance_restraint(
         self,

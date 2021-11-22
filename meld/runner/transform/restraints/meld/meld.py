@@ -16,6 +16,7 @@ from meld.system import restraints
 from meld.system import options
 from meld.system import param_sampling
 from meld.system import mapping
+from meld.system import density
 from meld.runner import transform
 from meldplugin import MeldForce  # type: ignore
 from meld.runner.transform.restraints.meld.tracker import RestraintTracker
@@ -38,12 +39,14 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        density_manager: density.DensityManager,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
         self.param_manager = param_manager
         self.mapper = mapper
+        self.density_manager = density_manager
 
         # Track indices of restraints, groups, and collections so that we can
         # update them.
@@ -71,6 +74,26 @@ class MeldRestraintTransformer(transform.TransformerBase):
     ) -> mm.System:
         if self.active:
             meld_force = MeldForce()
+
+            # If we have any density maps, add them now
+            for density in self.density_manager.densities:
+                self.tracker.add_density(density)
+                blurred = _compute_density_potential(density)
+
+                # TODO What do do outside of grid?
+                # TODO fix numpy typemaps
+                meld_force.addGridPotential(
+                    [float(x) for x in blurred],
+                    density.origin[0],
+                    density.origin[1],
+                    density.origin[2],
+                    density.voxel_size[0],
+                    density.voxel_size[1],
+                    density.voxel_size[2],
+                    density.nx,
+                    density.ny,
+                    density.nz,
+                )
 
             # Add all of the always-on restraints
             if self.always_on:
@@ -132,9 +155,16 @@ class MeldRestraintTransformer(transform.TransformerBase):
         timestep: int,
     ) -> None:
         if self.active:
+            self._update_densities(alpha)
             self._update_restraints(alpha, timestep, state)
             self._update_groups_collections(state)
             self.force.updateParametersInContext(simulation.context)
+
+    def _update_densities(self, alpha):
+        to_update = self.tracker.density_to_update(alpha)
+        for index, density in to_update:
+            blurred = _compute_density_potential(density)
+            self.meld_force.modifyGridPotential(index, blurred)
 
     def _update_groups_collections(
         self,
@@ -393,6 +423,12 @@ class MeldRestraintTransformer(transform.TransformerBase):
             )
             self.tracker.add_gmm_distance_restraint(rest, alpha, timestep, state)
 
+        elif isinstance(rest, restraints.DensityRestraint):
+            rest_index = meld_force.addGridPotentialRestraint(
+                rest.density_id, rest.atom_index, rest.strength * scale
+            )
+            self.tracker.add_density_restraint(rest, alpha, timestep, state)
+
         else:
             raise RuntimeError(f"Do not know how to handle restraint {rest}")
 
@@ -418,3 +454,8 @@ def _setup_precisions(
                 off_diags.append(precisions[i, j, k])
 
     return diags, off_diags
+
+
+def _compute_density_potential(density):
+    # TODO Implment this
+    return 0.0 * density.density_data.flatten()

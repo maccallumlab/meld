@@ -6,18 +6,8 @@
 # and make it available to the code so it can be built into the binaries.
 
 SET(MELD_CUDA_LIBRARY_NAME MeldPluginCUDA)
-SET(EIGEN3_INCLUDE_DIR /apps/eigen3/3.1.3/include/eigen3/)
-SET(SHARED_TARGET ${MELD_CUDA_LIBRARY_NAME})
-# include Eigen3                                         
-IF( NOT EIGEN3_INCLUDE_DIR )
-        IF( NOT DEFINED ENV{EIGEN3_INCLUDE_DIR} )
-          MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
-        ELSE()
-          SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}")
-        ENDIF()
-ENDIF()
-INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 
+SET(SHARED_TARGET ${MELD_CUDA_LIBRARY_NAME})
 
 # These are all the places to search for header files which are
 # to be part of the API.

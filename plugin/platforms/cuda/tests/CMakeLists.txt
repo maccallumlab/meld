@@ -3,16 +3,6 @@
 #
 
 INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIR})
-SET( EIGEN3_INCLUDE_DIR "/apps/eigen3/3.3.3" ) 
-# include Eigen3                                         
-IF( NOT EIGEN3_INCLUDE_DIR )
-        IF( NOT DEFINED ENV{EIGEN3_INCLUDE_DIR} )
-          MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
-        ELSE()
-          SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}")
-        ENDIF()
-ENDIF()
-INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 
 # Automatically create tests using files named "Test*.cpp"
 FILE(GLOB TEST_PROGS "*Test*.cpp")

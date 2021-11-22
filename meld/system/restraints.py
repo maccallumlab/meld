@@ -147,6 +147,7 @@ from meld.system import param_sampling
 from meld.system import mapping
 from meld.system.scalers import (
     RestraintScaler,
+    BlurScaler,
     TimeRamp,
     Positioner,
     ConstantPositioner,
@@ -1205,6 +1206,33 @@ class COMRestraint(NonSelectableRestraint):
             count = self.dims.count(dim)
             if count > 1:
                 raise ValueError(f"{dim} occurs more than once in dims")
+
+
+class DensityRestraint(SelectableRestraint):
+    _restraint_key_ = "density"
+    atom_index: int
+    density_id: int
+    strength: float
+
+    def __init__(
+        self,
+        system: interfaces.ISystem,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom: indexing.AtomIndex,
+        density_id: int,
+        strength: u.Quantity,
+    ):
+        assert isinstance(atom, indexing.AtomIndex)
+        self.atom_index = int(atom)
+        self.density_id = density_id
+        self.strength = strip_unit(strength, u.kilojoule_per_mole)
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
+        self._check(system)
+
+    def _check(self, system):
+        assert system.density.is_valid_id(self.density_id)
 
 
 class AlwaysActiveCollection:

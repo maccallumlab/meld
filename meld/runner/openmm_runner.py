@@ -97,6 +97,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._extra_torsions = system.extra_torsions
         self._parameter_manager = system.param_sampler
         self._mapper = system.mapper
+        self._density = system.density
 
     def prepare_for_timestep(
         self, state: interfaces.IState, alpha: float, timestep: int
@@ -277,6 +278,7 @@ class OpenMMRunner(interfaces.IRunner):
             trans = tt(
                 self._parameter_manager,
                 self._mapper,
+                self._density,
                 self._options,
                 self._always_on_restraints,
                 self._selectable_collections,

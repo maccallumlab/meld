@@ -8,7 +8,6 @@
 %import(module="simtk.openmm") "swig/OpenMMSwigHeaders.i"
 %include "swig/typemaps.i"
 
-
 %include "std_vector.i"
 
 namespace std {
@@ -56,6 +55,8 @@ namespace MeldPlugin {
         int getNumTorsProfileRestParams() const;
 
         int getNumGMMRestraints() const;
+
+        int getNumGridPotentialRestraints() const;
 
         int getNumTotalRestraints() const;
 
@@ -288,5 +289,25 @@ namespace MeldPlugin {
 
         int addCollection(std::vector<int> group_indices, int n_active);
         void modifyCollectionNumActive(int index, int numActive);
+
+        int addGridPotential(
+                std::vector<double> potential,
+                double originx,
+                double originy,
+                double originz,
+                double gridx,
+                double gridy,
+                double gridz,
+                int nx,
+                int ny,
+                int nz
+        );
+
+        void modifyGridPotential(int index, std::vector<double> potential);
+
+        int addGridPotentialRestraint(
+                int particle,
+                int gridPotentialIndex,
+                double strength);
     };
 }

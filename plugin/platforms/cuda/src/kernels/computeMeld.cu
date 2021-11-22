@@ -631,7 +631,7 @@ extern "C" __global__ void evaluateAndActivate(
             if(index < end) {
                 energyScratch[i] = energyArray[indexArray[index]];
             } else {
-                energyScratch[i] = FLT_MAX;
+                energyScratch[i] = MAXFLOAT;
             }
         }
         __syncthreads();
@@ -717,7 +717,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
             if(index < end) {
                 energyScratch[i] = energyArray[indexArray[index]];
             } else {
-                energyScratch[i] = FLT_MAX;
+                energyScratch[i] = MAXFLOAT;
             }
         }
         __syncthreads();
