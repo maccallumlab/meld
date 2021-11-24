@@ -7,25 +7,9 @@
 Module to handle MPI communication
 """
 
-try:
-    from mpi4py import MPI  # type: ignore
-except ImportError:
-    print()
-    print("****")
-    print("Error importing mpi4py.")
-    print()
-    print("Meld depends on mpi4py, but does not automatically install it")
-    print(
-        "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
-    )
-    print("for details.")
-    print("****")
-    print()
-    raise
 
 from meld import interfaces
 from meld import util
-
 import signal
 import threading
 import time
@@ -156,18 +140,20 @@ class MPICommunicator(interfaces.ICommunicator):
             return self._mpi_comm.scatter(None, root=0)
 
     @util.log_timing(logger)
-    def broadcast_states_to_workers(self, states: Sequence[interfaces.IState]) -> interfaces.IState:
+    def broadcast_states_to_workers(
+        self, states: Sequence[interfaces.IState]
+    ) -> interfaces.IState:
         """
         Send a state to each worker.
 
         Args:
             states: a list of states.
-            
+
         Returns:
             the state to run on the leader node
 
         .. note::
-           The list of states should include the state for the leader node. 
+           The list of states should include the state for the leader node.
         """
         with _timeout(
             self._timeout,
@@ -227,7 +213,7 @@ class MPICommunicator(interfaces.ICommunicator):
     ) -> None:
         """
         Broadcast states to all workers.
-        
+
         Send all results from this step to every worker so that we can
         calculate the energies and do replica exchange.
 
@@ -245,7 +231,9 @@ class MPICommunicator(interfaces.ICommunicator):
             self._mpi_comm.bcast(states, root=0)
 
     @util.log_timing(logger)
-    def exchange_states_for_energy_calc(self, state: interfaces.IState) -> Sequence[interfaces.IState]:
+    def exchange_states_for_energy_calc(
+        self, state: interfaces.IState
+    ) -> Sequence[interfaces.IState]:
         """
         Exchange states between all processes.
 
@@ -296,9 +284,7 @@ class MPICommunicator(interfaces.ICommunicator):
         """
         with _timeout(
             self._timeout,
-            RuntimeError(
-                self._timeout_message.format("gather_energies_from_workers")
-            ),
+            RuntimeError(self._timeout_message.format("gather_energies_from_workers")),
         ):
             energies = self._mpi_comm.gather(energies_on_leader, root=0)
             return np.array(energies)
@@ -426,7 +412,7 @@ class MPICommunicator(interfaces.ICommunicator):
         return self._my_rank
 
 
-def _get_mpi_comm_world() -> MPI.Comm:
+def _get_mpi_comm_world():
     """
     Helper function to return the comm_world.
 
