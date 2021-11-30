@@ -596,6 +596,85 @@ extern "C" __global__ void computeGMMRest(
     }
 }
 
+extern "C" __global__ void computeGridPotentialRest(
+                            const real4* __restrict__ posq,
+                            const int* __restrict__ atomIndices, 
+                            const float* __restrict__ potentials,
+                            const float* __restrict__ grid_x,
+                            const float* __restrict__ grid_y,
+                            const float* __restrict__ grid_z,
+                            const float* __restrict__ weights,
+                            const int* __restrict__ nxyz,
+                            const int* __restrict__ densityIndices,
+                            const int* __restrict__ indexToGlobal,
+                            const int numRestraints,
+                            float* __restrict__ energies,    
+                            float3* __restrict__ forceBuffer)
+{
+    int grid_xmax = nxyz[0];
+    int grid_ymax = nxyz[1];
+    int grid_zmax = nxyz[2];
+    int grid_total = grid_xmax * grid_ymax * grid_zmax;
+    for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
+        int globalIndex = indexToGlobal[index];
+        int grids_index = densityIndices[index];
+        int atomIndex = atomIndices[index];
+        float atom_weight = weights[index];
+        float3 atom_pos = trimTo3(posq[atomIndex]);
+        // check the atom is in which grid
+        int grid_xnum = floor((atom_pos.x-grid_x[0])/(grid_x[1]-grid_x[0])) + 1; 
+        int grid_ynum = floor((atom_pos.y-grid_y[0])/(grid_y[1]-grid_y[0])) + 1;
+        int grid_znum = floor((atom_pos.z-grid_z[0])/(grid_z[1]-grid_z[0])) + 1;
+        // scale atom position with grid length
+        float grid_x_pos = (grid_x[grid_xnum]-atom_pos.x)/(grid_x[1]-grid_x[0]); 
+        float grid_y_pos = (grid_y[grid_ynum]-atom_pos.y)/(grid_y[1]-grid_y[0]);
+        float grid_z_pos = (grid_z[grid_znum]-atom_pos.z)/(grid_z[1]-grid_z[0]);
+        float grid_xpos = (atom_pos.x-grid_x[grid_xnum-1])/(grid_x[1]-grid_x[0]);
+        float grid_ypos = (atom_pos.y-grid_y[grid_ynum-1])/(grid_y[1]-grid_y[0]);
+        float grid_zpos = (atom_pos.z-grid_z[grid_znum-1])/(grid_z[1]-grid_z[0]);
+        float energy = 0;
+        float f_x = 0;
+        float f_y = 0;
+        float f_z = 0;        
+        float v_000 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum -1];
+        float v_100 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum];
+        float v_010 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum -1];
+        float v_001 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum -1];
+        float v_101 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum];
+        float v_011 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum -1];
+        float v_110 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum ];
+        float v_111 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum];
+
+        energy += atom_weight * (v_000 * grid_x_pos * grid_y_pos * grid_z_pos              
+                + v_100 * grid_xpos * grid_y_pos * grid_z_pos 
+                + v_010 * grid_x_pos * grid_ypos * grid_z_pos   
+                + v_001 * grid_x_pos * grid_y_pos * grid_zpos
+                + v_101 * grid_xpos * grid_y_pos * grid_zpos 
+                + v_011 * grid_x_pos * grid_ypos * grid_zpos
+                + v_110 * grid_xpos * grid_ypos * grid_z_pos           
+                + v_111 * grid_xpos * grid_ypos * grid_zpos)  ;
+
+        f_x += -1 * atom_weight * ((v_100 - v_000) * grid_y_pos * grid_z_pos 
+                + (v_110 - v_010) * grid_ypos * grid_z_pos
+                + (v_101 - v_001) * grid_y_pos * grid_zpos
+                + (v_111 - v_011) * grid_ypos * grid_zpos)/(grid_x[1]-grid_x[0])   ;
+                
+        f_y += -1 * atom_weight * ((v_010 - v_000) * grid_x_pos * grid_z_pos 
+                + (v_110 - v_100) * grid_xpos * grid_z_pos
+                + (v_011 - v_001) * grid_x_pos * grid_zpos
+                + (v_111 - v_101) * grid_xpos * grid_zpos)/(grid_x[1]-grid_x[0])  ;
+
+        f_z += -1 * atom_weight * ((v_001 - v_000) * grid_x_pos * grid_y_pos 
+                + (v_101 - v_100) * grid_xpos * grid_y_pos
+                + (v_011 - v_010) * grid_x_pos * grid_ypos
+                + (v_111 - v_110) * grid_xpos * grid_ypos)/(grid_x[1]-grid_x[0])   ;
+
+        forceBuffer[index] = make_float3(f_x,f_y,f_z);
+        energies[globalIndex] += energy;
+    }
+}
+
+
 
 extern "C" __global__ void evaluateAndActivate(
         const int numGroups,
@@ -631,7 +710,7 @@ extern "C" __global__ void evaluateAndActivate(
             if(index < end) {
                 energyScratch[i] = energyArray[indexArray[index]];
             } else {
-                energyScratch[i] = MAXFLOAT;
+                energyScratch[i] = FLT_MAX;
             }
         }
         __syncthreads();
@@ -717,7 +796,7 @@ extern "C" __global__ void evaluateAndActivateCollections(
             if(index < end) {
                 energyScratch[i] = energyArray[indexArray[index]];
             } else {
-                energyScratch[i] = MAXFLOAT;
+                energyScratch[i] = FLT_MAX;
             }
         }
         __syncthreads();
@@ -1064,4 +1143,30 @@ extern "C" __global__ void applyGMMRest(unsigned long long * __restrict__ force,
     //     }
     // }
     // energyBuffer[threadIndex] += energyAccum;
+}
+
+extern "C" __global__ void applyGridPotentialRest(unsigned long long * __restrict__ force,
+                                         mixed* __restrict__ energyBuffer,
+                                         const int* __restrict__ atomIndices,
+                                         const int* __restrict__ globalIndices,
+                                         const float* __restrict__ globalEnergies,
+                                         const float* __restrict__ globalActive,
+                                         const float3* __restrict__ restForces,
+                                         const int numRestraints) {
+    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    float energyAccum = 0.0;
+    for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numRestraints; restraintIndex+=blockDim.x*gridDim.x) {
+        int globalIndex = globalIndices[restraintIndex];
+        if (globalActive[globalIndex]) {
+            int index = atomIndices[restraintIndex];
+            energyAccum += globalEnergies[globalIndex];
+            float3 f = restForces[restraintIndex];
+            // printf("force_xyz: %d, %f, %f, %f \n", index, f.x, f.y, f.z);
+            atomicAdd(&force[index], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+            atomicAdd(&force[index  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+            atomicAdd(&force[index + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+        }
+    }
+
+    energyBuffer[threadIndex] += energyAccum;
 }

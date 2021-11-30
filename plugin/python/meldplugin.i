@@ -56,6 +56,8 @@ namespace MeldPlugin {
 
         int getNumGMMRestraints() const;
 
+        int getNumGridPotentials() const;
+        
         int getNumGridPotentialRestraints() const;
 
         int getNumTotalRestraints() const;
@@ -216,6 +218,56 @@ namespace MeldPlugin {
         %clear std::vector<double>& precisionOnDiagonal;
         %clear std::vector<double>& precisionOffDiagonal;
 
+
+        %apply std::vector<double>& OUTPUT {std::vector<double>& potential};
+        %apply float& OUTPUT {float& originx};
+        %apply float& OUTPUT {float& originy};
+        %apply float& OUTPUT {float& originz};
+        %apply float& OUTPUT {float& gridx};
+        %apply float& OUTPUT {float& gridy};
+        %apply float& OUTPUT {float& gridz};
+        %apply int& OUTPUT {int& nx};
+        %apply int& OUTPUT {int& ny};
+        %apply int& OUTPUT {int& nz};
+        %apply int& OUTPUT {int& index};
+
+        void getGridPotentialParams(int index,
+                                    std::vector<double>& potential,
+                                    float& originx,
+                                    float& originy,
+                                    float& originz,
+                                    float& gridx,
+                                    float& gridy,
+                                    float& gridz, 
+                                    int& nx, 
+                                    int& ny, 
+                                    int& nz) const;
+        %clear std::vector<double>& potential;
+        %clear float& originx;
+        %clear float& originy;
+        %clear float& originz;
+        %clear float& gridx;
+        %clear float& gridy;
+        %clear float& gridz;
+        %clear int& nx;
+        %clear int& ny;
+        %clear int& nz;
+        %clear int& index;
+
+        %apply int& OUTPUT {int& particle};
+        %apply int& OUTPUT {int& potentialGridIndex};
+        %apply float& OUTPUT {float& strength};
+        %apply int& OUTPUT {int& globalIndex};
+        void getGridPotentialRestraintParams(int index, 
+                                    int& particle, 
+                                    int& potentialGridIndex, 
+                                    float& strength, 
+                                    int& globalIndex) const;  
+        %clear int& particle;
+        %clear int& potentialGridIndex;
+        %clear float& strength;
+        %clear int& globalIndex;      
+
         %apply std::vector<int>& OUTPUT {std::vector<int>& indices};
         %apply int& OUTPUT {int& numActive};
         void getGroupParams(int index, std::vector<int>& indices, int& numActive) const;
@@ -290,24 +342,40 @@ namespace MeldPlugin {
         int addCollection(std::vector<int> group_indices, int n_active);
         void modifyCollectionNumActive(int index, int numActive);
 
-        int addGridPotential(
+        void addGridPotential(
                 std::vector<double> potential,
-                double originx,
-                double originy,
-                double originz,
-                double gridx,
-                double gridy,
-                double gridz,
+                float originx,
+                float originy,
+                float originz,
+                float gridx,
+                float gridy,
+                float gridz,
                 int nx,
                 int ny,
-                int nz
-        );
+                int nz,
+                int density_index);
 
-        void modifyGridPotential(int index, std::vector<double> potential);
+        void modifyGridPotential(int index, 
+                std::vector<double> potential,
+                float originx,
+                float originy,
+                float originz,
+                float gridx,
+                float gridy,
+                float gridz,
+                int nx,
+                int ny,
+                int nz);
 
         int addGridPotentialRestraint(
                 int particle,
                 int gridPotentialIndex,
-                double strength);
+                float strength);
+        
+        void modifyGridPotentialRestraint(
+                int index,
+                int particle,
+                int gridPotentialIndex,
+                float strength);
     };
 }

@@ -105,7 +105,7 @@ class LeaderReplicaExchangeRunner:
 
         # we always minimize when we first start, either on the first
         # stage or the first stage after a restart
-        minimize = True
+        minimize = False #True
 
         while self._step <= self._max_steps:
             logger.info(

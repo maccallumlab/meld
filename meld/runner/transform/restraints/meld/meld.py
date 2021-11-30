@@ -25,6 +25,7 @@ from simtk import openmm as mm  # type: ignore
 from simtk.openmm import app  # type: ignore
 
 import numpy as np  # type: ignore
+import scipy.ndimage
 from typing import List, Tuple, Union
 
 
@@ -76,14 +77,14 @@ class MeldRestraintTransformer(transform.TransformerBase):
             meld_force = MeldForce()
 
             # If we have any density maps, add them now
-            for density in self.density_manager.densities:
-                self.tracker.add_density(density)
-                blurred = _compute_density_potential(density)
+            for index,density in enumerate(self.density_manager.densities):
+                self.tracker.add_density(index, density,0)
+                blurred = _compute_density_potential(density,0,origin=True)
 
                 # TODO What do do outside of grid?
                 # TODO fix numpy typemaps
                 meld_force.addGridPotential(
-                    [float(x) for x in blurred],
+                    blurred,
                     density.origin[0],
                     density.origin[1],
                     density.origin[2],
@@ -93,6 +94,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                     density.nx,
                     density.ny,
                     density.nz,
+                    index
                 )
 
             # Add all of the always-on restraints
@@ -163,8 +165,19 @@ class MeldRestraintTransformer(transform.TransformerBase):
     def _update_densities(self, alpha):
         to_update = self.tracker.density_to_update(alpha)
         for index, density in to_update:
-            blurred = _compute_density_potential(density)
-            self.meld_force.modifyGridPotential(index, blurred)
+            blur = density.blur_scaler(alpha)
+            blurred = _compute_density_potential(density,blur)
+            self.force.modifyGridPotential(index, 
+                                                blurred, 
+                                                density.origin[0],
+                                                density.origin[1],
+                                                density.origin[2],
+                                                density.voxel_size[0],
+                                                density.voxel_size[1],
+                                                density.voxel_size[2],
+                                                density.nx,
+                                                density.ny,
+                                                density.nz)
 
     def _update_groups_collections(
         self,
@@ -288,6 +301,10 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 self.force.modifyGMMRestraint(
                     index, nd, nc, scale, gmm_rest.atoms, w, m, d, o
                 )
+            elif category == "density":
+                density_rest = self.tracker.density_restraints[index]
+                self.force.modifyGridPotentialRestraint(index, density_rest.atom_index, density_rest.density_id, density_rest.strength)
+                
             else:
                 raise RuntimeError(f"Unknown restraint category {category}")
 
@@ -425,7 +442,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
 
         elif isinstance(rest, restraints.DensityRestraint):
             rest_index = meld_force.addGridPotentialRestraint(
-                rest.density_id, rest.atom_index, rest.strength * scale
+                rest.atom_index, rest.density_id,  rest.strength
             )
             self.tracker.add_density_restraint(rest, alpha, timestep, state)
 
@@ -456,6 +473,11 @@ def _setup_precisions(
     return diags, off_diags
 
 
-def _compute_density_potential(density):
+def _compute_density_potential(density,blur,origin=False):
     # TODO Implment this
-    return 0.0 * density.density_data.flatten()
+    if origin:
+        blurred = density.density_data
+    else:
+        blurred = scipy.ndimage.gaussian_filter(density.density_data,blur)
+        blurred = (blurred-blurred.min())*density.scale_factor/(blurred.max()-blurred.min())
+    return np.matrix.flatten(blurred).astype(np.float64)

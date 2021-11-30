@@ -48,11 +48,12 @@ private:
     int numTorsProfileRestraints;
     int numTorsProfileRestParams;
     int numGMMRestraints;
+    int numGridPotentials;
+    int numGridPotentialRestraints;
     int numRestraints;
     int numGroups;
     int numCollections;
     const OpenMM::System& system;
-
     /**
      * Arrays for distance restraints
      *
@@ -122,6 +123,21 @@ private:
     std::vector<float3> gmmForces;
 
     /**
+     * Arrays for GridPotential
+     * 
+     */
+    std::vector<float> gridPotentials;
+    std::vector<float> gridPotentialgridx;
+    std::vector<float> gridPotentialgridy;
+    std::vector<float> gridPotentialgridz;
+    std::vector<int> gridPotentialnxyz;   
+    std::vector<int> gridPotentialRestAtomIndices;
+    std::vector<int> gridPotentialRestGridPotentoalIndices;
+    std::vector<float> gridPotentialRestWeights;
+    std::vector<int> gridPotentialRestGlobalIndices;  
+    std::vector<float3> gridPotentialRestForces;
+
+    /**
      * Arrays for all restraints
      *
      * Each array has size numRestraints
@@ -156,10 +172,12 @@ private:
     void setupDistProfileRestraints(const MeldForce& force);
     void setupTorsProfileRestraints(const MeldForce& force);
     void setupGMMRestraints(const MeldForce& force);
+    void setupGridPotentialRestraints(const MeldForce& force);
     void setupGroups(const MeldForce& force);
     void setupCollections(const MeldForce& force);
     int calcSizeGMMAtomIndices(const MeldForce& force);
     int calcSizeGMMData(const MeldForce& force);
+    int3 calcNumGrids(const MeldForce& force);
 };
 }
 #endif /*MELD_OPENMM_REFERENCEKERNELS_H*/

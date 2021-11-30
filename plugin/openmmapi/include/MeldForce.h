@@ -84,6 +84,11 @@ public:
      * @return The number of GMM restraints
      */
     int getNumGMMRestraints() const;
+ 
+    /**
+     * @return The number of grid potential restraints
+     */
+    int getNumGridPotentials() const;
 
     /**
      * @return The number of grid potential restraints
@@ -242,6 +247,11 @@ public:
      */
     void getCollectionParams(int index, std::vector<int>& indices, int& numActive) const;
 
+    void getGridPotentialParams(int index, std::vector<double>& potential,float& originx,float& originy,float& originz,
+            float& gridx,float& gridy,float& gridz, int& nx, int& ny, int& nz) const;
+    
+    void getGridPotentialRestraintParams(int index, int& particle, int& potentialGridIndex, 
+            float& strength, int& globalIndex) const ;
     /**
      * Create a new distance restraint.
      * There are five regions:
@@ -580,27 +590,41 @@ public:
     /**
      * Add a new grid potential to the system
      */
-    int addGridPotential(
+    void addGridPotential(
         std::vector<double> potential,
-        double originx,
-        double originy,
-        double originz,
-        double gridx,
-        double gridy,
-        double gridz,
+        float originx,
+        float originy,
+        float originz,
+        float gridx,
+        float gridy,
+        float gridz,
+        int nx,
+        int ny,
+        int nz,
+        int density_index);
+
+    /**
+     * Modify a grid potential
+     */
+    void modifyGridPotential(
+        int index, 
+        std::vector<double> potential,
+        float originx,
+        float originy,
+        float originz,
+        float gridx,
+        float gridy,
+        float gridz,
         int nx,
         int ny,
         int nz);
 
     /**
-     * Modify a grid potential
-     */
-    void modifyGridPotential(int index, std::vector<double> potential);
-
-    /**
      * Add a grid potential restraint
      */
     int addGridPotentialRestraint(int particle, int potentialGridIndex, float strength);
+
+    void modifyGridPotentialRestraint(int index, int particle, int potentialGridIndex, float strength);
 
 
     std::vector<std::pair<int, int> > getBondedParticles() const;
@@ -615,6 +639,7 @@ private:
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
     class GMMRestraintInfo;
+    class GridPotentialInfo;
     class GridPotentialRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
@@ -625,6 +650,7 @@ private:
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
     std::vector<GMMRestraintInfo> gmmRestraints;
+    std::vector<GridPotentialInfo> gridPotentials;
     std::vector<GridPotentialRestraintInfo> gridPotentialRestraints;
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
@@ -798,22 +824,55 @@ private:
       precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
     };
 
+    class GridPotentialInfo {
+    public:
+        std::vector<double> potential;
+        double originx;
+        double originy;
+        double originz;
+        double gridx;
+        double gridy;
+        double gridz;
+        int nx;
+        int ny;
+        int nz;
+        int density_index;
+
+        GridPotentialInfo() {
+            originx = 0.0;
+            originy = 0.0;
+            originz = 0.0;
+            gridx = 0.0;
+            gridy = 0.0;
+            gridz = 0.0;
+            nx = -1;
+            ny = -1;
+            nz = -1;
+            density_index = -1;
+        }
+
+        GridPotentialInfo(std::vector<double> potential,double originx,double originy,double originz,
+        double gridx,double gridy,double gridz,int nx,int ny,int nz, int density_index):
+        potential(potential), originx(originx), originy(originy), originz(originz), 
+        gridx(gridx), gridy(gridy), gridz(gridz), nx(nx), ny(ny), nz(nz), density_index(density_index) {}
+    };
+
     class GridPotentialRestraintInfo {
     public:
         int particle;
-        int potential_index;
+        int potentialGridIndex;
         float strength;
         int global_index;
 
         GridPotentialRestraintInfo() {
             particle = -1;
-            potential_index = -1;
+            potentialGridIndex = -1;
             strength = 0.0;
             global_index = -1;
         }
 
-        GridPotentialRestraintInfo(int particle, int potential_index, float strength, int global_index):
-            particle(particle), potential_index(potential_index), strength(strength), global_index(global_index) {
+        GridPotentialRestraintInfo(int particle, int potentialGridIndex, float strength, int global_index):
+            particle(particle), potentialGridIndex(potentialGridIndex), strength(strength), global_index(global_index) {
         }
     };
 

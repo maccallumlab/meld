@@ -1,11 +1,12 @@
 from meld import interfaces
-from meld.system import restraints
+from meld import system
+import meld
+from meld.system import restraints, scalers
 from meld.system import param_sampling
 from meld.system import mapping
 from meld.system import density
 import collections
 from typing import List, Tuple, Optional, Union, Set, Dict, DefaultDict
-
 
 class RestraintTracker:
     """
@@ -40,6 +41,7 @@ class RestraintTracker:
     peak_mapping_values: Dict[mapping.PeakMapping, int]
     need_update: Set[Tuple[str, int]]
     densities: List[density.DensityMap]
+    density_restraints: List[restraints.DensityRestraint]
     scaler_density_map: DefaultDict[
         restraints.BlurScaler, List[Tuple[int, density.DensityMap]]
     ]
@@ -62,6 +64,7 @@ class RestraintTracker:
         self.torsion_profile_restraints = []
         self.gmm_restraints = []
         self.densities = []
+        self.density_restraints = []
 
         self.groups_with_dep = []
         self.collections_with_dep = []
@@ -142,8 +145,10 @@ class RestraintTracker:
                     self.need_update.add((category, index))
                 self.peak_mapping_values[peak_mapping] = new_value
 
-    def add_density(self, density):
-        pass
+    def add_density(self, index: int, density: density.DensityMap, alpha: float):
+        self.densities.append(density)
+        self._add_scaler_density_dependency(index, density,alpha)
+
 
     def add_density_restraint(
         self,
@@ -154,7 +159,13 @@ class RestraintTracker:
     ):
         assert isinstance(rest, restraints.DensityRestraint)
         # TODO Finish me
+        self.density_restraints.append(rest)
+        index = len(self.density_restraints) - 1
+        self.need_update.add(("density",index))
+        self._add_scaler_dependency(rest.scaler, "density", index, alpha)
+        self._add_ramp_dependency(rest.ramp, "density", index, timestep)
 
+        
     def add_distance_restraint(
         self,
         rest: restraints.DistanceRestraint,
@@ -308,3 +319,13 @@ class RestraintTracker:
             else:
                 value = self.peak_mapper.extract_value(peak_mapping, state.mappings)
                 assert value == self.peak_mapping_values[peak_mapping]
+   
+    def _add_scaler_density_dependency(
+        self, index: int, density: density.DensityMap, alpha: float
+    ):
+        if not isinstance(density.blur_scaler, scalers.ConstantBlurScaler):
+            self.scaler_density_map[density.blur_scaler].append((index,density))
+            if density.blur_scaler not in self.scaler_density_values:
+                self.scaler_density_values[density.blur_scaler] = density.blur_scaler(alpha)
+            else:
+                assert density.blur_scaler(alpha) == self.scaler_values[density.blur_scaler]

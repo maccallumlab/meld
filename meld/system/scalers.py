@@ -711,3 +711,14 @@ class LinearBlurScaler(BlurScaler):
             blur = 1.0 - (alpha - self._alpha_min) / self._delta
         blur = (1.0 - blur) * (self._max_blur - self._min_blur) + self._min_blur
         return blur
+
+class ConstantBlurScaler(BlurScaler):
+    """This scaler is "always on" and always returns a value of 1.0"."""
+
+    _scaler_key_ = "constant_blur"
+    def __init__(self, blur: float) -> None:
+        self.blur = blur
+
+    def __call__(self, alpha: float) -> float:
+        self._check_alpha_range(alpha)
+        return self.blur
