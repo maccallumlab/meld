@@ -78,8 +78,9 @@ class MeldRestraintTransformer(transform.TransformerBase):
 
             # If we have any density maps, add them now
             for index,density in enumerate(self.density_manager.densities):
+                logger.info(f"Add density now: {index}")
                 self.tracker.add_density(index, density,0)
-                blurred = _compute_density_potential(density,0,origin=True)
+                blurred = _compute_density_potential(density,density.blur_scaler(0),origin=False)
 
                 # TODO What do do outside of grid?
                 # TODO fix numpy typemaps
@@ -163,21 +164,23 @@ class MeldRestraintTransformer(transform.TransformerBase):
             self.force.updateParametersInContext(simulation.context)
 
     def _update_densities(self, alpha):
+        logger.info(f"update density alpha: {alpha}")
         to_update = self.tracker.density_to_update(alpha)
         for index, density in to_update:
             blur = density.blur_scaler(alpha)
+            logger.info(f"alpha,blur,origin,voxel_size,nxyz: {alpha}, {blur}, {density.origin}, {density.voxel_size}, {density.nx, density.ny, density.nz} \n")
             blurred = _compute_density_potential(density,blur)
             self.force.modifyGridPotential(index, 
-                                                blurred, 
-                                                density.origin[0],
-                                                density.origin[1],
-                                                density.origin[2],
-                                                density.voxel_size[0],
-                                                density.voxel_size[1],
-                                                density.voxel_size[2],
-                                                density.nx,
-                                                density.ny,
-                                                density.nz)
+                                           blurred, 
+                                           density.origin[0],
+                                           density.origin[1],
+                                           density.origin[2],
+                                           density.voxel_size[0],
+                                           density.voxel_size[1],
+                                           density.voxel_size[2],
+                                           density.nx,
+                                           density.ny,
+                                           density.nz)
 
     def _update_groups_collections(
         self,
@@ -194,12 +197,15 @@ class MeldRestraintTransformer(transform.TransformerBase):
     def _update_restraints(
         self, alpha: float, timestep: int, state: interfaces.IState
     ) -> None:
+        # logger.info(f"state energy: {state.energy} \n")
+
         # Get the list of restraints to update
         self.tracker.update(alpha, timestep, state)
         to_update = self.tracker.get_and_reset_need_update()
 
         for category, index in to_update:
             if category == "distance":
+                # logger.info(f"step: {timestep}, index: {index}")
                 dist_rest = self.tracker.distance_restraints[index]
                 scale = dist_rest.scaler(alpha) * dist_rest.ramp(timestep)
                 j, k = self._handle_mapping(
@@ -302,6 +308,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                     index, nd, nc, scale, gmm_rest.atoms, w, m, d, o
                 )
             elif category == "density":
+                # logger.info(f"step: {timestep}, index: {index}")
                 density_rest = self.tracker.density_restraints[index]
                 self.force.modifyGridPotentialRestraint(index, density_rest.atom_index, density_rest.density_id, density_rest.strength)
                 
@@ -343,7 +350,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         state: interfaces.IState,
     ) -> int:
         scale = rest.scaler(alpha) * rest.ramp(timestep)
-
+        # logger.info(f"state energy: {state.energy} \n")
         if isinstance(rest, restraints.DistanceRestraint):
             i, j = self._handle_mapping([rest.atom_index_1, rest.atom_index_2], state)
             rest_index = meld_force.addDistanceRestraint(

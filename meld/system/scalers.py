@@ -708,8 +708,9 @@ class LinearBlurScaler(BlurScaler):
         self._check_alpha_range(alpha)
         blur = self._handle_boundaries(alpha)
         if blur is None:
-            blur = 1.0 - (alpha - self._alpha_min) / self._delta
-        blur = (1.0 - blur) * (self._max_blur - self._min_blur) + self._min_blur
+            blur = self._min_blur + (self._max_blur - self._min_blur) * (alpha - self._alpha_min) / self._delta
+        else:
+            blur = (1.0 - blur) * (self._max_blur - self._min_blur) + self._min_blur
         return blur
 
 class ConstantBlurScaler(BlurScaler):

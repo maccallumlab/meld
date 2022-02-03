@@ -86,7 +86,7 @@ public:
     int getNumGMMRestraints() const;
  
     /**
-     * @return The number of grid potential restraints
+     * @return The number of grid potentials
      */
     int getNumGridPotentials() const;
 

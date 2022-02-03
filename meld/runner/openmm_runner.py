@@ -15,7 +15,7 @@ from simtk.openmm import app  # type: ignore
 from simtk.openmm.app import forcefield as ff  # type: ignore
 from simtk import openmm as mm  # type: ignore
 from simtk import unit as u  # type: ignore
-
+import parmed
 import logging
 import numpy as np  # type: ignore
 import tempfile
@@ -249,13 +249,24 @@ class OpenMMRunner(interfaces.IRunner):
                 }
             else:
                 raise RuntimeError(f"Unknown platform {self.platform}.")
-
+            # forcegroups = self._forcegroupify(sys)
             # create the simulation object
             self._simulation = _create_openmm_simulation(
                 prmtop.topology, sys, self._integrator, platform, properties
             )
-
+            # forcegroups=self._forcegroupify(sys)
+            # self._simulation = _create_openmm_simulation(
+            #     prmtop.topology, sys, self._integrator, platform, properties
+            # )
             self._transformers_update(state)
+    def _forcegroupify(self,system):
+        forcegroups = {}
+        for i in range(system.getNumForces()):
+            # logger.info(f"{i}th force \n")
+            force = system.getForce(i)
+            force.setForceGroup(i)
+            forcegroups[force] = i
+        return forcegroups
 
     def _transformers_setup(self) -> None:
         # CMAPTransformer is different, so we add it separately
@@ -351,14 +362,23 @@ class OpenMMRunner(interfaces.IRunner):
                 [0.0, box_vectors[1].value_in_unit(u.nanometer), 0.0],
                 [0.0, 0.0, box_vectors[2].value_in_unit(u.nanometer)],
             )
-
+        # tmp_e = self._simulation.context.getState(getEnergy=True).getPotentialEnergy()
+        # logger.info(f'tmp_e, {tmp_e}')
         # run energy minimization
         if minimize:
             self._simulation.minimizeEnergy(maxIterations=self._options.minimize_steps)
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
+        # import os
+        # if not os.path.exists('/orange/alberto.perezant/liweichang/dev/meld_test/old/nvidia_test/1dj7B00_1/step_0.pdb'):
+        #     for i in range(100):
+        #         self._integrator.setTemperature(3*(100-i)*u.kelvin)
+        #         self._simulation.step(20000)
+        #         positions = self._simulation.context.getState(getPositions=True).getPositions()
+        #         app.PDBFile.writeFile(self._simulation.topology, positions, open(f'/orange/alberto.perezant/liweichang/dev/meld_test/old/nvidia_test/1dj7B00_1/step_{i}.pdb', 'w'))
 
+    
         # run timesteps
         self._simulation.step(self._options.timesteps)
 
@@ -389,19 +409,31 @@ class OpenMMRunner(interfaces.IRunner):
         # just store zeros for implicit solvent
         else:
             box_vector = np.zeros(3)
-
         # get the energy
         e_potential = (
             snapshot.getPotentialEnergy().value_in_unit(u.kilojoule / u.mole)
             / GAS_CONSTANT
             / self._temperature
         )
+        # for i in range(1):
+        #     logger.info(f"snapshot: {self._simulation.context.getState(getEnergy=True, groups=0).getPotentialEnergy()._value}, potential: {e_potential} ")
+        # with tempfile.NamedTemporaryFile(mode="w") as parm_file:
+        #     parm_file.write(self._parm_string)
+        #     prmtop=parmed.load_file(parm_file.name)
+        #     # prmtop = _parm_top_from_string(self._parm_string)
+        #     parm_file.flush()
+        # e_decomp = parmed.openmm.utils.energy_decomposition(prmtop,self._simulation.context)
+        # for attr in dir(prmtop):
+        #     logger.info(f"attr: {attr} \n")
+        # logger.info(f"energy: {parmed.openmm.utils.energy_decomposition(prmtop,self._simulation.context)}")
+
 
         # store in state
         state.positions = coordinates
         state.velocities = velocities
         state.energy = e_potential
         state.box_vector = box_vector
+        # logger.info(f"energy: {parmed.openmm.utils.energy_decomposition(prmtop,self._simulation.context)}")
 
         return state
 

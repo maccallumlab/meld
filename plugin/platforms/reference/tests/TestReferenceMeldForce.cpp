@@ -1206,13 +1206,13 @@ int main(int argc, char* argv[]) {
         // testGMMRest1Pair2Component();
         // testGMMRest2Pair2Component();
         // testGMMRest3Pair2Component();
-        testGroupSelectsCorrectly();
+        // testGroupSelectsCorrectly();
         testGridPotentialRest();
-        testCollectionSelectsCorrectly();
-        testSingleGroup();
-        testMultipleGroups();
-        testBigSystem();
-        testPBC();
+        // testCollectionSelectsCorrectly();
+        // testSingleGroup();
+        // testMultipleGroups();
+        // testBigSystem();
+        // testPBC();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

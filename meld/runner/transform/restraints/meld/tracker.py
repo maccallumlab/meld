@@ -7,7 +7,11 @@ from meld.system import mapping
 from meld.system import density
 import collections
 from typing import List, Tuple, Optional, Union, Set, Dict, DefaultDict
+###
+import logging
 
+logger = logging.getLogger(__name__)
+###
 class RestraintTracker:
     """
     A data structure to keep track of restraints, groups, and collections.
@@ -101,8 +105,9 @@ class RestraintTracker:
         to_update = []
         for scaler in self.scaler_density_values:
             old_value = self.scaler_density_values[scaler]
-            new_value = scaler(alpha)
-            if new_value != old_value:
+            new_value = scaler(alpha) 
+            logger.info(f"new_value: {new_value}, old_value: {old_value}")            
+            if new_value != old_value or alpha==0.0:
                 to_update.extend(self.scaler_density_map[scaler])
                 self.scaler_density_values[scaler] = new_value
         return to_update

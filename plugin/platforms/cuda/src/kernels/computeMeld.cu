@@ -131,6 +131,7 @@ extern "C" __global__ void computeDistRest(
 
             // store energy into global buffer
             energies[globalIndex] = energy;
+            // printf("forces: %f, %f, %f \n", f.x, f.y, f.z);
         }
     }
 }
@@ -611,6 +612,11 @@ extern "C" __global__ void computeGridPotentialRest(
                             float* __restrict__ energies,    
                             float3* __restrict__ forceBuffer)
 {
+    for (int res=blockIdx.y*blockDim.y+threadIdx.y; res < numRestraints; res+=blockDim.y*gridDim.y) {
+        int globalIndex = indexToGlobal[res];
+        energies[globalIndex] = 0;
+        __syncthreads();
+    }
     int grid_xmax = nxyz[0];
     int grid_ymax = nxyz[1];
     int grid_zmax = nxyz[2];
@@ -621,6 +627,7 @@ extern "C" __global__ void computeGridPotentialRest(
         int atomIndex = atomIndices[index];
         float atom_weight = weights[index];
         float3 atom_pos = trimTo3(posq[atomIndex]);
+        // printf("grid_x[0]: %f \n", grid_x[0]);
         // check the atom is in which grid
         int grid_xnum = floor((atom_pos.x-grid_x[0])/(grid_x[1]-grid_x[0])) + 1; 
         int grid_ynum = floor((atom_pos.y-grid_y[0])/(grid_y[1]-grid_y[0])) + 1;
@@ -645,7 +652,7 @@ extern "C" __global__ void computeGridPotentialRest(
         float v_110 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum ];
         float v_111 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum];
 
-        energy += atom_weight * (v_000 * grid_x_pos * grid_y_pos * grid_z_pos              
+        energy  = atom_weight * (v_000 * grid_x_pos * grid_y_pos * grid_z_pos              
                 + v_100 * grid_xpos * grid_y_pos * grid_z_pos 
                 + v_010 * grid_x_pos * grid_ypos * grid_z_pos   
                 + v_001 * grid_x_pos * grid_y_pos * grid_zpos
@@ -662,16 +669,24 @@ extern "C" __global__ void computeGridPotentialRest(
         f_y += -1 * atom_weight * ((v_010 - v_000) * grid_x_pos * grid_z_pos 
                 + (v_110 - v_100) * grid_xpos * grid_z_pos
                 + (v_011 - v_001) * grid_x_pos * grid_zpos
-                + (v_111 - v_101) * grid_xpos * grid_zpos)/(grid_x[1]-grid_x[0])  ;
+                + (v_111 - v_101) * grid_xpos * grid_zpos)/(grid_y[1]-grid_y[0])  ;
 
         f_z += -1 * atom_weight * ((v_001 - v_000) * grid_x_pos * grid_y_pos 
                 + (v_101 - v_100) * grid_xpos * grid_y_pos
                 + (v_011 - v_010) * grid_x_pos * grid_ypos
-                + (v_111 - v_110) * grid_xpos * grid_ypos)/(grid_x[1]-grid_x[0])   ;
+                + (v_111 - v_110) * grid_xpos * grid_ypos)/(grid_z[1]-grid_z[0])   ;
 
         forceBuffer[index] = make_float3(f_x,f_y,f_z);
-        energies[globalIndex] += energy;
+        printf("pre energy: %f \n", energies[globalIndex]);
+        energies[globalIndex] = energy;
+        printf("post energy: %f, %f\n", energies[globalIndex], energy);
+
+        if (index==0){
+            printf("gridx_0: %f, gridx_1: %f, v: %f,%f,%f,%f,%f,%f,%f,%f, atompos: %f,%f,%f, f_x,f_y,f_z: %f,%f,%f \n",grid_x[0],grid_x[1],v_000,v_100,v_010,v_001,v_101,v_011,v_110,v_111,atom_pos.x,atom_pos.y,atom_pos.z,f_x,f_y,f_z);
+        }
+        __syncthreads();
     }
+    // __syncthreads();
 }
 
 
@@ -1157,16 +1172,20 @@ extern "C" __global__ void applyGridPotentialRest(unsigned long long * __restric
     float energyAccum = 0.0;
     for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numRestraints; restraintIndex+=blockDim.x*gridDim.x) {
         int globalIndex = globalIndices[restraintIndex];
+        printf("globalEnergies[%d]: %f \n",globalIndex,globalEnergies[globalIndex]);
         if (globalActive[globalIndex]) {
-            int index = atomIndices[restraintIndex];
+            int index1 = atomIndices[restraintIndex];
             energyAccum += globalEnergies[globalIndex];
             float3 f = restForces[restraintIndex];
-            // printf("force_xyz: %d, %f, %f, %f \n", index, f.x, f.y, f.z);
-            atomicAdd(&force[index], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
-            atomicAdd(&force[index  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
-            atomicAdd(&force[index + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+            atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+            atomicAdd(&force[index1 + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+            atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+            printf("f_xyz: %d %f, %f, %f \n", index1, f.x, f.y, f.z);
         }
+        __syncthreads();
     }
-
+    // __syncthreads();
+    printf("energyBuffer: %f \n",energyBuffer[threadIndex]);
     energyBuffer[threadIndex] += energyAccum;
+    printf("energyAccum: %f, %f \n",energyBuffer[threadIndex],energyAccum);
 }

@@ -236,8 +236,8 @@ private:
     OpenMM::CudaArray* gridPotentialRestAtomIndices;
     std::vector<int> h_gridPotentialRestAtomIndices;
     
-    OpenMM::CudaArray* gridPotentialRestGridPotentoalIndices;
-    std::vector<int> h_gridPotentialRestGridPotentoalIndices;
+    OpenMM::CudaArray* gridPotentialRestGridPotentialIndices;
+    std::vector<int> h_gridPotentialRestGridPotentialIndices;
 
     OpenMM::CudaArray* gridPotentialRestWeights;
     std::vector<float> h_gridPotentialRestWeights;
