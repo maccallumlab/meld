@@ -3,6 +3,13 @@
 # All rights reserved
 #
 
+# TODO: Many functions in this file need to moved to the specific Amber systme builder classes.
+# The functions in this file will take in a MELD system and modify it
+# as needed to add the additional forces and setup the integrator etc,
+# but they won't need to start from an Amber topology, as they will
+# provided with an openmm system. The interactions with Amber / Martini / etc
+# will instead happen in the builders.
+
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints

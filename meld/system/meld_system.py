@@ -38,9 +38,6 @@ class System(interfaces.ISystem):
     param_sampler: param_sampling.ParameterManager
     """The sampler for parameters"""
 
-    _top_string: str
-    _mdcrd_string: str
-
     _coordinates: np.ndarray
     _box_vectors: np.ndarray
     _n_atoms: int
@@ -50,7 +47,7 @@ class System(interfaces.ISystem):
     _residue_numbers: List[int]
     _atom_index: Any
 
-    def __init__(self, top_string: str, mdcrd_string: str, indexer: indexing.Indexer):
+    def __init__(self, openmm_system, openmm_topology, init_coordinates):
         """
         Initialize a MELD system
 
@@ -59,11 +56,11 @@ class System(interfaces.ISystem):
             mdcrd_string: coordinates of system from tleap
             indexer: an Indexer object to handle indexing
         """
-        self._top_string = top_string
-        self._mdcrd_string = mdcrd_string
+        self._openmm_system = openmm_system
+        self._openmm_topology = openmm_topology
+        self._init_coordinates = init_coordinates
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()
-        self.index = indexer
         self.mapper = mapping.PeakMapManager()
 
         self.extra_bonds = []
@@ -73,34 +70,30 @@ class System(interfaces.ISystem):
         self.temperature_scaler = None
         self._setup_coords()
 
+        # TODO: need to re-write indexing to use openmm topology
         self._setup_indexing()
-
-    @property
-    def top_string(self) -> str:
-        """
-        tleap topology string for the system
-        """
-        return self._top_string
 
     @property
     def n_atoms(self) -> int:
         """
         number of atoms
         """
+        # TODO: need to set this up based on openmm_topology
         return self._n_atoms
 
     @property
-    def coordinates(self) -> np.ndarray:
+    def init_coordinates(self) -> np.ndarray:
         """
-        coordinates of system
+        initial coordinates of system
         """
-        return self._coordinates
+        return self._init_coordinates
 
     @property
     def atom_names(self) -> List[str]:
         """
         names for each atom
         """
+        # TODO: this needs to be setup
         return self._atom_names
 
     @property
@@ -108,6 +101,7 @@ class System(interfaces.ISystem):
         """
         residue numbers for each atom
         """
+        # TODO: this needs to be setup
         return self._residue_numbers
 
     @property
@@ -115,10 +109,11 @@ class System(interfaces.ISystem):
         """
         residue names for each atom
         """
+        # TODO: this needs to be setup
         return self._residue_names
 
     def get_state_template(self):
-        pos = self._coordinates.copy()
+        pos = self._init_coordinates.copy()
         vel = np.zeros_like(pos)
         alpha = 0.0
         energy = 0.0
@@ -230,6 +225,7 @@ class System(interfaces.ISystem):
         )
 
     def _setup_indexing(self):
+        # TODO: This needs to be re-written
         reader = amber.ParmTopReader(self._top_string)
 
         self._atom_names = reader.get_atom_names()
@@ -242,12 +238,16 @@ class System(interfaces.ISystem):
         assert len(self._residue_names) == self._n_atoms
 
     def _setup_coords(self):
+        # TODO: This needs to be re-written
         reader = amber.CrdReader(self._mdcrd_string)
         self._coordinates = reader.get_coordinates()
         self._box_vectors = reader.get_box_vectors()
         self._n_atoms = self._coordinates.shape[0]
 
-
+# TODO: This needs to be re-written
+# The patchers will work on OpenMM system, topology, coords, and box vectors.
+# Each patcher will run in sequence, modifying things before everything
+# is evenentually sent to the MELD System constructor.
 def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
     # Load in top and crd files output by leap
     with open(top_filename, "rt") as topfile:

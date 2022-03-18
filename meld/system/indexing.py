@@ -181,6 +181,7 @@ class Indexer:
         return AtomIndex(self.abs_atom_index[resindex, atom_name])
 
 
+# TODO: This needs to be re-written to work with an OpenMM topology.
 def _setup_indexing(chains, top, crd):
     n_atoms = crd.get_coordinates().shape[0]
 
