@@ -182,6 +182,10 @@ class Indexer:
 
 
 # TODO: This needs to be re-written to work with an OpenMM topology.
+def setup_indexing(topology):
+    pass
+
+
 def _setup_indexing(chains, top, crd):
     n_atoms = crd.get_coordinates().shape[0]
 

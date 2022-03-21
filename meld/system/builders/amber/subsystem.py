@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple, List
 
 
-class _SubSystem(ABC):
+class _AmberSubSystem(ABC):
     """
     Base class for other SubSystem classes.
 
@@ -223,7 +223,7 @@ class _SubSystem(ABC):
         return lib_string
 
 
-class SubSystemFromSequence(_SubSystem):
+class AmberSubSystemFromSequence(_AmberSubSystem):
     """
     Class to create a sub-system from sequence.
 
@@ -243,7 +243,7 @@ class SubSystemFromSequence(_SubSystem):
         Args:
             sequence: the sequence to build
         """
-        super(SubSystemFromSequence, self).__init__()
+        super(AmberSubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
         chain_info = indexing._ChainInfo({i: i for i in range(sequence_len)})
@@ -267,7 +267,7 @@ class SubSystemFromSequence(_SubSystem):
         return leap_cmds
 
 
-class SubSystemFromPdbFile(_SubSystem):
+class AmberSubSystemFromPdbFile(_AmberSubSystem):
     """
     Create a new susbsystem from a pdb file.
 
@@ -289,7 +289,7 @@ class SubSystemFromPdbFile(_SubSystem):
         Args:
             pdb_path: path to pdb file
         """
-        super(SubSystemFromPdbFile, self).__init__()
+        super(AmberSubSystemFromPdbFile, self).__init__()
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
 

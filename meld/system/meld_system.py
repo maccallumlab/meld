@@ -47,7 +47,7 @@ class System(interfaces.ISystem):
     _residue_numbers: List[int]
     _atom_index: Any
 
-    def __init__(self, openmm_system, openmm_topology, init_coordinates):
+    def __init__(self, openmm_system, openmm_topology, integrator, barostat, init_coordinates):
         """
         Initialize a MELD system
 
@@ -58,6 +58,8 @@ class System(interfaces.ISystem):
         """
         self._openmm_system = openmm_system
         self._openmm_topology = openmm_topology
+        self._integrator = integrator
+        self._barostat = barostat
         self._init_coordinates = init_coordinates
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()

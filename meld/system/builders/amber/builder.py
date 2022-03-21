@@ -18,7 +18,7 @@ from typing import List, Optional
 import subprocess
 
 
-class SystemBuilder:
+class AmberSystemBuilder:
     r"""
     Class to handle building a System from SubSystems.
     """
