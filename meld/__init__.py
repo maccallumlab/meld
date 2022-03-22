@@ -44,4 +44,5 @@ from meld.system.param_sampling import (
     DiscreteSampler,
     ContinuousSampler,
 )
-from meld.system.patchers import add_rdc_alignment
+from meld.system.patchers.rdc_alignment import add_rdc_alignment
+from meld.system.patchers.spin_label import add_virtual_spin_label

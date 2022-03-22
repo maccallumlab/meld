@@ -7,6 +7,9 @@
 A module to define MELD Systems
 """
 
+import openmm as mm  # type: ignore
+from openmm import app
+
 from meld import interfaces
 from meld.system import restraints
 from meld.system import pdb_writer
@@ -37,6 +40,14 @@ class System(interfaces.ISystem):
     param_sampler: param_sampling.ParameterManager
     """The sampler for parameters"""
 
+    mapper: mapping.PeakMapManager
+    """The peak map manager"""
+
+    _solvation: str
+    _openmm_system: mm.System
+    _openmm_topology: app.Topology
+    _integrator: mm.LangevinIntegrator
+    _barostat: Optional[mm.MonteCarloBarostat]
     _template_coordinates: np.ndarray
     _template_velocities: np.ndarray
     _template_box_vectors: Optional[np.ndarray]
@@ -45,21 +56,30 @@ class System(interfaces.ISystem):
     _atom_names: List[str]
     _residue_names: List[str]
     _residue_numbers: List[int]
-    _atom_index: Any
 
     def __init__(
         self,
-        solvation,
-        openmm_system,
-        openmm_topology,
-        integrator,
-        barostat,
-        template_coordinates,
-        template_velocities,
-        template_box_vectors,
+        solvation: str,
+        openmm_system: mm.System,
+        openmm_topology: app.Topology,
+        integrator: mm.LangevinIntegrator,
+        barostat: Optional[mm.MonteCarloBarostat],
+        template_coordinates: np.ndarray,
+        template_velocities: np.ndarray,
+        template_box_vectors: Optional[np.ndarray],
     ):
         """
         Initialize a MELD system
+
+        Args:
+            solvation: the solvation model to use
+            openmm_system: the OpenMM system
+            openmm_topology: the OpenMM topology
+            integrator: the OpenMM integrator
+            barostat: the OpenMM barostat
+            template_coordinates: the coordinates of the template
+            template_velocities: the velocities of the template
+            template_box_vectors: the box vectors of the template
         """
         self._solvation = solvation
         self._openmm_system = openmm_system
@@ -151,7 +171,10 @@ class System(interfaces.ISystem):
         """
         return self._residue_names
 
-    def get_state_template(self):
+    def get_state_template(self) -> state.SystemState:
+        """
+        Get a template SystemState.
+        """
         pos = self._template_coordinates.copy()
         vel = self._template_velocities.copy()
         alpha = 0.0

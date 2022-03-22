@@ -1,10 +1,14 @@
 import unittest
 import openmm as mm  # type: ignore
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder, add_rdc_alignment
+from meld import (
+    AmberSubSystemFromSequence,
+    AmberSystemBuilder,
+    add_rdc_alignment,
+)
 from meld.system import indexing
 
 
-class TestGetRdcRestraintsNeck(unittest.TestCase):
+class TestRDCPatcherNeck(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
         b = AmberSystemBuilder()
@@ -41,7 +45,7 @@ class TestGetRdcRestraintsNeck(unittest.TestCase):
         self.assertEqual(res_index, EXPECTED)
 
 
-class TestGetRdcRestraintsOBC(unittest.TestCase):
+class TesRDCPatcherOBC(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
         b = AmberSystemBuilder()
@@ -78,7 +82,7 @@ class TestGetRdcRestraintsOBC(unittest.TestCase):
         self.assertEqual(res_index, EXPECTED)
 
 
-class TestGetRdcRestraintsTwice(unittest.TestCase):
+class TestRDCPatcherTwice(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
         b = AmberSystemBuilder()
@@ -132,6 +136,7 @@ def _get_customgb_force(system):
         if isinstance(force, mm.CustomGBForce):
             return force
     raise RuntimeError("No CustomGBForce found")
+
 
 def _get_obc_force(system):
     for force in system.getForces():
