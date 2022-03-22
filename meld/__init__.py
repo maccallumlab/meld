@@ -21,17 +21,19 @@ from meld.parse import (
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.adaptor import AdaptationPolicy, EqualAcceptanceAdaptor
 from meld.remd.leader import LeaderReplicaExchangeRunner
+from meld.system.options import RunOptions
 from meld.system.montecarlo import DoubleTorsionMover, MonteCarloScheduler
-from meld.system.patchers import RdcAlignmentPatcher, VirtualSpinLabelPatcher
-from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
-from meld.system.builder import SystemBuilder
+from meld.system.builders.amber.subsystem import (
+    AmberSubSystemFromSequence,
+    AmberSubSystemFromPdbFile,
+)
+from meld.system.builders.amber.builder import AmberSystemBuilder
 from meld.system.temperature import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,
     GeometricTemperatureScaler,
     REST2Scaler,
 )
-from meld.system.options import RunOptions
 from meld.system.indexing import AtomIndex, ResidueIndex
 from meld.system.param_sampling import (
     UniformDiscretePrior,

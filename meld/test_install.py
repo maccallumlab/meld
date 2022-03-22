@@ -4,8 +4,8 @@ Test MELD installation
 
 import meld  # type: ignore
 import meldplugin  # type: ignore
-import simtk.openmm as mm  # type: ignore
-import simtk.unit as u  # type: ignore
+import openmm as mm  # type: ignore
+import unit as u  # type: ignore
 
 import numpy as np  # type: ignore
 import random  # type: ignore

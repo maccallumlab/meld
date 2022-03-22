@@ -8,7 +8,6 @@ A module to define MELD Systems
 """
 
 from meld import interfaces
-from meld.system import amber
 from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import indexing
@@ -38,8 +37,9 @@ class System(interfaces.ISystem):
     param_sampler: param_sampling.ParameterManager
     """The sampler for parameters"""
 
-    _coordinates: np.ndarray
-    _box_vectors: np.ndarray
+    _template_coordinates: np.ndarray
+    _template_velocities: np.ndarray
+    _template_box_vectors: Optional[np.ndarray]
     _n_atoms: int
 
     _atom_names: List[str]
@@ -47,20 +47,29 @@ class System(interfaces.ISystem):
     _residue_numbers: List[int]
     _atom_index: Any
 
-    def __init__(self, openmm_system, openmm_topology, integrator, barostat, init_coordinates):
+    def __init__(
+        self,
+        solvation,
+        openmm_system,
+        openmm_topology,
+        integrator,
+        barostat,
+        template_coordinates,
+        template_velocities,
+        template_box_vectors,
+    ):
         """
         Initialize a MELD system
-
-        Args:
-            top_string: topology of system from tleap
-            mdcrd_string: coordinates of system from tleap
-            indexer: an Indexer object to handle indexing
         """
+        self._solvation = solvation
         self._openmm_system = openmm_system
         self._openmm_topology = openmm_topology
         self._integrator = integrator
         self._barostat = barostat
-        self._init_coordinates = init_coordinates
+        self._template_coordinates = template_coordinates
+        self._n_atoms = self._template_coordinates.shape[0]
+        self._template_velocities = template_velocities
+        self._template_box_vectors = template_box_vectors
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()
         self.mapper = mapping.PeakMapManager()
@@ -70,32 +79,62 @@ class System(interfaces.ISystem):
         self.extra_torsions = []
 
         self.temperature_scaler = None
-        self._setup_coords()
 
-        # TODO: need to re-write indexing to use openmm topology
         self._setup_indexing()
+
+    @property
+    def solvation(self):
+        return self._solvation
+
+    @property
+    def omm_system(self):
+        return self._openmm_system
+
+    @property
+    def topology(self):
+        return self._openmm_topology
+
+    @property
+    def integrator(self):
+        return self._integrator
+
+    @property
+    def barostat(self):
+        return self._barostat
 
     @property
     def n_atoms(self) -> int:
         """
         number of atoms
         """
-        # TODO: need to set this up based on openmm_topology
         return self._n_atoms
 
     @property
-    def init_coordinates(self) -> np.ndarray:
+    def template_coordinates(self) -> np.ndarray:
         """
-        initial coordinates of system
+        Get the template coordinates
         """
-        return self._init_coordinates
+        return self._template_coordinates
+
+    @property
+    def template_velocities(self) -> np.ndarray:
+        """
+        Get the template velocities
+        """
+        return self._template_velocities
+
+    @property
+    def template_box_vectors(self) -> Optional[np.ndarray]:
+        """
+        Get the template box vectors
+        """
+        return self._template_box_vectors
 
     @property
     def atom_names(self) -> List[str]:
         """
         names for each atom
         """
-        # TODO: this needs to be setup
         return self._atom_names
 
     @property
@@ -103,7 +142,6 @@ class System(interfaces.ISystem):
         """
         residue numbers for each atom
         """
-        # TODO: this needs to be setup
         return self._residue_numbers
 
     @property
@@ -111,15 +149,14 @@ class System(interfaces.ISystem):
         """
         residue names for each atom
         """
-        # TODO: this needs to be setup
         return self._residue_names
 
     def get_state_template(self):
-        pos = self._init_coordinates.copy()
-        vel = np.zeros_like(pos)
+        pos = self._template_coordinates.copy()
+        vel = self._template_velocities.copy()
         alpha = 0.0
         energy = 0.0
-        box_vectors = self._box_vectors
+        box_vectors = self._template_box_vectors
         if box_vectors is None:
             box_vectors = np.array([0.0, 0.0, 0.0])
         params = self.param_sampler.get_initial_state()
@@ -227,52 +264,17 @@ class System(interfaces.ISystem):
         )
 
     def _setup_indexing(self):
-        # TODO: This needs to be re-written
-        reader = amber.ParmTopReader(self._top_string)
+        self.index = indexing.setup_indexing(self._openmm_topology)
 
-        self._atom_names = reader.get_atom_names()
+        self._atom_names = [atom.name for atom in self._openmm_topology.atoms()]
         assert len(self._atom_names) == self._n_atoms
 
-        self._residue_numbers = reader.get_residue_numbers()
+        self._residue_numbers = [
+            atom.residue.index for atom in self._openmm_topology.atoms()
+        ]
         assert len(self._residue_numbers) == self._n_atoms
 
-        self._residue_names = reader.get_residue_names()
+        self._residue_names = [
+            atom.residue.name for atom in self._openmm_topology.atoms()
+        ]
         assert len(self._residue_names) == self._n_atoms
-
-    def _setup_coords(self):
-        # TODO: This needs to be re-written
-        reader = amber.CrdReader(self._mdcrd_string)
-        self._coordinates = reader.get_coordinates()
-        self._box_vectors = reader.get_box_vectors()
-        self._n_atoms = self._coordinates.shape[0]
-
-# TODO: This needs to be re-written
-# The patchers will work on OpenMM system, topology, coords, and box vectors.
-# Each patcher will run in sequence, modifying things before everything
-# is evenentually sent to the MELD System constructor.
-def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
-    # Load in top and crd files output by leap
-    with open(top_filename, "rt") as topfile:
-        top = topfile.read()
-    with open(crd_filename) as crdfile:
-        crd = crdfile.read()
-
-    # Allow patchers to modify top and crd strings
-    if patchers is None:
-        patchers = []
-    for patcher in patchers:
-        top, crd = patcher.patch(top, crd)
-
-    # Setup indexing
-    indexer = indexing._setup_indexing(
-        chains, amber.ParmTopReader(top), amber.CrdReader(crd)
-    )
-
-    # Create the system
-    system = System(top, crd, indexer)
-
-    # Allow the patchers to modify the system
-    for patcher in patchers:
-        patcher.finalize(system)
-
-    return system

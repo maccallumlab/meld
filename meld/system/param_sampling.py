@@ -10,7 +10,7 @@ from collections import OrderedDict
 from typing import NamedTuple, Optional, TypeVar, Generic, List
 from abc import ABCMeta, abstractmethod
 import numpy as np  # type: ignore
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 
 Number = TypeVar("Number", int, float)

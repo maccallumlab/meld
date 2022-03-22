@@ -154,7 +154,7 @@ from meld.system.scalers import (
     ConstantRamp,
     ScalerRegistry,
 )
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import math
 import numpy as np  # type: ignore

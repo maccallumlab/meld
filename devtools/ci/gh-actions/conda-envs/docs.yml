@@ -29,4 +29,3 @@ dependencies:
 - netcdf4
 - hdf4
 - ambertools
-- parmed

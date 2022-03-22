@@ -8,10 +8,10 @@ from meld.system import subsystem
 from meld.system import builder
 from meld.system import temperature
 from meld.system import options
-from simtk.openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  # type: ignore
-from simtk.openmm.app import forcefield as ff
-from simtk.openmm import LangevinIntegrator, MonteCarloBarostat  # type: ignore
-from simtk.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  # type: ignore
+from openmm.app import AmberPrmtopFile, OBC2, GBn, GBn2  # type: ignore
+from openmm.app import forcefield as ff
+from openmm import LangevinIntegrator, MonteCarloBarostat  # type: ignore
+from openmm.unit import kelvin, picosecond, femtosecond, mole, gram, atmosphere  # type: ignore
 
 import unittest
 from unittest import mock  # type: ignore

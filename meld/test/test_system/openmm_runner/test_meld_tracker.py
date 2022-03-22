@@ -8,7 +8,7 @@ import numpy as np
 import meld
 from copy import deepcopy
 
-from simtk import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 
 class TestTrackerWithNoDependencies(unittest.TestCase):

@@ -3,25 +3,16 @@
 # All rights reserved
 #
 
-# TODO: Many functions in this file need to moved to the specific Amber systme builder classes.
-# The functions in this file will take in a MELD system and modify it
-# as needed to add the additional forces and setup the integrator etc,
-# but they won't need to start from an Amber topology, as they will
-# provided with an openmm system. The interactions with Amber / Martini / etc
-# will instead happen in the builders.
-
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
 from meld.system.state import SystemState
 from meld.runner import transform
 from meld.util import log_timing
-from meldplugin import MeldForce  # type: ignore
 
-from simtk.openmm import app  # type: ignore
-from simtk.openmm.app import forcefield as ff  # type: ignore
-from simtk import openmm as mm  # type: ignore
-from simtk import unit as u  # type: ignore
+from openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import logging
 import numpy as np  # type: ignore
@@ -37,25 +28,13 @@ logger = logging.getLogger(__name__)
 GAS_CONSTANT = 8.314e-3
 
 
-# namedtuples to store simulation information
-class PressureCouplingParams(NamedTuple):
-    enable: bool
-    pressure: float
-    temperature: float
-    steps: int
-
-
-class PMEParams(NamedTuple):
-    enable: bool
-    tolerance: float
-
-
 class OpenMMRunner(interfaces.IRunner):
-    _parm_string: str
     _always_on_restraints: List[restraints.Restraint]
     _selectable_collections: List[restraints.SelectivelyActiveCollection]
     _options: options.RunOptions
     _simulation: app.Simulation
+    _omm_system: mm.System
+    _topology: app.Topology
     _integrator: mm.LangevinIntegrator
     _barostat: mm.MonteCarloBarostat
     _timestep: int
@@ -69,11 +48,20 @@ class OpenMMRunner(interfaces.IRunner):
 
     def __init__(
         self,
-        system: interfaces.ISystem,
+        meld_system: interfaces.ISystem,
         options: options.RunOptions,
         communicator: Optional[interfaces.ICommunicator] = None,
         platform: str = None,
     ):
+        self._omm_system = meld_system.omm_system
+        self._topology = meld_system.topology
+        self._integrator = meld_system.integrator
+        self._barostat = meld_system.barostat
+        self._solvation = meld_system.solvation
+        assert (
+            self._solvation == options.solvation
+        ), "Solvation type mismatch between system and options."
+
         # Default to CUDA platform
         platform = platform if platform else "CUDA"
         self.platform = platform
@@ -87,23 +75,25 @@ class OpenMMRunner(interfaces.IRunner):
             self._device_id = 0
             self._rank = None
 
-        if system.temperature_scaler is None:
+        if meld_system.temperature_scaler is None:
             raise RuntimeError("system does not have temparture_scaler set")
         else:
-            self.temperature_scaler = system.temperature_scaler
-        self._parm_string = system.top_string
-        self._always_on_restraints = system.restraints.always_active
-        self._selectable_collections = system.restraints.selectively_active_collections
+            self.temperature_scaler = meld_system.temperature_scaler
+
+        self._always_on_restraints = meld_system.restraints.always_active
+        self._selectable_collections = (
+            meld_system.restraints.selectively_active_collections
+        )
         self._options = options
         self._timestep = 0
         self._initialized = False
         self._alpha = 0.0
         self._transformers: List[transform.TransformerBase] = []
-        self._extra_bonds = system.extra_bonds
-        self._extra_restricted_angles = system.extra_restricted_angles
-        self._extra_torsions = system.extra_torsions
-        self._parameter_manager = system.param_sampler
-        self._mapper = system.mapper
+        self._extra_bonds = meld_system.extra_bonds
+        self._extra_restricted_angles = meld_system.extra_restricted_angles
+        self._extra_torsions = meld_system.extra_torsions
+        self._parameter_manager = meld_system.param_sampler
+        self._mapper = meld_system.mapper
 
     def prepare_for_timestep(
         self, state: interfaces.IState, alpha: float, timestep: int
@@ -157,7 +147,7 @@ class OpenMMRunner(interfaces.IRunner):
         if self._initialized:
             # update temperature and pressure
             self._integrator.setTemperature(self._temperature)
-            if self._options.enable_pressure_coupling:
+            if self._barostat:
                 self._simulation.context.setParameter(
                     self._barostat.Temperature(), self._temperature
                 )
@@ -169,39 +159,12 @@ class OpenMMRunner(interfaces.IRunner):
             # we need to set the whole thing from scratch
             self._initialized = True
 
-            prmtop = _parm_top_from_string(self._parm_string)
-
-            # create parameter objects
-            pme_params = PMEParams(
-                enable=self._options.enable_pme, tolerance=self._options.pme_tolerance
-            )
-            pcouple_params = PressureCouplingParams(
-                enable=self._options.enable_pressure_coupling,
-                temperature=self._temperature,
-                pressure=self._options.pressure,
-                steps=self._options.pressure_coupling_update_steps,
-            )
-
-            # build the system
-            sys, barostat = _create_openmm_system(
-                prmtop,
-                self._options.solvation,
-                self._options.cutoff,
-                self._options.use_big_timestep,
-                self._options.use_bigger_timestep,
-                self._options.implicit_solvent_model,
-                pme_params,
-                pcouple_params,
-                self._options.remove_com,
-                self._temperature,
+            _add_extras(
+                self._omm_system,
                 self._extra_bonds,
                 self._extra_restricted_angles,
                 self._extra_torsions,
-                self._options.implicitSolventSaltConc,
-                self._options.soluteDielectric,
-                self._options.solventDielectric,
             )
-            self._barostat = barostat
 
             # setup the transformers
             self._transformers_setup()
@@ -217,15 +180,10 @@ class OpenMMRunner(interfaces.IRunner):
                     print("\t", remaining_selectable)
                 raise RuntimeError("Not all selectable restraints were handled.")
 
-            sys = self._transformers_add_interactions(state, sys, prmtop.topology)
-            self._transformers_finalize(state, sys, prmtop.topology)
-
-            # create the integrator
-            self._integrator = _create_integrator(
-                self._temperature,
-                self._options.use_big_timestep,
-                self._options.use_bigger_timestep,
+            self._omm_system = self._transformers_add_interactions(
+                state, self._omm_system, self._topology
             )
+            self._transformers_finalize(state, self._omm_system, self._topology)
 
             # setup the platform, CUDA by default and Reference for testing
             properties: Dict[str, str]
@@ -258,17 +216,12 @@ class OpenMMRunner(interfaces.IRunner):
 
             # create the simulation object
             self._simulation = _create_openmm_simulation(
-                prmtop.topology, sys, self._integrator, platform, properties
+                self._topology, self._omm_system, self._integrator, platform, properties
             )
 
             self._transformers_update(state)
 
     def _transformers_setup(self) -> None:
-        # CMAPTransformer is different, so we add it separately
-        self._transformers.append(
-            transform.CMAPTransformer(self._options, self._parm_string)
-        )
-
         trans_types = [
             transform.ConfinementRestraintTransformer,
             transform.RDCRestraintTransformer,
@@ -518,68 +471,6 @@ def _create_openmm_simulation(topology, system, integrator, platform, properties
     return app.Simulation(topology, system, integrator, platform, properties)
 
 
-def _parm_top_from_string(parm_string):
-    with tempfile.NamedTemporaryFile(mode="w") as parm_file:
-        parm_file.write(parm_string)
-        parm_file.flush()
-        prm_top = app.AmberPrmtopFile(parm_file.name)
-        return prm_top
-
-
-def _create_openmm_system(
-    parm_object,
-    solvation_type,
-    cutoff,
-    use_big_timestep,
-    use_bigger_timestep,
-    implicit_solvent,
-    pme_params,
-    pcouple_params,
-    remove_com,
-    temperature,
-    extra_bonds,
-    extra_restricted_angles,
-    extra_torsions,
-    implicitSolventSaltConc,
-    soluteDielectric,
-    solventDielectric,
-):
-    if solvation_type == "implicit":
-        logger.info("Creating implicit solvent system")
-        system, baro = (
-            _create_openmm_system_implicit(
-                parm_object,
-                cutoff,
-                use_big_timestep,
-                use_bigger_timestep,
-                implicit_solvent,
-                remove_com,
-                implicitSolventSaltConc,
-                soluteDielectric,
-                solventDielectric,
-            ),
-            None,
-        )
-    elif solvation_type == "explicit":
-        logger.info("Creating explicit solvent system")
-        system, baro = _create_openmm_system_explicit(
-            parm_object,
-            cutoff,
-            use_big_timestep,
-            use_bigger_timestep,
-            pme_params,
-            pcouple_params,
-            remove_com,
-            temperature,
-        )
-    else:
-        raise ValueError(f"unknown value for solvation_type: {solvation_type}")
-
-    _add_extras(system, extra_bonds, extra_restricted_angles, extra_torsions)
-
-    return system, baro
-
-
 def _add_extras(system, bonds, restricted_angles, torsions):
     # add the extra bonds
     if bonds:
@@ -617,143 +508,3 @@ def _add_extras(system, bonds, restricted_angles, torsions):
                 tors.phase,
                 tors.energy,
             )
-
-
-def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):
-    if use_big_timestep:
-        logger.info("Enabling hydrogen mass=3, constraining all bonds")
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 3.0 * u.gram / u.mole
-    elif use_bigger_timestep:
-        logger.info("Enabling hydrogen mass=4, constraining all bonds")
-        constraint_type = ff.AllBonds
-        hydrogen_mass = 4.0 * u.gram / u.mole
-    else:
-        logger.info("Enabling hydrogen mass=1, constraining bonds with hydrogen")
-        constraint_type = ff.HBonds
-        hydrogen_mass = None
-    return hydrogen_mass, constraint_type
-
-
-def _create_openmm_system_implicit(
-    parm_object,
-    cutoff,
-    use_big_timestep,
-    use_bigger_timestep,
-    implicit_solvent,
-    remove_com,
-    implicitSolventSaltConc,
-    soluteDielectric,
-    solventDielectric,
-):
-    if cutoff is None:
-        logger.info("Using no cutoff")
-        cutoff_type = ff.NoCutoff
-        cutoff_dist = 999.0
-    else:
-        logger.info(f"Using a cutoff of {cutoff}")
-        cutoff_type = ff.CutoffNonPeriodic
-        cutoff_dist = cutoff
-
-    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
-        use_big_timestep, use_bigger_timestep
-    )
-
-    if implicit_solvent == "obc":
-        logger.info('Using "OBC" implicit solvent')
-        implicit_type = app.OBC2
-    elif implicit_solvent == "gbNeck":
-        logger.info('Using "gbNeck" implicit solvent')
-        implicit_type = app.GBn
-    elif implicit_solvent == "gbNeck2":
-        logger.info('Using "gbNeck2" implicit solvent')
-        implicit_type = app.GBn2
-    elif implicit_solvent == "vacuum" or implicit_solvent is None:
-        logger.info("Using vacuum instead of implicit solvent")
-        implicit_type = None
-    else:
-        RuntimeError("Should never get here")
-
-    if implicitSolventSaltConc is None:
-        implicitSolventSaltConc = 0.0
-    if soluteDielectric is None:
-        soluteDielectric = 1.0
-    if solventDielectric is None:
-        solventDielectric = 78.5
-
-    sys = parm_object.createSystem(
-        nonbondedMethod=cutoff_type,
-        nonbondedCutoff=cutoff_dist,
-        constraints=constraint_type,
-        implicitSolvent=implicit_type,
-        removeCMMotion=remove_com,
-        hydrogenMass=hydrogen_mass,
-        implicitSolventSaltConc=implicitSolventSaltConc,
-        soluteDielectric=soluteDielectric,
-        solventDielectric=solventDielectric,
-    )
-    return sys
-
-
-def _create_openmm_system_explicit(
-    parm_object,
-    cutoff,
-    use_big_timestep,
-    use_bigger_timestep,
-    pme_params,
-    pcouple_params,
-    remove_com,
-    temperature,
-):
-    if cutoff is None:
-        raise ValueError("cutoff must be set for explicit solvent, but got None")
-    else:
-        if pme_params.enable:
-            logger.info(f"Using PME with tolerance {pme_params.tolerance}")
-            cutoff_type = ff.PME
-        else:
-            logger.info("Using reaction field")
-            cutoff_type = ff.CutoffPeriodic
-
-        logger.info(f"Using a cutoff of {cutoff}")
-        cutoff_dist = cutoff
-
-    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
-        use_big_timestep, use_bigger_timestep
-    )
-
-    s = parm_object.createSystem(
-        nonbondedMethod=cutoff_type,
-        nonbondedCutoff=cutoff_dist,
-        constraints=constraint_type,
-        implicitSolvent=None,
-        removeCMMotion=remove_com,
-        hydrogenMass=hydrogen_mass,
-        rigidWater=True,
-        ewaldErrorTolerance=pme_params.tolerance,
-    )
-
-    baro = None
-    if pcouple_params.enable:
-        logger.info("Enabling pressure coupling")
-        logger.info(f"Pressure is {pcouple_params.pressure}")
-        logger.info(f"Volume moves attempted every {pcouple_params.steps} steps")
-        baro = mm.MonteCarloBarostat(
-            pcouple_params.pressure, pcouple_params.temperature, pcouple_params.steps
-        )
-        s.addForce(baro)
-
-    return s, baro
-
-
-def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
-    if use_big_timestep:
-        logger.info("Creating integrator with 3.5 fs timestep")
-        timestep = 3.5 * u.femtosecond
-    elif use_bigger_timestep:
-        logger.info("Creating integrator with 4.5 fs timestep")
-        timestep = 4.5 * u.femtosecond
-    else:
-        logger.info("Creating integrator with 2.0 fs timestep")
-        timestep = 2.0 * u.femtosecond
-    return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)

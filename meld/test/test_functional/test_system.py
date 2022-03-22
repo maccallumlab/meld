@@ -13,7 +13,7 @@ from meld.system.temperature import (
 )
 from meld.system.options import RunOptions
 from meld.system import amber
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 
 class TestCreateFromSequence(unittest.TestCase):

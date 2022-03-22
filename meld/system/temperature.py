@@ -3,7 +3,7 @@ Module to handle temperature scaling
 """
 
 from meld.util import strip_unit
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 from abc import ABC, abstractmethod
 import math

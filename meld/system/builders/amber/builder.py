@@ -9,13 +9,22 @@ Module to build a System from SubSystems
 
 from meld import util
 from meld import interfaces
-from meld.system import meld_system
-from meld.system import indexing
-from meld.system import subsystem
-from meld.system import patchers
+from ..spec import SystemSpec
+from ... import indexing
+from . import subsystem
+from . import amap
+
+from openmm import app  # type: ignore
+from openmm.app import forcefield as ff  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import unit as u  # type: ignore
+import numpy as np  # type: ignore
 
 from typing import List, Optional
 import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AmberSystemBuilder:
@@ -27,7 +36,7 @@ class AmberSystemBuilder:
         self,
         forcefield: str = "ff14sbside",
         gb_radii: str = "mbondi3",
-        explicit_solvent: bool = False,
+        solvation: str = "implicit",
         solvent_forcefield: str = "tip3p",
         solvent_distance: float = 0.6,
         explicit_ions: bool = False,
@@ -42,7 +51,7 @@ class AmberSystemBuilder:
         Args:
             forcefield: the forcefield to use [ff12sb, ff14sb, ff14sbside]
             gb_radii: the generalized Born radii [mbondi2, mbondi3]
-            explicit_solvent: use explicit solvent?
+            solvation: "implicit" or "explicit"
             solvent_forcefield: explicit force field [spce, spceb, opc, tip3p, tip4pew]
             solvent_distance: distance between protein and edge of solvent box, nm
             explicit_ions: include explicit ions?
@@ -56,9 +65,11 @@ class AmberSystemBuilder:
         self._gb_radii = None
         self._set_gb_radii(gb_radii)
 
-        self._explicit_solvent = explicit_solvent
+        if solvation not in ["implicit", "explicit"]:
+            raise ValueError("solvation must be \"implicit\" or \"explicit\"")
+        self._solvation = solvation
         self._explicit_ions = explicit_ions
-        if self._explicit_solvent:
+        if self._solvation == "explicit":
             self._set_solvent_forcefield(solvent_forcefield)
             self._solvent_dist = solvent_distance * 10.0  # nm to angstrom
 
@@ -70,30 +81,54 @@ class AmberSystemBuilder:
 
     def build_system(
         self,
-        subsystems: List[subsystem._SubSystem],
-        patchers: Optional[List[patchers.PatcherBase]] = None,
+        subsystems: List[subsystem._AmberSubSystem],
         leap_header_cmds: Optional[List[str]] = None,
-    ) -> interfaces.ISystem:
+        remove_com: bool = True,
+        implicit_solvent_model: str = "gbNeck2",
+        cutoff: Optional[float] = None,
+        use_big_timestep: bool = False,
+        use_bigger_timestep: bool = False,
+        enable_pme: Optional[bool] = None,
+        enable_pressure_coupling: Optional[bool] = None,
+        pressure: float = 1.01325,
+        pressure_coupling_update_steps: int = 25,
+        pme_tolerance: float = 0.0005,
+        solute_dielectric=None,
+        solvent_dielectric=None,
+        implicit_solvent_salt_conc=None,
+        default_temperature: float = 300.0,
+        enable_amap = False,
+        amap_alpha_bias = 1.0,
+        amap_beta_bias = 1.0,
+    ) -> SystemSpec:
         """
-        Build the system from SubSystems
-
-        Args:
-            subsystems: component subsystems that make up the system
-            patchers: an optional list of patchers to modify system
-            leap_header_cmds: an optional list of leap commands
-
-        Returns:
-            the MELD system
+        Build the system from AmberSubSystems
         """
         if not subsystems:
             raise ValueError("len(subsystems) must be > 0")
 
-        if patchers is None:
-            patchers = []
         if leap_header_cmds is None:
             leap_header_cmds = []
         if isinstance(leap_header_cmds, str):
             leap_header_cmds = [leap_header_cmds]
+
+        if cutoff is None:
+            if self._solvation == "explicit":
+                cutoff = 1.4
+            else:
+                cutoff = None
+
+        if enable_pme is None:
+            if self._solvation == "explicit":
+                enable_pme = True
+            else:
+                enable_pme = False
+
+        if enable_pressure_coupling is None:
+            if self._solvation == "explicit":
+                enable_pressure_coupling = True
+            else:
+                enable_pressure_coupling = False
 
         with util.in_temp_dir():
             mol_ids = []
@@ -117,7 +152,7 @@ class AmberSystemBuilder:
                 sub.prepare_for_tleap(mol_id)
                 leap_cmds.extend(sub.generate_tleap_input(mol_id))
 
-            if self._explicit_solvent:
+            if self._solvation == "explicit":
                 leap_cmds.extend(self._generate_solvent(mol_ids))
                 leap_cmds.extend(self._generate_leap_footer([f"solute"]))
             else:
@@ -156,7 +191,52 @@ class AmberSystemBuilder:
                 print()
                 raise
 
-            return meld_system._load_amber_system("system.top", "system.mdcrd", chains, patchers)
+            prmtop = app.AmberPrmtopFile("system.top")
+            crd = app.AmberInpcrdFile("system.mdcrd")
+
+        topology = prmtop.topology
+        topology = _add_chains(topology, chains)
+
+        system, barostat = _create_openmm_system(
+            prmtop,
+            self._solvation,
+            cutoff,
+            use_big_timestep,
+            use_bigger_timestep,
+            implicit_solvent_model,
+            enable_pme,
+            pme_tolerance,
+            enable_pressure_coupling,
+            pressure,
+            pressure_coupling_update_steps,
+            remove_com,
+            default_temperature,
+            implicit_solvent_salt_conc,
+            solute_dielectric,
+            solvent_dielectric,
+        )
+
+        if enable_amap:
+            amap.add_amap(system, topology, amap_alpha_bias, amap_beta_bias)
+
+        integrator = _create_integrator(
+            default_temperature, use_big_timestep, use_bigger_timestep
+        )
+
+        coords = crd.getPositions(asNumpy=True).value_in_unit(u.nanometer)
+        try:
+            vels = crd.getPositions(asNumpy=True)
+        except AttributeError:
+            print("WARNING: No velocities found, setting to zero")
+            vels = np.zeros_like(coords)
+        try:
+            box = crd.getBoxVectors(asNumpy=True)
+        except AttributeError:
+            box = None
+
+        return SystemSpec(
+            self._solvation, system, topology, integrator, barostat, coords, vels, box
+        )
 
     def _set_forcefield(self, forcefield):
         ff_dict = {
@@ -215,7 +295,7 @@ class AmberSystemBuilder:
         leap_cmds = []
         leap_cmds.append(f"set default PBradii {self._gb_radii}")
         leap_cmds.append(f"source {self._forcefield}")
-        if self._explicit_solvent:
+        if self._solvation == "explicit":
             leap_cmds.append(f"source {self._solvent_forcefield}")
         return leap_cmds
 
@@ -241,3 +321,249 @@ class AmberSystemBuilder:
         leap_cmds.append("saveAmberParm sys system.top system.mdcrd")
         leap_cmds.append("quit")
         return leap_cmds
+
+
+def _create_openmm_system(
+    parm_object,
+    solvation_type,
+    cutoff,
+    use_big_timestep,
+    use_bigger_timestep,
+    implicit_solvent,
+    enable_pme,
+    pme_tolerance,
+    enable_pressure_coupling,
+    pressure,
+    pressure_coupling_update_steps,
+    remove_com,
+    default_temperature,
+    implicitSolventSaltConc,
+    soluteDielectric,
+    solventDielectric,
+):
+    if solvation_type == "implicit":
+        logger.info("Creating implicit solvent system")
+        system = _create_openmm_system_implicit(
+            parm_object,
+            cutoff,
+            use_big_timestep,
+            use_bigger_timestep,
+            implicit_solvent,
+            remove_com,
+            implicitSolventSaltConc,
+            soluteDielectric,
+            solventDielectric,
+        )
+        baro = None
+    elif solvation_type == "explicit":
+        logger.info("Creating explicit solvent system")
+        system, baro = _create_openmm_system_explicit(
+            parm_object,
+            cutoff,
+            use_big_timestep,
+            use_bigger_timestep,
+            enable_pme,
+            pme_tolerance,
+            enable_pressure_coupling,
+            pressure,
+            pressure_coupling_update_steps,
+            remove_com,
+            default_temperature,
+        )
+    else:
+        raise ValueError(f"unknown value for solvation_type: {solvation_type}")
+
+    return system, baro
+
+
+def _get_hydrogen_mass_and_constraints(use_big_timestep, use_bigger_timestep):
+    if use_big_timestep:
+        logger.info("Enabling hydrogen mass=3, constraining all bonds")
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 3.0 * u.gram / u.mole
+    elif use_bigger_timestep:
+        logger.info("Enabling hydrogen mass=4, constraining all bonds")
+        constraint_type = ff.AllBonds
+        hydrogen_mass = 4.0 * u.gram / u.mole
+    else:
+        logger.info("Enabling hydrogen mass=1, constraining bonds with hydrogen")
+        constraint_type = ff.HBonds
+        hydrogen_mass = None
+    return hydrogen_mass, constraint_type
+
+
+def _create_openmm_system_implicit(
+    parm_object,
+    cutoff,
+    use_big_timestep,
+    use_bigger_timestep,
+    implicit_solvent,
+    remove_com,
+    implicitSolventSaltConc,
+    soluteDielectric,
+    solventDielectric,
+):
+    if cutoff is None:
+        logger.info("Using no cutoff")
+        cutoff_type = ff.NoCutoff
+        cutoff_dist = 999.0
+    else:
+        logger.info(f"Using a cutoff of {cutoff}")
+        cutoff_type = ff.CutoffNonPeriodic
+        cutoff_dist = cutoff
+
+    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
+        use_big_timestep, use_bigger_timestep
+    )
+
+    if implicit_solvent == "obc":
+        logger.info('Using "OBC" implicit solvent')
+        implicit_type = app.OBC2
+    elif implicit_solvent == "gbNeck":
+        logger.info('Using "gbNeck" implicit solvent')
+        implicit_type = app.GBn
+    elif implicit_solvent == "gbNeck2":
+        logger.info('Using "gbNeck2" implicit solvent')
+        implicit_type = app.GBn2
+    elif implicit_solvent == "vacuum" or implicit_solvent is None:
+        logger.info("Using vacuum instead of implicit solvent")
+        implicit_type = None
+    else:
+        RuntimeError("Should never get here")
+
+    if implicitSolventSaltConc is None:
+        implicitSolventSaltConc = 0.0
+    if soluteDielectric is None:
+        soluteDielectric = 1.0
+    if solventDielectric is None:
+        solventDielectric = 78.5
+
+    sys = parm_object.createSystem(
+        nonbondedMethod=cutoff_type,
+        nonbondedCutoff=cutoff_dist,
+        constraints=constraint_type,
+        implicitSolvent=implicit_type,
+        removeCMMotion=remove_com,
+        hydrogenMass=hydrogen_mass,
+        implicitSolventSaltConc=implicitSolventSaltConc,
+        soluteDielectric=soluteDielectric,
+        solventDielectric=solventDielectric,
+    )
+    return sys
+
+
+def _create_openmm_system_explicit(
+    parm_object,
+    cutoff,
+    use_big_timestep,
+    use_bigger_timestep,
+    enable_pme,
+    pme_tolerance,
+    enable_pressure_coupling,
+    pressure,
+    pressure_couping_update_steps,
+    remove_com,
+    default_temperature,
+):
+    if cutoff is None:
+        raise ValueError("cutoff must be set for explicit solvent, but got None")
+    else:
+        if enable_pme.enable:
+            logger.info(f"Using PME with tolerance {pme_tolerance}")
+            cutoff_type = ff.PME
+        else:
+            logger.info("Using reaction field")
+            cutoff_type = ff.CutoffPeriodic
+
+        logger.info(f"Using a cutoff of {cutoff}")
+        cutoff_dist = cutoff
+
+    hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
+        use_big_timestep, use_bigger_timestep
+    )
+
+    s = parm_object.createSystem(
+        nonbondedMethod=cutoff_type,
+        nonbondedCutoff=cutoff_dist,
+        constraints=constraint_type,
+        implicitSolvent=None,
+        removeCMMotion=remove_com,
+        hydrogenMass=hydrogen_mass,
+        rigidWater=True,
+        ewaldErrorTolerance=pme_tolerance,
+    )
+
+    baro = None
+    if enable_pressure_coupling:
+        logger.info("Enabling pressure coupling")
+        logger.info(f"Pressure is {pressure}")
+        logger.info(
+            f"Volume moves attempted every {pressure_couping_update_steps} steps"
+        )
+        baro = mm.MonteCarloBarostat(
+            pressure, default_temperature, pressure_couping_update_steps
+        )
+        s.addForce(baro)
+
+    return s, baro
+
+
+def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
+    if use_big_timestep:
+        logger.info("Creating integrator with 3.5 fs timestep")
+        timestep = 3.5 * u.femtosecond
+    elif use_bigger_timestep:
+        logger.info("Creating integrator with 4.5 fs timestep")
+        timestep = 4.5 * u.femtosecond
+    else:
+        logger.info("Creating integrator with 2.0 fs timestep")
+        timestep = 2.0 * u.femtosecond
+    return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)
+
+
+def _add_chains(topology, chain_list):
+    # Verify that the input from Amber only has one chain
+    assert len(list(topology.chains())) == 1
+
+    newtop = app.Topology()
+
+    # Add the chains to the new topology and
+    # create a map between residues and chains.
+    chain_map = {}
+    for chain_info in chain_list:
+        chain = newtop.addChain()
+        for res in chain_info.residues.values():
+            chain_map[res] = chain
+
+    # Now we'll create a final chain for solvent, etc
+    # and everything left to this last chain.
+    last_chain = newtop.addChain()
+    for res in topology.residues():
+        if res.index not in chain_map:
+            chain_map[res.index] = last_chain
+
+    # Add all of the residues to the new topology, while
+    # correcting the chain index.
+    # Create a map between the old and new residues so
+    # that we can add the atoms.
+    residue_map = {}
+    for residue in topology.residues():
+        chain = chain_map[residue.index]
+        new_residue = newtop.addResidue(residue.name, chain, residue.index)
+        residue_map[residue] = new_residue
+
+    # Now add back all of the atoms with tne new residues.
+    # We keep a map between the old and new atoms so that
+    # we can add the bonds.
+    atom_map = {}
+    for atom in topology.atoms():
+        new_atom = newtop.addAtom(
+            atom.name, atom.element, residue_map[atom.residue], atom.index
+        )
+        atom_map[atom] = new_atom
+
+    # Now we add all of the bonds
+    for bond in topology.bonds():
+        newtop.addBond(atom_map[bond[0]], atom_map[bond[1]])
+
+    return newtop

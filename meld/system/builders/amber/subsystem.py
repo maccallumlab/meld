@@ -7,14 +7,11 @@
 Module to build SubSystems from sequence or PDB file
 """
 
-from meld.system import indexing
-import parmed  # type: ignore
-
-import numpy as np  # type: ignore
 import math
-from collections import defaultdict
 from abc import ABC, abstractmethod
-from typing import NamedTuple, List
+from typing import List
+import numpy as np  # type: ignore
+from meld.system import indexing
 
 
 class _AmberSubSystem(ABC):
@@ -131,7 +128,9 @@ class _AmberSubSystem(ABC):
             (int(res_index_i), int(res_index_j), atom_name_i, atom_name_j, bond_type)
         )
 
-    def add_disulfide(self, res_index_i, res_index_j):
+    def add_disulfide(
+        self, res_index_i: indexing.ResidueIndex, res_index_j: indexing.ResidueIndex
+    ):
         """
         Add a disulfide bond.
 
@@ -179,7 +178,7 @@ class _AmberSubSystem(ABC):
         """
         self._lib_files.append(fname)
 
-    def _gen_translation_string(self, mol_id):
+    def _gen_translation_string(self, mol_id: str) -> str:
         return """translate {mol_id} {{ {x} {y} {z} }}""".format(
             mol_id=mol_id,
             x=self._translation_vector[0],
@@ -187,36 +186,36 @@ class _AmberSubSystem(ABC):
             z=self._translation_vector[2],
         )
 
-    def _gen_rotation_string(self, mol_id):
+    def _gen_rotation_string(self, mol_id: str) -> str:
         return ""
 
-    def _gen_bond_string(self, mol_id):
+    def _gen_bond_string(self, mol_id: str) -> List[str]:
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
             d = f'bond {mol_id}.{i+1}.{a} {mol_id}.{j+1}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
-    def _gen_disulfide_string(self, mol_id):
+    def _gen_disulfide_string(self, mol_id: str) -> List[str]:
         disulfide_strings = []
         for i, j in self._disulfide_list:
             d = f"bond {mol_id}.{i+1}.SG {mol_id}.{j+1}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
-    def _gen_read_prep_string(self):
+    def _gen_read_prep_string(self) -> List[str]:
         prep_string = []
         for p in self._prep_files:
             prep_string.append(f"loadAmberPrep {p}")
         return prep_string
 
-    def _gen_read_frcmod_string(self):
+    def _gen_read_frcmod_string(self) -> List[str]:
         frcmod_string = []
         for p in self._frcmod_files:
             frcmod_string.append(f"loadAmberParams {p}")
         return frcmod_string
 
-    def _gen_read_lib_string(self):
+    def _gen_read_lib_string(self) -> List[str]:
         lib_string = []
         for p in self._lib_files:
             lib_string.append(f"loadoff {p}")
@@ -249,11 +248,11 @@ class AmberSubSystemFromSequence(_AmberSubSystem):
         chain_info = indexing._ChainInfo({i: i for i in range(sequence_len)})
         self._info = indexing._SubSystemInfo(sequence_len, [chain_info])
 
-    def prepare_for_tleap(self, mol_id):
+    def prepare_for_tleap(self, mol_id: str):
         # we don't need to do anything
         pass
 
-    def generate_tleap_input(self, mol_id):
+    def generate_tleap_input(self, mol_id: str):
         leap_cmds = []
         leap_cmds.append("source leaprc.gaff")
         leap_cmds.extend(self._gen_read_frcmod_string())
@@ -289,44 +288,47 @@ class AmberSubSystemFromPdbFile(_AmberSubSystem):
         Args:
             pdb_path: path to pdb file
         """
-        super(AmberSubSystemFromPdbFile, self).__init__()
-        with open(pdb_path) as pdb_file:
-            self._pdb_contents = pdb_file.read()
+        # TODO Need to fix this to not use parmed
+        raise NotImplementedError
 
-        # figure out chains
-        pdb = parmed.load_file(pdb_path)
-        n_residues = len(pdb.residues)
+    #     super(AmberSubSystemFromPdbFile, self).__init__()
+    #     with open(pdb_path) as pdb_file:
+    #         self._pdb_contents = pdb_file.read()
 
-        # get list of chainids
-        chainids = []
-        chain_to_res = defaultdict(list)
-        for i, residue in enumerate(pdb.residues):
-            chainids.append(residue.chain)
-            chain_to_res[residue.chain].append(i)
-        chainid_set = set(chainids)
+    #     # figure out chains
+    #     pdb = parmed.load_file(pdb_path)
+    #     n_residues = len(pdb.residues)
 
-        # loop over the chainids in alphabetical order
-        chains = []
-        for chainid in sorted(chainid_set):
-            chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
-            chains.append(chain)
-        self._info = indexing._SubSystemInfo(n_residues, chains)
+    #     # get list of chainids
+    #     chainids = []
+    #     chain_to_res = defaultdict(list)
+    #     for i, residue in enumerate(pdb.residues):
+    #         chainids.append(residue.chain)
+    #         chain_to_res[residue.chain].append(i)
+    #     chainid_set = set(chainids)
 
-    def prepare_for_tleap(self, mol_id):
-        # copy the contents of the pdb file into the current working directory
-        pdb_path = f"{mol_id}.pdb"
-        with open(pdb_path, "w") as pdb_file:
-            pdb_file.write(self._pdb_contents)
+    #     # loop over the chainids in alphabetical order
+    #     chains = []
+    #     for chainid in sorted(chainid_set):
+    #         chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+    #         chains.append(chain)
+    #     self._info = indexing._SubSystemInfo(n_residues, chains)
 
-    def generate_tleap_input(self, mol_id):
-        leap_cmds = []
-        leap_cmds.append("source leaprc.gaff")
-        leap_cmds.extend(self._gen_read_frcmod_string())
-        leap_cmds.extend(self._gen_read_prep_string())
-        leap_cmds.extend(self._gen_read_lib_string())
-        leap_cmds.append(f"{mol_id} = loadPdb {mol_id}.pdb")
-        leap_cmds.extend(self._gen_bond_string(mol_id))
-        leap_cmds.extend(self._gen_disulfide_string(mol_id))
-        leap_cmds.append(self._gen_rotation_string(mol_id))
-        leap_cmds.append(self._gen_translation_string(mol_id))
-        return leap_cmds
+    # def prepare_for_tleap(self, mol_id):
+    #     # copy the contents of the pdb file into the current working directory
+    #     pdb_path = f"{mol_id}.pdb"
+    #     with open(pdb_path, "w") as pdb_file:
+    #         pdb_file.write(self._pdb_contents)
+
+    # def generate_tleap_input(self, mol_id):
+    #     leap_cmds = []
+    #     leap_cmds.append("source leaprc.gaff")
+    #     leap_cmds.extend(self._gen_read_frcmod_string())
+    #     leap_cmds.extend(self._gen_read_prep_string())
+    #     leap_cmds.extend(self._gen_read_lib_string())
+    #     leap_cmds.append(f"{mol_id} = loadPdb {mol_id}.pdb")
+    #     leap_cmds.extend(self._gen_bond_string(mol_id))
+    #     leap_cmds.extend(self._gen_disulfide_string(mol_id))
+    #     leap_cmds.append(self._gen_rotation_string(mol_id))
+    #     leap_cmds.append(self._gen_translation_string(mol_id))
+    #     return leap_cmds

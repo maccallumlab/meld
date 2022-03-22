@@ -9,7 +9,7 @@ from meld.system import temperature
 from meld.system import options
 from meld.system import state
 from meld.runner import openmm_runner
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import numpy as np  # type: ignore
 import unittest

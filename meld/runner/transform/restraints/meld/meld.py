@@ -20,8 +20,8 @@ from meld.runner import transform
 from meldplugin import MeldForce  # type: ignore
 from meld.runner.transform.restraints.meld.tracker import RestraintTracker
 
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 import numpy as np  # type: ignore
 from typing import List, Tuple, Union

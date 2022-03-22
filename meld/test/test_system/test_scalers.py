@@ -4,7 +4,7 @@ from meld.system.subsystem import SubSystemFromSequence
 from meld.system.builder import SystemBuilder
 from meld.system import scalers
 from meld.system import restraints
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 
 class TestConstantScaler(unittest.TestCase):

@@ -14,8 +14,8 @@ from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
 from meld.runner.transform import TransformerBase
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 import math
 from typing import List, Dict, Tuple

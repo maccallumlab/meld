@@ -11,9 +11,8 @@ Functions to read in sequences, secondary structures, and RDCs
 from meld import interfaces
 from meld.system import scalers
 from meld.system import restraints
-from meld.system import patchers
 from meld.system import indexing
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple
@@ -456,7 +455,7 @@ def _handle_arguments(
 
 def get_rdc_restraints(
     system: interfaces.ISystem,
-    patcher: patchers.RdcAlignmentPatcher,
+    alignment_particle_index: indexing.ResidueIndex,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
     quadratic_cut: Optional[u.Quantity] = None,
@@ -494,7 +493,6 @@ def get_rdc_restraints(
     .. note::
         The value of kappa is assumed to be in units of Hz A^3.
     """
-
     quadratic_cut = 999.0 / u.seconds if quadratic_cut is None else quadratic_cut
 
     if ramp is None:
@@ -534,7 +532,7 @@ def get_rdc_restraints(
             quadratic_cut,
             weight,
             expt,
-            patcher,
+            alignment_particle_index,
         )
         restraint_list.append(rest)
     return restraint_list
