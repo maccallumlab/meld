@@ -8,8 +8,7 @@ Module to build a System from SubSystems
 """
 
 from meld import util
-from meld import interfaces
-from ..spec import SystemSpec
+from ..spec import AmberSystemSpec
 from ... import indexing
 from . import subsystem
 from . import amap
@@ -100,7 +99,7 @@ class AmberSystemBuilder:
         enable_amap=False,
         amap_alpha_bias=1.0,
         amap_beta_bias=1.0,
-    ) -> SystemSpec:
+    ) -> AmberSystemSpec:
         """
         Build the system from AmberSubSystems
         """
@@ -245,8 +244,16 @@ class AmberSystemBuilder:
         except AttributeError:
             box = None
 
-        return SystemSpec(
-            self._solvation, system, topology, integrator, barostat, coords, vels, box
+        return AmberSystemSpec(
+            self._solvation,
+            system,
+            topology,
+            integrator,
+            barostat,
+            coords,
+            vels,
+            box,
+            implicit_solvent_model,
         )
 
     def _set_forcefield(self, forcefield):

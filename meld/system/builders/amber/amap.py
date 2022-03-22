@@ -7,8 +7,8 @@
 Add AMAP correction for GB models
 """
 
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 import os
 import math

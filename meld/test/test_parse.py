@@ -5,7 +5,7 @@
 
 import unittest
 from meld import parse
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder, add_rdc_alignment
 from meld.system import scalers
 from meld.system import indexing
 
@@ -199,6 +199,7 @@ class TestGetRdcRestraints(unittest.TestCase):
         b = AmberSystemBuilder()
         self.scaler = scalers.LinearScaler(0, 1)
         spec = b.build_system([p])
+        spec, self.rdc_residue = add_rdc_alignment(spec)
         self.system = spec.finalize()
 
     def test_ignores_comment_lines(self):
@@ -207,7 +208,7 @@ class TestGetRdcRestraints(unittest.TestCase):
             content=contents,
             system=self.system,
             scaler=self.scaler,
-            alignment_residue_index=indexing.ResidueIndex(0),
+            alignment_residue_index=self.rdc_residue,
         )
 
         self.assertEqual(len(results), 0)
@@ -218,7 +219,7 @@ class TestGetRdcRestraints(unittest.TestCase):
             content=contents,
             system=self.system,
             scaler=self.scaler,
-            alignment_residue_index=indexing.ResidueIndex(0),
+            alignment_residue_index=self.rdc_residue,
         )
 
         self.assertEqual(len(results), 1)

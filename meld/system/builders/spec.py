@@ -35,3 +35,29 @@ class SystemSpec:
             self.velocities,
             self.box_vectors,
         )
+
+
+class AmberSystemSpec(SystemSpec):
+    def __init__(
+        self,
+        solvation,
+        system,
+        topology,
+        integrator,
+        barostat,
+        coordinates,
+        velocities,
+        box_vectors,
+        implicit_solvent_model,
+    ):
+        super().__init__(
+            solvation,
+            system,
+            topology,
+            integrator,
+            barostat,
+            coordinates,
+            velocities,
+            box_vectors,
+        )
+        self.implicit_solvent_model = implicit_solvent_model
