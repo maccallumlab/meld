@@ -773,7 +773,7 @@ class RdcRestraint(NonSelectableRestraint):
         quadratic_cut: u.Quantity,
         weight: float,
         expt_index: int,
-        patcher,
+        alignment_residue_index: indexing.ResidueIndex,
     ):
         """
         Initialize an RdcRestraint
@@ -792,7 +792,7 @@ class RdcRestraint(NonSelectableRestraint):
             quadratic_cut: force constant becomes linear bond this deviation s^-1
             weight: dimensionless weight to place on this restraint
             expt_index: integer experiment id
-            patcher: the :class:`RdcAlignmentPatcher` used to create the alignment tensor
+            patcher: the residue containing the alignment tensor particles
 
         .. note::
            Typical values for kappa are:
@@ -811,8 +811,8 @@ class RdcRestraint(NonSelectableRestraint):
 
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
-        self.s1_index = int(system.index.atom(patcher.resids[expt_index], "S1"))
-        self.s2_index = int(system.index.atom(patcher.resids[expt_index], "S2"))
+        self.s1_index = int(system.index.atom(alignment_residue_index, "S1"))
+        self.s2_index = int(system.index.atom(alignment_residue_index, "S2"))
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)

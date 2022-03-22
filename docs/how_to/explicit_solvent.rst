@@ -17,8 +17,8 @@ protein sequence and setting up an explicit solvent SystemBuilder that defines t
 
 .. code-block:: python
 
-   p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
-   b = builder.SystemBuilder(explicit_solvent=True)
+   p = subsystem.AmberSubSystemFromSequence("NALA ALA CALA")        
+   b = builder.AmberSystemBuilder(solvation="explicit")
 
 The system is then built from the molecular sequence according to the specifications of the 
 builder:

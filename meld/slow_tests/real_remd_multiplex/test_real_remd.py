@@ -33,8 +33,8 @@ def setup_system():
     sequence = "AAAAAAAAAAAAAAAA"
     sequence = parse.get_sequence_from_AA1(contents=sequence)
     # create the system
-    p = system.SubSystemFromSequence(sequence)
-    b = system.SystemBuilder()
+    p = system.AmberSubSystemFromSequence(sequence)
+    b = system.AmberSystemBuilder()
     s = b.build_system([p])
     s.temperature_scaler = system.LinearTemperatureScaler(0, 1, 300, 310)
 

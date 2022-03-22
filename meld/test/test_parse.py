@@ -5,10 +5,9 @@
 
 import unittest
 from meld import parse
-from meld import system
-from meld.system import patchers
-from meld.system import restraints
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder
 from meld.system import scalers
+from meld.system import indexing
 
 
 class TestGetAA1(unittest.TestCase):
@@ -172,10 +171,8 @@ class TestExtractSecondaryRuns(unittest.TestCase):
 
 class TestGetSecondaryStructures(unittest.TestCase):
     def setUp(self):
-        p = system.subsystem.SubSystemFromSequence(
-            "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
-        )
-        b = system.builder.SystemBuilder()
+        p = AmberSubSystemFromSequence("NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA")
+        b = AmberSystemBuilder()
         self.system = b.build_system([p])
         self.ss = "HHHHHEEEEE"
         self.scaler = scalers.LinearScaler(0, 1)
@@ -198,19 +195,19 @@ class TestGetSecondaryStructures(unittest.TestCase):
 
 class TestGetRdcRestraints(unittest.TestCase):
     def setUp(self):
-        p = system.subsystem.SubSystemFromSequence(
-            "NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA"
-        )
-        b = system.builder.SystemBuilder()
+        p = AmberSubSystemFromSequence("NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA")
+        b = AmberSystemBuilder()
         self.scaler = scalers.LinearScaler(0, 1)
-        self.patcher = patchers.RdcAlignmentPatcher(n_tensors=1)
-        self.system = b.build_system([p], patchers=[self.patcher])
-
+        spec = b.build_system([p])
+        self.system = spec.finalize()
 
     def test_ignores_comment_lines(self):
         contents = "#\n#\n"
         results = parse.get_rdc_restraints(
-            content=contents, system=self.system, scaler=self.scaler, patcher=self.patcher
+            content=contents,
+            system=self.system,
+            scaler=self.scaler,
+            alignment_residue_index=indexing.ResidueIndex(0),
         )
 
         self.assertEqual(len(results), 0)
@@ -218,7 +215,10 @@ class TestGetRdcRestraints(unittest.TestCase):
     def test_adds_correct_number_of_restraints(self):
         contents = "#\n2 N 2 H 10 0 10 25000 1.0 1\n"
         results = parse.get_rdc_restraints(
-            content=contents, system=self.system, scaler=self.scaler, patcher=self.patcher
+            content=contents,
+            system=self.system,
+            scaler=self.scaler,
+            alignment_residue_index=indexing.ResidueIndex(0),
         )
 
         self.assertEqual(len(results), 1)

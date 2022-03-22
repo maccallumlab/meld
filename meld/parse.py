@@ -455,7 +455,7 @@ def _handle_arguments(
 
 def get_rdc_restraints(
     system: interfaces.ISystem,
-    alignment_particle_index: indexing.ResidueIndex,
+    alignment_residue_index: indexing.ResidueIndex,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
     quadratic_cut: Optional[u.Quantity] = None,
@@ -532,7 +532,7 @@ def get_rdc_restraints(
             quadratic_cut,
             weight,
             expt,
-            alignment_particle_index,
+            alignment_residue_index,
         )
         restraint_list.append(rest)
     return restraint_list

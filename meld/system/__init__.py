@@ -17,11 +17,11 @@ The primary classes are:
 
 The main classes to build a system are:
 
-- :class:`meld.system.subsystem.SubSystemFromSequence` is used to build a sub-system starting
+- :class:`meld.system.builders.amber.subsystem.AmberSubSystemFromSequence` is used to build a sub-system starting
   from a sequence.
-- :class:`meld.system.subsystem.SubSystemFromPdbFile` is used to build a sub-system from a 
+- :class:`meld.system.builders.amber.subsystem.AmberSubSystemFromPdbFile` is used to build a sub-system from a 
   PDB file.
-- :class:`meld.system.builder.SystemBuilder` is used to combine SybSystems together into a
+- :class:`meld.system.builders.amber.builder.SystemBuilder` is used to combine SybSystems together into a
   system.
 
 There are a few options for how to couple the temperature to the value of alpha:

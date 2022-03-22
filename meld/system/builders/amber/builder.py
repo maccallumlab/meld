@@ -66,7 +66,7 @@ class AmberSystemBuilder:
         self._set_gb_radii(gb_radii)
 
         if solvation not in ["implicit", "explicit"]:
-            raise ValueError("solvation must be \"implicit\" or \"explicit\"")
+            raise ValueError('solvation must be "implicit" or "explicit"')
         self._solvation = solvation
         self._explicit_ions = explicit_ions
         if self._solvation == "explicit":
@@ -97,9 +97,9 @@ class AmberSystemBuilder:
         solvent_dielectric=None,
         implicit_solvent_salt_conc=None,
         default_temperature: float = 300.0,
-        enable_amap = False,
-        amap_alpha_bias = 1.0,
-        amap_beta_bias = 1.0,
+        enable_amap=False,
+        amap_alpha_bias=1.0,
+        amap_beta_bias=1.0,
     ) -> SystemSpec:
         """
         Build the system from AmberSubSystems
@@ -231,6 +231,17 @@ class AmberSystemBuilder:
             vels = np.zeros_like(coords)
         try:
             box = crd.getBoxVectors(asNumpy=True)
+            # We only support orthorhombic boxes
+            box_a = box[0][0].value_in_unit(u.nanometer)
+            assert box[0][1] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            assert box[0][1] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            box_b = box[1][1].value_in_unit(u.nanometer)
+            assert box[1][0] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            assert box[1][2] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            box_c = box[2][2].value_in_unit(u.nanometer)
+            assert box[2][0] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            assert box[2][1] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
+            box = np.array([box_a, box_b, box_c])
         except AttributeError:
             box = None
 
@@ -468,7 +479,7 @@ def _create_openmm_system_explicit(
     if cutoff is None:
         raise ValueError("cutoff must be set for explicit solvent, but got None")
     else:
-        if enable_pme.enable:
+        if enable_pme:
             logger.info(f"Using PME with tolerance {pme_tolerance}")
             cutoff_type = ff.PME
         else:

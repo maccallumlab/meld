@@ -24,18 +24,18 @@ MELD runs can start from a PDB file, fasta sequence file with no header or seque
 
 .. code-block:: python
 
-    p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
+    p = subsystem.AmberSubSystemFromSequence("NALA ALA CALA")        
    
-    p = system.SubSystemFromPdbFile("example.pdb")
+    p = system.AmberSubSystemFromPdbFile("example.pdb")
 
     sequence = parse.get_sequence_from_AA1(filename='sequence.dat')
-    p = system.SubSystemFromSequence(sequence)
+    p = system.AmberSubSystemFromSequence(sequence)
 
 Once we have the protein system we have to specify a force field. Current options are ff12sb, ff14sbside (ff99backbone) or ff14sb:
 
 .. code-block:: python
 
-    b = system.SystemBuilder(forcefield="ff14sbside")
+    b = system.AmberSystemBuilder(forcefield="ff14sbside")
 
 Now we generate the topoloty/coordinate files to start simulations:
 

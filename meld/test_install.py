@@ -5,7 +5,7 @@ Test MELD installation
 import meld  # type: ignore
 import meldplugin  # type: ignore
 import openmm as mm  # type: ignore
-import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import numpy as np  # type: ignore
 import random  # type: ignore
