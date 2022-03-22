@@ -59,7 +59,10 @@ class REST2Transformer(TransformerBase):
 
         if options.use_rest2:
             self.active = True
-            self.scaler = options.rest2_scaler
+            if isinstance(options.rest2_scaler, temperature.REST2Scaler):
+                self.scaler = options.rest2_scaler
+            else:
+                raise ValueError("Trying to use REST2 without a REST2Scaler")
 
             if options.solvation != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")

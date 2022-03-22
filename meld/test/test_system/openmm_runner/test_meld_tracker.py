@@ -6,7 +6,7 @@ import numpy as np
 import meld
 from copy import deepcopy
 
-from openmm import unit as u
+from openmm import unit as u  # type: ignore
 
 from meld.system.builders.amber.builder import AmberOptions  # type: ignore
 

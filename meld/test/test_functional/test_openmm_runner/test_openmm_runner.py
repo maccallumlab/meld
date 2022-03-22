@@ -24,8 +24,7 @@ class TestOpenRunner(unittest.TestCase):
         sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = RunOptions()
-        opt.timesteps = 20
+        opt = RunOptions(timesteps=20)
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
         runner.prepare_for_timestep(sys.get_state_template(), 0.0, 1)
@@ -41,8 +40,7 @@ class TestOpenRunner(unittest.TestCase):
         sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = RunOptions()
-        opt.timesteps = 20
+        opt = RunOptions(timesteps=20)
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
         runner.prepare_for_timestep(sys.get_state_template(), 0.0, 1)
@@ -58,10 +56,7 @@ class TestOpenRunner(unittest.TestCase):
         sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = RunOptions()
-        opt.solvation = "explicit"
-        opt.minimize_steps = 100
-        opt.timesteps = 2
+        opt = RunOptions(solvation="explicit", timesteps=2, minimize_steps=100)
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
         runner.prepare_for_timestep(sys.get_state_template(), 0.0, 1)
@@ -82,12 +77,13 @@ class TestOpenRunner(unittest.TestCase):
             0, 1, 300.0 * u.kelvin, 350.0 * u.kelvin
         )
 
-        opt = RunOptions()
-        opt.solvation = "explicit"
-        opt.rest2_scaler = temperature.REST2Scaler(300.0 * u.kelvin, rest2_scaler)
-        opt.minimize_steps = 100
-        opt.timesteps = 2
-        opt.use_rest2 = True
+        opt = RunOptions(
+            solvation="explicit",
+            rest2_scaler=temperature.REST2Scaler(300.0 * u.kelvin, rest2_scaler),
+            minimize_steps=100,
+            timesteps=2,
+            use_rest2=True
+        )
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
         runner.prepare_for_timestep(sys.get_state_template(), 0.0, 1)
