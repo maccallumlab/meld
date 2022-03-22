@@ -1,6 +1,6 @@
 import unittest
 from unittest import mock  # type: ignore
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder, AmberOptions
 from meld.system import scalers
 from meld.system import restraints
 from openmm import unit as u  # type: ignore
@@ -293,7 +293,8 @@ class TestPlateauSmoothScaler(unittest.TestCase):
 class TestCreatescalersAndScalers(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.manager = restraints.RestraintManager(self.system)
 

@@ -3,26 +3,28 @@
 # All rights reserved
 #
 
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder
+from meld import (
+    AmberSubSystemFromSequence,
+    AmberSystemBuilder,
+    AmberOptions,
+    RunOptions,
+)
 from meld.system import temperature
-from meld.system import options
-from meld.system import state
 from meld.runner import openmm_runner
 from openmm import unit as u  # type: ignore
 
-import numpy as np  # type: ignore
 import unittest
-import os
 
 
 class TestOpenRunner(unittest.TestCase):
     def test_implicit_runner(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = options.RunOptions()
+        opt = RunOptions()
         opt.timesteps = 20
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
@@ -34,11 +36,12 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_implicit_runner_amap(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        sys = b.build_system([p], enable_amap=True).finalize()
+        options = AmberOptions(enable_amap=True)
+        b = AmberSystemBuilder(options)
+        sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = options.RunOptions()
+        opt = RunOptions()
         opt.timesteps = 20
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
@@ -50,11 +53,12 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder(solvation="explicit")
-        sys = b.build_system([p], cutoff=1.0).finalize()
+        options = AmberOptions(solvation="explicit", cutoff=1.0, enable_pme=True, enable_pressure_coupling=True)
+        b = AmberSystemBuilder(options)
+        sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = options.RunOptions()
+        opt = RunOptions()
         opt.solvation = "explicit"
         opt.minimize_steps = 100
         opt.timesteps = 2
@@ -68,14 +72,17 @@ class TestOpenRunner(unittest.TestCase):
 
     def test_explicit_runner_scaler(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder(solvation="explicit")
-        sys = b.build_system([p], cutoff=1.0).finalize()
+        options = AmberOptions(
+            solvation="explicit", cutoff=1.0, enable_pme=True, enable_pressure_coupling=True
+        )
+        b = AmberSystemBuilder(options)
+        sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
         rest2_scaler = temperature.GeometricTemperatureScaler(
             0, 1, 300.0 * u.kelvin, 350.0 * u.kelvin
         )
 
-        opt = options.RunOptions()
+        opt = RunOptions()
         opt.solvation = "explicit"
         opt.rest2_scaler = temperature.REST2Scaler(300.0 * u.kelvin, rest2_scaler)
         opt.minimize_steps = 100

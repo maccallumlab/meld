@@ -112,6 +112,8 @@ def _create_spin_label_system(
             )
         elif isinstance(force, mm.CMMotionRemover):
             _handle_spin_label_cmmotionremover(force, system)
+        elif isinstance(force, mm.CMAPTorsionForce):
+            _handle_spin_label_cmap(force, system, insertion_point)
         else:
             raise RuntimeError(f"Unsupported force type {force}")
 
@@ -378,6 +380,34 @@ def _handle_spin_label_periodic_torsion(
 def _handle_spin_label_cmmotionremover(force: mm.CMMotionRemover, system: mm.System):
     new_force = mm.CMMotionRemover()
     new_force.setFrequency(force.getFrequency())
+    system.addForce(new_force)
+
+
+def _handle_spin_label_cmap(
+    force: mm.CMAPTorsionForce, system: mm.System, insertion_point: int
+):
+    new_force = mm.CMAPTorsionForce()
+
+    # Copy over the maps
+    for i in range(force.getNumMaps()):
+        size, energy = force.getMapParameters(i)
+        new_force.addMap(size, energy)
+
+    for i in range(force.getNumTorsions()):
+        map, a1, a2, a3, a4, b1, b2, b3, b4 = force.getTorsionParameters(i)
+        new_force.addTorsion(
+            map,
+            a1 + 1 if a1 >= insertion_point else a1,
+            a2 + 1 if a2 >= insertion_point else a2,
+            a3 + 1 if a3 >= insertion_point else a3,
+            a4 + 1 if a4 >= insertion_point else a4,
+            b1 + 1 if b1 >= insertion_point else b1,
+            b2 + 1 if b2 >= insertion_point else b2,
+            b3 + 1 if b3 >= insertion_point else b3,
+            b4 + 1 if b4 >= insertion_point else b4,
+        )
+
+    new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
     system.addForce(new_force)
 
 

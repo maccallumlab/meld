@@ -5,7 +5,12 @@
 
 import unittest
 from meld import parse
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder, add_rdc_alignment
+from meld import (
+    AmberOptions,
+    AmberSubSystemFromSequence,
+    AmberSystemBuilder,
+    add_rdc_alignment,
+)
 from meld.system import scalers
 from meld.system import indexing
 
@@ -172,7 +177,8 @@ class TestExtractSecondaryRuns(unittest.TestCase):
 class TestGetSecondaryStructures(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.ss = "HHHHHEEEEE"
         self.scaler = scalers.LinearScaler(0, 1)
@@ -196,7 +202,8 @@ class TestGetSecondaryStructures(unittest.TestCase):
 class TestGetRdcRestraints(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA ALA ALA ALA ALA ALA ALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.scaler = scalers.LinearScaler(0, 1)
         spec = b.build_system([p])
         spec, self.rdc_residue = add_rdc_alignment(spec)

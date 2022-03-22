@@ -3,6 +3,7 @@ from meld import (
     AmberSubSystemFromPdbFile,
     AmberSubSystemFromSequence,
     AmberSystemBuilder,
+    AmberOptions,
 )
 from meld.system.indexing import ResidueIndex
 from meld.util import in_temp_dir
@@ -173,7 +174,8 @@ class TestAtomIndexingOneBased(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA ALA CALA")
         p2 = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_absolute_index(self):
@@ -197,7 +199,8 @@ class TestAtomIndexingZeroBased(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA ALA CALA")
         p2 = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_absolute_index(self):
@@ -252,7 +255,8 @@ class TestAtomIndexingExpectedResname(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA CYS CLYS")
         p2 = AmberSubSystemFromSequence("NARG TRP CTYR")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_expected_resname_mismatch_should_raise(self):
@@ -272,19 +276,22 @@ class TestAtomIndexingExpectedResname(unittest.TestCase):
 class TestAtomIndexingHistidine(unittest.TestCase):
     def test_hid_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HID CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HIE CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HIP CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="HIS", one_based=False)
 
@@ -292,7 +299,8 @@ class TestAtomIndexingHistidine(unittest.TestCase):
 class TestAtomIndexingAsparticAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
         p1 = AmberSubSystemFromSequence("NALA ASH CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="ASP", one_based=False)
 
@@ -300,7 +308,8 @@ class TestAtomIndexingAsparticAcid(unittest.TestCase):
 class TestAtomIndexingGlutamicAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
         p1 = AmberSubSystemFromSequence("NALA GLH CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="GLU", one_based=False)
 
@@ -308,7 +317,8 @@ class TestAtomIndexingGlutamicAcid(unittest.TestCase):
 class TestAtomIndexingLysine(unittest.TestCase):
     def test_lyn_should_match_lys(self):
         p1 = AmberSubSystemFromSequence("NALA LYN CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.atom(1, "CA", expected_resname="LYS", one_based=False)
 
@@ -317,7 +327,8 @@ class TestAtomIndexingDisulfide(unittest.TestCase):
     def test_lyn_should_match_lys(self):
         p = AmberSubSystemFromSequence("NCYX ALA CCYX")
         p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p]).finalize()
         system.index.atom(0, "CA", expected_resname="CYS", one_based=False)
         system.index.atom(2, "CA", expected_resname="CYS", one_based=False)
@@ -327,7 +338,8 @@ class TestResidueIndexingOneBased(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA ALA CALA")
         p2 = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_absolute_index(self):
@@ -351,7 +363,8 @@ class TestResidueIndexingZeroBased(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA ALA CALA")
         p2 = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_absolute_index(self):
@@ -375,7 +388,8 @@ class TestResidueIndexingExpectedResname(unittest.TestCase):
     def setUp(self):
         p1 = AmberSubSystemFromSequence("NALA CYS CLYS")
         p2 = AmberSubSystemFromSequence("NARG TRP CTYR")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p1, p2]).finalize()
 
     def test_expected_resname_mismatch_should_raise(self):
@@ -395,19 +409,22 @@ class TestResidueIndexingExpectedResname(unittest.TestCase):
 class TestResidueIndexingHistidine(unittest.TestCase):
     def test_hid_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HID CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="HIS", one_based=False)
 
     def test_hie_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HIE CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="HIS", one_based=False)
 
     def test_hip_should_match_his(self):
         p1 = AmberSubSystemFromSequence("NALA HIP CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="HIS", one_based=False)
 
@@ -415,7 +432,8 @@ class TestResidueIndexingHistidine(unittest.TestCase):
 class TestResidueIndexingAsparticAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
         p1 = AmberSubSystemFromSequence("NALA ASH CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="ASP", one_based=False)
 
@@ -423,7 +441,8 @@ class TestResidueIndexingAsparticAcid(unittest.TestCase):
 class TestResidueIndexingGlutamicAcid(unittest.TestCase):
     def test_ash_should_match_asp(self):
         p1 = AmberSubSystemFromSequence("NALA GLH CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="GLU", one_based=False)
 
@@ -431,7 +450,8 @@ class TestResidueIndexingGlutamicAcid(unittest.TestCase):
 class TestResidueIndexingLysine(unittest.TestCase):
     def test_lyn_should_match_lys(self):
         p1 = AmberSubSystemFromSequence("NALA LYN CLYS")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p1]).finalize()
         system.index.residue(1, expected_resname="LYS", one_based=False)
 
@@ -440,7 +460,8 @@ class TestResidueIndexingDisulfide(unittest.TestCase):
     def test_lyn_should_match_lys(self):
         p = AmberSubSystemFromSequence("NCYX ALA CCYX")
         p.add_disulfide(ResidueIndex(0), ResidueIndex(2))
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         system = b.build_system([p]).finalize()
         system.index.residue(0, expected_resname="CYS", one_based=False)
         system.index.residue(2, expected_resname="CYS", one_based=False)
@@ -452,7 +473,8 @@ class TestAtomIndexingFromPDB(unittest.TestCase):
             with open("pdb.pdb", "w") as outfile:
                 outfile.write(pdb_string)
             p = AmberSubSystemFromPdbFile("pdb.pdb")
-            b = AmberSystemBuilder()
+            options = AmberOptions()
+            b = AmberSystemBuilder(options)
             self.system = b.build_system([p]).finalize()
 
     def test_absolute_zero_based(self):
@@ -569,7 +591,13 @@ class TestAtomIndexingFromPDBExplicit(unittest.TestCase):
             with open("pdb.pdb", "w") as outfile:
                 outfile.write(pdb_string)
             p = AmberSubSystemFromPdbFile("pdb.pdb")
-            b = AmberSystemBuilder(solvation="explicit")
+            options = AmberOptions(
+                solvation="explicit",
+                enable_pme=True,
+                enable_pressure_coupling=True,
+                cutoff=0.9,
+            )
+            b = AmberSystemBuilder(options)
             self.system = b.build_system([p]).finalize()
 
     def test_absolute(self):

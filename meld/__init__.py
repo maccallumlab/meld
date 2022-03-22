@@ -27,7 +27,7 @@ from meld.system.builders.amber.subsystem import (
     AmberSubSystemFromSequence,
     AmberSubSystemFromPdbFile,
 )
-from meld.system.builders.amber.builder import AmberSystemBuilder
+from meld.system.builders.amber.builder import AmberSystemBuilder, AmberOptions
 from meld.system.temperature import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,

@@ -3,6 +3,7 @@ import openmm as mm  # type: ignore
 from meld import (
     AmberSubSystemFromSequence,
     AmberSystemBuilder,
+    AmberOptions,
     add_virtual_spin_label,
 )
 
@@ -10,8 +11,9 @@ from meld import (
 class TestSpinLabelPatcher(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="gbNeck2")
+        options = AmberOptions(implicit_solvent_model="gbNeck2")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particle(self):
         orig_particles = self.spec.system.getNumParticles()
@@ -54,8 +56,9 @@ class TestSpinLabelPatcher(unittest.TestCase):
 class TestSpinLabelPatcherOBC(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="obc")
+        options = AmberOptions(implicit_solvent_model="obc")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particle(self):
         orig_particles = self.spec.system.getNumParticles()
@@ -98,8 +101,9 @@ class TestSpinLabelPatcherOBC(unittest.TestCase):
 class TestSpinLabelPatcherTwice(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="gbNeck2")
+        options = AmberOptions(implicit_solvent_model="gbNeck2")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particle(self):
         orig_particles = self.spec.system.getNumParticles()

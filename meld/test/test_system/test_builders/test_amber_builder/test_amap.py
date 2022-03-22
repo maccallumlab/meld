@@ -5,7 +5,7 @@
 
 import unittest
 import openmm as mm  # type: ignore
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder, AmberOptions
 
 
 def _find_cmap_force(system):
@@ -19,8 +19,9 @@ class TestAddAMAPTriAla(unittest.TestCase):
     def setUp(self):
         # create a tri-ala molecule
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], enable_amap=True)
+        options = AmberOptions(enable_amap=True)
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_force_to_system(self):
         force_types = [type(f) for f in self.spec.system.getForces()]
@@ -56,8 +57,9 @@ class TestAddAMAPDoubleTriAla(unittest.TestCase):
         # create a tri-ala molecule
         p1 = AmberSubSystemFromSequence("NALA ALA CALA")
         p2 = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p1, p2], enable_amap=True)
+        options = AmberOptions(enable_amap=True)
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p1, p2])
 
     def test_should_add_force_to_system(self):
         force_types = [type(f) for f in self.spec.system.getForces()]
@@ -152,5 +154,6 @@ class TestAddsCorrectMapType(unittest.TestCase):
 
     def get_spec(self, sequence):
         p = AmberSubSystemFromSequence(sequence)
-        b = AmberSystemBuilder()
-        return b.build_system([p], enable_amap=True)
+        options = AmberOptions(enable_amap=True)
+        b = AmberSystemBuilder(options)
+        return b.build_system([p])

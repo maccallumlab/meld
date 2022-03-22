@@ -10,7 +10,7 @@ from unittest import mock  # type: ignore
 
 from meld.system import restraints
 from meld.system import scalers
-from meld import AmberSubSystemFromSequence, AmberSystemBuilder
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder, AmberOptions
 from openmm import unit as u  # type: ignore
 
 
@@ -116,7 +116,8 @@ class TestRestraintGroup(unittest.TestCase):
 class TestRestraintManager(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.rest_manager = restraints.RestraintManager(self.system)
 
@@ -166,7 +167,8 @@ class TestRestraintManager(unittest.TestCase):
 class TestDistanceRestraint(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
@@ -250,7 +252,8 @@ class TestDistanceRestraint(unittest.TestCase):
 class TestHyperbolicDistanceRestraint(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.scaler = restraints.ConstantScaler()
         self.ramp = restraints.ConstantRamp()
@@ -371,7 +374,9 @@ class TestHyperbolicDistanceRestraint(unittest.TestCase):
 class TestTorsionRestraint(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.scaler = mock.Mock()
         self.ramp = mock.Mock()
@@ -470,7 +475,8 @@ class TestTorsionRestraint(unittest.TestCase):
 class TestCOMRestraint(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.scaler = scalers.ConstantScaler()
         self.ramp = scalers.ConstantRamp()
@@ -615,7 +621,8 @@ class TestCOMRestraint(unittest.TestCase):
 class TestAbsoluteCOMRestraint(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("GLY GLY GLY GLY")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         self.system = b.build_system([p])
         self.scaler = scalers.ConstantScaler()
         self.ramp = scalers.ConstantRamp()

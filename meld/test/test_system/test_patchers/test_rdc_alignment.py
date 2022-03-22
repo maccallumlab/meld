@@ -3,6 +3,7 @@ import openmm as mm  # type: ignore
 from meld import (
     AmberSubSystemFromSequence,
     AmberSystemBuilder,
+    AmberOptions,
     add_rdc_alignment,
 )
 from meld.system import indexing
@@ -11,8 +12,9 @@ from meld.system import indexing
 class TestRDCPatcherNeck(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="gbNeck2")
+        options = AmberOptions(implicit_solvent_model="gbNeck2")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particles(self):
         orig_particles = self.spec.system.getNumParticles()
@@ -48,8 +50,9 @@ class TestRDCPatcherNeck(unittest.TestCase):
 class TesRDCPatcherOBC(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="obc")
+        options = AmberOptions(implicit_solvent_model="obc")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particles(self):
         orig_particles = self.spec.system.getNumParticles()
@@ -85,8 +88,9 @@ class TesRDCPatcherOBC(unittest.TestCase):
 class TestRDCPatcherTwice(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
-        self.spec = b.build_system([p], implicit_solvent_model="gbNeck2")
+        options = AmberOptions(implicit_solvent_model="gbNeck2")
+        b = AmberSystemBuilder(options)
+        self.spec = b.build_system([p])
 
     def test_should_add_particles(self):
         orig_particles = self.spec.system.getNumParticles()

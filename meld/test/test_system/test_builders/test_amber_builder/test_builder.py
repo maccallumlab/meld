@@ -4,24 +4,16 @@
 #
 
 import unittest
-from meld import (
-    AmberSubSystemFromSequence,
-    AmberSystemBuilder,
-)
-from meld.system.temperature import (
-    ConstantTemperatureScaler,
-    LinearTemperatureScaler,
-    GeometricTemperatureScaler,
-)
-from meld.system.options import RunOptions
-from meld.system import amber
+from meld import AmberSubSystemFromSequence, AmberSystemBuilder, AmberOptions
+from meld.system.temperature import ConstantTemperatureScaler
 from openmm import unit as u  # type: ignore
 
 
 class TestCreateFromSequence(unittest.TestCase):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder()
+        options = AmberOptions()
+        b = AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
 
@@ -61,7 +53,14 @@ class TestCreateFromSequence(unittest.TestCase):
 class TestCreateFromSequenceExplicit(TestCreateFromSequence):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder(solvation="explicit")
+        options = AmberOptions(
+            solvation="explicit",
+            enable_pme=True,
+            enable_pressure_coupling=True,
+            enable_amap=False,
+            cutoff=0.9,
+        )
+        b = AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
 
@@ -99,9 +98,17 @@ class TestCreateFromSequenceExplicit(TestCreateFromSequence):
 class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA ALA CALA")
-        b = AmberSystemBuilder(
-            solvation="explicit", explicit_ions=True, p_ioncount=3, n_ioncount=3
+        options = AmberOptions(
+            solvation="explicit",
+            explicit_ions=True,
+            p_ioncount=3,
+            n_ioncount=3,
+            enable_pme=True,
+            enable_pressure_coupling=True,
+            enable_amap=False,
+            cutoff=0.9,
         )
+        b = AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
 
@@ -141,7 +148,15 @@ class TestCreateFromSequenceExplicitIons(TestCreateFromSequence):
 class TestCreateFromSequenceExplicitIonsNeutralize(TestCreateFromSequence):
     def setUp(self):
         p = AmberSubSystemFromSequence("NALA GLU CALA")
-        b = AmberSystemBuilder(solvation="explicit", explicit_ions=True)
+        options = AmberOptions(
+            solvation="explicit",
+            explicit_ions=True,
+            enable_pme=True,
+            enable_pressure_coupling=True,
+            enable_amap=False,
+            cutoff=0.9,
+        )
+        b = AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
 

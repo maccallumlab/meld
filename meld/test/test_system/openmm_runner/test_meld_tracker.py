@@ -6,7 +6,9 @@ import numpy as np
 import meld
 from copy import deepcopy
 
-from openmm import unit as u  # type: ignore
+from openmm import unit as u
+
+from meld.system.builders.amber.builder import AmberOptions  # type: ignore
 
 
 class TestTrackerWithNoDependencies(unittest.TestCase):
@@ -14,7 +16,8 @@ class TestTrackerWithNoDependencies(unittest.TestCase):
         p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.AmberSystemBuilder(forcefield="ff14sbside")
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
         self.state = self.system.get_state_template()
@@ -66,7 +69,8 @@ class TestTrackerWithScalerDependency(unittest.TestCase):
         p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.AmberSystemBuilder(forcefield="ff14sbside")
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
         self.state = self.system.get_state_template()
@@ -156,7 +160,8 @@ class TestTrackerWithRampDependency(unittest.TestCase):
         p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.AmberSystemBuilder(forcefield="ff14sbside")
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
         self.state = self.system.get_state_template()
@@ -246,7 +251,8 @@ class TestTrackerWithPositionerDependency(unittest.TestCase):
         p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.AmberSystemBuilder(forcefield="ff14sbside")
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
         self.state = self.system.get_state_template()
@@ -340,7 +346,8 @@ class TestTrackerWithPeakMapperDependency(unittest.TestCase):
         p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.AmberSystemBuilder(forcefield="ff14sbside")
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
         spec = b.build_system([p])
         self.system = spec.finalize()
         self.tracker = tracker.RestraintTracker(

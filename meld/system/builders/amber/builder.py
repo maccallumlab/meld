@@ -4,7 +4,7 @@
 #
 
 """
-Module to build a System from SubSystems
+Module to build a System from AmberSubSystems
 """
 
 from meld import util
@@ -13,17 +13,98 @@ from ... import indexing
 from . import subsystem
 from . import amap
 
+from typing import List, Optional
+from dataclasses import dataclass
+from functools import partial
+import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
+
 from openmm import app  # type: ignore
 from openmm.app import forcefield as ff  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import unit as u  # type: ignore
 import numpy as np  # type: ignore
 
-from typing import List, Optional
-import subprocess
-import logging
 
-logger = logging.getLogger(__name__)
+@partial(dataclass, frozen=True)
+class AmberOptions:
+    default_temperature: float = 300.0 * u.kelvin
+    forcefield: str = "ff14sbside"
+    solvation: str = "implicit"
+    gb_radii: str = "mbondi3"
+    implicit_solvent_model: str = "gbNeck2"
+    solute_dielectric: Optional[float] = None
+    solvent_dielectric: Optional[float] = None
+    implicit_solvent_salt_conc: Optional[float] = None
+    solvent_forcefield: str = "tip3p"
+    solvent_distance: float = 0.6
+    explicit_ions: bool = False
+    p_ion: str = "Na+"
+    p_ioncount: int = 0
+    n_ion: str = "Cl-"
+    n_ioncount: int = 0
+    enable_pme: bool = False
+    pme_tolerance: float = 0.0005
+    enable_pressure_coupling: bool = False
+    pressure: float = 1.01325 * u.bar
+    pressure_coupling_update_steps: int = 25
+    cutoff: Optional[float] = None
+    remove_com: bool = True
+    use_big_timestep: bool = False
+    use_bigger_timestep: bool = False
+    enable_amap: bool = False
+    amap_alpha_bias: float = 1.0
+    amap_beta_bias: float = 1.0
+
+    def __post_init__(self):
+        # Sanity checks for implicit and explicit solvent
+        if self.solvation == "implicit":
+            if self.enable_pme:
+                raise ValueError("Using implicit solvation, but `enable_pme` is True.")
+            if self.enable_pressure_coupling:
+                raise ValueError(
+                    "Using implicit solvation, but `enable_pressure_coupling` is True."
+                )
+        elif self.solvation == "explicit":
+            if not self.enable_pme:
+                raise ValueError("Using explicit solvation, but `enable_pme` is False.")
+            if not self.enable_pressure_coupling:
+                raise ValueError(
+                    "Using explicit solvation, but `enable_pressure_coupling` is False."
+                )
+            if self.enable_amap:
+                raise ValueError("Using explicit solvation, but `enable_amap` is True.")
+            if self.cutoff is None:
+                raise ValueError("Using explicit solvation, but `cutoff` is None.")
+        else:
+            raise ValueError(f"Unknown solvation model {self.solvation}")
+
+        if self.forcefield not in ["ff12sb", "ff14sb", "ff14sbside"]:
+            raise ValueError(f"Unknown forcefield {self.forcefield}")
+
+        if self.gb_radii not in ["mbondi2", "mbondi3"]:
+            raise ValueError(f"Unknown gb_radii {self.gb_radii}")
+
+        if self.solvent_forcefield not in ["spce", "spceb", "opc", "tip3p", "tip4pew"]:
+            raise ValueError(f"Unknown solvent_forcefield {self.solvent_forcefield}")
+
+        if self.p_ion not in ["Na+", "K+", "Li+", "Rb+", "Cs+", "Mg+"]:
+            raise ValueError(f"Unknown p_ion {self.p_ion}")
+
+        if self.n_ion not in ["Cl-", "I-", "Br-", "F-"]:
+            raise ValueError(f"Unknown n_ion {self.n_ion}")
+
+        if isinstance(self.default_temperature, u.Quantity):
+            object.__setattr__(self, "default_temperature", self.default_temperature.value_in_unit(u.kelvin))
+        if self.default_temperature < 0:
+            raise ValueError(f"default_temperature must be >= 0")
+
+        if isinstance(self.pressure, u.Quantity):
+            object.__setattr__(self, "pressure", self.pressure.value_in_unit(u.bar))
+        if self.pressure < 0:
+            raise ValueError(f"pressure must be >= 0")
 
 
 class AmberSystemBuilder:
@@ -31,74 +112,26 @@ class AmberSystemBuilder:
     Class to handle building a System from SubSystems.
     """
 
-    def __init__(
-        self,
-        forcefield: str = "ff14sbside",
-        gb_radii: str = "mbondi3",
-        solvation: str = "implicit",
-        solvent_forcefield: str = "tip3p",
-        solvent_distance: float = 0.6,
-        explicit_ions: bool = False,
-        p_ion: str = "Na+",
-        p_ioncount: int = 0,
-        n_ion: str = "Cl-",
-        n_ioncount: int = 0,
-    ):
+    options: AmberOptions
+
+    def __init__(self, options: AmberOptions):
         """
         Initialize a SystemBuilder
 
         Args:
-            forcefield: the forcefield to use [ff12sb, ff14sb, ff14sbside]
-            gb_radii: the generalized Born radii [mbondi2, mbondi3]
-            solvation: "implicit" or "explicit"
-            solvent_forcefield: explicit force field [spce, spceb, opc, tip3p, tip4pew]
-            solvent_distance: distance between protein and edge of solvent box, nm
-            explicit_ions: include explicit ions?
-            p_ion: name of positive ion [Na+, K+, Li+, Rb+, Cs+, Mg+]
-            p_ioncount: number of positive ions
-            n_ion: name of negative ion [Cl-, I-, Br-, F-]
-            n_ioncount: number of negative ions
+            options: Options for building the system
         """
-        self._forcefield = None
-        self._set_forcefield(forcefield)
-        self._gb_radii = None
-        self._set_gb_radii(gb_radii)
+        self.options = options
+        self._set_forcefield()
 
-        if solvation not in ["implicit", "explicit"]:
-            raise ValueError('solvation must be "implicit" or "explicit"')
-        self._solvation = solvation
-        self._explicit_ions = explicit_ions
-        if self._solvation == "explicit":
-            self._set_solvent_forcefield(solvent_forcefield)
-            self._solvent_dist = solvent_distance * 10.0  # nm to angstrom
-
-            if self._explicit_ions:
-                self._set_positive_ion_type(p_ion)
-                self._p_ioncount = p_ioncount
-                self._set_negative_ion_type(n_ion)
-                self._n_ioncount = n_ioncount
+        if self.options.solvation == "explicit":
+            self._set_solvent_forcefield()
+            self._solvent_dist = self.options.solvent_distance * 10.0  # nm to angstrom
 
     def build_system(
         self,
         subsystems: List[subsystem._AmberSubSystem],
         leap_header_cmds: Optional[List[str]] = None,
-        remove_com: bool = True,
-        implicit_solvent_model: str = "gbNeck2",
-        cutoff: Optional[float] = None,
-        use_big_timestep: bool = False,
-        use_bigger_timestep: bool = False,
-        enable_pme: Optional[bool] = None,
-        enable_pressure_coupling: Optional[bool] = None,
-        pressure: float = 1.01325,
-        pressure_coupling_update_steps: int = 25,
-        pme_tolerance: float = 0.0005,
-        solute_dielectric=None,
-        solvent_dielectric=None,
-        implicit_solvent_salt_conc=None,
-        default_temperature: float = 300.0,
-        enable_amap=False,
-        amap_alpha_bias=1.0,
-        amap_beta_bias=1.0,
     ) -> AmberSystemSpec:
         """
         Build the system from AmberSubSystems
@@ -110,24 +143,6 @@ class AmberSystemBuilder:
             leap_header_cmds = []
         if isinstance(leap_header_cmds, str):
             leap_header_cmds = [leap_header_cmds]
-
-        if cutoff is None:
-            if self._solvation == "explicit":
-                cutoff = 1.4
-            else:
-                cutoff = None
-
-        if enable_pme is None:
-            if self._solvation == "explicit":
-                enable_pme = True
-            else:
-                enable_pme = False
-
-        if enable_pressure_coupling is None:
-            if self._solvation == "explicit":
-                enable_pressure_coupling = True
-            else:
-                enable_pressure_coupling = False
 
         with util.in_temp_dir():
             mol_ids = []
@@ -151,7 +166,7 @@ class AmberSystemBuilder:
                 sub.prepare_for_tleap(mol_id)
                 leap_cmds.extend(sub.generate_tleap_input(mol_id))
 
-            if self._solvation == "explicit":
+            if self.options.solvation == "explicit":
                 leap_cmds.extend(self._generate_solvent(mol_ids))
                 leap_cmds.extend(self._generate_leap_footer([f"solute"]))
             else:
@@ -198,28 +213,35 @@ class AmberSystemBuilder:
 
         system, barostat = _create_openmm_system(
             prmtop,
-            self._solvation,
-            cutoff,
-            use_big_timestep,
-            use_bigger_timestep,
-            implicit_solvent_model,
-            enable_pme,
-            pme_tolerance,
-            enable_pressure_coupling,
-            pressure,
-            pressure_coupling_update_steps,
-            remove_com,
-            default_temperature,
-            implicit_solvent_salt_conc,
-            solute_dielectric,
-            solvent_dielectric,
+            self.options.solvation,
+            self.options.cutoff,
+            self.options.use_big_timestep,
+            self.options.use_bigger_timestep,
+            self.options.implicit_solvent_model,
+            self.options.enable_pme,
+            self.options.pme_tolerance,
+            self.options.enable_pressure_coupling,
+            self.options.pressure,
+            self.options.pressure_coupling_update_steps,
+            self.options.remove_com,
+            self.options.default_temperature,
+            self.options.implicit_solvent_salt_conc,
+            self.options.solute_dielectric,
+            self.options.solvent_dielectric,
         )
 
-        if enable_amap:
-            amap.add_amap(system, topology, amap_alpha_bias, amap_beta_bias)
+        if self.options.enable_amap:
+            amap.add_amap(
+                system,
+                topology,
+                self.options.amap_alpha_bias,
+                self.options.amap_beta_bias,
+            )
 
         integrator = _create_integrator(
-            default_temperature, use_big_timestep, use_bigger_timestep
+            self.options.default_temperature,
+            self.options.use_big_timestep,
+            self.options.use_bigger_timestep,
         )
 
         coords = crd.getPositions(asNumpy=True).value_in_unit(u.nanometer)
@@ -245,7 +267,7 @@ class AmberSystemBuilder:
             box = None
 
         return AmberSystemSpec(
-            self._solvation,
+            self.options.solvation,
             system,
             topology,
             integrator,
@@ -253,28 +275,18 @@ class AmberSystemBuilder:
             coords,
             vels,
             box,
-            implicit_solvent_model,
+            self.options.implicit_solvent_model,
         )
 
-    def _set_forcefield(self, forcefield):
+    def _set_forcefield(self):
         ff_dict = {
             "ff12sb": "leaprc.ff12SB",
             "ff14sb": "leaprc.protein.ff14SB",
             "ff14sbside": "leaprc.protein.ff14SBonlysc",
         }
-        try:
-            self._forcefield = ff_dict[forcefield]
-        except KeyError:
-            raise RuntimeError(f"Unknown forcefield: {forcefield}")
+        self._forcefield = ff_dict[self.options.forcefield]
 
-    def _set_gb_radii(self, gb_radii):
-        allowed = ["mbondi2", "mbondi3"]
-        if gb_radii not in allowed:
-            raise RuntimeError(f"Unknown gb_radii: {gb_radii}")
-        else:
-            self._gb_radii = gb_radii
-
-    def _set_solvent_forcefield(self, solvent_forcefield):
+    def _set_solvent_forcefield(self):
         ff_dict = {
             "spce": "leaprc.water.spce",
             "spceb": "leaprc.water.spceb",
@@ -289,31 +301,15 @@ class AmberSystemBuilder:
             "tip3p": "TIP3PBOX",
             "tip4pew": "TIP4PEWBOX",
         }
-        try:
-            self._solvent_forcefield = ff_dict[solvent_forcefield]
-            self._solvent_box = box_dict[solvent_forcefield]
-        except KeyError:
-            raise RuntimeError(f"Unknown solvent_model: {solvent_forcefield}")
 
-    def _set_positive_ion_type(self, ion_type):
-        allowed = ["Na+", "K+", "Li+", "Rb+", "Cs+", "Mg+"]
-        if ion_type not in allowed:
-            raise RuntimeError(f"Unknown ion_type: {ion_type}")
-        else:
-            self._p_ion = ion_type
-
-    def _set_negative_ion_type(self, ion_type):
-        allowed = ["Cl-", "I-", "Br-", "F-"]
-        if ion_type not in allowed:
-            raise RuntimeError(f"Unknown ion_type: {ion_type}")
-        else:
-            self._n_ion = ion_type
+        self._solvent_forcefield = ff_dict[self.options.solvent_forcefield]
+        self._solvent_box = box_dict[self.options.solvent_forcefield]
 
     def _generate_leap_header(self):
         leap_cmds = []
-        leap_cmds.append(f"set default PBradii {self._gb_radii}")
+        leap_cmds.append(f"set default PBradii {self.options.gb_radii}")
         leap_cmds.append(f"source {self._forcefield}")
-        if self._solvation == "explicit":
+        if self.options.solvation == "explicit":
             leap_cmds.append(f"source {self._solvent_forcefield}")
         return leap_cmds
 
@@ -324,9 +320,9 @@ class AmberSystemBuilder:
             list_of_mol_ids += f"{mol_id} "
         leap_cmds.append(f"solute = combine {{ {list_of_mol_ids} }}")
         leap_cmds.append(f"solvateBox solute {self._solvent_box} {self._solvent_dist}")
-        if self._explicit_ions:
-            leap_cmds.append(f"addIons solute {self._p_ion} {self._p_ioncount}")
-            leap_cmds.append(f"addIons solute {self._n_ion} {self._n_ioncount}")
+        if self.options.explicit_ions:
+            leap_cmds.append(f"addIons solute {self.options.p_ion} {self.options.p_ioncount}")
+            leap_cmds.append(f"addIons solute {self.options.n_ion} {self.options.n_ioncount}")
         return leap_cmds
 
     def _generate_leap_footer(self, mol_ids):

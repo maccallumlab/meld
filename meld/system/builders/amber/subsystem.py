@@ -4,7 +4,7 @@
 #
 
 """
-Module to build SubSystems from sequence or PDB file
+Module to build AmberSubSystems from sequence or PDB file
 """
 
 from collections import defaultdict
@@ -274,8 +274,6 @@ class AmberSubSystemFromPdbFile(_AmberSubSystem):
 
     This class is dumb and relies on AmberTools for the heavy lifting.
 
-    :param pdb_path: string path to the pdb file
-
     .. note::
         no processing happens to this pdb file. It must be understandable by
         tleap and atoms/residues may need to be added/deleted/renamed. These
@@ -311,7 +309,9 @@ class AmberSubSystemFromPdbFile(_AmberSubSystem):
         # loop over the chainids in alphabetical order
         chains = []
         for chainid in sorted(chainid_set):
-            chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chain = indexing._ChainInfo(
+                {i: j for i, j in enumerate(chain_to_res[chainid])}
+            )
             chains.append(chain)
         self._info = indexing._SubSystemInfo(n_residues, chains)
 

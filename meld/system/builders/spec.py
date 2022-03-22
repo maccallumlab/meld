@@ -16,6 +16,20 @@ from ..meld_system import System
 
 
 class SystemSpec:
+    """
+    A system specification.
+
+    Attributes:
+        solvation: implicit or explicit
+        system: the system to be modeled
+        topology: the topology of the system
+        integrator: the integrator to be used
+        barostat: the barostat to be used
+        coordinates: the initial coordinates of the system
+        velocities: the initial velocities of the system
+        box_vectors: the box vectors of the system
+    """
+
     solvation: str
     system: mm.System
     topology: app.Topology
@@ -27,29 +41,15 @@ class SystemSpec:
 
     def __init__(
         self,
-        solvation,
-        system,
-        topology,
-        integrator,
-        barostat,
-        coordinates,
-        velocities,
-        box_vectors,
+        solvation: str,
+        system: mm.System,
+        topology: app.Topology,
+        integrator: mm.LangevinIntegrator,
+        barostat: Optional[mm.MonteCarloBarostat],
+        coordinates: np.ndarray,
+        velocities: np.ndarray,
+        box_vectors: Optional[np.ndarray],
     ):
-        """
-        A system specification
-
-        Args:
-            solvation: implicit or explicit
-            system: the system to be modeled
-            topology: the topology of the system
-            integrator: the integrator to be used
-            barostat: the barostat to be used
-            coordinates: the initial coordinates of the system
-            velocities: the initial velocities of the system
-            box_vectors: the box vectors of the system
-        """
-
         assert system.getNumParticles() == coordinates.shape[0]
         assert system.getNumParticles() == velocities.shape[0]
         assert coordinates.shape[1] == 3
@@ -85,6 +85,21 @@ class SystemSpec:
 
 
 class AmberSystemSpec(SystemSpec):
+    """
+    An Amber system specification
+
+    Attributes:
+        solvation: implicit or explicit
+        system: the system to be modeled
+        topology: the topology of the system
+        integrator: the integrator to be used
+        barostat: the barostat to be used
+        coordinates: the initial coordinates of the system
+        velocities: the initial velocities of the system
+        box_vectors: the box vectors of the system
+        implict_solvent_model: the implicit solvent model used
+    """
+
     solvation: str
     system: mm.System
     topology: app.Topology
@@ -97,31 +112,16 @@ class AmberSystemSpec(SystemSpec):
 
     def __init__(
         self,
-        solvation,
-        system,
-        topology,
-        integrator,
-        barostat,
-        coordinates,
-        velocities,
-        box_vectors,
-        implicit_solvent_model,
+        solvation: str,
+        system: mm.System,
+        topology: app.Topology,
+        integrator: mm.LangevinIntegrator,
+        barostat: Optional[mm.MonteCarloBarostat],
+        coordinates: np.ndarray,
+        velocities: np.ndarray,
+        box_vectors: Optional[np.ndarray],
+        implicit_solvent_model: str,
     ):
-        """
-        An Amber system specification
-
-        Args:
-            solvation: implicit or explicit
-            system: the system to be modeled
-            topology: the topology of the system
-            integrator: the integrator to be used
-            barostat: the barostat to be used
-            coordinates: the initial coordinates of the system
-            velocities: the initial velocities of the system
-            box_vectors: the box vectors of the system
-            implict_solvent_model: the implicit solvent model used
-        """
-
         super().__init__(
             solvation,
             system,
