@@ -136,7 +136,66 @@ def _get_nb_force(system):
     raise ValueError("No nonbonded force found in system")
 
 
-# TODO These need to be re-written
+def add_virtual_spin_label(
+    spec: SystemSpec, residue=indexing.ResidueIndex, label_type="OND", opt_steps=20
+) -> SystemSpec:
+    """
+    Adds a virtual spin label to the system.
+    """
+    if isinstance(spec, AmberSystemSpec):
+        return _add_virtual_spin_label_amber(spec, residue, label_type, opt_steps)
+    else:
+        raise ValueError("Unsupported system spec type for virtual spin label")
+
+
+def _add_virtual_spin_label_amber(spec, residue, label_type, opt_steps):
+    assert label_type == "OND"
+
+    # Find the insertion point
+    residue = int(residue)
+    residues = list(spec.topology.residues())
+    insertion_point = max(a.index for a in residues[residue].atoms()) + 1
+
+    # Create a new system
+    system = _create_spin_label_system(spec.system, insertion_point, label_type)
+    coords = _create_spin_label_coords(spec.coordinates, insertion_point, label_type)
+    coords = _optimize_spin_label_coords(coords, system, insertion_point, opt_steps)
+    vels = _create_spin_label_vels(spec.velocities, insertion_point)
+    topology = _create_spin_label_topology(spec.topology, insertion_point)
+
+    return AmberSystemSpec(
+        spec.solvation,
+        system,
+        topology,
+        spec.integrator,
+        spec.barostat,
+        coords,
+        vels,
+        spec.box_vectors,
+        spec.implicit_solvent_model,
+    )
+
+
+# TODO Finish this
+def _create_spin_label_system(old_system, insertion_point, label_type):
+    pass
+
+
+def _create_spin_label_coords(old_coords, insertion_point, label_type):
+    pass
+
+
+def _optimize_spin_label_coords(coords, system, insertion_point, opt_steps):
+    pass
+
+
+def _create_spin_label_vels(old_vels, insertion_point):
+    pass
+
+
+def _create_spin_label_topology(old_topology, insertion_point):
+    pass
+
 
 # class VirtualSpinLabelPatcher(PatcherBase):
 #     """
