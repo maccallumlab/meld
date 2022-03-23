@@ -181,7 +181,9 @@ def _handle_spin_label_customgb(
     # Copy tabulated functions
     for i in range(force.getNumTabulatedFunctions()):
         name = force.getTabulatedFunctionName(i)
-        func = force.getTabulatedFunction(i)
+        func = force.getTabulatedFunction(i).Copy()
+        print(name)
+        print(func)
         if isinstance(func, mm.Discrete2DFunction):
             nx, ny, vals = func.getFunctionParameters()
             func = mm.Discrete2DFunction(nx, ny, vals)
