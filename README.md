@@ -62,7 +62,6 @@ MELD requires a CUDA compatible GPU.
 * numpy
 * scipy
 * sklearn
-* parmed
 * tqdm
 * eigen3
 * mpi4py (see below)

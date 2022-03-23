@@ -18,8 +18,8 @@ from meld.system import param_sampling
 from meld.system import mapping
 from meld.runner import transform
 
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 from collections import OrderedDict, Callable
 from typing import List

@@ -10,11 +10,10 @@ ladder and the way we do it is very customizable. The minimum number of replicas
 
 Loading Some Helpful Modules
 ----------------------------
-import numpy as np
-from meld.remd import ladder, adaptor, leader
-from meld import comm, vault
-from meld import system
-from meld import parse
+.. code-block:: python
+
+    import numpy as np
+    import meld
 
 
 Setting up the system
@@ -24,24 +23,26 @@ MELD runs can start from a PDB file, fasta sequence file with no header or seque
 
 .. code-block:: python
 
-    p = subsystem.SubSystemFromSequence("NALA ALA CALA")        
+    p = meld.AmberSubSystemFromSequence("NALA ALA CALA")        
    
-    p = system.SubSystemFromPdbFile("example.pdb")
+    p = meld.AmberSubSystemFromPdbFile("example.pdb")
 
-    sequence = parse.get_sequence_from_AA1(filename='sequence.dat')
-    p = system.SubSystemFromSequence(sequence)
+    sequence = meld.get_sequence_from_AA1(filename='sequence.dat')
+    p = meld.AmberSubSystemFromSequence(sequence)
 
-Once we have the protein system we have to specify a force field. Current options are ff12sb, ff14sbside (ff99backbone) or ff14sb:
+Once we have the protein system we have to specify a force field. Current options are ff12sb, ff14sbside (ff99backbone) or ff14sb.
+We can also chose the implicit solvent model, in this case "gbNeck2".
 
 .. code-block:: python
 
-    b = system.SystemBuilder(forcefield="ff14sbside")
+    options = meld.AmberOptions(forcefield="ff14sbside, implicit_solvent_model="gbNeck2")
+    b = system.AmberSystemBuilder(options)
 
 Now we generate the topoloty/coordinate files to start simulations:
 
 .. code-block:: python
 
-    s = b.build_system([p])
+    s = b.build_system([p]).finalize()
 
 
 At this point we can start defining different ways to setup the replica ladders. In MELD we have a parameter called alpha,
@@ -52,23 +53,22 @@ whole replica space going from 300K to 450K.
 
 .. code-block:: python
 
-   s.temperature_scaler = system.GeometricTemperatureScaler(0, 1.0, 300., 450.)
+   s.temperature_scaler = meld.GeometricTemperatureScaler(0, 1.0, 300., 450.)
 
 Next, we will specify some options for the system. This is where we can decide things like timestep, solvent model or minimizer to use.
 Distances are in nm. So a 1.8 cutoff is 1.8nm cutoff for non-bonded. The use_bigger_timestep keyword allows us to use 
-HydrogenMassRepartitioning to increase timesteps to 4.5fs and the timesteps keyword tells us the steps to take before REMD exchange attempts 
-(in this case 4.5*11111fs ~ 50ps). We will minimized for 20000 steps using OpenMM's minimizer and will use the GB neck 2 implicit solvent 
-model:
+hydrogen mass repartitioning to increase timesteps to 4.5fs and the timesteps keyword tells us the steps to take before REMD exchange attempts 
+(in this case 4.5*11111fs ~ 50ps). We will minimized for 20000 steps using OpenMM's minimizer:
 
 .. code-block:: python
 
-   options = system.RunOptions()
+   options = meld.RunOptions(
+       user_bigge_timestep=True,
+       cutoff=1.8,
+       timesteps = 11111
+       minimize_steps = 20_000,
+    )
 
-   options.use_bigger_timestep = True
-   options.cutoff = 1.8
-   options.timesteps = 11111
-   options.minimize_steps = 20000
-   options.implicit_solvent_model = 'gbNeck2'
 
 Storing simulation output
 -------------------------
@@ -85,7 +85,7 @@ complete BLOCK:
     N_REPLICAS = 2
     BLOCK_SIZE = 100
     # create a store
-    store = vault.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE)
+    store = meld.DataStore(s.n_atoms, N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE)
     store.initialize(mode='w')
     store.save_system(s)
     store.save_run_options(options)
@@ -105,11 +105,11 @@ exchanging too frequently.
 .. code-block:: python
 
     # create and store the remd_runner
-    l = ladder.NearestNeighborLadder(n_trials=100)
-    policy = adaptor.AdaptationPolicy(2.0, 50, 50)
-    a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
+    l = meld.NearestNeighborLadder(n_trials=100)
+    policy = meld.AdaptationPolicy(2.0, 50, 50)
+    a = meld.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
 
-    remd_runner = leader.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+    remd_runner = meld.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
     store.save_remd_runner(remd_runner)
 
 Initialize the communicators and starting replica conformations
@@ -118,20 +118,14 @@ Initialize the communicators and starting replica conformations
 .. code-block:: python
 
     # create and store the communicator
-    c = comm.MPICommunicator(s.n_atoms, N_REPLICAS)
+    c = meld.MPICommunicator(s.n_atoms, N_REPLICAS)
     store.save_communicator(c)
 
 
     def gen_state(s, index):
-        #Start from same conformation, no initial velocicities
-        pos = s._coordinates
-        pos = pos - np.mean(pos, axis=0)
-        vel = np.zeros_like(pos)
-        #Set position in replica ladder -- initially spaced equally
-        alpha = index / (N_REPLICAS - 1.0)
-        s._box_vectors=np.array([0.,0.,0.])
-        energy = 0
-        return system.SystemState(pos, vel, alpha, energy,s._box_vectors)
+        state = s.get_state_template()
+        state.alpha = index / (N_REPLICAS - 1.0)
+        return state
 
     # create and save the initial states
     states = [gen_state(s, i) for i in range(N_REPLICAS)]

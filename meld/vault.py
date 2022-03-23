@@ -11,10 +11,9 @@ The main class is :class:`DataStore` which handles all IO for a MELD run.
 
 from meld import interfaces
 from meld.system import state
-from meld.system import options
 from meld.system import pdb_writer
 from meld.system import param_sampling
-from meld.system import mapping
+from meld.system import options
 
 import contextlib
 import os
@@ -850,12 +849,10 @@ class DataStore:
     def save_run_options(self, run_options: options.RunOptions):
         """
         Save RunOptions to disk
-
         Args:
             run_options: options to save to disk
         """
         self._can_save()
-        run_options.sanity_check()
         with open(self._run_options_path, "wb") as options_file:
             pickle.dump(run_options, options_file)
 
@@ -868,7 +865,6 @@ class DataStore:
         )
         with open(path, "rb") as options_file:
             options = _load_pickle(options_file)
-        options.sanity_check()
         return options
 
     def backup(self, stage: int):

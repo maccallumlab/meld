@@ -26,8 +26,8 @@ from meld.system import options
 from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 from typing import List
 
@@ -156,4 +156,3 @@ from meld.runner.transform.restraints.com import (
 )
 from meld.runner.transform.restraints.meld import MeldRestraintTransformer
 from meld.runner.transform.rest2 import REST2Transformer
-from meld.runner.transform.cmap import CMAPTransformer

@@ -7,7 +7,7 @@
 Miscellaneous utilities
 """
 
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import os
 import shutil

@@ -181,19 +181,29 @@ class Indexer:
         return AtomIndex(self.abs_atom_index[resindex, atom_name])
 
 
-def _setup_indexing(chains, top, crd):
-    n_atoms = crd.get_coordinates().shape[0]
+def setup_indexing(topology):
+    n_atoms = topology.getNumAtoms()
 
-    atom_names = top.get_atom_names()
+    atom_names = [atom.name for atom in topology.atoms()]
     assert len(atom_names) == n_atoms
 
-    residue_names = top.get_residue_names()
+    atom_numbers = [atom.index for atom in topology.atoms()]
+    assert len(atom_numbers) == n_atoms
+
+    residue_names = [atom.residue.name for atom in topology.atoms()]
     assert len(residue_names) == n_atoms
 
-    residue_numbers = [r - 1 for r in top.get_residue_numbers()]
+    residue_numbers = [atom.residue.index for atom in topology.atoms()]
     assert len(residue_numbers) == n_atoms
 
-    atom_numbers = list(range(n_atoms))
+    # Setup mapping of resid to resname
+    resid_to_resname = {}
+    for resid, resname in zip(residue_numbers, residue_names):
+        if resid in resid_to_resname:
+            if resid_to_resname[resid] != resname:
+                raise RuntimeError("Inconsistient residue names")
+        else:
+            resid_to_resname[resid] = resname
 
     # First setup absolute indexing.
     # This maps from (abs_resid, name): atom_index
@@ -205,29 +215,15 @@ def _setup_indexing(chains, top, crd):
         )
     }
 
-    # Addtional residues may have been added after chains was
-    # calculated, e.g. through the RdcPatcher or through tleap
-    # adding explicit solvent and ions. If present, we will add
-    # these extra residues to a final group.
-    max_chain_resid = max(max(chain.residues.values()) for chain in chains)
-    max_resid = max(residue_numbers)
-    if max_resid > max_chain_resid:
-        resids = list(range(max_chain_resid + 1, max_resid + 1))
-        last_chain = _ChainInfo({i: j for i, j in enumerate(resids)})
-        chains.append(last_chain)
-
+    # Now setup relative residue indexing. This maps from
+    # (chainid, rel_resid): resid.
     rel_residue_index = {}
-    for i, chain in enumerate(chains):
-        for rel_index, abs_index in chain.residues.items():
-            rel_residue_index[(i, rel_index)] = abs_index
-
-    # Setup mapping of resid to resname
-    resid_to_resname = {}
-    for resid, resname in zip(residue_numbers, residue_names):
-        if resid in resid_to_resname:
-            if resid_to_resname[resid] != resname:
-                raise RuntimeError("Inconsistient residue names")
-        else:
-            resid_to_resname[resid] = resname
+    for i, chain in enumerate(topology.chains()):
+        residues = list(chain.residues())
+        if not residues:
+            continue
+        min_index = min(res.index for res in residues)
+        for res in residues:
+            rel_residue_index[(i, res.index - min_index)] = res.index
 
     return Indexer(abs_atom_index, rel_residue_index, residue_names, resid_to_resname)

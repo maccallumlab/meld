@@ -14,8 +14,8 @@ from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
 from meld.runner.transform import TransformerBase
-from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 
 import math
 from typing import List, Dict, Tuple
@@ -59,7 +59,10 @@ class REST2Transformer(TransformerBase):
 
         if options.use_rest2:
             self.active = True
-            self.scaler = options.rest2_scaler
+            if isinstance(options.rest2_scaler, temperature.REST2Scaler):
+                self.scaler = options.rest2_scaler
+            else:
+                raise ValueError("Trying to use REST2 without a REST2Scaler")
 
             if options.solvation != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")

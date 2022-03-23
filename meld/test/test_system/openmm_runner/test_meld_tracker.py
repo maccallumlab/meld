@@ -2,22 +2,24 @@ import unittest
 from meld.runner.transform.restraints.meld import tracker
 from meld.system import restraints
 from meld.system import scalers
-from meld.system import param_sampling
-from meld.system import mapping
 import numpy as np
 import meld
 from copy import deepcopy
 
-from simtk import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
+
+from meld.system.builders.amber.builder import AmberOptions  # type: ignore
 
 
 class TestTrackerWithNoDependencies(unittest.TestCase):
     def setUp(self):
-        p = meld.SubSystemFromSequence(sequence="NALA ALA CALA")
+        p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.SystemBuilder(forcefield="ff14sbside")
-        self.system = b.build_system([p])
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
+        spec = b.build_system([p])
+        self.system = spec.finalize()
         self.state = self.system.get_state_template()
         self.tracker = tracker.RestraintTracker(
             self.system.param_sampler, self.system.mapper
@@ -64,11 +66,13 @@ class TestTrackerWithNoDependencies(unittest.TestCase):
 
 class TestTrackerWithScalerDependency(unittest.TestCase):
     def setUp(self):
-        p = meld.SubSystemFromSequence(sequence="NALA ALA CALA")
+        p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.SystemBuilder(forcefield="ff14sbside")
-        self.system = b.build_system([p])
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
+        spec = b.build_system([p])
+        self.system = spec.finalize()
         self.state = self.system.get_state_template()
         self.tracker = tracker.RestraintTracker(
             self.system.param_sampler, self.system.mapper
@@ -153,11 +157,13 @@ class TestTrackerWithScalerDependency(unittest.TestCase):
 
 class TestTrackerWithRampDependency(unittest.TestCase):
     def setUp(self):
-        p = meld.SubSystemFromSequence(sequence="NALA ALA CALA")
+        p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.SystemBuilder(forcefield="ff14sbside")
-        self.system = b.build_system([p])
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
+        spec = b.build_system([p])
+        self.system = spec.finalize()
         self.state = self.system.get_state_template()
         self.tracker = tracker.RestraintTracker(
             self.system.param_sampler, self.system.mapper
@@ -242,11 +248,13 @@ class TestTrackerWithRampDependency(unittest.TestCase):
 
 class TestTrackerWithPositionerDependency(unittest.TestCase):
     def setUp(self):
-        p = meld.SubSystemFromSequence(sequence="NALA ALA CALA")
+        p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.SystemBuilder(forcefield="ff14sbside")
-        self.system = b.build_system([p])
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
+        spec = b.build_system([p])
+        self.system = spec.finalize()
         self.state = self.system.get_state_template()
         self.tracker = tracker.RestraintTracker(
             self.system.param_sampler, self.system.mapper
@@ -335,11 +343,13 @@ class TestTrackerWithPositionerDependency(unittest.TestCase):
 
 class TestTrackerWithPeakMapperDependency(unittest.TestCase):
     def setUp(self):
-        p = meld.SubSystemFromSequence(sequence="NALA ALA CALA")
+        p = meld.AmberSubSystemFromSequence(sequence="NALA ALA CALA")
 
         # build the system
-        b = meld.SystemBuilder(forcefield="ff14sbside")
-        self.system = b.build_system([p])
+        options = meld.AmberOptions()
+        b = meld.AmberSystemBuilder(options)
+        spec = b.build_system([p])
+        self.system = spec.finalize()
         self.tracker = tracker.RestraintTracker(
             self.system.param_sampler, self.system.mapper
         )

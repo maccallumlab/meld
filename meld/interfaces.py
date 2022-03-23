@@ -21,6 +21,9 @@ from typing import Sequence, Optional, List, NamedTuple
 from abc import ABC, abstractmethod
 import numpy as np
 
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
+
 
 class ICommunicator(ABC):
     """
@@ -297,9 +300,41 @@ class ISystem(ABC):
 
     @property
     @abstractmethod
-    def top_string(self) -> str:
+    def omm_system(self) -> mm.System:
         """
-        tleap topology string for the system
+        Get the openmm system
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def topology(self) -> app.Topology:
+        """
+        Get the openmm topology
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def integrator(self) -> mm.LangevinIntegrator:
+        """
+        Get the integrator
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def barostat(self) -> mm.MonteCarloBarostat:
+        """
+        Get the barostat
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def solvation(self) -> str:
+        """
+        Get the solvation model
         """
         pass
 
@@ -313,9 +348,25 @@ class ISystem(ABC):
 
     @property
     @abstractmethod
-    def coordinates(self) -> np.ndarray:
+    def template_coordinates(self) -> np.ndarray:
         """
-        coordinates of system
+        Get the template coordinates
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def template_velocities(self) -> np.ndarray:
+        """
+        Get the template velocities
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def template_box_vectors(self) -> Optional[np.ndarray]:
+        """
+        Get the template box vectors
         """
         pass
 
