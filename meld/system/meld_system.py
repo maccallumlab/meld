@@ -18,6 +18,7 @@ from meld.system import temperature
 from meld.system import param_sampling
 from meld.system import state
 from meld.system import mapping
+from meld.system.patchers.rdc_integrator import CustomRDCIntegrator
 
 import numpy as np  # type: ignore
 from typing import List, Optional, Any
@@ -101,6 +102,13 @@ class System(interfaces.ISystem):
         self.temperature_scaler = None
 
         self._setup_indexing()
+
+    @property
+    def num_alignments(self) -> int:
+        if isinstance(self._integrator, CustomRDCIntegrator):
+            return self._integrator.num_alignments
+        else:
+            return 0
 
     @property
     def solvation(self):
