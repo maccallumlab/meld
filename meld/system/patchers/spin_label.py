@@ -2,6 +2,7 @@
 Add virtual spin labels to the system.
 """
 
+from copy import copy
 import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import app
@@ -181,14 +182,7 @@ def _handle_spin_label_customgb(
     # Copy tabulated functions
     for i in range(force.getNumTabulatedFunctions()):
         name = force.getTabulatedFunctionName(i)
-        func = force.getTabulatedFunction(i).Copy()
-        print(name)
-        print(func)
-        if isinstance(func, mm.Discrete2DFunction):
-            nx, ny, vals = func.getFunctionParameters()
-            func = mm.Discrete2DFunction(nx, ny, vals)
-        else:
-            raise RuntimeError(f"Unsupported tabulated function type {func}")
+        func = copy(force.getTabulatedFunction(i))
         new_force.addTabulatedFunction(name, func)
 
     # Copy per-particle parameters
