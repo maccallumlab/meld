@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger("meld")
 logger.addHandler(logging.NullHandler())
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 from meld.comm import MPICommunicator
 from meld.vault import DataStore
