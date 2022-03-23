@@ -198,8 +198,7 @@ class EqualAcceptanceAdaptor(_AcceptanceCounter):
 
             # compute the values of lambda that will give the desired evenly
             # spaced t_lens
-            new_lambdas = np.interp(even_spacing[1:-1], t_lens, lambda_grid)
-            new_lambdas = [x for x in new_lambdas]
+            new_lambdas = list(np.interp(even_spacing[1:-1], t_lens, lambda_grid))
             new_lambdas = [0.0] + new_lambdas + [1.0]
         else:
             new_lambdas = previous_lambdas
