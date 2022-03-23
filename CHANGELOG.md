@@ -1,4 +1,4 @@
-## Unreleased
+## 0.6.0
 
 ## Bug Fixes
 - Previous versions of MELD could give erroneous values for forces and energies
@@ -15,6 +15,7 @@
   nodes which would lead to failure at runtime.
 
 ## Enhancements
+- Amber-specific system buiding tools are in their own modules
 - Most user facing modules are now imported into the root `meld` namespace.
 - Most user-facing functions now require units, which will help to eliminate
   errors.
