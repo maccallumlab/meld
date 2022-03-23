@@ -143,6 +143,34 @@ class OpenMMRunner(interfaces.IRunner):
 
         return e_potential - log_prior
 
+    def _get_forces(self, state: interfaces.IState) -> np.ndarray:
+        # update all of the transformers
+        self._transformers_update(state)
+
+        # set the coordinates
+        coordinates = u.Quantity(state.positions, u.nanometer)
+        self._simulation.context.setPositions(coordinates)
+
+        # set the box vectors
+        if self._options.solvation == "explicit":
+            box_vector = state.box_vector
+            self._simulation.context.setPeriodicBoxVectors(
+                [box_vector[0], 0.0, 0.0],
+                [0.0, box_vector[1], 0.0],
+                [0.0, 0.0, box_vector[2]],
+            )
+
+        # get the forces
+        snapshot = self._simulation.context.getState(getForces=True)
+        forces = snapshot.getForces(asNumpy=True).value_in_unit(
+            u.kilojoule / u.mole / u.nanometer
+        )
+        return forces
+
+    def _get_max_force_norm(self, state: interfaces.IState) -> float:
+        forces = self._get_forces(state)
+        return np.max(np.linalg.norm(forces, axis=1))
+
     def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
             # update temperature and pressure
@@ -262,9 +290,15 @@ class OpenMMRunner(interfaces.IRunner):
         if self._options.min_mc is not None:
             logger.info("Running MCMC before minimization.")
             logger.info(f"Starting energy {self.get_energy(state):.3f}")
+            logger.info(
+                f"Starting maximum force norm {self._get_max_force_norm(state):.3f}"
+            )
             state.energy = self.get_energy(state)
             state = self._options.min_mc.update(state, self)
             logger.info(f"Ending energy {self.get_energy(state):.3f}")
+            logger.info(
+                f"Ending maximum force norm {self._get_max_force_norm(state):.3f}"
+            )
         return state
 
     def _run_mc(self, state: interfaces.IState) -> interfaces.IState:
@@ -312,7 +346,40 @@ class OpenMMRunner(interfaces.IRunner):
 
         # run energy minimization
         if minimize:
+            logger.info("Running minimization.")
+            pre_state = self._simulation.context.getState(
+                getForces=True, getEnergy=True
+            )
+            pre_energy = (
+                pre_state.getPotentialEnergy().value_in_unit(u.kilojoule_per_mole)
+                / GAS_CONSTANT
+                / self._temperature
+            )
+            pre_forces = pre_state.getForces().value_in_unit(
+                u.kilojoule_per_mole / u.nanometer
+            )
+            pre_norm = np.max(np.linalg.norm(pre_forces, axis=1))
+            logger.info(f"Starting energy {pre_energy:.3f}.")
+            logger.info(f"Starting maximum force norm {pre_norm:.3f}.")
+
             self._simulation.minimizeEnergy(maxIterations=self._options.minimize_steps)
+
+            post_state = self._simulation.context.getState(
+                getForces=True, getEnergy=True
+            )
+            post_energy = (
+                post_state.getPotentialEnergy().value_in_unit(u.kilojoule_per_mole)
+                / GAS_CONSTANT
+                / self._temperature
+            )
+            post_forces = post_state.getForces().value_in_unit(
+                u.kilojoule_per_mole / u.nanometer
+            )
+            post_norm = np.linalg.norm(post_forces, axis=1)
+            post_max = np.max(post_norm)
+            post_index = np.argmax(post_norm)
+            logger.info(f"Ending energy {post_energy:.3f}.")
+            logger.info(f"Ending maximum force norm {post_max:.3f} on particle {post_index}.")
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
