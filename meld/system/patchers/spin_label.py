@@ -8,7 +8,7 @@ import openmm as mm  # type: ignore
 from openmm import app
 from openmm import unit as u  # type: ignore
 from meld.system import indexing
-from meld.system.builders.spec import SystemSpec, AmberSystemSpec
+from meld.system.builders.spec import SystemSpec
 
 
 def add_virtual_spin_label(
@@ -26,14 +26,14 @@ def add_virtual_spin_label(
     Returns:
         A modified system specification with an added spin label.
     """
-    if isinstance(spec, AmberSystemSpec):
+    if spec.builder_info["builder"] == "amber":
         return _add_virtual_spin_label_amber(spec, residue, label_type, trials)
     else:
         raise ValueError("Unsupported SystemSpec type for virtual spin label")
 
 
 def _add_virtual_spin_label_amber(
-    spec: AmberSystemSpec, residue: app.Residue, label_type: str, trials: int
+    spec: SystemSpec, residue: app.Residue, label_type: str, trials: int
 ):
     assert label_type == "OND"
 
@@ -56,7 +56,7 @@ def _add_virtual_spin_label_amber(
     vels = _create_spin_label_vels(spec.velocities, insertion_point)
     topology = _create_spin_label_topology(spec.topology, residue, insertion_point)
 
-    return AmberSystemSpec(
+    return SystemSpec(
         spec.solvation,
         system,
         topology,
@@ -65,7 +65,7 @@ def _add_virtual_spin_label_amber(
         coords,
         vels,
         spec.box_vectors,
-        spec.implicit_solvent_model,
+        spec.builder_info,
     )
 
 

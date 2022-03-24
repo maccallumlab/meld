@@ -35,11 +35,12 @@ class CartesianRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        self.use_pbc = options.solvation == "explicit"
+        self.use_pbc = builder_info.get("solvation", "implicit") == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -114,11 +115,12 @@ class YZCartesianTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        self.use_pbc = options.solvation == "explicit"
+        self.use_pbc = builder_info.get("solvation", "implicit") == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints

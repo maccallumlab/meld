@@ -18,7 +18,6 @@ from meld.system import temperature
 from meld.system import param_sampling
 from meld.system import state
 from meld.system import mapping
-from meld.system.patchers.rdc_integrator import CustomRDCIntegrator
 
 import numpy as np  # type: ignore
 from typing import List, Optional, Any
@@ -68,6 +67,7 @@ class System(interfaces.ISystem):
         template_coordinates: np.ndarray,
         template_velocities: np.ndarray,
         template_box_vectors: Optional[np.ndarray],
+        builder_info: dict,
     ):
         """
         Initialize a MELD system
@@ -81,6 +81,7 @@ class System(interfaces.ISystem):
             template_coordinates: the coordinates of the template
             template_velocities: the velocities of the template
             template_box_vectors: the box vectors of the template
+            builder_info: a dictionary of extra information from the builder/patchers
         """
         self._solvation = solvation
         self._openmm_system = openmm_system
@@ -91,6 +92,7 @@ class System(interfaces.ISystem):
         self._n_atoms = self._template_coordinates.shape[0]
         self._template_velocities = template_velocities
         self._template_box_vectors = template_box_vectors
+        self.builder_info = builder_info
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()
         self.mapper = mapping.PeakMapManager()
@@ -105,10 +107,7 @@ class System(interfaces.ISystem):
 
     @property
     def num_alignments(self) -> int:
-        if isinstance(self._integrator, CustomRDCIntegrator):
-            return self._integrator.num_alignments
-        else:
-            return 0
+        return self.builder_info.get("num_alignments", 0)
 
     @property
     def solvation(self):

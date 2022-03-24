@@ -1,11 +1,11 @@
 import unittest
+import openmm as mm  # type: ignore
 from meld import (
     AmberSubSystemFromSequence,
     AmberSystemBuilder,
     AmberOptions,
     add_rdc_alignment,
 )
-from meld.system.patchers.rdc_integrator import CustomRDCIntegrator
 
 
 class TestRDCPatcher(unittest.TestCase):
@@ -18,11 +18,12 @@ class TestRDCPatcher(unittest.TestCase):
     def test_integrator_should_have_correct_type(self):
         new_spec = add_rdc_alignment(self.spec, num_alignments=1)
 
-        self.assertIsInstance(new_spec.integrator, CustomRDCIntegrator)
+        self.assertIsInstance(new_spec.integrator, mm.CustomIntegrator)
 
     def test_integrator_should_have_correct_num_alignments(self):
         EXPECTED = 1
 
         new_spec = add_rdc_alignment(self.spec, num_alignments=1)
+        system = new_spec.finalize()
 
-        self.assertEqual(new_spec.integrator.num_alignments, EXPECTED)
+        self.assertEqual(system.num_alignments, EXPECTED)

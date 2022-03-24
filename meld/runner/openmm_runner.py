@@ -16,9 +16,7 @@ from openmm import unit as u  # type: ignore
 
 import logging
 import numpy as np  # type: ignore
-import tempfile
-from collections import namedtuple
-from typing import Optional, List, Dict, NamedTuple
+from typing import Optional, List, Dict
 import random
 import math
 
@@ -58,9 +56,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._integrator = meld_system.integrator
         self._barostat = meld_system.barostat
         self._solvation = meld_system.solvation
-        assert (
-            self._solvation == options.solvation
-        ), "Solvation type mismatch between system and options."
+        self.builder_info = meld_system.builder_info
 
         # Default to CUDA platform
         platform = platform if platform else "CUDA"
@@ -121,7 +117,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = state.box_vector
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vector[0], 0.0, 0.0],
@@ -152,7 +148,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = state.box_vector
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vector[0], 0.0, 0.0],
@@ -173,8 +169,14 @@ class OpenMMRunner(interfaces.IRunner):
 
     def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
+            print(self._simulation.context.getParameter("rdc_0_s1"))
             # update temperature and pressure
-            self._integrator.setTemperature(self._temperature)
+            if self.builder_info.get("has_alignments", False):
+                self._simulation.integrator.setGlobalVariableByName(
+                    "kT", self._temperature * GAS_CONSTANT
+                )
+            else:
+                self._integrator.setTemperature(self._temperature)
             if self._barostat:
                 self._simulation.context.setParameter(
                     self._barostat.Temperature(), self._temperature
@@ -265,6 +267,7 @@ class OpenMMRunner(interfaces.IRunner):
             trans = tt(
                 self._parameter_manager,
                 self._mapper,
+                self.builder_info,
                 self._options,
                 self._always_on_restraints,
                 self._selectable_collections,
@@ -337,7 +340,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # if explicit solvent, then set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vectors[0].value_in_unit(u.nanometer), 0.0, 0.0],
                 [0.0, box_vectors[1].value_in_unit(u.nanometer), 0.0],
@@ -379,7 +382,9 @@ class OpenMMRunner(interfaces.IRunner):
             post_max = np.max(post_norm)
             post_index = np.argmax(post_norm)
             logger.info(f"Ending energy {post_energy:.3f}.")
-            logger.info(f"Ending maximum force norm {post_max:.3f} on particle {post_index}.")
+            logger.info(
+                f"Ending maximum force norm {post_max:.3f} on particle {post_index}."
+            )
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
@@ -388,11 +393,11 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.step(self._options.timesteps)
 
         # extract coords, vels, energy and strip units
-        if self._options.solvation == "implicit":
+        if self._solvation == "implicit":
             snapshot = self._simulation.context.getState(
                 getPositions=True, getVelocities=True, getEnergy=True
             )
-        elif self._options.solvation == "explicit":
+        elif self._solvation == "explicit":
             snapshot = self._simulation.context.getState(
                 getPositions=True,
                 getVelocities=True,
@@ -406,7 +411,7 @@ class OpenMMRunner(interfaces.IRunner):
         _check_for_nan(coordinates, velocities, self._rank)
 
         # if explicit solvent, the recover the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(u.nanometer)
             box_vector = np.array(
                 (box_vector[0][0], box_vector[1][1], box_vector[2][2])

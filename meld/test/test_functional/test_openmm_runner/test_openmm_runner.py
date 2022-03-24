@@ -56,7 +56,7 @@ class TestOpenRunner(unittest.TestCase):
         sys = b.build_system([p]).finalize()
         sys.temperature_scaler = temperature.ConstantTemperatureScaler(300.0 * u.kelvin)
 
-        opt = RunOptions(solvation="explicit", timesteps=2, minimize_steps=100)
+        opt = RunOptions(timesteps=2, minimize_steps=100)
 
         runner = openmm_runner.OpenMMRunner(sys, opt, platform="Reference")
         runner.prepare_for_timestep(sys.get_state_template(), 0.0, 1)
@@ -78,7 +78,6 @@ class TestOpenRunner(unittest.TestCase):
         )
 
         opt = RunOptions(
-            solvation="explicit",
             rest2_scaler=temperature.REST2Scaler(300.0 * u.kelvin, rest2_scaler),
             minimize_steps=100,
             timesteps=2,

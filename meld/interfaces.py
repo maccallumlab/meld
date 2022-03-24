@@ -293,10 +293,19 @@ class ISystem(ABC):
     temperature_scaler: Optional[temperature.TemperatureScaler]
     param_sampler: param_sampling.ParameterManager
     mapper: mapping.PeakMapManager
+    builder_info: dict
 
     extra_bonds: List[ExtraBondParam]
     extra_restricted_angles: List[ExtraAngleParam]
     extra_torsions: List[ExtraTorsParam]
+
+    @property
+    @abstractmethod
+    def num_alignments(self) -> int:
+        """
+        Number of rdc alignments
+        """
+        pass
 
     @property
     @abstractmethod

@@ -28,6 +28,7 @@ class SystemSpec:
         coordinates: the initial coordinates of the system
         velocities: the initial velocities of the system
         box_vectors: the box vectors of the system
+        builder_info: extra information about how the system was built
     """
 
     solvation: str
@@ -38,6 +39,7 @@ class SystemSpec:
     coordinates: np.ndarray
     velocities: np.ndarray
     box_vectors: Optional[np.ndarray]
+    builder_info: dict
 
     def __init__(
         self,
@@ -49,6 +51,7 @@ class SystemSpec:
         coordinates: np.ndarray,
         velocities: np.ndarray,
         box_vectors: Optional[np.ndarray],
+        builder_info: Optional[dict] = None,
     ):
         assert system.getNumParticles() == coordinates.shape[0]
         assert system.getNumParticles() == velocities.shape[0]
@@ -63,6 +66,7 @@ class SystemSpec:
         self.coordinates = coordinates
         self.velocities = velocities
         self.box_vectors = box_vectors
+        self.builder_info = builder_info if builder_info is not None else {}
         self.index = setup_indexing(self.topology)
 
     def finalize(self) -> System:
@@ -81,55 +85,5 @@ class SystemSpec:
             self.coordinates,
             self.velocities,
             self.box_vectors,
+            self.builder_info,
         )
-
-
-class AmberSystemSpec(SystemSpec):
-    """
-    An Amber system specification
-
-    Attributes:
-        solvation: implicit or explicit
-        system: the system to be modeled
-        topology: the topology of the system
-        integrator: the integrator to be used
-        barostat: the barostat to be used
-        coordinates: the initial coordinates of the system
-        velocities: the initial velocities of the system
-        box_vectors: the box vectors of the system
-        implict_solvent_model: the implicit solvent model used
-    """
-
-    solvation: str
-    system: mm.System
-    topology: app.Topology
-    integrator: mm.LangevinIntegrator
-    barostat: Optional[mm.MonteCarloBarostat]
-    coordinates: np.ndarray
-    velocities: np.ndarray
-    box_vectors: Optional[np.ndarray]
-    implicit_solvent_model: str
-
-    def __init__(
-        self,
-        solvation: str,
-        system: mm.System,
-        topology: app.Topology,
-        integrator: mm.LangevinIntegrator,
-        barostat: Optional[mm.MonteCarloBarostat],
-        coordinates: np.ndarray,
-        velocities: np.ndarray,
-        box_vectors: Optional[np.ndarray],
-        implicit_solvent_model: str,
-    ):
-        super().__init__(
-            solvation,
-            system,
-            topology,
-            integrator,
-            barostat,
-            coordinates,
-            velocities,
-            box_vectors,
-        )
-        self.implicit_solvent_model = implicit_solvent_model

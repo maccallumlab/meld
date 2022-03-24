@@ -48,6 +48,7 @@ class REST2Transformer(TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -64,7 +65,9 @@ class REST2Transformer(TransformerBase):
             else:
                 raise ValueError("Trying to use REST2 without a REST2Scaler")
 
-            if options.solvation != "explicit":
+            if builder_info["builder"] != "amber":
+                raise ValueError("REST2 only works with Amber")
+            if builder_info["solvation"] != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")
 
     def finalize(
