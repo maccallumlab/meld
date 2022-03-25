@@ -8,7 +8,7 @@ Module to build a System from AmberSubSystems
 """
 
 from meld import util
-from ..spec import AmberSystemSpec
+from ..spec import SystemSpec
 from ... import indexing
 from . import subsystem
 from . import amap
@@ -97,7 +97,11 @@ class AmberOptions:
             raise ValueError(f"Unknown n_ion {self.n_ion}")
 
         if isinstance(self.default_temperature, u.Quantity):
-            object.__setattr__(self, "default_temperature", self.default_temperature.value_in_unit(u.kelvin))
+            object.__setattr__(
+                self,
+                "default_temperature",
+                self.default_temperature.value_in_unit(u.kelvin),
+            )
         if self.default_temperature < 0:
             raise ValueError(f"default_temperature must be >= 0")
 
@@ -132,7 +136,7 @@ class AmberSystemBuilder:
         self,
         subsystems: List[subsystem._AmberSubSystem],
         leap_header_cmds: Optional[List[str]] = None,
-    ) -> AmberSystemSpec:
+    ) -> SystemSpec:
         """
         Build the system from AmberSubSystems
         """
@@ -266,7 +270,7 @@ class AmberSystemBuilder:
         except AttributeError:
             box = None
 
-        return AmberSystemSpec(
+        return SystemSpec(
             self.options.solvation,
             system,
             topology,
@@ -275,7 +279,11 @@ class AmberSystemBuilder:
             coords,
             vels,
             box,
-            self.options.implicit_solvent_model,
+            {
+                "solvation": self.options.solvation,
+                "builder": "amber",
+                "implicit_solvent_model": self.options.implicit_solvent_model,
+            },
         )
 
     def _set_forcefield(self):
@@ -321,8 +329,12 @@ class AmberSystemBuilder:
         leap_cmds.append(f"solute = combine {{ {list_of_mol_ids} }}")
         leap_cmds.append(f"solvateBox solute {self._solvent_box} {self._solvent_dist}")
         if self.options.explicit_ions:
-            leap_cmds.append(f"addIons solute {self.options.p_ion} {self.options.p_ioncount}")
-            leap_cmds.append(f"addIons solute {self.options.n_ion} {self.options.n_ioncount}")
+            leap_cmds.append(
+                f"addIons solute {self.options.p_ion} {self.options.p_ioncount}"
+            )
+            leap_cmds.append(
+                f"addIons solute {self.options.n_ion} {self.options.n_ioncount}"
+            )
         return leap_cmds
 
     def _generate_leap_footer(self, mol_ids):

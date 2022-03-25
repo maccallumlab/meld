@@ -24,6 +24,8 @@ from openmm import app  # type: ignore
 from typing import List
 
 
+FORCE_GROUP = 5
+
 class CartesianRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle Cartesian restraints
@@ -35,11 +37,12 @@ class CartesianRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        self.use_pbc = options.solvation == "explicit"
+        self.use_pbc = builder_info.get("solvation", "implicit") == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -83,6 +86,7 @@ class CartesianRestraintTransformer(transform.TransformerBase):
                 cartesian_force.addParticle(
                     r.atom_index, [r.x, r.y, r.z, r.delta, weight]
                 )
+            cartesian_force.setForceGroup(FORCE_GROUP)
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system
@@ -114,11 +118,12 @@ class YZCartesianTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        self.use_pbc = options.solvation == "explicit"
+        self.use_pbc = builder_info.get("solvation", "implicit") == "explicit"
         self.restraints = [
             r
             for r in always_active_restraints
@@ -160,6 +165,7 @@ class YZCartesianTransformer(transform.TransformerBase):
             for r in self.restraints:
                 weight = r.force_const
                 cartesian_force.addParticle(r.atom_index, [r.y, r.z, r.delta, weight])
+            cartesian_force.setForceGroup(FORCE_GROUP)
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system

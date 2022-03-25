@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+from tkinter import E
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
@@ -16,11 +17,11 @@ from openmm import unit as u  # type: ignore
 
 import logging
 import numpy as np  # type: ignore
-import tempfile
-from collections import namedtuple
-from typing import Optional, List, Dict, NamedTuple
+from typing import Optional, List, Dict
 import random
 import math
+
+from meld.vault import ENERGY_GROUPS
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +59,7 @@ class OpenMMRunner(interfaces.IRunner):
         self._integrator = meld_system.integrator
         self._barostat = meld_system.barostat
         self._solvation = meld_system.solvation
-        assert (
-            self._solvation == options.solvation
-        ), "Solvation type mismatch between system and options."
+        self.builder_info = meld_system.builder_info
 
         # Default to CUDA platform
         platform = platform if platform else "CUDA"
@@ -121,13 +120,16 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = state.box_vector
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vector[0], 0.0, 0.0],
                 [0.0, box_vector[1], 0.0],
                 [0.0, 0.0, box_vector[2]],
             )
+
+        # set the rdc alignments
+        self._set_alignments(state)
 
         # get the energy
         snapshot = self._simulation.context.getState(getEnergy=True)
@@ -143,6 +145,43 @@ class OpenMMRunner(interfaces.IRunner):
 
         return e_potential - log_prior
 
+    def get_group_energies(self, state: interfaces.IState) -> np.ndarray:
+        # update all of the transformers
+        self._transformers_update(state)
+
+        # set the coordinates
+        coordinates = u.Quantity(state.positions, u.nanometer)
+        self._simulation.context.setPositions(coordinates)
+
+        # set the box vectors
+        if self._solvation == "explicit":
+            box_vector = state.box_vector
+            self._simulation.context.setPeriodicBoxVectors(
+                [box_vector[0], 0.0, 0.0],
+                [0.0, box_vector[1], 0.0],
+                [0.0, 0.0, box_vector[2]],
+            )
+
+        # set the rdc alignments
+        self._set_alignments(state)
+
+        group_energies = np.zeros(ENERGY_GROUPS)
+
+        for i in range(ENERGY_GROUPS - 1):
+            snapshot = self._simulation.context.getState(getEnergy=True, groups={i})
+            e_potential = snapshot.getPotentialEnergy()
+            e_potential = (
+                e_potential.value_in_unit(u.kilojoule / u.mole)
+                / GAS_CONSTANT
+                / self._temperature
+            )
+            group_energies[i] = e_potential
+
+        log_prior = self._parameter_manager.log_prior(state.parameters, self._alpha)
+        group_energies[-1] = -log_prior
+
+        return group_energies
+
     def _get_forces(self, state: interfaces.IState) -> np.ndarray:
         # update all of the transformers
         self._transformers_update(state)
@@ -152,13 +191,16 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = state.box_vector
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vector[0], 0.0, 0.0],
                 [0.0, box_vector[1], 0.0],
                 [0.0, 0.0, box_vector[2]],
             )
+
+        # set the rdc alignments
+        self._set_alignments(state)
 
         # get the forces
         snapshot = self._simulation.context.getState(getForces=True)
@@ -174,7 +216,12 @@ class OpenMMRunner(interfaces.IRunner):
     def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
             # update temperature and pressure
-            self._integrator.setTemperature(self._temperature)
+            if self.builder_info.get("has_alignments", False):
+                self._simulation.integrator.setGlobalVariableByName(
+                    "kT", self._temperature * GAS_CONSTANT
+                )
+            else:
+                self._integrator.setTemperature(self._temperature)
             if self._barostat:
                 self._simulation.context.setParameter(
                     self._barostat.Temperature(), self._temperature
@@ -265,6 +312,7 @@ class OpenMMRunner(interfaces.IRunner):
             trans = tt(
                 self._parameter_manager,
                 self._mapper,
+                self.builder_info,
                 self._options,
                 self._always_on_restraints,
                 self._selectable_collections,
@@ -337,12 +385,15 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.context.setPositions(coordinates)
 
         # if explicit solvent, then set the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             self._simulation.context.setPeriodicBoxVectors(
                 [box_vectors[0].value_in_unit(u.nanometer), 0.0, 0.0],
                 [0.0, box_vectors[1].value_in_unit(u.nanometer), 0.0],
                 [0.0, 0.0, box_vectors[2].value_in_unit(u.nanometer)],
             )
+
+        # set the rdc alignments
+        self._set_alignments(state)
 
         # run energy minimization
         if minimize:
@@ -379,7 +430,9 @@ class OpenMMRunner(interfaces.IRunner):
             post_max = np.max(post_norm)
             post_index = np.argmax(post_norm)
             logger.info(f"Ending energy {post_energy:.3f}.")
-            logger.info(f"Ending maximum force norm {post_max:.3f} on particle {post_index}.")
+            logger.info(
+                f"Ending maximum force norm {post_max:.3f} on particle {post_index}."
+            )
 
         # set the velocities
         self._simulation.context.setVelocities(velocities)
@@ -388,11 +441,11 @@ class OpenMMRunner(interfaces.IRunner):
         self._simulation.step(self._options.timesteps)
 
         # extract coords, vels, energy and strip units
-        if self._options.solvation == "implicit":
+        if self._solvation == "implicit":
             snapshot = self._simulation.context.getState(
                 getPositions=True, getVelocities=True, getEnergy=True
             )
-        elif self._options.solvation == "explicit":
+        elif self._solvation == "explicit":
             snapshot = self._simulation.context.getState(
                 getPositions=True,
                 getVelocities=True,
@@ -406,7 +459,7 @@ class OpenMMRunner(interfaces.IRunner):
         _check_for_nan(coordinates, velocities, self._rank)
 
         # if explicit solvent, the recover the box vectors
-        if self._options.solvation == "explicit":
+        if self._solvation == "explicit":
             box_vector = snapshot.getPeriodicBoxVectors().value_in_unit(u.nanometer)
             box_vector = np.array(
                 (box_vector[0][0], box_vector[1][1], box_vector[2][2])
@@ -427,8 +480,28 @@ class OpenMMRunner(interfaces.IRunner):
         state.velocities = velocities
         state.energy = e_potential
         state.box_vector = box_vector
+        state.rdc_alignments = self._gather_alignments()
 
         return state
+
+    def _gather_alignments(self):
+        values = []
+        if self.builder_info.get("has_alignments", False):
+            for i in range(self.builder_info["num_alignments"]):
+                for j in range(5):
+                    a = self._simulation.context.getParameter(f"rdc_{i}_s{j + 1}")
+                    values.append(a)
+        values = np.array(values, dtype=np.float64)
+        return values
+
+    def _set_alignments(self, state):
+        if self.builder_info.get("has_alignments", False):
+            alignments = state.rdc_alignments.reshape(-1, 5)
+            for i in range(alignments.shape[0]):
+                for j in range(5):
+                    self._simulation.context.setParameter(
+                        f"rdc_{i}_s{j + 1}", alignments[i, j]
+                    )
 
     def _run_param_mc(self, state):
         if not self._parameter_manager.has_parameters():
