@@ -16,6 +16,15 @@
 
 ## Enhancements
 - Amber-specific system buiding tools are in their own modules
+- RDCs no longer add particles to the system
+- Energies are saved to different energy groups. The current mapping is:
+  - Base forcefield energy: 0
+  - MELD force: 1
+  - RDC force: 2
+  - Confinement restraints: 3
+  - COM restraints: 4
+  - Cartesian restraints: 5
+  - Log Prior for parameter sampling: 6
 - Most user facing modules are now imported into the root `meld` namespace.
 - Most user-facing functions now require units, which will help to eliminate
   errors.

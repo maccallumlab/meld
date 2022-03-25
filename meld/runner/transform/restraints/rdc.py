@@ -26,6 +26,9 @@ from collections import defaultdict
 from typing import List, Dict
 
 
+FORCE_GROUP = 2
+
+
 class RDCRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle RDC restraints
@@ -86,7 +89,14 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 for r in rests:
                     force.addBond(
                         [r.atom_index_1, r.atom_index_2],
-                        [r.d_obs, r.kappa, r.force_const, r.tolerance, r.quadratic_cut],
+                        [
+                            r.d_obs,
+                            r.kappa,
+                            r.force_const,
+                            r.tolerance,
+                            r.quadratic_cut,
+                            r.weight,
+                        ],
                     )
 
             # add forces to the system
@@ -119,6 +129,7 @@ class RDCRestraintTransformer(transform.TransformerBase):
                             scale * r.force_const,
                             r.tolerance,
                             r.quadratic_cut,
+                            r.weight,
                         ],
                     )
                     force.updateParametersInContext(simulation.context)
@@ -129,11 +140,11 @@ def _create_rdc_force(alignment_index, scale_factor):
         2,
         f"""
         (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;
-        linear = 0.5 * k_rdc * quadcut^2 + k_rdc * quadcut * (dev - quadcut);
-        quad = 0.5 * k_rdc * dev^2;
+        linear = 0.5 * weight * k_rdc * quadcut^2 + weight * k_rdc * quadcut * (dev - quadcut);
+        quad = 0.5 * weight * k_rdc * dev^2;
         dev = max(0, abs(d_obs - dcalc) - flat);
         dcalc = pre * (comp1 + comp2 + comp3 + comp4 + comp5);
-        pre = 2 / 3 * kappa_rdc / r^5;
+        pre = kappa_rdc / r^5;
         comp1 = {scale_factor} * rdc_{alignment_index}_s1 * (rx^2 - ry^2);
         comp2 = {scale_factor} * rdc_{alignment_index}_s2 * (3 * rz^2 - r^2);
         comp3 = {scale_factor} * rdc_{alignment_index}_s3 * 2 * rx * ry;
@@ -154,5 +165,7 @@ def _create_rdc_force(alignment_index, scale_factor):
     force.addPerBondParameter("k_rdc")
     force.addPerBondParameter("flat")
     force.addPerBondParameter("quadcut")
+    force.addPerBondParameter("weight")
+    force.setForceGroup(FORCE_GROUP)
 
     return force

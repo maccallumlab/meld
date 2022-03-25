@@ -11,6 +11,7 @@ import openmm as mm  # type: ignore
 from openmm import app
 
 from meld import interfaces
+from meld.vault import ENERGY_GROUPS
 from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import indexing
@@ -186,12 +187,31 @@ class System(interfaces.ISystem):
         vel = self._template_velocities.copy()
         alpha = 0.0
         energy = 0.0
+        group_energies = np.zeros(ENERGY_GROUPS)
+
         box_vectors = self._template_box_vectors
         if box_vectors is None:
             box_vectors = np.array([0.0, 0.0, 0.0])
+
         params = self.param_sampler.get_initial_state()
         mappings = self.mapper.get_initial_state()
-        return state.SystemState(pos, vel, alpha, energy, box_vectors, params, mappings)
+
+        if self.num_alignments == 0:
+            alignments = None
+        else:
+            alignments = np.zeros(self.num_alignments * 5)
+
+        return state.SystemState(
+            pos,
+            vel,
+            alpha,
+            energy,
+            group_energies,
+            box_vectors,
+            params,
+            mappings,
+            alignments,
+        )
 
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """

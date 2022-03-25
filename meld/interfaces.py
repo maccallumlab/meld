@@ -229,9 +229,11 @@ class IState(ABC):
     velocities: np.ndarray
     alpha: float
     energy: float
+    group_energies: np.ndarray
     box_vector: np.ndarray
     parameters: param_sampling.ParameterState
     mappings: np.ndarray
+    rdc_alignments: np.ndarray
 
 
 class IRunner(ABC):
@@ -251,6 +253,10 @@ class IRunner(ABC):
 
     @abstractmethod
     def get_energy(self, state: IState) -> float:
+        pass
+
+    @abstractmethod
+    def get_group_energies(self, state: IState) -> np.ndarray:
         pass
 
     @abstractmethod

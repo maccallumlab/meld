@@ -24,6 +24,8 @@ from openmm import app  # type: ignore
 from typing import List
 
 
+FORCE_GROUP = 5
+
 class CartesianRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle Cartesian restraints
@@ -84,6 +86,7 @@ class CartesianRestraintTransformer(transform.TransformerBase):
                 cartesian_force.addParticle(
                     r.atom_index, [r.x, r.y, r.z, r.delta, weight]
                 )
+            cartesian_force.setForceGroup(FORCE_GROUP)
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system
@@ -162,6 +165,7 @@ class YZCartesianTransformer(transform.TransformerBase):
             for r in self.restraints:
                 weight = r.force_const
                 cartesian_force.addParticle(r.atom_index, [r.y, r.z, r.delta, weight])
+            cartesian_force.setForceGroup(FORCE_GROUP)
             system.addForce(cartesian_force)
             self.force = cartesian_force
         return system

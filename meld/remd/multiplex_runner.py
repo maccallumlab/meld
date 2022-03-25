@@ -7,12 +7,15 @@
 A module for running a replica exchange simulation on a single worker
 """
 
+from .permute import permute_states
+from meld.interfaces import IRunner
+from meld.vault import DataStore
 from meld.remd import ladder
 from meld.remd import adaptor
 
+from typing import List
 import numpy as np  # type: ignore
 import logging
-import math
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +46,8 @@ class MultiplexReplicaExchangeRunner:
         """number of steps to run"""
         return self._max_steps
 
+    _alphas: List[float]
+
     def __init__(
         self,
         n_replicas: int,
@@ -66,11 +71,9 @@ class MultiplexReplicaExchangeRunner:
         self._step = step
         self.ladder = ladder
         self.adaptor = adaptor
-
-        self._alphas = None
         self._setup_alphas()
 
-    def run(self, system_runner, store):
+    def run(self, system_runner: IRunner, store: DataStore):
         """
         Run replica exchange until finished
 
@@ -83,7 +86,7 @@ class MultiplexReplicaExchangeRunner:
         assert self._n_replicas == store.n_replicas
 
         # load previous state from the store
-        states = store.load_states(stage=self.step - 1)
+        states = list(store.load_states(stage=self.step - 1))
 
         while self._step <= self._max_steps:
             logger.info(
@@ -107,24 +110,24 @@ class MultiplexReplicaExchangeRunner:
                     logger.info("Running molecular dynamics.")
                     states[state_index] = system_runner.run(states[state_index])
 
-            energies = []
+            energies_ = []
             for state_index in range(self._n_replicas):
                 system_runner.prepare_for_timestep(
                     states[state_index], self._alphas[state_index], self._step
                 )
                 # compute our energy for each state
                 my_energies = self._compute_energies(states, system_runner)
-                energies.append(my_energies)
-            energies = np.array(energies)
+                energies_.append(my_energies)
+            energies = np.array(energies_)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
-            states = self._permute_states(permutation_vector, states, system_runner)
+            states = permute_states(permutation_vector, states, system_runner, self.step)
 
             # store everything
             store.save_states(states, self.step)
             store.append_traj(states[0], self.step)
-            store.save_alphas(self._alphas, self.step)
+            store.save_alphas(np.array(self._alphas), self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
             store.save_acceptance_probabilities(
@@ -147,22 +150,6 @@ class MultiplexReplicaExchangeRunner:
             my_energies.append(system_runner.get_energy(state))
         return my_energies
 
-    @staticmethod
-    def _permute_states(permutation_matrix, states, system_runner):
-        old_coords = [s.positions for s in states]
-        old_velocities = [s.velocities for s in states]
-        old_box_vectors = [s.box_vector for s in states]
-        old_energy = [s.energy for s in states]
-        temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
-        for i, index in enumerate(permutation_matrix):
-            states[i].positions = old_coords[index]
-            states[i].box_vector = old_box_vectors[index]
-            states[i].velocities = (
-                math.sqrt(temperatures[i] / temperatures[index]) * old_velocities[index]
-            )
-            states[i].energy = old_energy[index]
-        return states
-
-    def _setup_alphas(self):
+    def _setup_alphas(self) -> None:
         delta = 1.0 / (self._n_replicas - 1.0)
         self._alphas = [i * delta for i in range(self._n_replicas)]

@@ -472,7 +472,6 @@ def get_rdc_restraints(
         scaler: object to scale the force constant.
         ramp: ramp, default is ConstantRamp()
         quadratic_cut: restraints become linear beyond this deviation, default 999 Hz
-        scale_factor: scale factor for kappa and alignment tensor
         filename : filename to open
         content : contents to process
         file : object to read from
@@ -480,8 +479,26 @@ def get_rdc_restraints(
     Returns:
         list of restraints from input
 
-    .. note::
-        The value of kappa is assumed to be in units of Hz A^3.
+    Note:
+        The value of kappa is assumed to be in units of Hz :math:`Angstrom^3`.
+
+    Note:
+        All indexing in the input file is assumed to be 1-based.
+
+    Note:
+        The expected order of columns in the input file is:
+
+        - residue i
+        - atom name i
+        - residue j
+        - atom name j
+        - observed splitting (Hz)
+        - experiment (ignored)
+        - tolerance (Hz)
+        - kappa (:math:`Hz Angstrom^3`)
+        - force constant (:math:`kJ mol^-1 Hz^-2`)
+        - weight
+
     """
     quadratic_cut = 999.0 / u.seconds if quadratic_cut is None else quadratic_cut
 

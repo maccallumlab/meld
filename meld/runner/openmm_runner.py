@@ -3,6 +3,7 @@
 # All rights reserved
 #
 
+from tkinter import E
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
@@ -19,6 +20,8 @@ import numpy as np  # type: ignore
 from typing import Optional, List, Dict
 import random
 import math
+
+from meld.vault import ENERGY_GROUPS
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +128,9 @@ class OpenMMRunner(interfaces.IRunner):
                 [0.0, 0.0, box_vector[2]],
             )
 
+        # set the rdc alignments
+        self._set_alignments(state)
+
         # get the energy
         snapshot = self._simulation.context.getState(getEnergy=True)
         e_potential = snapshot.getPotentialEnergy()
@@ -138,6 +144,43 @@ class OpenMMRunner(interfaces.IRunner):
         log_prior = self._parameter_manager.log_prior(state.parameters, self._alpha)
 
         return e_potential - log_prior
+
+    def get_group_energies(self, state: interfaces.IState) -> np.ndarray:
+        # update all of the transformers
+        self._transformers_update(state)
+
+        # set the coordinates
+        coordinates = u.Quantity(state.positions, u.nanometer)
+        self._simulation.context.setPositions(coordinates)
+
+        # set the box vectors
+        if self._solvation == "explicit":
+            box_vector = state.box_vector
+            self._simulation.context.setPeriodicBoxVectors(
+                [box_vector[0], 0.0, 0.0],
+                [0.0, box_vector[1], 0.0],
+                [0.0, 0.0, box_vector[2]],
+            )
+
+        # set the rdc alignments
+        self._set_alignments(state)
+
+        group_energies = np.zeros(ENERGY_GROUPS)
+
+        for i in range(ENERGY_GROUPS - 1):
+            snapshot = self._simulation.context.getState(getEnergy=True, groups={i})
+            e_potential = snapshot.getPotentialEnergy()
+            e_potential = (
+                e_potential.value_in_unit(u.kilojoule / u.mole)
+                / GAS_CONSTANT
+                / self._temperature
+            )
+            group_energies[i] = e_potential
+
+        log_prior = self._parameter_manager.log_prior(state.parameters, self._alpha)
+        group_energies[-1] = -log_prior
+
+        return group_energies
 
     def _get_forces(self, state: interfaces.IState) -> np.ndarray:
         # update all of the transformers
@@ -156,6 +199,9 @@ class OpenMMRunner(interfaces.IRunner):
                 [0.0, 0.0, box_vector[2]],
             )
 
+        # set the rdc alignments
+        self._set_alignments(state)
+
         # get the forces
         snapshot = self._simulation.context.getState(getForces=True)
         forces = snapshot.getForces(asNumpy=True).value_in_unit(
@@ -169,7 +215,6 @@ class OpenMMRunner(interfaces.IRunner):
 
     def _initialize_simulation(self, state: interfaces.IState) -> None:
         if self._initialized:
-            print(self._simulation.context.getParameter("rdc_0_s1"))
             # update temperature and pressure
             if self.builder_info.get("has_alignments", False):
                 self._simulation.integrator.setGlobalVariableByName(
@@ -347,6 +392,9 @@ class OpenMMRunner(interfaces.IRunner):
                 [0.0, 0.0, box_vectors[2].value_in_unit(u.nanometer)],
             )
 
+        # set the rdc alignments
+        self._set_alignments(state)
+
         # run energy minimization
         if minimize:
             logger.info("Running minimization.")
@@ -432,8 +480,28 @@ class OpenMMRunner(interfaces.IRunner):
         state.velocities = velocities
         state.energy = e_potential
         state.box_vector = box_vector
+        state.rdc_alignments = self._gather_alignments()
 
         return state
+
+    def _gather_alignments(self):
+        values = []
+        if self.builder_info.get("has_alignments", False):
+            for i in range(self.builder_info["num_alignments"]):
+                for j in range(5):
+                    a = self._simulation.context.getParameter(f"rdc_{i}_s{j + 1}")
+                    values.append(a)
+        values = np.array(values, dtype=np.float64)
+        return values
+
+    def _set_alignments(self, state):
+        if self.builder_info.get("has_alignments", False):
+            alignments = state.rdc_alignments.reshape(-1, 5)
+            for i in range(alignments.shape[0]):
+                for j in range(5):
+                    self._simulation.context.setParameter(
+                        f"rdc_{i}_s{j + 1}", alignments[i, j]
+                    )
 
     def _run_param_mc(self, state):
         if not self._parameter_manager.has_parameters():

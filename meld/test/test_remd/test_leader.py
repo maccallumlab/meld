@@ -80,6 +80,12 @@ class TestSingleStep(unittest.TestCase):
             sentinel.E4,
             sentinel.E5,
             sentinel.E6,
+            sentinel.E7,
+            sentinel.E8,
+            sentinel.E9,
+            sentinel.E10,
+            sentinel.E11,
+            sentinel.E12,
         ]
         self.mock_system_runner.get_energy.side_effect = (
             self.FAKE_ENERGIES_AFTER_GET_ENERGY
@@ -118,15 +124,6 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         self.mock_store.load_states.assert_called_once_with(stage=0)
-
-    def test_should_set_alphas_on_system_runner(self):
-        "should set alphas on the system runner"
-        self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
-
-        # the leader is always alphas = 0.
-        self.mock_system_runner.prepare_for_timestep.assert_called_once_with(
-            sentinel.MY_STATE_INIT, 0.0, 1
-        )
 
     def test_should_broadcast_alphas(self):
         "calling run should broadcast all of the alpha values"
@@ -170,7 +167,7 @@ class TestSingleStep(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         self.mock_comm.gather_energies_from_workers.assert_called_once_with(
-            self.FAKE_ENERGIES_AFTER_GET_ENERGY
+            self.FAKE_ENERGIES_AFTER_GET_ENERGY[:6]
         )
 
     def test_calls_ladder(self):
@@ -316,6 +313,12 @@ class TestFiveSteps(unittest.TestCase):
             sentinel.E4,
             sentinel.E5,
             sentinel.E6,
+            sentinel.E7,
+            sentinel.E8,
+            sentinel.E9,
+            sentinel.E10,
+            sentinel.E11,
+            sentinel.E12,
         ]
         self.mock_system_runner.get_energy.side_effect = (
             self.FAKE_ENERGIES_AFTER_GET_ENERGY * self.MAX_STEPS
@@ -338,12 +341,6 @@ class TestFiveSteps(unittest.TestCase):
         self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
 
         self.assertEqual(self.mock_store.load_states.call_count, 1)
-
-    def test_set_alphas_is_called_once(self):
-        "set_alphas should only be called once"
-        self.runner.run(self.mock_comm, self.mock_system_runner, self.mock_store)
-
-        self.assertEqual(self.mock_system_runner.prepare_for_timestep.call_count, 5)
 
     def test_minimize_then_run_is_called_once(self):
         "minimize_then_run should only be called once"

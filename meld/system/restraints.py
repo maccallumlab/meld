@@ -783,21 +783,21 @@ class RdcRestraint(NonSelectableRestraint):
             ramp: scale the force over time
             atom1: the first atom in the RDC
             atom2: the second atom in the RDC
-            kappa: prefactor for RDC calculation in :math:`Hz Angstrom^3`
+            kappa: prefactor for RDC calculation in :math:`Hz nanometer^3`
             d_obs: observed dipolar coupling in Hz
             tolerance: calculed couplings within tolerance (in Hz) of d_obs
                 will have zero energy and force
             force_const: force constant in :math:`kJ/mol/Hz^2`
-            quadratic_cut: force constant becomes linear bond this deviation s^-1
+            quadratic_cut: force constant becomes linear beyond this deviation s^-1
             weight: dimensionless weight to place on this restraint
             alignment_index: which alignment to use
 
-        .. note::
+        Note:
            Typical values for kappa are:
 
-           - 1H - 1H: :math:`-360300 Hz Angstrom^3`
-           - 13C - 1H: :math:`-90600 Hz Angstrom^3`
-           - 15N - 1H: :math:`36500 Hz Angstrom^3`
+           - 1H - 1H: :math:`-360.3 Hz nanometer^3`
+           - 13C - 1H: :math:`-90.6 Hz nanometer^3`
+           - 15N - 1H: :math:`36.5 Hz nanometer^3`
         """
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)

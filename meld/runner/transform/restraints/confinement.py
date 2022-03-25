@@ -24,6 +24,9 @@ from openmm import app  # type: ignore
 from typing import List
 
 
+FORCE_GROUP = 3
+
+
 class ConfinementRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle confinement restraints
@@ -76,6 +79,7 @@ class ConfinementRestraintTransformer(transform.TransformerBase):
             for r in self.restraints:
                 weight = r.force_const
                 confinement_force.addParticle(r.atom_index, [r.radius, weight])
+            confinement_force.setForceGroup(FORCE_GROUP)
             system.addForce(confinement_force)
             self.force = confinement_force
 

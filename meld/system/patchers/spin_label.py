@@ -77,16 +77,24 @@ def _create_spin_label_system(
     label_type: str,
 ):
     system = mm.System()
+
+    # Add the particles to the system
     for i in range(insertion_point):
         mass = old_system.getParticleMass(i)
         system.addParticle(mass)
-
-    # Add the new spin label
-    system.addParticle(12.0)
-
+    system.addParticle(12.0)  # Add the spin label
     for i in range(insertion_point, old_system.getNumParticles()):
         mass = old_system.getParticleMass(i)
         system.addParticle(mass)
+
+    # Update the constraints
+    for i in range(old_system.getNumConstraints()):
+        p1, p2, dist = old_system.getConstraintParameters(i)
+        system.addConstraint(
+            p1 + 1 if p1 >= insertion_point else p1,
+            p2 + 1 if p2 >= insertion_point else p2,
+            dist,
+        )
 
     for force in old_system.getForces():
         if isinstance(force, mm.NonbondedForce):

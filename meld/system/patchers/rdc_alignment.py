@@ -13,8 +13,8 @@ GAS_CONSTANT = 8.314e-3
 def add_rdc_alignment(
     spec: SystemSpec,
     num_alignments: int,
-    alignment_mass: float = 10,
-    scale_factor: float = 1e-4,
+    alignment_mass: float = 1000.0,
+    scale_factor: float = 1.0e-4,
 ) -> SystemSpec:
     """
     Add RDC alignments to the system
@@ -24,6 +24,29 @@ def add_rdc_alignment(
         num_alignments: number of alignments to add
         alignment_step_size: step size for alignment tensor update
         scale_factor: scale factor for the alignment tensor
+
+    Note:
+        The alignment tensor is encoded as five independent components,
+        s1 through s5. The components can be combined to produce the
+        aligmnet tensor as follows::
+
+            s1 - s2      s3        s4
+            s3        -s1 - s2     s5
+            s4           s5      2*s2
+
+    Note:
+        The values of the alignment tensor are typically on the order
+        of 1e-4. Setting `scale_factor=1e-4` serves to scale these values
+        to be on the order of unity.
+
+    Note:
+        The mass of alignment tensor determines how quickly the alignment
+        tensor responds to changes in the structure. A mass that is too
+        small will result instability and crashes. A mass that is too large
+        will lead to slow exploration as the alignment tensor will change
+        very slowly. The default value of 1000.0 is a reasonable compromise
+        that results in the alignment tensor changing over ~10-20 ps.
+
     """
     assert num_alignments > 0, "Must add at least one alignment"
     assert alignment_mass > 0, "Alignment mass must be positive"
