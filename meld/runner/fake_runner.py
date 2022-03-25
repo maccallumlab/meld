@@ -1,4 +1,6 @@
 from meld import interfaces
+import numpy as np
+from meld.vault import ENERGY_GROUPS
 
 
 class FakeSystemRunner(interfaces.IRunner):
@@ -25,6 +27,9 @@ class FakeSystemRunner(interfaces.IRunner):
 
     def get_energy(self, state: interfaces.IState) -> float:
         return 0.0
+
+    def get_group_energies(self, state: interfaces.IState) -> np.ndarray:
+        return np.zeros(ENERGY_GROUPS)
 
     def prepare_for_timestep(
         self, state: interfaces.IState, alpha: float, timestep: int

@@ -772,8 +772,7 @@ class RdcRestraint(NonSelectableRestraint):
         force_const: u.Quantity,
         quadratic_cut: u.Quantity,
         weight: float,
-        expt_index: int,
-        alignment_residue_index: indexing.ResidueIndex,
+        alignment_index: int,
     ):
         """
         Initialize an RdcRestraint
@@ -784,22 +783,21 @@ class RdcRestraint(NonSelectableRestraint):
             ramp: scale the force over time
             atom1: the first atom in the RDC
             atom2: the second atom in the RDC
-            kappa: prefactor for RDC calculation in :math:`Hz Angstrom^3`
+            kappa: prefactor for RDC calculation in :math:`Hz nanometer^3`
             d_obs: observed dipolar coupling in Hz
             tolerance: calculed couplings within tolerance (in Hz) of d_obs
                 will have zero energy and force
             force_const: force constant in :math:`kJ/mol/Hz^2`
-            quadratic_cut: force constant becomes linear bond this deviation s^-1
+            quadratic_cut: force constant becomes linear beyond this deviation s^-1
             weight: dimensionless weight to place on this restraint
-            expt_index: integer experiment id
-            patcher: the residue containing the alignment tensor particles
+            alignment_index: which alignment to use
 
-        .. note::
+        Note:
            Typical values for kappa are:
 
-           - 1H - 1H: :math:`-360300 Hz Angstrom^3`
-           - 13C - 1H: :math:`-90600 Hz Angstrom^3`
-           - 15N - 1H: :math:`36500 Hz Angstrom^3`
+           - 1H - 1H: :math:`-360.3 Hz nanometer^3`
+           - 13C - 1H: :math:`-90.6 Hz nanometer^3`
+           - 15N - 1H: :math:`36.5 Hz nanometer^3`
         """
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)
@@ -811,15 +809,13 @@ class RdcRestraint(NonSelectableRestraint):
 
         self.atom_index_1 = int(atom1)
         self.atom_index_2 = int(atom2)
-        self.s1_index = int(system.index.atom(alignment_residue_index, "S1"))
-        self.s2_index = int(system.index.atom(alignment_residue_index, "S2"))
+        self.alignment_index = alignment_index
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)
         self.force_const = float(force_const)
         self.quadratic_cut = quadratic_cut
         self.weight = float(weight)
-        self.expt_index = int(expt_index)
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)

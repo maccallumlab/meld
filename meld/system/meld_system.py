@@ -11,6 +11,7 @@ import openmm as mm  # type: ignore
 from openmm import app
 
 from meld import interfaces
+from meld.vault import ENERGY_GROUPS
 from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import indexing
@@ -67,6 +68,7 @@ class System(interfaces.ISystem):
         template_coordinates: np.ndarray,
         template_velocities: np.ndarray,
         template_box_vectors: Optional[np.ndarray],
+        builder_info: dict,
     ):
         """
         Initialize a MELD system
@@ -80,6 +82,7 @@ class System(interfaces.ISystem):
             template_coordinates: the coordinates of the template
             template_velocities: the velocities of the template
             template_box_vectors: the box vectors of the template
+            builder_info: a dictionary of extra information from the builder/patchers
         """
         self._solvation = solvation
         self._openmm_system = openmm_system
@@ -90,6 +93,7 @@ class System(interfaces.ISystem):
         self._n_atoms = self._template_coordinates.shape[0]
         self._template_velocities = template_velocities
         self._template_box_vectors = template_box_vectors
+        self.builder_info = builder_info
         self.restraints = restraints.RestraintManager(self)
         self.param_sampler = param_sampling.ParameterManager()
         self.mapper = mapping.PeakMapManager()
@@ -101,6 +105,10 @@ class System(interfaces.ISystem):
         self.temperature_scaler = None
 
         self._setup_indexing()
+
+    @property
+    def num_alignments(self) -> int:
+        return self.builder_info.get("num_alignments", 0)
 
     @property
     def solvation(self):
@@ -179,12 +187,31 @@ class System(interfaces.ISystem):
         vel = self._template_velocities.copy()
         alpha = 0.0
         energy = 0.0
+        group_energies = np.zeros(ENERGY_GROUPS)
+
         box_vectors = self._template_box_vectors
         if box_vectors is None:
             box_vectors = np.array([0.0, 0.0, 0.0])
+
         params = self.param_sampler.get_initial_state()
         mappings = self.mapper.get_initial_state()
-        return state.SystemState(pos, vel, alpha, energy, box_vectors, params, mappings)
+
+        if self.num_alignments == 0:
+            alignments = None
+        else:
+            alignments = np.zeros(self.num_alignments * 5)
+
+        return state.SystemState(
+            pos,
+            vel,
+            alpha,
+            energy,
+            group_energies,
+            box_vectors,
+            params,
+            mappings,
+            alignments,
+        )
 
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """

@@ -24,14 +24,10 @@ class RunOptions:
     param_mcmc_steps: int = 0
     mapper_mcmc_steps: int = 0
     pressure: float = 1.0 * u.bar
-    solvation: str = "implicit"
 
     def __post_init__(self):
         if self.runner not in ["openmm", "fake_runner"]:
             raise ValueError(f"Unknown runner: {self.runner}")
-
-        if self.solvation not in ["implicit", "explicit"]:
-            raise ValueError(f"Solvation must be either 'implicit' or 'explicit'")
 
         if isinstance(self.pressure, u.Quantity):
             object.__setattr__(self, "pressure", self.pressure.value_in_unit(u.bar))

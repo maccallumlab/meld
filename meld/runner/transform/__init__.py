@@ -65,6 +65,7 @@ class TransformerBase:
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -74,6 +75,7 @@ class TransformerBase:
 
         Args:
             param_manager: parameter manager to handle sampling of paramters
+            builder_info: information from the system builder / patcher
             options: the options for the runner
             always_active_restraints: these restraints are always active
             selectively_active_collections: these restraints are selected by the MELD algorithm

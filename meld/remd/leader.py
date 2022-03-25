@@ -7,6 +7,7 @@
 Module for replica exchange leader
 """
 
+from .permute import permute_states
 from meld import interfaces
 from meld import vault
 from meld.remd import worker
@@ -130,7 +131,7 @@ class LeaderReplicaExchangeRunner:
                 my_state = system_runner.run(my_state)
 
             # gather all of the states
-            states = communicator.exchange_states_for_energy_calc(my_state)
+            states = list(communicator.exchange_states_for_energy_calc(my_state))
 
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
@@ -138,7 +139,7 @@ class LeaderReplicaExchangeRunner:
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
-            states = self._permute_states(permutation_vector, states, system_runner)
+            states = permute_states(permutation_vector, states, system_runner, self.step)
 
             # store everything
             store.save_states(states, self.step)
@@ -171,32 +172,6 @@ class LeaderReplicaExchangeRunner:
         for state in states:
             my_energies.append(system_runner.get_energy(state))
         return my_energies
-
-    @staticmethod
-    def _permute_states(
-        permutation_matrix: List[int],
-        states: Sequence[interfaces.IState],
-        system_runner: interfaces.IRunner,
-    ) -> Sequence[interfaces.IState]:
-        old_coords = [s.positions for s in states]
-        old_velocities = [s.velocities for s in states]
-        old_box_vectors = [s.box_vector for s in states]
-        old_energy = [s.energy for s in states]
-        old_params = [s.parameters for s in states]
-        old_mappings = [s.mappings for s in states]
-        assert system_runner.temperature_scaler is not None
-        temperatures = [system_runner.temperature_scaler(s.alpha) for s in states]
-
-        for i, index in enumerate(permutation_matrix):
-            states[i].positions = old_coords[index]
-            states[i].velocities = (
-                math.sqrt(temperatures[i] / temperatures[index]) * old_velocities[index]
-            )
-            states[i].box_vector = old_box_vectors[index]
-            states[i].energy = old_energy[index]
-            states[i].parameters = old_params[index]
-            states[i].mappings = old_mappings[index]
-        return states
 
     def _setup_alphas(self) -> None:
         delta = 1.0 / (self._n_replicas - 1.0)

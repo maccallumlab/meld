@@ -9,7 +9,9 @@ from meld.system.state import SystemState
 import meld
 import unittest
 from unittest import mock  # type: ignore
-import numpy as np  # type: ignore
+import numpy as np
+
+from meld.vault import ENERGY_GROUPS  # type: ignore
 
 
 class TestMonteCarloSchedulerSingle(unittest.TestCase):
@@ -196,7 +198,7 @@ class TestRandomTorsionMover(unittest.TestCase):
         )
 
         state = SystemState(
-            start, np.zeros_like(start), 0.0, 0.0, np.zeros(3)
+            start, np.zeros_like(start), 0.0, 0.0, np.zeros(ENERGY_GROUPS), np.zeros(3)
         )
         mock_runner = mock.Mock()
         mock_runner.get_energy.return_value = -1.0
@@ -242,7 +244,7 @@ class TestRandomTorsionMover(unittest.TestCase):
         )
 
         state = SystemState(
-            start, np.zeros_like(start), 0.0, 0.0, np.zeros(3)
+            start, np.zeros_like(start), 0.0, 0.0, np.zeros(ENERGY_GROUPS), np.zeros(3)
         )
         mock_runner = mock.Mock()
         mock_runner.get_energy.return_value = 1000.0

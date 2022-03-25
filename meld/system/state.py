@@ -25,9 +25,11 @@ class SystemState(interfaces.IState):
         velocities: np.ndarray,
         alpha: float,
         energy: float,
+        group_energies: np.ndarray,
         box_vector: np.ndarray,
         parameters: Optional[param_sampling.ParameterState] = None,
         mappings: Optional[np.ndarray] = None,
+        rdc_alignments: Optional[np.ndarray] = None,
     ) -> None:
         """
         Initialize a SystemState
@@ -40,6 +42,7 @@ class SystemState(interfaces.IState):
             box_vector: the box vectors, shape(3, 3) in nm
             parameters: current state of sampled parameters
             mappings: current state of peak mappings
+            rdc_alignments: current rdc alignments
         """
         self.positions = positions
         self.velocities = velocities
@@ -47,6 +50,7 @@ class SystemState(interfaces.IState):
         self.n_atoms = positions.shape[0]
         self.alpha = alpha
         self.energy = energy
+        self.group_energies = group_energies
         if parameters is None:
             self.parameters = param_sampling.ParameterState(
                 discrete=np.array([], dtype=np.int32),
@@ -54,10 +58,16 @@ class SystemState(interfaces.IState):
             )
         else:
             self.parameters = parameters
+
         if mappings is None:
             self.mappings = np.array([], dtype=int)
         else:
             self.mappings = mappings
+
+        if rdc_alignments is None:
+            self.rdc_alignments = np.array([], dtype=np.float64)
+        else:
+            self.rdc_alignments = rdc_alignments
 
         self._validate()
 

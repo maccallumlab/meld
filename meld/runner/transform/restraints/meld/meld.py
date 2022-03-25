@@ -27,6 +27,9 @@ import numpy as np  # type: ignore
 from typing import List, Tuple, Union
 
 
+FORCE_GROUP = 1
+
+
 class MeldRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle MELD restraints
@@ -38,6 +41,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -119,7 +123,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 # so that it can be updated.
                 if isinstance(coll.num_active, param_sampling.Parameter):
                     self.tracker.collections_with_dep.append((coll, coll_index))
-
+            meld_force.setForceGroup(FORCE_GROUP)
             system.addForce(meld_force)
             self.force = meld_force
         return system

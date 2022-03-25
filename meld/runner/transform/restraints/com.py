@@ -24,6 +24,9 @@ from openmm import app  # type: ignore
 from typing import List
 
 
+FORCE_GROUP = 4
+
+
 class COMRestraintTransformer(transform.TransformerBase):
     """
     Transformer to handle COM restraints
@@ -35,6 +38,7 @@ class COMRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -90,6 +94,8 @@ class COMRestraintTransformer(transform.TransformerBase):
             pos = rest.positioner(0)
             force.addBond([g1, g2], [force_const, pos])
 
+            force.setForceGroup(FORCE_GROUP)
+
             system.addForce(force)
             self.force = force
         return system
@@ -121,6 +127,7 @@ class AbsoluteCOMRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -175,6 +182,8 @@ class AbsoluteCOMRestraintTransformer(transform.TransformerBase):
             pos_y = rest.position[1]
             pos_z = rest.position[2]
             force.addBond([g1], [force_const, pos_x, pos_y, pos_z])
+
+            force.setForceGroup(FORCE_GROUP)
 
             system.addForce(force)
             self.force = force
