@@ -410,6 +410,13 @@ class ISystem(ABC):
         pass
 
     @abstractmethod
+    def get_state_template(self) -> IState:
+        """
+        Get a template state for this system
+        """
+        pass
+
+    @abstractmethod
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """
         Get the PDBWriter

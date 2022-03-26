@@ -10,6 +10,8 @@ logger.addHandler(logging.NullHandler())
 
 __version__ = "0.6.0"
 
+from openmm import unit  # type: ignore
+
 from meld.comm import MPICommunicator
 from meld.vault import DataStore
 from meld.parse import (
@@ -46,3 +48,4 @@ from meld.system.param_sampling import (
 )
 from meld.system.patchers.rdc_alignment import add_rdc_alignment
 from meld.system.patchers.spin_label import add_virtual_spin_label
+from meld.helpers import setup_data_store, setup_replica_exchange
