@@ -29,7 +29,7 @@ namespace std {
 
 /* include version information */
 %pythoncode %{
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 %}
 
 /*
