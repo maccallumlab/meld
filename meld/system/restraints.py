@@ -102,7 +102,7 @@ Ramps are created and added to a restraint by:
 >>> ramp = system.restraints.create_scaler(ramp_key, params...)
 >>> r = system.restraints.create_restraint(rest_key, ramp=ramp, params...)
 
-.. note::
+Note:
    Despite the name, ramps are created with the :meth:`create_scaler` method.
 
 Positioners
@@ -117,7 +117,7 @@ Positioners are created and added to a restraint by:
 >>> r = system.restraints.create_restraint(
         rest_key, param=positioner, params...)
 
-.. note::
+Note:
    Despite the name, positioners are created with the ``create_scaler`` method.
 
 Restraint Manager
@@ -783,21 +783,21 @@ class RdcRestraint(NonSelectableRestraint):
             ramp: scale the force over time
             atom1: the first atom in the RDC
             atom2: the second atom in the RDC
-            kappa: prefactor for RDC calculation in :math:`Hz nanometer^3`
-            d_obs: observed dipolar coupling in Hz
-            tolerance: calculed couplings within tolerance (in Hz) of d_obs
+            kappa: prefactor for RDC calculation in :math:`Hz nm^3`
+            d_obs: observed dipolar coupling in :math:`Hz`
+            tolerance: calculed couplings within tolerance (in :math:`Hz`) of d_obs
                 will have zero energy and force
             force_const: force constant in :math:`kJ/mol/Hz^2`
-            quadratic_cut: force constant becomes linear beyond this deviation s^-1
+            quadratic_cut: force constant becomes linear beyond this deviation in :math:`s^-1`
             weight: dimensionless weight to place on this restraint
             alignment_index: which alignment to use
 
         Note:
            Typical values for kappa are:
 
-           - 1H - 1H: :math:`-360.3 Hz nanometer^3`
-           - 13C - 1H: :math:`-90.6 Hz nanometer^3`
-           - 15N - 1H: :math:`36.5 Hz nanometer^3`
+           - 1H - 1H: :math:`-360.3 Hz nm^3`
+           - 13C - 1H: :math:`-90.6 Hz nm^3`
+           - 15N - 1H: :math:`36.5 Hz nm^3`
         """
         assert isinstance(atom1, indexing.AtomIndex)
         assert isinstance(atom2, indexing.AtomIndex)
@@ -1248,7 +1248,7 @@ class SelectivelyActiveCollection:
             restraint_list: list of restraints to add to collection
             num_active: number active each time step
 
-        .. note::
+        Note:
            ``restraint_list`` can contain both :class:`RestraintGroup` and
            :class:`SelectableRestraint`. Any :class:`SelectableRestraints`
            will be put into a singleton :class:`RestraintGroup`.

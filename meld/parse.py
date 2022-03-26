@@ -86,7 +86,7 @@ def get_sequence_from_AA1(
     Returns:
         string representation that can be used to create a :class:`SubSystem`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
@@ -145,7 +145,7 @@ def get_sequence_from_AA3(
     Returns:
         string representation that can be used to create a :class:`SubSystem`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
@@ -205,7 +205,7 @@ def get_secondary_structure_restraints(
     Returns
         A list of :class:`RestraintGroups`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file.
     """
 
@@ -492,11 +492,11 @@ def get_rdc_restraints(
         - atom name i
         - residue j
         - atom name j
-        - observed splitting (Hz)
+        - observed splitting (:math:`Hz`)
         - experiment (ignored)
-        - tolerance (Hz)
-        - kappa (:math:`Hz Angstrom^3`)
-        - force constant (:math:`kJ mol^-1 Hz^-2`)
+        - tolerance (:math:`Hz`)
+        - kappa (:math:`Hz \AA^3`)
+        - force constant (:math:`kJ mol^{-1} Hz^{-2}`)
         - weight
 
     """
