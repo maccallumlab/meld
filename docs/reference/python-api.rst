@@ -15,3 +15,4 @@ Full Python API Reference
    meld.util
    meld.runner
    meld.interfaces
+   meld.helpers
