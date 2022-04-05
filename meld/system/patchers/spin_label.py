@@ -140,7 +140,7 @@ def _handle_spin_label_nonbonded(
 
     # We should be using the label type here, but we currently
     # only support OND, so we can hard code.
-    force.addParticle(0.0, 2.0 * u.angstrom, 0.05 * u.kilocalorie_per_mole)
+    new_force.addParticle(0.0, 2.0 * u.angstrom, 0.05 * u.kilocalorie_per_mole)
 
     for i in range(insertion_point, force.getNumParticles()):
         q, sigma, eps = force.getParticleParameters(i)
@@ -446,7 +446,7 @@ def _create_spin_label_coords(
     best_energy = 9e99
     best_coords = None
     for _ in range(trials):
-        label_position = ca_coords + np.random.normal(0, 0.1, 3)
+        label_position = ca_coords + np.random.normal(0, 0.3, 3)
         trial_coords = np.concatenate(
             [
                 old_coords[:insertion_point, :],
