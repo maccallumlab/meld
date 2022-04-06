@@ -764,8 +764,8 @@ class RdcRestraint(NonSelectableRestraint):
         system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: indexing.AtomIndex,
-        atom2: indexing.AtomIndex,
+        atom1: Union[indexing.AtomIndex, mapping.PeakMapping],
+        atom2: Union[indexing.AtomIndex, mapping.PeakMapping],
         kappa: u.Quantity,
         d_obs: u.Quantity,
         tolerance: u.Quantity,
@@ -799,16 +799,22 @@ class RdcRestraint(NonSelectableRestraint):
            - 13C - 1H: :math:`-90.6 Hz nm^3`
            - 15N - 1H: :math:`36.5 Hz nm^3`
         """
-        assert isinstance(atom1, indexing.AtomIndex)
-        assert isinstance(atom2, indexing.AtomIndex)
+        if isinstance(atom1, mapping.PeakMapping):
+            self.atom_index_1 = atom1
+        else:
+            assert isinstance(atom1, indexing.AtomIndex)
+            self.atom_index_1 = int(atom1)
+        if isinstance(atom2, mapping.PeakMapping):
+            self.atom_index_2 = atom2
+        else:
+            assert isinstance(atom2, indexing.AtomIndex)
+            self.atom_index_2 = int(atom2)
+
         kappa = strip_unit(kappa, u.second ** -1 * u.nanometer ** 3)
         d_obs = strip_unit(d_obs, u.second ** -1)
         tolerance = strip_unit(tolerance, u.second ** -1)
         force_const = strip_unit(force_const, u.kilojoule_per_mole * u.second ** 2)
         quadratic_cut = strip_unit(quadratic_cut, u.second ** -1)
-
-        self.atom_index_1 = int(atom1)
-        self.atom_index_2 = int(atom2)
         self.alignment_index = alignment_index
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)

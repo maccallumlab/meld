@@ -8,6 +8,7 @@ This module implements transformers that add rdc restraints
 
 from ctypes import alignment
 import logging
+from posixpath import join
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 FORCE_GROUP = 2
@@ -46,6 +47,7 @@ class RDCRestraintTransformer(transform.TransformerBase):
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
+        self.mapper = mapper
         self.restraints = [
             r
             for r in always_active_restraints
@@ -87,8 +89,9 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 rests = self.alignment_map[alignment]
                 force = self.alignment_forces[alignment]
                 for r in rests:
+                    i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
                     force.addBond(
-                        [r.atom_index_1, r.atom_index_2],
+                        [i, j],
                         [
                             r.d_obs,
                             r.kappa,
@@ -118,11 +121,12 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 force = self.alignment_forces[alignment]
                 for index, r in enumerate(rests):
                     scale = r.scaler(alpha) * r.ramp(timestep)
-                    atoms, params = force.getBondParameters(index)
-                    assert atoms[0] == r.atom_index_1
+                    i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    #assert atoms[0] == r.atom_index_1
+
                     force.setBondParameters(
                         index,
-                        atoms,
+                        [i, j],
                         [
                             r.d_obs,
                             r.kappa,
@@ -134,6 +138,25 @@ class RDCRestraintTransformer(transform.TransformerBase):
                     )
                     force.updateParametersInContext(simulation.context)
 
+    def _handle_mapping(
+        self, values: List[Union[int, mapping.PeakMapping]], state: interfaces.IState
+    ) -> List[int]:
+        indices: List[int] = []
+        for value in values:
+            if isinstance(value, mapping.PeakMapping):
+                index = self.mapper.extract_value(value, state.mappings)
+                if isinstance(index, mapping.NotMapped):
+                    index = -1
+            else:
+                index = value
+            indices.append(index)
+
+        # If any of the indices is un-mapped, we set them
+        # # all to -1.
+        if any(x == -1 for x in indices):
+            indices = [-1 for _ in values]
+
+        return indices            
 
 def _create_rdc_force(alignment_index, scale_factor):
     force = mm.CustomCompoundBondForce(
