@@ -8,7 +8,6 @@ This module implements transformers that add rdc restraints
 
 from ctypes import alignment
 import logging
-from posixpath import join
 
 logger = logging.getLogger(__name__)
 
