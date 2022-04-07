@@ -758,7 +758,9 @@ class RdcRestraint(NonSelectableRestraint):
     """
 
     _restraint_key_ = "rdc"
-
+    atom_index_1: Union[int, mapping.PeakMapping]
+    atom_index_2: Union[int, mapping.PeakMapping]
+    
     def __init__(
         self,
         system: interfaces.ISystem,

@@ -89,9 +89,17 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 force = self.alignment_forces[alignment]
                 for r in rests:
                     i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    if i != -1 and j != -1:
+                        dummy = 0
+                    # If Peak is unassigned, need to set dummy to True and give the energy function atom indices that ultimately do not matter
+                    elif i == -1 or j == -1:
+                        dummy = 1
+                        i, j = 0, 1
+
                     force.addBond(
                         [i, j],
                         [
+                            dummy,
                             r.d_obs,
                             r.kappa,
                             r.force_const,
@@ -121,12 +129,19 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 for index, r in enumerate(rests):
                     scale = r.scaler(alpha) * r.ramp(timestep)
                     i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    if i != -1 and j != -1:
+                        dummy = 0
+                    # If Peak is unassigned, need to set dummy to True and give the energy function atom indices that ultimately do not matter
+                    elif i == -1 or j == -1:
+                        dummy = 1
+                        i, j = 0, 1
                     #assert atoms[0] == r.atom_index_1
 
                     force.setBondParameters(
                         index,
                         [i, j],
                         [
+                            dummy,
                             r.d_obs,
                             r.kappa,
                             scale * r.force_const,
@@ -161,7 +176,8 @@ def _create_rdc_force(alignment_index, scale_factor):
     force = mm.CustomCompoundBondForce(
         2,
         f"""
-        (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;
+        select(dummy, 0, e_rdc);
+        e_rdc = (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;
         linear = 0.5 * weight * k_rdc * quadcut^2 + weight * k_rdc * quadcut * (dev - quadcut);
         quad = 0.5 * weight * k_rdc * dev^2;
         dev = max(0, abs(d_obs - dcalc) - flat);
@@ -182,6 +198,7 @@ def _create_rdc_force(alignment_index, scale_factor):
         force.addGlobalParameter(f"rdc_{alignment_index}_s{i + 1}", 0.0)
         force.addEnergyParameterDerivative(f"rdc_{alignment_index}_s{i + 1}")
 
+    force.addPerBondParameter("dummy")
     force.addPerBondParameter("d_obs")
     force.addPerBondParameter("kappa_rdc")
     force.addPerBondParameter("k_rdc")
