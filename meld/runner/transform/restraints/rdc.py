@@ -23,7 +23,7 @@ import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Union
 
 
 FORCE_GROUP = 2
@@ -46,6 +46,7 @@ class RDCRestraintTransformer(transform.TransformerBase):
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
+        self.mapper = mapper
         self.restraints = [
             r
             for r in always_active_restraints
@@ -87,9 +88,21 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 rests = self.alignment_map[alignment]
                 force = self.alignment_forces[alignment]
                 for r in rests:
+                    i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    # If atom indices are assigned to indices, set dummy flag to 0 (False)
+                    if i != -1 and j != -1:
+                        dummy = 0
+                    # If Peak is unassigned, need to set dummy to 1 (True)
+                    else:
+                        # If dummy is 1 then energy will always be zero
+                        dummy = 1
+                        # These indices are arbitrary and do not matter but need something to do energy calculation
+                        i, j = 0, 1 
+
                     force.addBond(
-                        [r.atom_index_1, r.atom_index_2],
+                        [i, j],
                         [
+                            dummy,
                             r.d_obs,
                             r.kappa,
                             r.force_const,
@@ -118,12 +131,22 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 force = self.alignment_forces[alignment]
                 for index, r in enumerate(rests):
                     scale = r.scaler(alpha) * r.ramp(timestep)
-                    atoms, params = force.getBondParameters(index)
-                    assert atoms[0] == r.atom_index_1
+                    i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    # If atom indices are assigned to indices, set dummy flag to 0 (False)
+                    if i != -1 and j != -1:
+                        dummy = 0
+                    # If Peak is unassigned, need to set dummy to 1 (True)
+                    else:
+                        # If dummy is 1 then energy will always be zero 
+                        dummy = 1
+                        # These indices are arbitrary and do not matter but need something to do energy calculation
+                        i, j = 0, 1 
+
                     force.setBondParameters(
                         index,
-                        atoms,
+                        [i, j],
                         [
+                            dummy,
                             r.d_obs,
                             r.kappa,
                             scale * r.force_const,
@@ -134,12 +157,32 @@ class RDCRestraintTransformer(transform.TransformerBase):
                     )
                     force.updateParametersInContext(simulation.context)
 
+    def _handle_mapping(
+        self, values: List[Union[int, mapping.PeakMapping]], state: interfaces.IState
+    ) -> List[int]:
+        indices: List[int] = []
+        for value in values:
+            if isinstance(value, mapping.PeakMapping):
+                index = self.mapper.extract_value(value, state.mappings)
+                if isinstance(index, mapping.NotMapped):
+                    index = -1
+            else:
+                index = value
+            indices.append(index)
+
+        # If any of the indices is un-mapped, we set them
+        # # all to -1.
+        if any(x == -1 for x in indices):
+            indices = [-1 for _ in values]
+
+        return indices            
 
 def _create_rdc_force(alignment_index, scale_factor):
     force = mm.CustomCompoundBondForce(
         2,
         f"""
-        (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;
+        select(dummy, 0, e_rdc);
+        e_rdc = (1 - step(dev - quadcut)) * quad + step(dev - quadcut) * linear;
         linear = 0.5 * weight * k_rdc * quadcut^2 + weight * k_rdc * quadcut * (dev - quadcut);
         quad = 0.5 * weight * k_rdc * dev^2;
         dev = max(0, abs(d_obs - dcalc) - flat);
@@ -160,6 +203,7 @@ def _create_rdc_force(alignment_index, scale_factor):
         force.addGlobalParameter(f"rdc_{alignment_index}_s{i + 1}", 0.0)
         force.addEnergyParameterDerivative(f"rdc_{alignment_index}_s{i + 1}")
 
+    force.addPerBondParameter("dummy")
     force.addPerBondParameter("d_obs")
     force.addPerBondParameter("kappa_rdc")
     force.addPerBondParameter("k_rdc")
