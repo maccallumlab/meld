@@ -141,7 +141,6 @@ class RDCRestraintTransformer(transform.TransformerBase):
                         dummy = 1
                         # These indices are arbitrary and do not matter but need something to do energy calculation
                         i, j = 0, 1 
-                    #assert atoms[0] == r.atom_index_1
 
                     force.setBondParameters(
                         index,
