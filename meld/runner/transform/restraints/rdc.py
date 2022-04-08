@@ -89,12 +89,15 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 force = self.alignment_forces[alignment]
                 for r in rests:
                     i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    # If atom indices are assigned to indices, set dummy flag to 0 (False)
                     if i != -1 and j != -1:
                         dummy = 0
-                    # If Peak is unassigned, need to set dummy to True and give the energy function atom indices that ultimately do not matter
-                    elif i == -1 or j == -1:
+                    # If Peak is unassigned, need to set dummy to 1 (True)
+                    else:
+                        # If dummy is 1 then energy will always be zero
                         dummy = 1
-                        i, j = 0, 1
+                        # These indices are arbitrary and do not matter but need something to do energy calculation
+                        i, j = 0, 1 
 
                     force.addBond(
                         [i, j],
@@ -129,12 +132,15 @@ class RDCRestraintTransformer(transform.TransformerBase):
                 for index, r in enumerate(rests):
                     scale = r.scaler(alpha) * r.ramp(timestep)
                     i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
+                    # If atom indices are assigned to indices, set dummy flag to 0 (False)
                     if i != -1 and j != -1:
                         dummy = 0
-                    # If Peak is unassigned, need to set dummy to True and give the energy function atom indices that ultimately do not matter
-                    elif i == -1 or j == -1:
+                    # If Peak is unassigned, need to set dummy to 1 (True)
+                    else:
+                        # If dummy is 1 then energy will always be zero 
                         dummy = 1
-                        i, j = 0, 1
+                        # These indices are arbitrary and do not matter but need something to do energy calculation
+                        i, j = 0, 1 
                     #assert atoms[0] == r.atom_index_1
 
                     force.setBondParameters(
