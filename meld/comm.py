@@ -47,7 +47,7 @@ class MPICommunicator(interfaces.ICommunicator):
     """
     Class to handle communications between leader and workers using MPI.
 
-    .. note::
+    Note:
         creating an MPI communicator will not actually initialize MPI.
         To do that, call :meth:`initialize`.
     """
@@ -115,7 +115,7 @@ class MPICommunicator(interfaces.ICommunicator):
         Args:
             alphas: a list of alpha values, one for each replica.
 
-        .. note::
+        Note:
            The leader's alpha value should be included in :code:`alphas`.
            The leader's node will always be at :code:`alpha=0.0`.
         """
@@ -152,7 +152,7 @@ class MPICommunicator(interfaces.ICommunicator):
         Returns:
             the state to run on the leader node
 
-        .. note::
+        Note:
            The list of states should include the state for the leader node.
         """
         with _timeout(

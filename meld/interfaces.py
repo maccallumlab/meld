@@ -62,7 +62,7 @@ class ICommunicator(ABC):
         Args:
             alphas: a list of alpha values, one for each replica.
 
-        .. note::
+        Note:
            The leader's alpha value should be included in :code:`alphas`.
            The leader's node will always be at :code:`alpha=0.0`.
         """
@@ -89,7 +89,7 @@ class ICommunicator(ABC):
         Returns:
             the state to run on the leader node
 
-        .. note::
+        Note:
            The list of states should include the state for the leader node.
         """
         pass

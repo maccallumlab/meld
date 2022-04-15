@@ -66,7 +66,7 @@ class _AmberSubSystem(ABC):
         Args:
             translation_vector: in nanometers
 
-        .. note::
+        Note:
            Translation happens after rotation.
         """
         self._translation_vector = np.array(translation_vector)
@@ -79,7 +79,7 @@ class _AmberSubSystem(ABC):
             rotation_axis: in nanometers
             theta: angle of rotation in degrees
 
-        .. note::
+        Note:
            Rotation happens after translation.
         """
         theta = theta * 180 / math.pi
@@ -274,7 +274,7 @@ class AmberSubSystemFromPdbFile(_AmberSubSystem):
 
     This class is dumb and relies on AmberTools for the heavy lifting.
 
-    .. note::
+    Note:
         no processing happens to this pdb file. It must be understandable by
         tleap and atoms/residues may need to be added/deleted/renamed. These
         manipulations should happen to the file before MELD is invoked.
