@@ -22,7 +22,6 @@ setup(
         "scripts/launch_remd",
         "scripts/process_fragments",
         "scripts/prepare_restart",
-        "scripts/launch_remd_multiplex",
     ],
     url="http://meldmd.org",
     license="LICENSE.txt",
