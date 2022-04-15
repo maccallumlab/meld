@@ -11,7 +11,6 @@ import meld
 from meld import util
 from meld import vault
 from meld import runner
-from meld.remd import multiplex_runner
 from openmm import version as mm_version  # type: ignore
 
 import os
@@ -103,7 +102,9 @@ def launch(
     logger.info("Loading run options")
     options = store.load_run_options()
 
-    system_runner = runner.get_runner(system, options, comm=communicator, platform=platform)
+    system_runner = runner.get_runner(
+        system, options, comm=communicator, platform=platform
+    )
 
     if communicator.is_leader():
         store.initialize(mode="a")
@@ -112,58 +113,3 @@ def launch(
     else:
         remd_runner = store.load_remd_runner().to_worker()
         remd_runner.run(communicator, system_runner)
-
-
-def launch_multiplex(
-    platform: str, console_handler: Handler, debug: bool = False
-) -> None:
-    """
-    Launch a replica exchange run on a single worker
-
-    Args:
-        platform: platform to run on [Reference, CPU, CUDA]
-        console_handler: log handler for console logging
-        debug: log debugging information
-    """
-    logger.info("Loading data store")
-    store = vault.DataStore.load_data_store()
-
-    #
-    # Setup logging
-    #
-    level = logging.DEBUG if debug else logging.INFO
-    fmt = "%(asctime)s  %(name)s: %(message)s"
-    datefmt = "%Y-%m-%d %H:%M:%S"
-
-    meld_logger = logging.getLogger("meld")
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-    # remove the console handler, so that
-    # we can add a new handler below without
-    # duplicate logging messages
-    meld_logger.removeHandler(console_handler)
-    handler = logging.FileHandler(
-        filename=os.path.join(store.log_dir, "remd.log"), mode="a"
-    )
-    handler.setFormatter(formatter)
-    handler.setLevel(level)
-    meld_logger.addHandler(handler)
-    meld_logger.setLevel(level)
-    logger.info("Launching replica exchange")
-    log_versions()
-
-    system = store.load_system()
-    options = store.load_run_options()
-
-    system_runner = runner.get_runner(system, options, None, platform)
-
-    store.initialize(mode="a")
-    remd_runner = store.load_remd_runner()
-    remd_runner = multiplex_runner.MultiplexReplicaExchangeRunner(
-        remd_runner.n_replicas,
-        remd_runner.max_steps,
-        remd_runner.ladder,
-        remd_runner.adaptor,
-        remd_runner._step,
-    )
-
-    remd_runner.run(system_runner, store)
