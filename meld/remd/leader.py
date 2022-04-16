@@ -15,7 +15,6 @@ from meld.remd import ladder
 from meld.remd import adaptor
 
 import logging
-import math
 import numpy as np
 from typing import List, Sequence
 
@@ -96,13 +95,19 @@ class LeaderReplicaExchangeRunner:
             system_runner: a interfaces.IRunner object to run the simulations
             store: a store object to handle storing data to disk
         """
-        logger.info("Beginning replica exchange")
+        # Check that the number of replicas is divisible by the number of workers.
+        if communicator.n_replicas % communicator.n_workers:
+            raise ValueError(
+                "The number of replicas must be divisible by the number of workers."
+            )
         # check to make sure n_replicas matches
         assert self._n_replicas == communicator.n_replicas
         assert self._n_replicas == store.n_replicas
 
+        logger.info("Beginning replica exchange")
+
         # load previous state from the store
-        states = store.load_states(stage=self.step - 1)
+        all_states = store.load_states(stage=self.step - 1)
 
         # we always minimize when we first start, either on the first
         # stage or the first stage after a restart
@@ -114,36 +119,48 @@ class LeaderReplicaExchangeRunner:
             )
 
             # communicate state
-            my_state = communicator.broadcast_states_to_workers(states)
+            leader_states = communicator.distribute_states_to_workers(all_states)
 
             # update alphas
-            system_runner.prepare_for_timestep(my_state, 0.0, self._step)
             self._alphas = self.adaptor.adapt(self._alphas, self._step)
-            communicator.broadcast_alphas_to_workers(self._alphas)
+            my_alphas = communicator.distribute_alphas_to_workers(self._alphas)
 
-            # do one step
-            if minimize:
-                logger.info("First step, minimizing and then running.")
-                my_state = system_runner.minimize_then_run(my_state)
-                minimize = False  # we don't need to minimize again
-            else:
-                logger.info("Running molecular dynamics.")
-                my_state = system_runner.run(my_state)
+            for i, (state, alpha) in enumerate(zip(leader_states, my_alphas)):
+                state.alpha = alpha
 
-            # gather all of the states
-            states = list(communicator.exchange_states_for_energy_calc(my_state))
+                logger.info("Running Hamiltonian %d of %d", i + 1, len(leader_states))
+                system_runner.prepare_for_timestep(state, alpha, self._step)
+
+                # do one step
+                if minimize:
+                    logger.info("First step, minimizing and then running.")
+                    state = system_runner.minimize_then_run(state)
+                    minimize = False  # we don't need to minimize again
+                else:
+                    logger.info("Running molecular dynamics.")
+                    state = system_runner.run(state)
+
+                leader_states[i] = state
+
+            # Gather and distribute all of the states
+            all_states = communicator.gather_states_from_workers(leader_states)
+            communicator.broadcast_all_states_to_workers(all_states)
 
             # compute our energy for each state
-            my_energies = self._compute_energies(states, system_runner)
-            energies = communicator.gather_energies_from_workers(my_energies)
+            leader_energies = self._compute_energies(
+                leader_states, all_states, system_runner
+            )
+            energies = communicator.gather_energies_from_workers(leader_energies)
 
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
-            states = permute_states(permutation_vector, states, system_runner, self.step)
+            all_states = permute_states(
+                permutation_vector, all_states, system_runner, self.step
+            )
 
             # store everything
-            store.save_states(states, self.step)
-            store.append_traj(states[0], self.step)
+            store.save_states(all_states, self.step)
+            store.append_traj(all_states[0], self.step)
             store.save_alphas(np.array(self._alphas), self.step)
             store.save_permutation_vector(permutation_vector, self.step)
             store.save_energy_matrix(energies, self.step)
@@ -164,14 +181,22 @@ class LeaderReplicaExchangeRunner:
     # private helper methods
     #
 
-    @staticmethod
     def _compute_energies(
-        states: Sequence[interfaces.IState], system_runner: interfaces.IRunner
-    ) -> List[float]:
-        my_energies = []
-        for state in states:
-            my_energies.append(system_runner.get_energy(state))
-        return my_energies
+        self,
+        hamiltonian_states: Sequence[interfaces.IState],
+        all_states: Sequence[interfaces.IState],
+        system_runner: interfaces.IRunner,
+    ) -> np.ndarray:
+        energies = []
+        for hamiltonian in hamiltonian_states:
+            hamiltonian_energies = []
+            for state in all_states:
+                system_runner.prepare_for_timestep(state, hamiltonian.alpha, self._step)
+                energy = system_runner.get_energy(state)
+                hamiltonian_energies.append(energy)
+            energies.append(hamiltonian_energies)
+
+        return np.array(energies)
 
     def _setup_alphas(self) -> None:
         delta = 1.0 / (self._n_replicas - 1.0)

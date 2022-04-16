@@ -55,87 +55,83 @@ class ICommunicator(ABC):
         pass
 
     @abstractmethod
-    def broadcast_alphas_to_workers(self, alphas: Sequence[float]) -> None:
+    def distribute_alphas_to_workers(self, all_alphas: List[float]) -> List[float]:
         """
-        Send the alpha values to the workers.
+        Distribute alphas to workers
 
         Args:
-            alphas: a list of alpha values, one for each replica.
-
-        Note:
-           The leader's alpha value should be included in :code:`alphas`.
-           The leader's node will always be at :code:`alpha=0.0`.
-        """
-        pass
-
-    @abstractmethod
-    def receive_alpha_from_leader(self) -> float:
-        """
-        Receive alpha value from leader node.
+            all_alphas: the alpha values to be distributed
 
         Returns:
-            value for alpha in ``[0,1]``
+            the block of alpha values for the leader
         """
         pass
 
     @abstractmethod
-    def broadcast_states_to_workers(self, states: Sequence[IState]) -> IState:
+    def receive_alphas_from_leader(self) -> List[float]:
         """
-        Send a state to each worker.
+        Receive a block of alphas from leader.
+
+        Returns:
+            the block of alpha values for this worker
+        """
+        pass
+
+    @abstractmethod
+    def distribute_states_to_workers(
+        self, all_states: Sequence[IState]
+    ) -> List[IState]:
+        """
+        Distribute a block of states to each worker.
 
         Args:
-            states: a list of states.
+            all_states: states to be distributed
 
         Returns:
-            the state to run on the leader node
-
-        Note:
-           The list of states should include the state for the leader node.
+            the block of states to run on the leader node
         """
         pass
 
     @abstractmethod
-    def receive_state_from_leader(self) -> IState:
+    def receive_states_from_leader(self) -> List[IState]:
         """
-        Get state to run for this step
+        Get the block of states to run for this step
 
         Returns:
-            the state to run for this step
+            the block of states to run for this step
         """
         pass
 
     @abstractmethod
-    def gather_states_from_workers(self, state_on_leader: IState) -> Sequence[IState]:
+    def gather_states_from_workers(
+        self, state_on_leader: List[IState]
+    ) -> List[IState]:
         """
         Receive states from all workers
 
         Args:
-            state_on_leader: the state on the leader after simulating
-
+            states_on_leader: the block of states on the leader after simulating
         Returns:
             A list of states, one from each replica.
         """
         pass
 
     @abstractmethod
-    def send_state_to_leader(self, state: IState) -> None:
+    def send_states_to_leader(self, block: Sequence[IState]) -> None:
         """
-        Send state to leader
+        Send a block of states to the leader
 
         Args:
-            state: State to send to leader.
+            block: block of states to send to the leader.
         """
         pass
 
     @abstractmethod
-    def broadcast_states_for_energy_calc_to_workers(
+    def broadcast_all_states_to_workers(
         self, states: Sequence[IState]
     ) -> None:
         """
-        Broadcast states to all workers.
-
-        Send all results from this step to every worker so that we can
-        calculate the energies and do replica exchange.
+        Broadcast all states to all workers.
 
         Args:
             states: a list of states
@@ -143,20 +139,7 @@ class ICommunicator(ABC):
         pass
 
     @abstractmethod
-    def exchange_states_for_energy_calc(self, state: IState) -> Sequence[IState]:
-        """
-        Exchange states between all processes.
-
-        Args:
-            state: the state for this node
-
-        Returns:
-            a list of states from all nodes
-        """
-        pass
-
-    @abstractmethod
-    def receive_states_for_energy_calc_from_leader(self) -> Sequence[IState]:
+    def receive_all_states_from_leader(self) -> Sequence[IState]:
         """
         Receive all states from leader.
 
@@ -167,26 +150,34 @@ class ICommunicator(ABC):
 
     @abstractmethod
     def gather_energies_from_workers(
-        self, energies_on_leader: Sequence[float]
+        self, energies_on_leader: np.ndarray
     ) -> np.ndarray:
         """
-        Receive a list of energies from each worker.
+        Receive energies from each worker.
 
         Args:
-            energies_on_leader: a list of energies from the leader
+            energies_on_leader: the energies from the leader
 
         Returns:
             a square matrix of every state on every replica to be used for replica exchange
+
+        Note:
+            Each row of the output matrix represents a different Hamiltonian. Each column
+            represents a different state. Each worker will compute multiple rows of the
+            output matrix.
         """
         pass
 
     @abstractmethod
-    def send_energies_to_leader(self, energies: Sequence[float]) -> None:
+    def send_energies_to_leader(self, energies: np.ndarray) -> None:
         """
-        Send a list of energies to the leader.
+        Send a block of energies to the leader.
 
         Args:
-            energies: a list of energies to send to the leader
+            energies: block of energies to send to the leader
+        Note:
+            Each row represents a different Hamiltonian. Each column represents a
+            different state.
         """
         pass
 
@@ -211,6 +202,12 @@ class ICommunicator(ABC):
     @abstractmethod
     def n_atoms(self) -> int:
         """number of atoms"""
+        pass
+
+    @property
+    @abstractmethod
+    def n_workers(self) -> int:
+        """number of workers"""
         pass
 
     @property
