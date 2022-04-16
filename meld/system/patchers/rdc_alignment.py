@@ -25,6 +25,9 @@ def add_rdc_alignment(
         alignment_step_size: step size for alignment tensor update
         scale_factor: scale factor for the alignment tensor
 
+    Returns:
+        the modified system specification
+
     Note:
         The alignment tensor is encoded as five independent components,
         s1 through s5. The components can be combined to produce the
