@@ -48,8 +48,9 @@ jobs:
 
       - name: "Update apt-keys"
         run: |
-          sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
-          sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/a4b46996.pub
+          sudo apt-key del 7fa2af80
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
+          sudo dpkg -i cuda-keyring_1.0-1_all.deb
 
       - name: "Patch conda env (if needed)"
         if: startsWith(matrix.os, 'ubuntu')
