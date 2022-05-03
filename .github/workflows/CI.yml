@@ -46,6 +46,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: "Update apt-keys"
+        run: sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+
       - name: "Patch conda env (if needed)"
         if: startsWith(matrix.os, 'ubuntu')
         run: |
