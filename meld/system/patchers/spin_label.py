@@ -140,7 +140,11 @@ def _handle_spin_label_nonbonded(
 
     # We should be using the label type here, but we currently
     # only support OND, so we can hard code.
-    new_force.addParticle(0.0, 2.0 * u.angstrom, 0.05 * u.kilocalorie_per_mole)
+    new_force.addParticle(
+        0.0,
+        4.0 * u.angstrom * 2 ** (-1 / 6),  # convert from rmin to sigma
+        0.05 * u.kilocalorie_per_mole,
+    )
 
     for i in range(insertion_point, force.getNumParticles()):
         q, sigma, eps = force.getParticleParameters(i)
@@ -300,8 +304,8 @@ def _handle_spin_label_harmonic_bond(
     new_force.addBond(
         ca_index,
         insertion_point,
-        8.0 * u.angstrom,
-        1.2 * u.kilocalorie_per_mole / u.angstrom ** 2,
+        7.9 * u.angstrom,
+        1.0 * u.kilocalorie_per_mole / u.angstrom ** 2,  # CHARMM does not have factor of 0.5
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
@@ -335,7 +339,7 @@ def _handle_spin_label_harmonic_angle(
         ca_index,
         insertion_point,
         46.0 * u.degree,
-        2.0 * u.kilocalorie_per_mole / u.radian ** 2,
+        2.0 * u.kilocalorie_per_mole / u.radian ** 2,  # CHARMM does not have factor of 0.5
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
@@ -373,7 +377,7 @@ def _handle_spin_label_periodic_torsion(
         cb_index,
         insertion_point,
         1,
-        240.0 * u.degree,
+        43.0 * u.degree,
         1.9 * u.kilocalorie_per_mole,
     )
 
@@ -446,7 +450,10 @@ def _create_spin_label_coords(
     best_energy = 9e99
     best_coords = None
     for _ in range(trials):
-        label_position = ca_coords + np.random.normal(0, 0.3, 3)
+        direction = np.random.normal(0.0, 1.0, 3)
+        direction = direction / np.linalg.norm(direction)
+        magnitude = np.random.normal(0.79, 0.125)
+        label_position = ca_coords + magnitude * direction
         trial_coords = np.concatenate(
             [
                 old_coords[:insertion_point, :],
