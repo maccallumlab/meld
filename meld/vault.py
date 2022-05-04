@@ -276,7 +276,7 @@ class DataStore:
         Returns:
             n_replicas x n_atoms x 3 array
 
-        .. note::
+        Note:
            This differs from :meth:`load_positions` in that you can positions
            from any stage, while :meth:`load_positions` can only move forward
            in time. However, this comes at a performance penalty.

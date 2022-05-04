@@ -12,7 +12,7 @@ from meld.system.builders.spec import SystemSpec
 
 
 def add_virtual_spin_label(
-    spec: SystemSpec, residue=indexing.ResidueIndex, label_type="OND", trials=20
+    spec: SystemSpec, residue: indexing.ResidueIndex, label_type="OND", trials=20
 ) -> SystemSpec:
     """
     Adds a virtual spin label to the system.

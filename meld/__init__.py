@@ -48,4 +48,6 @@ from meld.system.param_sampling import (
 )
 from meld.system.patchers.rdc_alignment import add_rdc_alignment
 from meld.system.patchers.spin_label import add_virtual_spin_label
+from meld.system.patchers.freeze import freeze_atoms
+from meld.system.patchers.potential import remove_potential
 from meld.helpers import setup_data_store, setup_replica_exchange

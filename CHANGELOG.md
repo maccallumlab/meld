@@ -1,3 +1,16 @@
+## 0.6.2
+
+### Enhancements
+- Decoupled the number of workers from the number of replicas.
+  - You can now use any combination that divides evenly
+    - e.g. 64 replicas on 16 workers
+  - `launch_remd_multiplex` has been removed
+    - use `launch_remd` with one worker instead
+- RDCs now work with peak mapping
+- Ability to freeze atoms with `freeze_atoms`
+- Ability to remove the potential from the force field with `remove_potential`
+  - This can be useful when trying to infer assignments using peak mapping
+
 ## 0.6.1
 
 ### Enhancements
