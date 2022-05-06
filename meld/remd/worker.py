@@ -81,12 +81,13 @@ class WorkerReplicaExchangeRunner:
                 if minimize:
                     logger.info("First step, minimizing and then running.")
                     state = system_runner.minimize_then_run(state)
-                    minimize = False  # we don't need to minimize again
                 else:
                     logger.info("Running molecular dynamics.")
                     state = system_runner.run(state)
 
                 states[i] = state
+
+            minimize = False  # we don't need to minimize again
 
             # Communicate the results back to the leader
             communicator.send_states_to_leader(states)
