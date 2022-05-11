@@ -10,8 +10,6 @@ Module to build a System from Martini OpenMM system
 from meld import util
 from ..spec import SystemSpec
 from ... import indexing
-from . import subsystem
-from . import amap
 
 from typing import List, Optional
 from dataclasses import dataclass
@@ -33,13 +31,13 @@ import martini_openmm as martini
 @partial(dataclass, frozen=True)
 class MartiniOptions:
     default_temperature: float = 300.0 * u.kelvin
-    epsilon_r: float = 15.0 ## What is a reasonable value for this?
-    solvation: str = "implicit"
+    timestep: float = 20.0 * u.femtoseconds
+    epsilon_r: float = 15.0 
     defines_file: Optional[str] = "defines.txt"
     enable_pressure_coupling: bool = False
     pressure: float = 1.01325 * u.bar
     pressure_coupling_update_steps: int = 25
-    cutoff: Optional[float] = 1.1
+    cutoff: Optional[float] = 1.1 * u.nanometer
     remove_com: bool = True
 
     def __post_init__(self):
@@ -91,23 +89,24 @@ class MartiniSystemBuilder:
         # get any defines
         defines = {}
         try:
-            with open(self.options.defines) as def_file:
+            with open(self.options.defines_file) as def_file:
                 for line in def_file:
                     line = line.strip()
                     defines[line] = True
         except FileNotFoundError:
             pass
 
-        top = martini.MartiniTopfile(
+        top = martini.MartiniTopFile(
             topfile,
             periodicBoxVectors = box_vectors,
             defines = defines,
             epsilon_r = self.options.epsilon_r
         )
 
+        topology = top.topology
+
         system, barostat = _create_openmm_system(
             top,
-            self.options.solvation_type,
             self.options.cutoff,
             self.options.enable_pressure_coupling,
             self.options.pressure,
@@ -119,8 +118,7 @@ class MartiniSystemBuilder:
 
         integrator = _create_integrator(
             self.options.default_temperature,
-            self.options.use_big_timestep,
-            self.options.use_bigger_timestep,
+            self.options.timestep,
         )
 
         coords = conf.getPositions(asNumpy=True).value_in_unit(u.nanometer)
@@ -130,7 +128,7 @@ class MartiniSystemBuilder:
             print("WARNING: No velocities found, setting to zero")
             vels = np.zeros_like(coords)
         try:
-            box = conf.getPeriodicBoxVectors()(asNumpy=True)
+            box = conf.getPeriodicBoxVectors()
             # We only support orthorhombic boxes
             box_a = box[0][0].value_in_unit(u.nanometer)
             assert box[0][1] == 0.0 * u.nanometer, "Only orthorhombic boxes supported"
@@ -146,16 +144,15 @@ class MartiniSystemBuilder:
             box = None
 
         return SystemSpec(
-            self.options.solvation,
+            "explicit",
             system,
-            top,
+            topology,
             integrator,
             barostat,
             coords,
             vels,
             box,
             {
-                "solvation": self.options.solvation,
                 "builder": "martini3",
             },
         )
@@ -163,96 +160,24 @@ class MartiniSystemBuilder:
 
 def _create_openmm_system(
     parm_object,
-    solvation_type,
     cutoff,
-    implicit_solvent,
     enable_pressure_coupling,
     pressure,
     pressure_coupling_update_steps,
     remove_com,
     default_temperature,
-    implicitSolventSaltConc,
 ):
-    if solvation_type == "implicit":
-        logger.info("Creating implicit solvent system")
-        system = _create_openmm_system_implicit(
-            parm_object,
-            cutoff,
-            implicit_solvent,
-            remove_com,
-            implicitSolventSaltConc,
-            soluteDielectric,
-            solventDielectric,
-        )
-        baro = None
-    elif solvation_type == "explicit":
-        logger.info("Creating explicit solvent system")
-        system, baro = _create_openmm_system_explicit(
-            parm_object,
-            cutoff,
-            enable_pressure_coupling,
-            pressure,
-            pressure_coupling_update_steps,
-            remove_com,
-            default_temperature,
-        )
-    else:
-        raise ValueError(f"unknown value for solvation_type: {solvation_type}")
-
-    return system, baro
-
-
-def _create_openmm_system_implicit(
-    parm_object,
-    cutoff,
-    implicit_solvent,
-    remove_com,
-    implicitSolventSaltConc,
-    soluteDielectric,
-    solventDielectric,
-):
-    if cutoff is None:
-        logger.info("Using no cutoff")
-        cutoff_type = ff.NoCutoff
-        cutoff_dist = 999.0
-    else:
-        logger.info(f"Using a cutoff of {cutoff}")
-        cutoff_type = ff.CutoffNonPeriodic
-        cutoff_dist = cutoff
-
-    if implicit_solvent == "obc":
-        logger.info('Using "OBC" implicit solvent')
-        implicit_type = app.OBC2
-    elif implicit_solvent == "gbNeck":
-        logger.info('Using "gbNeck" implicit solvent')
-        implicit_type = app.GBn
-    elif implicit_solvent == "gbNeck2":
-        logger.info('Using "gbNeck2" implicit solvent')
-        implicit_type = app.GBn2
-    elif implicit_solvent == "vacuum" or implicit_solvent is None:
-        logger.info("Using vacuum instead of implicit solvent")
-        implicit_type = None
-    else:
-        RuntimeError("Should never get here")
-
-    if implicitSolventSaltConc is None:
-        implicitSolventSaltConc = 0.0
-    if soluteDielectric is None:
-        soluteDielectric = 1.0
-    if solventDielectric is None:
-        solventDielectric = 78.5
-
-    sys = parm_object.createSystem(
-        nonbondedMethod=cutoff_type,
-        nonbondedCutoff=cutoff_dist,
-        implicitSolvent=implicit_type,
-        removeCMMotion=remove_com,
-        implicitSolventSaltConc=implicitSolventSaltConc,
-        soluteDielectric=soluteDielectric,
-        solventDielectric=solventDielectric,
+    logger.info("Creating explicit solvent system")
+    system, baro = _create_openmm_system_explicit(
+        parm_object,
+        cutoff,
+        enable_pressure_coupling,
+        pressure,
+        pressure_coupling_update_steps,
+        remove_com,
+        default_temperature,
     )
-    return sys
-
+    return system, baro
 
 def _create_openmm_system_explicit(
     parm_object,
@@ -266,7 +191,7 @@ def _create_openmm_system_explicit(
     if cutoff is None:
         raise ValueError("cutoff must be set for explicit solvent, but got None")
 
-    s = parm_object.createSystem(
+    s = parm_object.create_system(
         nonbonded_cutoff=cutoff,
         remove_com_motion=remove_com,
     )
@@ -286,7 +211,6 @@ def _create_openmm_system_explicit(
     return s, baro
 
 
-def _create_integrator(temperature):
-    logger.info("Creating integrator with 2.0 fs timestep")
-    timestep = 2.0 * u.femtosecond
+def _create_integrator(temperature, timestep):
+    logger.info(f"Creating integrator with {timestep} timestep")
     return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)

@@ -30,6 +30,7 @@ from meld.system.builders.amber.subsystem import (
     AmberSubSystemFromPdbFile,
 )
 from meld.system.builders.amber.builder import AmberSystemBuilder, AmberOptions
+from meld.system.builders.martini.builder import MartiniSystemBuilder, MartiniOptions
 from meld.system.temperature import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,
