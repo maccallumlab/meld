@@ -335,7 +335,7 @@ def _handle_spin_label_harmonic_angle(
         ca_index,
         insertion_point,
         46.0 * u.degree,
-        2.0 * u.kilocalorie_per_mole / u.radian ** 2,
+        20.0 * u.kilocalorie_per_mole / u.radian ** 2, # Probably too high - just to see if this is causing nans
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
