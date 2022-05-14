@@ -372,10 +372,10 @@ def _handle_spin_label_periodic_torsion(
     ca_index = _find_atom_by_name(residue, "CA").index
     cb_index = _find_atom_by_name(residue, "CB").index
     new_force.addTorsion(
-        n_index,
-        ca_index,
-        cb_index,
         insertion_point,
+        cb_index,
+        ca_index,
+        n_index,
         1,
         43.0 * u.degree,
         1.9 * u.kilocalorie_per_mole,
