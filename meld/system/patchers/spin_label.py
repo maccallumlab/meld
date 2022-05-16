@@ -96,7 +96,19 @@ def _create_spin_label_system(
             dist,
         )
 
-    for force in old_system.getForces():
+    forces = old_system.getForces()
+
+    # Create the custom angle force for the restricted angle potential
+    # if one does not exist.
+    force_names = [f.getName() for f in old_system.getForces()]
+    if not "virtual_spin_label_angle" in force_names:
+        custom_angle = mm.CustomAngleForce("0.5*k*(theta - theta0)^2 / sqrt(sin(theta))")
+        custom_angle.setName("virtual_spin_label_angle")
+        custom_angle.addPerAngleParameter("theta0")
+        custom_angle.addPerAngleParameter("k")
+        forces.append(custom_angle)
+
+    for force in forces:
         if isinstance(force, mm.NonbondedForce):
             _handle_spin_label_nonbonded(force, system, insertion_point, label_type)
         # elif isinstance(force, mm.GBSAOBCForce):
@@ -113,6 +125,13 @@ def _create_spin_label_system(
             )
         elif isinstance(force, mm.HarmonicAngleForce):
             _handle_spin_label_harmonic_angle(
+                force, system, residue, insertion_point, label_type
+            )
+        elif (
+            isinstance(force, mm.CustomAngleForce)
+            and force.getName() == "virtual_spin_label_angle"
+        ):
+            _handle_spin_label_custom_angle(
                 force, system, residue, insertion_point, label_type
             )
         elif isinstance(force, mm.PeriodicTorsionForce):
@@ -305,7 +324,9 @@ def _handle_spin_label_harmonic_bond(
         ca_index,
         insertion_point,
         7.9 * u.angstrom,
-        1.0 * u.kilocalorie_per_mole / u.angstrom ** 2,  # CHARMM does not have factor of 0.5
+        1.0
+        * u.kilocalorie_per_mole
+        / u.angstrom ** 2,  # CHARMM does not have factor of 0.5
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
@@ -330,7 +351,33 @@ def _handle_spin_label_harmonic_angle(
             k,
         )
 
-    # Add in the bond. We should use the label type, but
+    new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
+    system.addForce(new_force)
+
+
+def _handle_spin_label_custom_angle(
+    force: mm.HarmonicAngleForce,
+    system: mm.System,
+    residue: app.Residue,
+    insertion_point: int,
+    label_type: str,
+):
+    new_force = mm.CustomAngleForce("0.5*k*(theta - theta0)^2 / sqrt(sin(theta))")
+    new_force.setName("virtual_spin_label_angle")
+    new_force.addPerAngleParameter("theta0")
+    new_force.addPerAngleParameter("k")
+
+    # Add all of the old angles
+    for i in range(force.getNumAngles()):
+        ind1, ind2, ind3, params = force.getAngleParameters(i)
+        new_force.addAngle(
+            ind1 + 1 if ind1 >= insertion_point else ind1,
+            ind2 + 1 if ind2 >= insertion_point else ind2,
+            ind3 + 1 if ind3 >= insertion_point else ind3,
+            params,
+        )
+
+    # Add in the angle. We should use the label type, but
     # we only support OND, so we can hard code.
     ca_index = _find_atom_by_name(residue, "CA").index
     cb_index = _find_atom_by_name(residue, "CB").index
@@ -338,8 +385,12 @@ def _handle_spin_label_harmonic_angle(
         cb_index,
         ca_index,
         insertion_point,
-        46.0 * u.degree,
-        2.0 * u.kilocalorie_per_mole / u.radian ** 2,  # CHARMM does not have factor of 0.5
+        [
+            46.0 * u.degree,
+            2.0
+            * u.kilocalorie_per_mole
+            / u.radian ** 2,  # CHARMM does not have factor of 0.5
+        ],
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
