@@ -102,7 +102,7 @@ def _create_spin_label_system(
     # if one does not exist.
     force_names = [f.getName() for f in old_system.getForces()]
     if not "virtual_spin_label_angle" in force_names:
-        custom_angle = mm.CustomAngleForce("0.5*k*(theta - theta0)^2 / sqrt(sin(theta))")
+        custom_angle = mm.CustomAngleForce("0.5*k*(theta - theta0)^2 / sin(theta)^2")
         custom_angle.setName("virtual_spin_label_angle")
         custom_angle.addPerAngleParameter("theta0")
         custom_angle.addPerAngleParameter("k")
