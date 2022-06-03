@@ -6,8 +6,8 @@
 This module implements transformers that add rdc restraints
 """
 
-from ctypes import alignment
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class RDCRestraintTransformer(transform.TransformerBase):
                         # If dummy is 1 then energy will always be zero
                         dummy = 1
                         # These indices are arbitrary and do not matter but need something to do energy calculation
-                        i, j = 0, 1 
+                        i, j = 0, 1
 
                     force.addBond(
                         [i, j],
@@ -126,10 +126,19 @@ class RDCRestraintTransformer(transform.TransformerBase):
         timestep: int,
     ) -> None:
         if self.active:
+            # If we are doing peak-mapping, we will need to re-initialize the
+            # context whenever the mapping changes due to limitations in
+            # OpenMM. However, this is expensive, so we only do it when
+            # necessary.
+            reinitialize = False
+
             for alignment in self.alignment_map:
                 rests = self.alignment_map[alignment]
                 force = self.alignment_forces[alignment]
                 for index, r in enumerate(rests):
+                    # Get old atom indices
+                    (old_i, old_j), _params = force.getBondParameters(index)
+
                     scale = r.scaler(alpha) * r.ramp(timestep)
                     i, j = self._handle_mapping([r.atom_index_1, r.atom_index_2], state)
                     # If atom indices are assigned to indices, set dummy flag to 0 (False)
@@ -137,10 +146,14 @@ class RDCRestraintTransformer(transform.TransformerBase):
                         dummy = 0
                     # If Peak is unassigned, need to set dummy to 1 (True)
                     else:
-                        # If dummy is 1 then energy will always be zero 
+                        # If dummy is 1 then energy will always be zero
                         dummy = 1
                         # These indices are arbitrary and do not matter but need something to do energy calculation
-                        i, j = 0, 1 
+                        i, j = 0, 1
+
+                    # If the atom indices have changed, we need to re-initialize
+                    if old_i != i or old_j != j:
+                        reinitialize = True
 
                     force.setBondParameters(
                         index,
@@ -155,7 +168,17 @@ class RDCRestraintTransformer(transform.TransformerBase):
                             r.weight,
                         ],
                     )
+                # If we need to re-initialize, we won't bother updating the context as
+                # we will be re-initializing anyway.
+                if not reinitialize:
                     force.updateParametersInContext(simulation.context)
+            # If any of the mappings have changed, we need to re-initialize.
+            if reinitialize:
+                t1 = time.time()
+                print("re-initializing context")
+                simulation.context.reinitialize(preserveState=True)
+                t2 = time.time()
+                print(f"done, took {t2 - t1}")
 
     def _handle_mapping(
         self, values: List[Union[int, mapping.PeakMapping]], state: interfaces.IState
@@ -175,7 +198,8 @@ class RDCRestraintTransformer(transform.TransformerBase):
         if any(x == -1 for x in indices):
             indices = [-1 for _ in values]
 
-        return indices            
+        return indices
+
 
 def _create_rdc_force(alignment_index, scale_factor):
     force = mm.CustomCompoundBondForce(
