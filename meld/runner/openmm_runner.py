@@ -563,6 +563,8 @@ class OpenMMRunner(interfaces.IRunner):
 
         energy = self.get_energy(state)
 
+        accept = False
+
         for _ in range(self._options.mapper_mcmc_steps):
             trial_mappings = self._mapper.sample(state.mappings)
 
