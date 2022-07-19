@@ -123,7 +123,7 @@ class MartiniSystemBuilder:
 
         coords = conf.getPositions(asNumpy=True).value_in_unit(u.nanometer)
         try:
-            vels = conf.getPositions(asNumpy=True)
+            vels = conf.getVelocities(asNumpy=True) # Gromacs files do not contain velocity information; may be better to set this using Maxwell-Boltzmann 
         except AttributeError:
             print("WARNING: No velocities found, setting to zero")
             vels = np.zeros_like(coords)
