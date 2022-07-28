@@ -436,9 +436,9 @@ class OpenMMRunner(interfaces.IRunner):
 
         # set the velocities
         # check to see if velocities initialized to zero
-        if np.all(velocities == 0):
+        if np.all(velocities._value == 0.0):
             logger.info("All velocities are zero, this is likely because input files do not contain velocity info. Generating velocities from Maxwell-Boltzmann distribution")
-            self._simulation.context.setVelocitiestoTemperature(self._temperature)
+            self._simulation.context.setVelocitiesToTemperature(self._temperature)
         else:
             self._simulation.context.setVelocities(velocities)
 
