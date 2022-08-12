@@ -21,6 +21,7 @@ class RestraintTracker:
 
     param_manager: param_sampling.ParameterManager
     peak_mapper: mapping.PeakMapManager
+    rdc_restraints: List[restraints.RdcRestraint]
     distance_restraints: List[restraints.DistanceRestraint]
     hyperbolic_distance_restraints: List[restraints.HyperbolicDistanceRestraint]
     torsion_restraints: List[restraints.TorsionRestraint]
@@ -50,6 +51,7 @@ class RestraintTracker:
         # These hold lists of meld restraints in the order that they were added
         # to the system.
         self.distance_restraints = []
+        self.rdc_restraints = []
         self.hyperbolic_distance_restraints = []
         self.torsion_restraints = []
         self.dist_prof_restraints = []
@@ -122,6 +124,23 @@ class RestraintTracker:
                 for category, index in self.peak_mapping_map[peak_mapping]:
                     self.need_update.add((category, index))
                 self.peak_mapping_values[peak_mapping] = new_value
+
+    def add_rdc_restraint(
+        self,
+        rest: restraints.RdcRestraint,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ):
+        assert isinstance(rest, restraints.RdcRestraint)
+        self.rdc_restraints.append(rest)
+        index = len(self.rdc_restraints) - 1
+        self.need_update.add(("rdc", index))
+
+        self._add_scaler_dependency(rest.scaler, "rdc", index, alpha)
+        self._add_ramp_dependency(rest.ramp, "rdc", index, timestep)
+        self._add_peak_mapping_dependency(rest.atom_index_1, "rdc", index, state)
+        self._add_peak_mapping_dependency(rest.atom_index_2, "rdc", index, state)
 
     def add_distance_restraint(
         self,

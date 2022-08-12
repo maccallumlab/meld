@@ -40,7 +40,19 @@ class MeldForceImpl : public OpenMM::ForceImpl
 
     std::map<std::string, double> getDefaultParameters()
     {
-        return std::map<std::string, double>(); // This force field doesn't define any parameters.
+        int nAlignments = owner.getNumRDCAlignments();
+        std::map<std::string, double> globalParams;
+
+        for (int i = 0; i < nAlignments; i++)
+        {
+            std::string base = "rdc_" + std::to_string(i);
+            globalParams[base + "_s1"] = 0.0;
+            globalParams[base + "_s2"] = 0.0;
+            globalParams[base + "_s3"] = 0.0;
+            globalParams[base + "_s4"] = 0.0;
+            globalParams[base + "_s5"] = 0.0;
+        }
+        return globalParams;
     }
 
     std::vector<std::string> getKernelNames();

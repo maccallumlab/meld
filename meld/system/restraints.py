@@ -752,7 +752,7 @@ class TorsProfileRestraint(SelectableRestraint):
         assert self.spline_params.shape[1] == 16
 
 
-class RdcRestraint(NonSelectableRestraint):
+class RdcRestraint(SelectableRestraint):
     """
     Residual Dipolar Coupling Restraint
     """

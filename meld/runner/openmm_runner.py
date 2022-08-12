@@ -299,7 +299,6 @@ class OpenMMRunner(interfaces.IRunner):
     def _transformers_setup(self) -> None:
         trans_types = [
             transform.ConfinementRestraintTransformer,
-            transform.RDCRestraintTransformer,
             transform.CartesianRestraintTransformer,
             transform.YZCartesianTransformer,
             transform.COMRestraintTransformer,
