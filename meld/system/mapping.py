@@ -11,7 +11,7 @@ from meld.system import indexing
 
 import numpy as np  # type: ignore
 import random
-from typing import List, Dict, NamedTuple, Union, Tuple
+from typing import List, Dict, NamedTuple, Union, Tuple, Optional
 
 
 class PeakMapping(NamedTuple):
@@ -87,35 +87,73 @@ class PeakMapper:
         size = max(self.n_peaks, self.n_atom_groups)
         return np.arange(size)
 
-    def extract_value(
-        self, mapping: PeakMapping, state: np.ndarray
-    ) -> Union[int, NotMapped]:
-        # Freeze so we can't add more atom_groups
-        self.frozen = True
-
-        if mapping.map_name != self.name:
-            raise KeyError(f"Map name {mapping.map_name} does not match {self.name}.")
-
-        peak_id = mapping.peak_id
-        if peak_id < 0:
-            raise KeyError("peak_id must be >= 0.")
-        if peak_id >= self.n_peaks:
-            raise KeyError(f"peak_id must be < {self.n_peaks}")
-
-        group_index = state[mapping.peak_id]
-        # If we have more peaks than atom_groups, some of the peaks will
-        # not be mapped to anything.
-        if group_index >= self.n_atom_groups:
-            return NotMapped()
-        else:
-            return self.atom_groups[group_index][mapping.atom_name]
-
     def sample(self, state: np.ndarray) -> np.ndarray:
+        if random.random() < 0.1:
+            return self._sample_peak_swap(state)
+        else:
+            return self._sample_neighbour_swap(state)
+
+    def _sample_peak_swap(self, state: np.ndarray) -> np.ndarray:
         trial_state = state.copy()
 
-        indices = list(range(trial_state.shape[0]))
-        i, j = random.sample(indices, k=2)
-        trial_state[[i, j]] = trial_state[[j, i]]
+        # We sample a pair of peaks to swap.
+        # In case there are more residues than peaks, we add
+        # in additional "virtual" peaks.
+        i, j = sorted(random.sample(range(max(self.n_peaks, self.n_atom_groups)), k=2))
+
+        # Both of the peaks are "virtual" peaks, so we don't neeed to
+        # do anything.
+        if i >= self.n_peaks:
+            return trial_state
+
+        # Peak j is a virtual peak, so we need to gather the
+        # list of unassigned residues and choose one.
+        elif j >= self.n_peaks:
+            unassigned_residues = set(range(self.n_atom_groups))
+            for residue in trial_state:
+                unassigned_residues.remove(residue)
+            new_residue = random.choice(list(unassigned_residues))
+            trial_state[i] = new_residue
+
+        # Neither peak is a virtual peak
+        else:
+            res_i = trial_state[i]
+            res_j = trial_state[j]
+            trial_state[i] = res_j
+            trial_state[j] = res_i
+            return trial_state
+
+    def _sample_neighbour_swap(self, state: np.ndarray) -> np.ndarray:
+        trial_state = state.copy()
+
+        # Choose two neighbouring residues
+        i = random.randrange(self.n_atom_groups - 1)
+        j = i + 1
+
+        # Identify the corresponding peaks
+        peaks_i = np.argwhere(trial_state == i)
+        if len(peaks_i) == 0:
+            peak_i = None
+        else:
+            peak_i = peaks_i[0]
+        peaks_j = np.argwhere(trial_state == j)
+        if len(peaks_j) == 0:
+            peak_j = None
+        else:
+            peak_j = peaks_j[0]
+
+        # Neither residue is assigned to a peak, so we don't do anything
+        if (peak_i is None) and (peak_j is None):
+            pass
+        # One of the residues is assigned but the other is not.
+        elif peak_i is None:
+            trial_state[peak_j] = i
+        elif peak_j is None:
+            trial_state[peak_i] = j
+        # Both residues are assigned, so we swap them.
+        else:
+            trial_state[peak_i] = j
+            trial_state[peak_j] = i
 
         return trial_state
 
@@ -164,8 +202,29 @@ class PeakMapManager:
             self._setup_name_to_range()
 
         range_ = self._name_to_range[mapping.map_name]
-        sub_state = state[range_[0] : range_[1]]
-        return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
+
+        # sub_state = state[range_[0] : range_[1]]
+        # return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
+
+        mapper = self.mappers[mapping.map_name]
+        mapper.frozen = True
+
+        if mapping.map_name != mapper.name:
+            raise KeyError(f"Map name {mapping.map_name} does not match {mapper.name}.")
+
+        peak_id = mapping.peak_id
+        if peak_id < 0:
+            raise KeyError("peak_id must be >= 0.")
+        if peak_id >= mapper.n_peaks:
+            raise KeyError(f"peak_id must be < {mapper.n_peaks}")
+
+        group_index = state[mapping.peak_id + range_[0]]
+        # If we have more peaks than atom_groups, some of the peaks will
+        # not be mapped to anything.
+        if group_index >= mapper.n_atom_groups:
+            return NotMapped()
+        else:
+            return mapper.atom_groups[group_index][mapping.atom_name]
 
     def sample(self, state: np.ndarray) -> np.ndarray:
         if self._name_to_range is None:
