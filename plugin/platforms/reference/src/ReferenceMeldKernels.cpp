@@ -28,12 +28,19 @@ static vector<RealVec> &extractForces(ContextImpl &context)
 }
 
 void checkAtomIndex(const int numAtoms, const std::string &restType, const int atomIndex,
-                    const int restIndex, const int globalIndex)
+                    const int restIndex, const int globalIndex, const bool allowNegativeOne = false )
 {
     bool bad = false;
-    if (atomIndex < 0)
-    {
-        bad = true;
+    if (allowNegativeOne) {
+        if (atomIndex < -1) {
+            bad = true;
+        }
+    } else {
+        if (atomIndex < 0)
+        {
+            bad = true;
+        
+        }
     }
     if (atomIndex >= numAtoms)
     {
@@ -601,8 +608,8 @@ void ReferenceCalcMeldForceKernel::setupRDCRestraints(const MeldForce& force)
                                         kappa, obs,
                                         tol, quad_cut, force_constant,
                                         global_index);
-        checkAtomIndex(numAtoms, restType, atom1, i, global_index);
-        checkAtomIndex(numAtoms, restType, atom2, i, global_index);
+        checkAtomIndex(numAtoms, restType, atom1, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom2, i, global_index, true);
         checkForceConstant(force_constant, restType, i, global_index);
         if (alignment < 0)
         {
@@ -631,8 +638,8 @@ void ReferenceCalcMeldForceKernel::setupDistanceRestraints(const MeldForce& forc
         float r1, r2, r3, r4, k;
         force.getDistanceRestraintParams(i, atom_i, atom_j, r1, r2, r3, r4, k, global_index);
 
-        checkAtomIndex(numAtoms, restType, atom_i, i, global_index);
-        checkAtomIndex(numAtoms, restType, atom_j, i, global_index);
+        checkAtomIndex(numAtoms, restType, atom_i, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom_j, i, global_index, true);
         checkForceConstant(k, restType, i, global_index);
         checkDistanceRestraintRs(r1, r2, r3, r4, i, global_index);
 

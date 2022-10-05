@@ -337,7 +337,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
  */
 
 void checkAtomIndex(const int numAtoms, const std::string &restType, const int atomIndex,
-                    const int restIndex, const int globalIndex, const bool allowNegativeOne = true)
+                    const int restIndex, const int globalIndex, const bool allowNegativeOne = false)
 {
     bool bad = false;
     if (allowNegativeOne)

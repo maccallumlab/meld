@@ -11,7 +11,7 @@ from meld.system import indexing
 
 import numpy as np  # type: ignore
 import random
-from typing import List, Dict, NamedTuple, Union, Tuple
+from typing import List, Dict, NamedTuple, Union, Tuple, Optional
 
 
 class PeakMapping(NamedTuple):
@@ -24,26 +24,23 @@ class PeakMapping(NamedTuple):
     atom_name: str
 
 
-class NotMapped:
-    """
-    Represents a peak that isn't mapped to any atom
-    """
-
-    pass
-
-
 class PeakMapper:
     name: str
     n_peaks: int
+    n_active: int
     atom_names: List[str]
     atom_groups: List[Dict[str, int]]
     _frozen: bool
 
-    def __init__(self, name: str, n_peaks: int, atom_names: List[str]):
+    def __init__(self, name: str, n_peaks: int, n_active: int, atom_names: List[str]):
         if n_peaks <= 0:
             raise ValueError("n_peaks must be > 0")
         self.name = name
         self.n_peaks = n_peaks
+        self.n_active = n_active
+        assert n_peaks > 0
+        assert n_active > 0
+        assert n_active <= n_peaks
         self.atom_names = atom_names
         self.atom_groups = []
         self.frozen = False
@@ -82,40 +79,95 @@ class PeakMapper:
     def get_initial_state(self) -> np.ndarray:
         # Freeze so we can't add more atom_groups
         self._frozen = True
-        # The initial state is the longer of n_peaks and n_atom_groups
-        # with the state just assigned in order.
-        size = max(self.n_peaks, self.n_atom_groups)
-        return np.arange(size)
-
-    def extract_value(
-        self, mapping: PeakMapping, state: np.ndarray
-    ) -> Union[int, NotMapped]:
-        # Freeze so we can't add more atom_groups
-        self.frozen = True
-
-        if mapping.map_name != self.name:
-            raise KeyError(f"Map name {mapping.map_name} does not match {self.name}.")
-
-        peak_id = mapping.peak_id
-        if peak_id < 0:
-            raise KeyError("peak_id must be >= 0.")
-        if peak_id >= self.n_peaks:
-            raise KeyError(f"peak_id must be < {self.n_peaks}")
-
-        group_index = state[mapping.peak_id]
-        # If we have more peaks than atom_groups, some of the peaks will
-        # not be mapped to anything.
-        if group_index >= self.n_atom_groups:
-            return NotMapped()
-        else:
-            return self.atom_groups[group_index][mapping.atom_name]
+        if self.n_active > self.n_atom_groups:
+            raise ValueError("n_active must be <= n_atom_groups")
+        state = -np.ones(self.n_peaks, dtype=int)
+        state[: self.n_active] = np.arange(self.n_active)
+        return state
 
     def sample(self, state: np.ndarray) -> np.ndarray:
+        r = random.random()
+
+        # We don't need to do peak reassignment, because all groups
+        # will always be assigned to a peak.
+        if self.n_active == self.n_atom_groups:
+            if r < 0.1:
+                return self._sample_peak_swap(state)
+            else:
+                return self._sample_neighbour_swap(state)
+        # We have some groups that are unassigned, so we need to
+        # include the peak reassignment step.
+        else:
+            if r < 0.1:
+                return self._sample_peak_swap(state)
+            elif r < 0.2:
+                return self._sample_peak_reassign(state)
+            else:
+                return self._sample_neighbour_swap(state)
+
+    def _sample_peak_swap(self, state: np.ndarray) -> np.ndarray:
         trial_state = state.copy()
 
-        indices = list(range(trial_state.shape[0]))
-        i, j = random.sample(indices, k=2)
-        trial_state[[i, j]] = trial_state[[j, i]]
+        # Sample a pair of peaks to swap.
+        i, j = random.sample(range(self.n_peaks), k=2)
+
+        # Swap them
+        group_i = trial_state[i]
+        group_j = trial_state[j]
+        trial_state[i] = group_j
+        trial_state[j] = group_i
+
+        return trial_state
+
+    def _sample_neighbour_swap(self, state: np.ndarray) -> np.ndarray:
+        trial_state = state.copy()
+
+        # Choose two neighbouring residues
+        i = random.randrange(self.n_atom_groups - 1)
+        j = i + 1
+
+        # Identify the corresponding peaks
+        peaks_i = np.argwhere(trial_state == i)
+        peaks_j = np.argwhere(trial_state == j)
+        peak_i = None if len(peaks_i) == 0 else peaks_i[0]
+        peak_j = None if len(peaks_j) == 0 else peaks_j[0]
+
+        # Neither residue is assigned to a peak, so we don't do anything
+        if (peak_i is None) and (peak_j is None):
+            pass
+        # One of the residues is assigned but the other is not.
+        elif peak_i is None:
+            trial_state[peak_j] = i
+        elif peak_j is None:
+            trial_state[peak_i] = j
+        # Both residues are assigned, so we swap them.
+        else:
+            trial_state[peak_i] = j
+            trial_state[peak_j] = i
+
+        return trial_state
+
+    def _sample_peak_reassign(self, state: np.ndarray) -> np.ndarray:
+        trial_state = state.copy()
+
+        # Choose an assigned peak
+        assigned_peaks = [peak[0] for peak in np.argwhere(trial_state != -1)]
+        peak = random.choice(assigned_peaks)
+
+        # Choose an unassigned atom group
+        atom_groups = set(range(self.n_atom_groups))
+        assigned_groups = set(trial_state)
+        unassigned_groups = list(atom_groups - assigned_groups)
+        # Raise an error if we have no unassigned groups, as we shouldn't
+        # be calling this function in that case.
+        if not unassigned_groups:
+            raise RuntimeError(
+                "There are no unassigned groups, so _sample_peak_reassign shouldn't be called."
+            )
+        group = random.choice(unassigned_groups)
+
+        # Swap
+        trial_state[peak] = group
 
         return trial_state
 
@@ -132,12 +184,12 @@ class PeakMapManager:
         self.mappers = {}
         self._name_to_range = None
 
-    def add_map(self, name: str, n_peaks: int, atom_names: List[str]) -> PeakMapper:
+    def add_map(self, name: str, n_peaks: int, n_active: int, atom_names: List[str]) -> PeakMapper:
         # don't allow duplicates
         if name in self.mappers:
             raise ValueError(f"Trying to insert duplicate entry for {name}.")
 
-        mapper = PeakMapper(name, n_peaks, atom_names)
+        mapper = PeakMapper(name, n_peaks, n_active, atom_names)
         self.mappers[name] = mapper
 
         return mapper
@@ -159,13 +211,30 @@ class PeakMapManager:
 
     def extract_value(
         self, mapping: PeakMapping, state: np.ndarray
-    ) -> Union[int, NotMapped]:
+    ) -> int:
         if self._name_to_range is None:
             self._setup_name_to_range()
 
         range_ = self._name_to_range[mapping.map_name]
-        sub_state = state[range_[0] : range_[1]]
-        return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
+
+        mapper = self.mappers[mapping.map_name]
+        mapper.frozen = True
+
+        if mapping.map_name != mapper.name:
+            raise KeyError(f"Map name {mapping.map_name} does not match {mapper.name}.")
+
+        peak_id = mapping.peak_id
+        if peak_id < 0:
+            raise KeyError("peak_id must be >= 0.")
+        if peak_id >= mapper.n_peaks:
+            raise KeyError(f"peak_id must be < {mapper.n_peaks}")
+
+        group_index = state[mapping.peak_id + range_[0]]
+
+        if group_index == -1:
+            return -1
+        else:
+            return mapper.atom_groups[group_index][mapping.atom_name]
 
     def sample(self, state: np.ndarray) -> np.ndarray:
         if self._name_to_range is None:
@@ -187,6 +256,21 @@ class PeakMapManager:
                 trial_sub_samples.append(sub_state)
 
         return np.hstack(trial_sub_samples)
+
+    def get_index(self, mapping: PeakMapping) -> int:
+        if self._name_to_range is None:
+            self._setup_name_to_range()
+
+        range_ = self._name_to_range[mapping.map_name]
+
+        mapper = self.mappers[mapping.map_name]
+        mapper.frozen = True
+
+        if mapping.map_name != mapper.name:
+            raise KeyError(f"Map name {mapping.map_name} does not match {mapper.name}.")
+
+        peak_id = mapping.peak_id
+        return peak_id + range_[0]
 
     def has_mappers(self) -> bool:
         if self.mappers:

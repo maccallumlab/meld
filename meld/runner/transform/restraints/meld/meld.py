@@ -298,8 +298,6 @@ class MeldRestraintTransformer(transform.TransformerBase):
         for value in values:
             if isinstance(value, mapping.PeakMapping):
                 index = self.mapper.extract_value(value, state.mappings)
-                if isinstance(index, mapping.NotMapped):
-                    index = -1
             else:
                 index = value
             indices.append(index)
