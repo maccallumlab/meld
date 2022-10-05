@@ -203,9 +203,6 @@ class PeakMapManager:
 
         range_ = self._name_to_range[mapping.map_name]
 
-        # sub_state = state[range_[0] : range_[1]]
-        # return self.mappers[mapping.map_name].extract_value(mapping, sub_state)
-
         mapper = self.mappers[mapping.map_name]
         mapper.frozen = True
 
@@ -246,6 +243,21 @@ class PeakMapManager:
                 trial_sub_samples.append(sub_state)
 
         return np.hstack(trial_sub_samples)
+
+    def get_index(self, mapping: PeakMapping) -> int:
+        if self._name_to_range is None:
+            self._setup_name_to_range()
+
+        range_ = self._name_to_range[mapping.map_name]
+
+        mapper = self.mappers[mapping.map_name]
+        mapper.frozen = True
+
+        if mapping.map_name != mapper.name:
+            raise KeyError(f"Map name {mapping.map_name} does not match {mapper.name}.")
+
+        peak_id = mapping.peak_id
+        return peak_id + range_[0]
 
     def has_mappers(self) -> bool:
         if self.mappers:
