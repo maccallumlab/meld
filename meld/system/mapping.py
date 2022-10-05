@@ -24,26 +24,23 @@ class PeakMapping(NamedTuple):
     atom_name: str
 
 
-class NotMapped:
-    """
-    Represents a peak that isn't mapped to any atom
-    """
-
-    pass
-
-
 class PeakMapper:
     name: str
     n_peaks: int
+    n_active: int
     atom_names: List[str]
     atom_groups: List[Dict[str, int]]
     _frozen: bool
 
-    def __init__(self, name: str, n_peaks: int, atom_names: List[str]):
+    def __init__(self, name: str, n_peaks: int, n_active: int, atom_names: List[str]):
         if n_peaks <= 0:
             raise ValueError("n_peaks must be > 0")
         self.name = name
         self.n_peaks = n_peaks
+        self.n_active = n_active
+        assert n_peaks > 0
+        assert n_active > 0
+        assert n_active <= n_peaks
         self.atom_names = atom_names
         self.atom_groups = []
         self.frozen = False
@@ -82,46 +79,45 @@ class PeakMapper:
     def get_initial_state(self) -> np.ndarray:
         # Freeze so we can't add more atom_groups
         self._frozen = True
-        # The initial state is the longer of n_peaks and n_atom_groups
-        # with the state just assigned in order.
-        size = max(self.n_peaks, self.n_atom_groups)
-        return np.arange(size)
+        if self.n_active > self.n_atom_groups:
+            raise ValueError("n_active must be <= n_atom_groups")
+        state = -np.ones(self.n_peaks, dtype=int)
+        state[: self.n_active] = np.arange(self.n_active)
+        return state
 
     def sample(self, state: np.ndarray) -> np.ndarray:
-        if random.random() < 0.1:
-            return self._sample_peak_swap(state)
+        r = random.random()
+
+        # We don't need to do peak reassignment, because all groups
+        # will always be assigned to a peak.
+        if self.n_active == self.n_atom_groups:
+            if r < 0.1:
+                return self._sample_peak_swap(state)
+            else:
+                return self._sample_neighbour_swap(state)
+        # We have some groups that are unassigned, so we need to
+        # include the peak reassignment step.
         else:
-            return self._sample_neighbour_swap(state)
+            if r < 0.1:
+                return self._sample_peak_swap(state)
+            elif r < 0.2:
+                return self._sample_peak_reassign(state)
+            else:
+                return self._sample_neighbour_swap(state)
 
     def _sample_peak_swap(self, state: np.ndarray) -> np.ndarray:
         trial_state = state.copy()
 
-        # We sample a pair of peaks to swap.
-        # In case there are more residues than peaks, we add
-        # in additional "virtual" peaks.
-        i, j = sorted(random.sample(range(max(self.n_peaks, self.n_atom_groups)), k=2))
+        # Sample a pair of peaks to swap.
+        i, j = random.sample(range(self.n_peaks), k=2)
 
-        # Both of the peaks are "virtual" peaks, so we don't neeed to
-        # do anything.
-        if i >= self.n_peaks:
-            return trial_state
+        # Swap them
+        group_i = trial_state[i]
+        group_j = trial_state[j]
+        trial_state[i] = group_j
+        trial_state[j] = group_i
 
-        # Peak j is a virtual peak, so we need to gather the
-        # list of unassigned residues and choose one.
-        elif j >= self.n_peaks:
-            unassigned_residues = set(range(self.n_atom_groups))
-            for residue in trial_state:
-                unassigned_residues.remove(residue)
-            new_residue = random.choice(list(unassigned_residues))
-            trial_state[i] = new_residue
-
-        # Neither peak is a virtual peak
-        else:
-            res_i = trial_state[i]
-            res_j = trial_state[j]
-            trial_state[i] = res_j
-            trial_state[j] = res_i
-            return trial_state
+        return trial_state
 
     def _sample_neighbour_swap(self, state: np.ndarray) -> np.ndarray:
         trial_state = state.copy()
@@ -132,15 +128,9 @@ class PeakMapper:
 
         # Identify the corresponding peaks
         peaks_i = np.argwhere(trial_state == i)
-        if len(peaks_i) == 0:
-            peak_i = None
-        else:
-            peak_i = peaks_i[0]
         peaks_j = np.argwhere(trial_state == j)
-        if len(peaks_j) == 0:
-            peak_j = None
-        else:
-            peak_j = peaks_j[0]
+        peak_i = None if len(peaks_i) == 0 else peaks_i[0]
+        peak_j = None if len(peaks_j) == 0 else peaks_j[0]
 
         # Neither residue is assigned to a peak, so we don't do anything
         if (peak_i is None) and (peak_j is None):
@@ -157,6 +147,30 @@ class PeakMapper:
 
         return trial_state
 
+    def _sample_peak_reassign(self, state: np.ndarray) -> np.ndarray:
+        trial_state = state.copy()
+
+        # Choose an assigned peak
+        assigned_peaks = [peak[0] for peak in np.argwhere(trial_state != -1)]
+        peak = random.choice(assigned_peaks)
+
+        # Choose an unassigned atom group
+        atom_groups = set(range(self.n_atom_groups))
+        assigned_groups = set(trial_state)
+        unassigned_groups = list(atom_groups - assigned_groups)
+        # Raise an error if we have no unassigned groups, as we shouldn't
+        # be calling this function in that case.
+        if not unassigned_groups:
+            raise RuntimeError(
+                "There are no unassigned groups, so _sample_peak_reassign shouldn't be called."
+            )
+        group = random.choice(unassigned_groups)
+
+        # Swap
+        trial_state[peak] = group
+
+        return trial_state
+
     @property
     def n_atom_groups(self) -> int:
         return len(self.atom_groups)
@@ -170,12 +184,12 @@ class PeakMapManager:
         self.mappers = {}
         self._name_to_range = None
 
-    def add_map(self, name: str, n_peaks: int, atom_names: List[str]) -> PeakMapper:
+    def add_map(self, name: str, n_peaks: int, n_active: int, atom_names: List[str]) -> PeakMapper:
         # don't allow duplicates
         if name in self.mappers:
             raise ValueError(f"Trying to insert duplicate entry for {name}.")
 
-        mapper = PeakMapper(name, n_peaks, atom_names)
+        mapper = PeakMapper(name, n_peaks, n_active, atom_names)
         self.mappers[name] = mapper
 
         return mapper
@@ -197,7 +211,7 @@ class PeakMapManager:
 
     def extract_value(
         self, mapping: PeakMapping, state: np.ndarray
-    ) -> Union[int, NotMapped]:
+    ) -> int:
         if self._name_to_range is None:
             self._setup_name_to_range()
 
@@ -216,10 +230,9 @@ class PeakMapManager:
             raise KeyError(f"peak_id must be < {mapper.n_peaks}")
 
         group_index = state[mapping.peak_id + range_[0]]
-        # If we have more peaks than atom_groups, some of the peaks will
-        # not be mapped to anything.
-        if group_index >= mapper.n_atom_groups:
-            return NotMapped()
+
+        if group_index == -1:
+            return -1
         else:
             return mapper.atom_groups[group_index][mapping.atom_name]
 
