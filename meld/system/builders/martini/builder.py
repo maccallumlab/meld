@@ -26,7 +26,7 @@ from openmm import unit as u  # type: ignore
 import numpy as np  # type: ignore
 
 try:
-    import martini_openmm as martini  # typing: ignore
+    import martini_openmm as martini  # type: ignore
 except ImportError:
     print()
     print("You are trying to use the martini builder functionality.")
