@@ -52,7 +52,7 @@ extern "C" __global__ void computeRDCRest(
     float* __restrict__ energies,
     float3* __restrict__ forceBuffer,
     float* __restrict__ derivBuffer,
-    int numRDCRestraints
+    int numRestraints
 ) {
     for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
         // Unpack parameters
@@ -82,13 +82,13 @@ extern "C" __global__ void computeRDCRest(
             // sorting when the groups are evaluated. Later,
             // when we apply restraints, this restraint will be
             // applied with an energy of zero should it be selected.
-            forceBuffer[index] = float3(0, 0, 0);
+            forceBuffer[index] = float3(0.0, 0.0, 0.0);
             energies[globalIndex] = FLT_MAX;
-            derivBuffer[5 * index + 0] = 0;
-            derivBuffer[5 * index + 1] = 0;
-            derivBuffer[5 * index + 2] = 0;
-            derivBuffer[5 * index + 3] = 0;
-            derivBuffer[5 * index + 4] = 0;
+            derivBuffer[5 * index + 0] = 0.0;
+            derivBuffer[5 * index + 1] = 0.0;
+            derivBuffer[5 * index + 2] = 0.0;
+            derivBuffer[5 * index + 3] = 0.0;
+            derivBuffer[5 * index + 4] = 0.0;
         }
         else
         {
@@ -954,7 +954,7 @@ extern "C" __global__ void applyRDCRest(
     const __restrict__ int* derivIndices,
     const __restrict__ float* rdcRestEnergies,
     const __restrict__ float* restraintActive,
-    int numRdcRestraints
+    int numRDCRestraints
 ) {
     int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
     float energyAccum = 0.0;
