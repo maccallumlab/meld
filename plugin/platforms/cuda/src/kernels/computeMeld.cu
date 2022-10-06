@@ -954,14 +954,14 @@ extern "C" __global__ void applyRDCRest(
     unsigned long long* __restrict__ force,
     mixed* __restrict__ energyBuffer,
     mixed* __restrict__ derivBuffer,
-    const __restrict__ int2* rdcRestAtomIndices,
-    const __restrict__ int* rdcAlignments,
-    const __restrict__ int* rdcRestGlobalIndices,
-    const __restrict__ float3* rdcRestForces,
-    const __restrict__ float* rdcRestDerivs,
-    const __restrict__ int* derivIndices,
-    const __restrict__ float* rdcRestEnergies,
-    const __restrict__ float* restraintActive,
+    const int2* __restrict__ rdcRestAtomIndices,
+    const int* __restrict__ rdcAlignments,
+    const int* __restrict__ rdcRestGlobalIndices,
+    const float3* __restrict__ rdcRestForces,
+    const float* __restrict__ rdcRestDerivs,
+    const int* __restrict__ derivIndices,
+    const float* __restrict__ rdcRestEnergies,
+    const float* __restrict__ restraintActive,
     int numRDCRestraints
 ) {
     int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
