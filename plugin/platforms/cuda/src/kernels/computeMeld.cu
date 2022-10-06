@@ -955,7 +955,7 @@ extern "C" __global__ void applyRDCRest(
     mixed* __restrict__ energyBuffer,
     mixed* __restrict__ derivBuffer,
     const int2* __restrict__ rdcRestAtomIndices,
-    const int* __restrict__ rdcAlignments,
+    const int* __restrict__ rdcRestAlignments,
     const int* __restrict__ rdcRestGlobalIndices,
     const float3* __restrict__ rdcRestForces,
     const float* __restrict__ rdcRestDerivs,
@@ -978,7 +978,7 @@ extern "C" __global__ void applyRDCRest(
                 // not mapped, so it contributes no energy or force.
             }
             else {
-                energyAccum += restraintEnergies[index];
+                energyAccum += rdcRestEnergies[index];
 
                 float fx = rdcRestForces[i].x;
                 float fy = rdcRestForces[i].y;
