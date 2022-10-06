@@ -31,7 +31,6 @@ from meld.system.builders.amber.subsystem import (
 )
 from meld.system.builders.build_elastic_network_restraints import create_elastic_network_restraints, add_elastic_network_restraints
 from meld.system.builders.amber.builder import AmberSystemBuilder, AmberOptions
-from meld.system.builders.martini.builder import MartiniSystemBuilder, MartiniOptions
 from meld.system.temperature import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,
