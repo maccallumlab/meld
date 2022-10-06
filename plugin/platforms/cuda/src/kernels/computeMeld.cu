@@ -967,7 +967,7 @@ extern "C" __global__ void applyRDCRest(
     int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
     float energyAccum = 0.0;
 
-    for (int i=blockIdx.x*blockDim.x+threadIdx.x; i<numRDCRestraints; i+=blockDim.x*gridDim.x) {
+    for (int i=blockIdx.x*blockDim.x+threadIdx.x; i<numRDCRestraints; i+=blockDim.x*gridDim.x)
     {
         int index = rdcRestGlobalIndices[i];
         if (restraintActive[index])
