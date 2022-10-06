@@ -582,6 +582,10 @@ void CudaCalcMeldForceKernel::setupRDCDerivIndices()
     {
         std::string base = "rdc_" + std::to_string(i);
         cu.addEnergyParameterDerivative(base + "_s1");
+        cu.addEnergyParameterDerivative(base + "_s2");
+        cu.addEnergyParameterDerivative(base + "_s3");
+        cu.addEnergyParameterDerivative(base + "_s4");
+        cu.addEnergyParameterDerivative(base + "_s5");
     }
 
     // Get all of the parameter names
