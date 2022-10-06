@@ -2,6 +2,7 @@ from meld import interfaces
 from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
+import numpy as np  # typing: ignore
 import collections
 from typing import List, Tuple, Optional, Union, Set, Dict, DefaultDict
 
@@ -21,6 +22,7 @@ class RestraintTracker:
 
     param_manager: param_sampling.ParameterManager
     peak_mapper: mapping.PeakMapManager
+    rdc_restraints: List[restraints.RdcRestraint]
     distance_restraints: List[restraints.DistanceRestraint]
     hyperbolic_distance_restraints: List[restraints.HyperbolicDistanceRestraint]
     torsion_restraints: List[restraints.TorsionRestraint]
@@ -32,11 +34,11 @@ class RestraintTracker:
     scaler_map: DefaultDict[restraints.RestraintScaler, List[Tuple[str, int]]]
     ramp_map: DefaultDict[restraints.TimeRamp, List[Tuple[str, int]]]
     positioner_map: DefaultDict[restraints.Positioner, List[Tuple[str, int]]]
-    peak_mapping_map: DefaultDict[mapping.PeakMapping, List[Tuple[str, int]]]
+    peak_mapping_map: DefaultDict[int, List[Tuple[str, int]]]
     scaler_values: Dict[restraints.RestraintScaler, float]
     ramp_values: Dict[restraints.TimeRamp, float]
     positioner_values: Dict[restraints.Positioner, float]
-    peak_mapping_values: Dict[mapping.PeakMapping, int]
+    peak_mapping_values: Optional[np.ndarray]
     need_update: Set[Tuple[str, int]]
 
     def __init__(
@@ -50,6 +52,7 @@ class RestraintTracker:
         # These hold lists of meld restraints in the order that they were added
         # to the system.
         self.distance_restraints = []
+        self.rdc_restraints = []
         self.hyperbolic_distance_restraints = []
         self.torsion_restraints = []
         self.dist_prof_restraints = []
@@ -69,7 +72,7 @@ class RestraintTracker:
         self.scaler_values = {}
         self.ramp_values = {}
         self.positioner_values = {}
-        self.peak_mapping_values = {}
+        self.peak_mapping_values = None
 
         # We maintain a set of restraints that need to be updated.
         self.need_update = set()
@@ -113,15 +116,32 @@ class RestraintTracker:
                 self.positioner_values[positioner] = new_value
 
     def _update_peak_mappings(self, state: interfaces.IState):
-        for peak_mapping in self.peak_mapping_values:
-            old_value = self.peak_mapping_values[peak_mapping]
-            new_value = self.peak_mapper.extract_value(peak_mapping, state.mappings)
-            if isinstance(new_value, mapping.NotMapped):
-                new_value = -1
-            if new_value != old_value:
-                for category, index in self.peak_mapping_map[peak_mapping]:
-                    self.need_update.add((category, index))
-                self.peak_mapping_values[peak_mapping] = new_value
+        changes = np.argwhere(self.peak_mapping_values != state.mappings)
+        for global_peak_index in changes:
+            global_peak_index = global_peak_index[0]
+            for category, index in self.peak_mapping_map[global_peak_index]:
+                self.need_update.add((category, index))
+            if self.peak_mapping_values is not None:
+                self.peak_mapping_values[global_peak_index] = state.mappings[
+                    global_peak_index
+            ]
+
+    def add_rdc_restraint(
+        self,
+        rest: restraints.RdcRestraint,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ):
+        assert isinstance(rest, restraints.RdcRestraint)
+        self.rdc_restraints.append(rest)
+        index = len(self.rdc_restraints) - 1
+        self.need_update.add(("rdc", index))
+
+        self._add_scaler_dependency(rest.scaler, "rdc", index, alpha)
+        self._add_ramp_dependency(rest.ramp, "rdc", index, timestep)
+        self._add_peak_mapping_dependency(rest.atom_index_1, "rdc", index, state)
+        self._add_peak_mapping_dependency(rest.atom_index_2, "rdc", index, state)
 
     def add_distance_restraint(
         self,
@@ -266,13 +286,11 @@ class RestraintTracker:
         index: int,
         state: interfaces.IState,
     ):
-        if not isinstance(peak_mapping, int):
-            self.peak_mapping_map[peak_mapping].append((category, index))
-            if peak_mapping not in self.peak_mapping_values:
-                new_value = self.peak_mapper.extract_value(peak_mapping, state.mappings)
-                if isinstance(new_value, mapping.NotMapped):
-                    new_value = -1
-                self.peak_mapping_values[peak_mapping] = new_value
+        if isinstance(peak_mapping, mapping.PeakMapping):
+            global_peak_index = self.peak_mapper.get_index(peak_mapping)
+            self.peak_mapping_map[global_peak_index].append((category, index))
+
+            if self.peak_mapping_values is None:
+                self.peak_mapping_values = state.mappings.copy()
             else:
-                value = self.peak_mapper.extract_value(peak_mapping, state.mappings)
-                assert value == self.peak_mapping_values[peak_mapping]
+                assert (state.mappings == self.peak_mapping_values).all()

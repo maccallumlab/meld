@@ -354,7 +354,7 @@ class TestTrackerWithPeakMapperDependency(unittest.TestCase):
             self.system.param_sampler, self.system.mapper
         )
 
-        self.map = self.system.mapper.add_map("map", 2, atom_names=["CA"])
+        self.map = self.system.mapper.add_map("map", 2, 2, atom_names=["CA"])
         self.map.add_atom_group(CA=self.system.index.atom(0, "CA"))
         self.map.add_atom_group(CA=self.system.index.atom(1, "CA"))
         self.map.add_atom_group(CA=self.system.index.atom(2, "CA"))
@@ -410,9 +410,11 @@ class TestTrackerWithPeakMapperDependency(unittest.TestCase):
     def test_should_update_mapping1(self):
         self.tracker.update(0.0, 0, self.state)
         _ = self.tracker.get_and_reset_need_update()
-        pert_mappings = np.array([2, 1, 0])
+        pert_mappings = np.array([2, 1])
         pert_state = deepcopy(self.state)
+        print("state size before", self.state.mappings.shape)
         pert_state.mappings = pert_mappings
+        print("state size after", pert_state.mappings.shape)
 
         self.tracker.update(0.0, 0, pert_state)
         update = self.tracker.get_and_reset_need_update()
@@ -423,7 +425,7 @@ class TestTrackerWithPeakMapperDependency(unittest.TestCase):
     def test_should_update_mapping2(self):
         self.tracker.update(0.0, 0, self.state)
         _ = self.tracker.get_and_reset_need_update()
-        pert_mappings = np.array([0, 2, 1])
+        pert_mappings = np.array([0, 2])
         pert_state = deepcopy(self.state)
         pert_state.mappings = pert_mappings
 
@@ -436,7 +438,7 @@ class TestTrackerWithPeakMapperDependency(unittest.TestCase):
     def test_should_update_both(self):
         self.tracker.update(0.0, 0, self.state)
         _ = self.tracker.get_and_reset_need_update()
-        pert_mappings = np.array([1, 0, 2])
+        pert_mappings = np.array([1, 0])
         pert_state = deepcopy(self.state)
         pert_state.mappings = pert_mappings
 

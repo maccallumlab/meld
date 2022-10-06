@@ -147,7 +147,6 @@ class TransformerBase:
 
 
 from meld.runner.transform.restraints.confinement import ConfinementRestraintTransformer
-from meld.runner.transform.restraints.rdc import RDCRestraintTransformer
 from meld.runner.transform.restraints.cartesian import (
     CartesianRestraintTransformer,
     YZCartesianTransformer,

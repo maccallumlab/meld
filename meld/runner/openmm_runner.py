@@ -299,7 +299,6 @@ class OpenMMRunner(interfaces.IRunner):
     def _transformers_setup(self) -> None:
         trans_types = [
             transform.ConfinementRestraintTransformer,
-            transform.RDCRestraintTransformer,
             transform.CartesianRestraintTransformer,
             transform.YZCartesianTransformer,
             transform.COMRestraintTransformer,
@@ -562,6 +561,8 @@ class OpenMMRunner(interfaces.IRunner):
             )
 
         energy = self.get_energy(state)
+
+        accept = False
 
         for _ in range(self._options.mapper_mcmc_steps):
             trial_mappings = self._mapper.sample(state.mappings)
