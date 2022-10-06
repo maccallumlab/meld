@@ -52,7 +52,7 @@ extern "C" __global__ void computeRDCRest(
     float* __restrict__ energies,
     float3* __restrict__ forceBuffer,
     float* __restrict__ derivBuffer,
-    int numRestraints
+    int numRDCRestraints
 ) {
     for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
         // Unpack parameters
@@ -62,7 +62,7 @@ extern "C" __global__ void computeRDCRest(
         float kappa = params1[index].x;
         float obs = params1[index].y;
         float tol = params2[index].x;
-        float quadCut = params2[index].y
+        float quadCut = params2[index].y;
         float forceConstant = params2[index].z;
 
         // Unpack the alignment tensor components for this restraint
