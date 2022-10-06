@@ -250,7 +250,7 @@ class AmberSystemBuilder:
 
         coords = crd.getPositions(asNumpy=True).value_in_unit(u.nanometer)
         try:
-            vels = crd.getPositions(asNumpy=True)
+            vels = crd.getVelocities(asNumpy=True)
         except AttributeError:
             print("WARNING: No velocities found, setting to zero")
             vels = np.zeros_like(coords)
