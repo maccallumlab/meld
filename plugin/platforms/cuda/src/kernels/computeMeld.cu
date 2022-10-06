@@ -1001,7 +1001,6 @@ extern "C" __global__ void applyRDCRest(
 
                 // Update parameter derivatives
                 int alignment = rdcRestAlignments[i];
-                int derivIndex = derivIndices[5 * alignment + 0];
                 derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 0]] += ds1;
                 derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 1]] += ds2;
                 derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 2]] += ds3;
