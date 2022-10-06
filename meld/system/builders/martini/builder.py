@@ -89,6 +89,7 @@ class MartiniSystemBuilder:
         # get any defines
         defines = {}
         try:
+            assert self.options.defines_file is not None
             with open(self.options.defines_file) as def_file:
                 for line in def_file:
                     line = line.strip()
