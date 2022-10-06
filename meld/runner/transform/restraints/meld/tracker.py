@@ -121,8 +121,9 @@ class RestraintTracker:
             global_peak_index = global_peak_index[0]
             for category, index in self.peak_mapping_map[global_peak_index]:
                 self.need_update.add((category, index))
-            self.peak_mapping_values[global_peak_index] = state.mappings[
-                global_peak_index
+            if self.peak_mapping_values is not None:
+                self.peak_mapping_values[global_peak_index] = state.mappings[
+                    global_peak_index
             ]
 
     def add_rdc_restraint(
