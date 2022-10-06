@@ -82,7 +82,11 @@ extern "C" __global__ void computeRDCRest(
             // sorting when the groups are evaluated. Later,
             // when we apply restraints, this restraint will be
             // applied with an energy of zero should it be selected.
-            forceBuffer[index] = float3(0.0, 0.0, 0.0);
+            float3 f;
+            f.x = 0.0;
+            f.y = 0.0;
+            f.z = 0.0;
+            forceBuffer[index] = f;
             energies[globalIndex] = FLT_MAX;
             derivBuffer[5 * index + 0] = 0.0;
             derivBuffer[5 * index + 1] = 0.0;
@@ -202,7 +206,11 @@ extern "C" __global__ void computeRDCRest(
                 ds5 = forceConstant * quadCut * dcalc_ds5;
             }
 
-            forceBuffer[index] = float3(dx, dy, dz);
+            float3 f;
+            f.x = dx;
+            f.y = dy;
+            f.z = dz;
+            forceBuffer[index] = f;
             energies[globalIndex] = energy;
             derivBuffer[5 * index + 0] = ds1;
             derivBuffer[5 * index + 1] = ds2;
