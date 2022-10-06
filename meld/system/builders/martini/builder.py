@@ -25,7 +25,14 @@ import openmm as mm  # type: ignore
 from openmm import unit as u  # type: ignore
 import numpy as np  # type: ignore
 
-import martini_openmm as martini #  typing: ignore
+try:
+    import martini_openmm as martini #  typing: ignore
+except ImportError:
+    print()
+    print("You are trying to use the martini builder functionality.")
+    print("This requires the installation of the optional martini_openmm")
+    print("dependency, but this could not be imported.")
+    raise
 
 # Need to expand options for all use cases
 @partial(dataclass, frozen=True)
