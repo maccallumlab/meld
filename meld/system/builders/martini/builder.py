@@ -25,7 +25,7 @@ import openmm as mm  # type: ignore
 from openmm import unit as u  # type: ignore
 import numpy as np  # type: ignore
 
-import martini_openmm as martini
+import martini_openmm as martini #  typing: ignore
 
 # Need to expand options for all use cases
 @partial(dataclass, frozen=True)
