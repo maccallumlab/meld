@@ -12,7 +12,7 @@ from meld import util
 from meld import vault
 from meld import runner
 from meld.remd import multiplex_runner
-from simtk.openmm import version as mm_version  # type: ignore
+from openmm import version as mm_version  # type: ignore
 
 import os
 import logging

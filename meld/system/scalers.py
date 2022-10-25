@@ -1,7 +1,7 @@
 import math
 from meld.util import strip_unit
 from typing import Dict, Any, Optional, Union, List, NamedTuple
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
 

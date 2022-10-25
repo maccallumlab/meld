@@ -11,8 +11,8 @@ from meld.runner import transform
 from meld.util import log_timing
 from meldplugin import MeldForce  # type: ignore
 
-from simtk.openmm import app  # type: ignore
-from simtk.openmm.app import forcefield as ff  # type: ignore
+from openmm import app  # type: ignore
+from openmm.app import forcefield as ff  # type: ignore
 from simtk import openmm as mm  # type: ignore
 from simtk import unit as u  # type: ignore
 import parmed

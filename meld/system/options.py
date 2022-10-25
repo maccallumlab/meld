@@ -6,10 +6,10 @@ from meld.util import strip_unit
 from meld.system import temperature
 from meld.system import montecarlo
 from meld.system import patchers
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 from typing import Optional
-from simtk.unit import atmosphere  # type: ignore
+from openmm.unit import atmosphere  # type: ignore
 
 
 class RunOptions:

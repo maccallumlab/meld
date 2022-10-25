@@ -55,6 +55,8 @@ private:
     int numGMMRestraints;
     int numGridPotentials;
     int numGridPotentialRestraints;
+    int3 numGridPotentialGrids;
+    int numGridPotentialAtoms;
     int numRestraints;
     int numGroups;
     int numCollections;
@@ -233,19 +235,47 @@ private:
     /**
      * Arrays for GridPot restraints
      */   
+    // OpenMM::CudaArray* gridPotentialRestAtomIndices;
+    // std::vector<int> h_gridPotentialRestAtomIndices;
+    
+    // OpenMM::CudaArray* gridPotentialRestGridPotentialIndices;
+    // std::vector<int> h_gridPotentialRestGridPotentialIndices;
+
+    // OpenMM::CudaArray* gridPotentialRestWeights;
+    // std::vector<float> h_gridPotentialRestWeights;
+
+    // OpenMM::CudaArray* gridPotentialRestForces;
+
+    // OpenMM::CudaArray* gridPotentialRestGlobalIndices;
+    // std::vector<int> h_gridPotentialRestGlobalIndices;   
+    OpenMM::CudaArray* gridPotentialRestGridPos;
+    std::vector<float3> h_gridPotentialRestGridPos;
+
+    OpenMM::CudaArray* gridPotentialRestGridPosx;
+    std::vector<float> h_gridPotentialRestGridPosx;
+
+    OpenMM::CudaArray* gridPotentialRestGridPosy;
+    std::vector<float> h_gridPotentialRestGridPosy;
+
+    OpenMM::CudaArray* gridPotentialRestGridPosz;
+    std::vector<float> h_gridPotentialRestGridPosz;
+
+    OpenMM::CudaArray* gridPotentialRestMu;
+    std::vector<float> h_gridPotentialRestMu;
+    
     OpenMM::CudaArray* gridPotentialRestAtomIndices;
     std::vector<int> h_gridPotentialRestAtomIndices;
-    
-    OpenMM::CudaArray* gridPotentialRestGridPotentialIndices;
-    std::vector<int> h_gridPotentialRestGridPotentialIndices;
+
+    OpenMM::CudaArray* gridPotentialRestAtomList;
+    std::vector<int> h_gridPotentialRestAtomList;
 
     OpenMM::CudaArray* gridPotentialRestWeights;
     std::vector<float> h_gridPotentialRestWeights;
 
-    OpenMM::CudaArray* gridPotentialRestForces;
+    OpenMM::CudaArray* gridPotentialRestGlobalIndices; 
+    std::vector<int> h_gridPotentialRestGlobalIndices;
 
-    OpenMM::CudaArray* gridPotentialRestGlobalIndices;
-    std::vector<int> h_gridPotentialRestGlobalIndices;   
+    OpenMM::CudaArray* gridPotentialRestForces;    
     
     /**
      * Arrays for all restraints
@@ -305,6 +335,7 @@ private:
     int calcSizeGMMAtomIndices(const MeldForce& force);
     int calcSizeGMMData(const MeldForce& force);
     int3 calcNumGrids(const MeldForce& force);
+    int calcNumGridPotentialAtoms(const MeldForce &force);
 };
 } // namespace MeldPlugin
 

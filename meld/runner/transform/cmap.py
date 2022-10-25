@@ -12,7 +12,7 @@ from meld.system import amber
 from meld.runner import transform
 from meld.system import options
 from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+from openmm import app  # type: ignore
 
 from collections import OrderedDict
 import os

@@ -13,7 +13,7 @@ from meld.system import scalers
 from meld.system import restraints
 from meld.system import patchers
 from meld.system import indexing
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 from typing import List, Optional, TextIO, NewType
 from collections import namedtuple

@@ -12,7 +12,7 @@ from meld.system import restraints
 from meld.system import scalers
 from meld.system.subsystem import SubSystemFromSequence
 from meld.system.builder import SystemBuilder
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 
 class TestAlwaysActiveCollection(unittest.TestCase):

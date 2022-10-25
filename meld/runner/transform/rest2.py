@@ -16,7 +16,7 @@ from meld.system import mapping
 from meld.system import density
 from meld.runner.transform import TransformerBase
 from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+from openmm import app  # type: ignore
 
 import math
 from typing import List, Dict, Tuple

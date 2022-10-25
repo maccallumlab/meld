@@ -28,7 +28,7 @@ from meld.system import param_sampling
 from meld.system import mapping
 from meld.system import density
 from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+from openmm import app  # type: ignore
 
 from typing import List
 

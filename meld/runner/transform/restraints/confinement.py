@@ -20,7 +20,7 @@ from meld.system import density
 from meld.runner import transform
 
 from simtk import openmm as mm  # type: ignore
-from simtk.openmm import app  # type: ignore
+from openmm import app  # type: ignore
 
 from typing import List
 

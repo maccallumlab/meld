@@ -155,7 +155,7 @@ from meld.system.scalers import (
     ConstantRamp,
     ScalerRegistry,
 )
-from simtk.openmm import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import math
 import numpy as np  # type: ignore
@@ -1208,31 +1208,54 @@ class COMRestraint(NonSelectableRestraint):
                 raise ValueError(f"{dim} occurs more than once in dims")
 
 
+# class DensityRestraint(SelectableRestraint):
+#     _restraint_key_ = "density"
+#     atom_index: int
+#     density_id: int
+#     strength: float
+
+#     def __init__(
+#         self,
+#         system: interfaces.ISystem,
+#         scaler: Optional[RestraintScaler],
+#         ramp: Optional[TimeRamp],
+#         atom: indexing.AtomIndex,
+#         density_id: int,
+#         strength: u.Quantity,
+#     ):
+#         assert isinstance(atom, indexing.AtomIndex)
+#         self.atom_index = int(atom)
+#         self.density_id = density_id
+#         self.strength = strip_unit(strength, u.kilojoule_per_mole)
+#         self.scaler = ConstantScaler() if scaler is None else scaler
+#         self.ramp = ConstantRamp() if ramp is None else ramp
+#         self._check(system)
+
+#     def _check(self, system):
+#         assert system.density.is_valid_id(self.density_id)
+
 class DensityRestraint(SelectableRestraint):
+
     _restraint_key_ = "density"
-    atom_index: int
-    density_id: int
-    strength: float
 
     def __init__(
-        self,
-        system: interfaces.ISystem,
-        scaler: Optional[RestraintScaler],
-        ramp: Optional[TimeRamp],
-        atom: indexing.AtomIndex,
-        density_id: int,
-        strength: u.Quantity,
-    ):
-        assert isinstance(atom, indexing.AtomIndex)
-        self.atom_index = int(atom)
-        self.density_id = density_id
-        self.strength = strip_unit(strength, u.kilojoule_per_mole)
-        self.scaler = ConstantScaler() if scaler is None else scaler
-        self.ramp = ConstantRamp() if ramp is None else ramp
-        self._check(system)
-
-    def _check(self, system):
-        assert system.density.is_valid_id(self.density_id)
+            self,
+            system: interfaces.ISystem,
+            scaler: Optional[RestraintScaler],
+            ramp: Optional[TimeRamp],
+            atom: list,
+            map_origin: list,
+            map_dimension: list,
+            map_gridLength: list,
+            mu = None,
+        ):
+            self.atom_index = [int(i) for i in atom]
+            self.scaler = ConstantScaler() if scaler is None else scaler
+            self.ramp = ConstantRamp() if ramp is None else ramp
+            self.mu = mu
+            self.map_origin = map_origin
+            self.map_dimension = map_dimension
+            self.map_gridLength = map_gridLength
 
 
 class AlwaysActiveCollection:

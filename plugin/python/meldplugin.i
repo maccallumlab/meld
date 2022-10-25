@@ -5,7 +5,7 @@
 
 %module meldplugin
 
-%import(module="simtk.openmm") "swig/OpenMMSwigHeaders.i"
+%import(module="openmm") "swig/OpenMMSwigHeaders.i"
 %include "swig/typemaps.i"
 
 %include "std_vector.i"
@@ -254,19 +254,33 @@ namespace MeldPlugin {
         %clear int& nz;
         %clear int& index;
 
-        %apply int& OUTPUT {int& particle};
-        %apply int& OUTPUT {int& potentialGridIndex};
-        %apply float& OUTPUT {float& strength};
+        // %apply int& OUTPUT {int& particle};
+        // %apply int& OUTPUT {int& potentialGridIndex};
+        // %apply float& OUTPUT {float& strength};
+        // %apply int& OUTPUT {int& globalIndex};
+        // void getGridPotentialRestraintParams(int index, 
+        //                             int& particle, 
+        //                             int& potentialGridIndex, 
+        //                             float& strength, 
+        //                             int& globalIndex) const;  
+        // %clear int& particle;
+        // %clear int& potentialGridIndex;
+        // %clear float& strength;
+        // %clear int& globalIndex;    
+        %apply std::vector<int>& OUTPUT {std::vector<int>& atom};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& mu};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& gridpos_x};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& gridpos_y};
+        %apply std::vector<double>& OUTPUT {std::vector<double>& gridpos_z};
         %apply int& OUTPUT {int& globalIndex};
-        void getGridPotentialRestraintParams(int index, 
-                                    int& particle, 
-                                    int& potentialGridIndex, 
-                                    float& strength, 
-                                    int& globalIndex) const;  
-        %clear int& particle;
-        %clear int& potentialGridIndex;
-        %clear float& strength;
-        %clear int& globalIndex;      
+        void getGridPotentialRestraintParams(int index, std::vector<int>& atom, std::vector<double>& mu, std::vector<double>& gridpos_x, 
+                                    std::vector<double>& gridpos_y, std::vector<double>& gridpos_z, int& globalIndex) const;
+        %clear std::vector<int>& atom;
+        %clear std::vector<double>& mu;
+        %clear std::vector<double>& gridpos_x;
+        %clear std::vector<double>& gridpos_y;
+        %clear std::vector<double>& gridpos_z;
+        %clear int& globalIndex;     
 
         %apply std::vector<int>& OUTPUT {std::vector<int>& indices};
         %apply int& OUTPUT {int& numActive};
@@ -367,15 +381,29 @@ namespace MeldPlugin {
                 int ny,
                 int nz);
 
-        int addGridPotentialRestraint(
-                int particle,
-                int gridPotentialIndex,
-                float strength);
+        // int addGridPotentialRestraint(
+        //         int particle,
+        //         int gridPotentialIndex,
+        //         float strength);
         
+        // void modifyGridPotentialRestraint(
+        //         int index,
+        //         int particle,
+        //         int gridPotentialIndex,
+        //         float strength);
+        int addGridPotentialRestraint(
+                        std::vector<int> particle,
+                        std::vector<double> mu, 
+                        std::vector<double> gridpos_x, 
+                        std::vector<double> gridpos_y, 
+                        std::vector<double> gridpos_z);
+
         void modifyGridPotentialRestraint(
-                int index,
-                int particle,
-                int gridPotentialIndex,
-                float strength);
+                        int index, 
+                        std::vector<int> particle,
+                        std::vector<double> mu, 
+                        std::vector<double> gridpos_x, 
+                        std::vector<double> gridpos_y, 
+                        std::vector<double> gridpos_z);
     };
 }
