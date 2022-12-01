@@ -135,7 +135,6 @@ class LeaderReplicaExchangeRunner:
             # compute our energy for each state
             my_energies = self._compute_energies(states, system_runner)
             energies = communicator.gather_energies_from_workers(my_energies)
-            logger.info(f"energies: {energies}")
             # ask the ladder how to permute things
             permutation_vector = self.ladder.compute_exchanges(energies, self.adaptor)
             states = self._permute_states(permutation_vector, states, system_runner)

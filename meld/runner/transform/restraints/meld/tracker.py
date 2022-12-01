@@ -106,7 +106,6 @@ class RestraintTracker:
         for scaler in self.scaler_density_values:
             old_value = self.scaler_density_values[scaler]
             new_value = scaler(alpha) 
-            logger.info(f"new_value: {new_value}, old_value: {old_value}")            
             if new_value != old_value or alpha==0.0:
                 to_update.extend(self.scaler_density_map[scaler])
                 self.scaler_density_values[scaler] = new_value

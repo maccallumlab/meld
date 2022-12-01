@@ -139,6 +139,7 @@ References
 
 
 from __future__ import annotations
+from meld.system.density import DensityMap
 
 from meld.util import strip_unit
 from meld import interfaces
@@ -1208,32 +1209,6 @@ class COMRestraint(NonSelectableRestraint):
                 raise ValueError(f"{dim} occurs more than once in dims")
 
 
-# class DensityRestraint(SelectableRestraint):
-#     _restraint_key_ = "density"
-#     atom_index: int
-#     density_id: int
-#     strength: float
-
-#     def __init__(
-#         self,
-#         system: interfaces.ISystem,
-#         scaler: Optional[RestraintScaler],
-#         ramp: Optional[TimeRamp],
-#         atom: indexing.AtomIndex,
-#         density_id: int,
-#         strength: u.Quantity,
-#     ):
-#         assert isinstance(atom, indexing.AtomIndex)
-#         self.atom_index = int(atom)
-#         self.density_id = density_id
-#         self.strength = strip_unit(strength, u.kilojoule_per_mole)
-#         self.scaler = ConstantScaler() if scaler is None else scaler
-#         self.ramp = ConstantRamp() if ramp is None else ramp
-#         self._check(system)
-
-#     def _check(self, system):
-#         assert system.density.is_valid_id(self.density_id)
-
 class DensityRestraint(SelectableRestraint):
 
     _restraint_key_ = "density"
@@ -1244,18 +1219,16 @@ class DensityRestraint(SelectableRestraint):
             scaler: Optional[RestraintScaler],
             ramp: Optional[TimeRamp],
             atom: list,
-            map_origin: list,
-            map_dimension: list,
-            map_gridLength: list,
+            density: DensityMap,
             mu = None,
         ):
             self.atom_index = [int(i) for i in atom]
             self.scaler = ConstantScaler() if scaler is None else scaler
             self.ramp = ConstantRamp() if ramp is None else ramp
-            self.mu = mu
-            self.map_origin = map_origin
-            self.map_dimension = map_dimension
-            self.map_gridLength = map_gridLength
+            self.mu = density.density_data
+            self.map_origin = density.origin
+            self.map_dimension = [density.nx,density.ny,density.nz]
+            self.map_gridLength = density.voxel_size
 
 
 class AlwaysActiveCollection:

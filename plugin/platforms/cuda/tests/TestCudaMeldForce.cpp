@@ -834,8 +834,8 @@ void testGridPotentialRest() {
     //            V_{111}xyz)  (L is the grid length)
     //  V_total = V_0 + V_1 = 0.188 + 0.352 = 0.54
     //  F_0 = -(dV/dx,dV/dy,dV/dz) = (V_{011}yz/L, V_{101}xz/L, V_{110}xy/L) = (0.4,0.3,0.24)
-    cout << stateI.getPotentialEnergy() << endl;
-    cout << stateI.getForces()[0] << endl;
+    // cout << stateI.getPotentialEnergy() << endl;
+    // cout << stateI.getForces()[0] << endl;
     // cout << stateI.getForces()[1] << endl;
     float expectedEnergy = 0.188;
     Vec3 expectedForce1 = Vec3(0.4,0.3,0.24);
@@ -1198,24 +1198,24 @@ int main(int argc, char* argv[]) {
         registerMeldCudaKernelFactories();
         if (argc > 1)
             Platform::getPlatformByName("CUDA").setPropertyDefaultValue("CudaPrecision", string(argv[1]));
-        // testDistRest();
-        // testTorsRest();
-        // testDistProfileRest();
-        // testTorsProfileRest();
-        // testDistRestChangingParameters();
-        // testHyperbolicDistRest();
-        // testGMMRest1Pair1Component();
-        // testGMMRest1Pair1Component0Scale();
-        // testGMMRest1Pair2Component();
-        // testGMMRest2Pair2Component();
+        testDistRest();
+        testTorsRest();
+        testDistProfileRest();
+        testTorsProfileRest();
+        testDistRestChangingParameters();
+        testHyperbolicDistRest();
+        testGMMRest1Pair1Component();
+        testGMMRest1Pair1Component0Scale();
+        testGMMRest1Pair2Component();
+        testGMMRest2Pair2Component();
         // testGMMRest3Pair2Component();
         testGridPotentialRest();
-        // testGroupSelectsCorrectly();
-        // testCollectionSelectsCorrectly();
-        // testSingleGroup();
-        // testMultipleGroups();
-        // testBigSystem();
-        // testPBC();
+        testGroupSelectsCorrectly();
+        testCollectionSelectsCorrectly();
+        testSingleGroup();
+        testMultipleGroups();
+        testBigSystem();
+        testPBC();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

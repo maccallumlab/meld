@@ -695,6 +695,7 @@ class LinearBlurScaler(BlurScaler):
         alpha_max: float,
         min_blur: float,
         max_blur: float,
+        num_replicas: int,
     ):
         super().__init__()
         self._alpha_min = alpha_min
@@ -702,6 +703,7 @@ class LinearBlurScaler(BlurScaler):
         self._min_blur = min_blur
         self._max_blur = max_blur
         self._delta = alpha_max - alpha_min
+        self._num_replicas = num_replicas
         self._check_alpha_min_max()
 
     def __call__(self, alpha: float) -> float:
@@ -717,8 +719,9 @@ class ConstantBlurScaler(BlurScaler):
     """This scaler is "always on" and always returns a value of 1.0"."""
 
     _scaler_key_ = "constant_blur"
-    def __init__(self, blur: float) -> None:
+    def __init__(self, blur: float, num_replicas: int) -> None:
         self.blur = blur
+        self._num_replicas = num_replicas
 
     def __call__(self, alpha: float) -> float:
         self._check_alpha_range(alpha)

@@ -2,13 +2,14 @@ from meld.system import scalers
 from simtk import unit as u  # type: ignore
 import numpy as np  # type: ignore
 import copy
+import scipy.ndimage
 
 class DensityManager:
     def __init__(self):
         self.densities = []
 
 
-    def add_density(self, filename, blur_scaler: scalers.BlurScaler, scale_factor=None, threshold=None):
+    def add_density(self, filename, blur_scaler: scalers.BlurScaler, threshold=None, scale_factor=None):
         try:
             import mrcfile  # type: ignore
         except ImportError:
@@ -25,11 +26,7 @@ class DensityManager:
 
         density = DensityMap(density_data, origin, voxel_size, blur_scaler,scale_factor,threshold)
         self.densities.append(density)
-        return len(self.densities) - 1
-
-    def is_valid_id(self, map_id):
-        n = len(self.densities)
-        return 0 <= map_id < n
+        return density 
 
 
 class DensityMap:
@@ -48,13 +45,26 @@ class DensityMap:
         self.ny = density_data.shape[1]
         self.nz = density_data.shape[0]
         density_data_cp = copy.deepcopy(density_data)
-        density_data = self.scale_factor * ((density_data - self.threshold) / (density_data.max() - self.threshold))
-        tmp_index = np.where(density_data <= 0)
-        density_data_cp = self.scale_factor * (1 - (density_data_cp - self.threshold) / (density_data_cp.max() - self.threshold))
-        density_data_cp[tmp_index[0], tmp_index[1], tmp_index[2]] = self.scale_factor
-
-        self.density_data = density_data_cp
+        density_data = self.map_potential(density_data,threshold,scale_factor) 
+        self.blur_scaler = blur_scaler
+        if blur_scaler._scaler_key_ == "constant_blur":
+            self.density_data = np.array([np.matrix.flatten(density_data).tolist()]*blur_scaler._num_replicas).astype(np.float64)
+        elif blur_scaler._scaler_key_ == "linear_blur":
+            density_data = np.matrix.flatten(density_data)
+            for i in np.linspace(blur_scaler._min_blur,blur_scaler._max_blur,blur_scaler._num_replicas):
+                tmp_pot = scipy.ndimage.gaussian_filter(density_data_cp,i)
+                tmp_pot = np.matrix.flatten(self.map_potential(tmp_pot,threshold,scale_factor))
+                density_data = np.vstack((density_data,tmp_pot)).astype(np.float64)
+            self.density_data = density_data
 
         self.origin = np.array(origin.value_in_unit(u.nanometer))
         self.voxel_size = np.array(voxel_size.value_in_unit(u.nanometer))
-        self.blur_scaler = blur_scaler
+    
+    def map_potential(self, map, threshold, scale_factor):
+        map_cp = copy.deepcopy(map)
+        map = scale_factor * ((map - threshold) / (map.max() - threshold))
+        map_where = np.where(map <= 0)
+        map_cp = scale_factor * (1 - (map_cp - threshold) / (map_cp.max() - threshold))
+        map_cp[map_where[0], map_where[1], map_where[2]] = scale_factor
+        return map_cp
+
