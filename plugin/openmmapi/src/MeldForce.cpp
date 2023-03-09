@@ -721,10 +721,6 @@ void MeldForce::getGridPotentialRestraintParams(int index, std::vector<int>& ato
     gridpos_z = rest.gridpos_z;
     globalIndex = rest.globalIndex;
 }
-ForceImpl *MeldForce::createImpl() const
-{
-    return new MeldForceImpl(*this);
-}
 
 void MeldForce::getRDCRestraintParameters(int index, int& particle1, int& particle2, int& alignment,
                                           float& kappa, float& obs, float& tol, float& quad_cut, float& force_constant,

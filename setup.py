@@ -22,6 +22,7 @@ setup(
         "scripts/launch_remd",
         "scripts/process_fragments",
         "scripts/prepare_restart",
+        "scripts/density_rank"
     ],
     url="http://meldmd.org",
     license="LICENSE.txt",
