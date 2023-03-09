@@ -48,7 +48,9 @@ class DensityMap:
         density_data = self.map_potential(density_data,threshold,scale_factor) 
         self.blur_scaler = blur_scaler
         if blur_scaler._scaler_key_ == "constant_blur":
-            self.density_data = np.array([np.matrix.flatten(density_data).tolist()]*blur_scaler._num_replicas).astype(np.float64)
+            tmp_pot = scipy.ndimage.gaussian_filter(density_data_cp,blur_scaler.blur)
+            tmp_pot = np.matrix.flatten(self.map_potential(tmp_pot,threshold,scale_factor))
+            self.density_data = np.array([tmp_pot.tolist()]*blur_scaler._num_replicas).astype(np.float64)
         elif blur_scaler._scaler_key_ == "linear_blur":
             density_data = np.matrix.flatten(density_data)
             for i in np.linspace(blur_scaler._min_blur,blur_scaler._max_blur,blur_scaler._num_replicas):
