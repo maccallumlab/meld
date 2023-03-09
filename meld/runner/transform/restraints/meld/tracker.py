@@ -162,7 +162,6 @@ class RestraintTracker:
         state: interfaces.IState,
     ):
         assert isinstance(rest, restraints.DensityRestraint)
-        # TODO Finish me
         self.density_restraints.append(rest)
         index = len(self.density_restraints) - 1
         self.need_update.add(("density",index))

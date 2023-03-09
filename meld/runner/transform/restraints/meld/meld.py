@@ -485,7 +485,6 @@ def _setup_precisions(
 
 
 def _compute_density_potential(mu,alpha):
-    # TODO Implment this
     replica_num=int(alpha*(mu.shape[0]-1))
     potential=mu[replica_num].astype(np.float64)
     return potential

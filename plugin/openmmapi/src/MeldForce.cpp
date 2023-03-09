@@ -118,13 +118,6 @@ void MeldForce::updateMeldParticleSet() {
     if(isDirty) {
         meldParticleSet.clear();
 
-        // for(const auto& r : gridPotentialRestraints) {
-        //     // meldParticleSet.insert(r.particle);
-        //     for (int i = 0; i < r.particle.size();i++){
-        //         meldParticleSet.insert(r.particle[i]);
-        //     }
-        // }
-
         for(const auto& r : distanceRestraints) {
             meldParticleSet.insert(r.particle1);
             meldParticleSet.insert(r.particle2);
@@ -537,7 +530,6 @@ void MeldForce::addGridPotential(
     int ny,
     int nz,
     int density_index) {
-    // TODO Implement
     gridPotentials.push_back(GridPotentialInfo(potential,originx,originy,originz,gridx,gridy,gridz,nx,ny,nz,density_index));
 }
 
@@ -554,35 +546,17 @@ void MeldForce::modifyGridPotential(
     int nx,
     int ny,
     int nz) {
-    //TODO implement
     int oldIndices = gridPotentials[index].density_index;
-
     gridPotentials.at(index) = GridPotentialInfo(potential,originx,originy,originz,gridx,gridy,gridz,nx,ny,nz,oldIndices);
 
 }
 
-// int MeldForce::addGridPotentialRestraint(
-//     int particle,
-//     int potentialGridIndex,
-//     float strength) {
-//     meldParticleSet.insert(particle);
-//     gridPotentialRestraints.push_back(
-//             GridPotentialRestraintInfo(particle, potentialGridIndex, strength, n_restraints));
-//     n_restraints++;
-//     return n_restraints - 1;
-// }
-
-// // TODO Implement modifyGridPotentialRestraint
-// void MeldForce::modifyGridPotentialRestraint(int index, int particle, int potentialGridIndex, float strength) {
-//     int oldIndex = gridPotentialRestraints[index].global_index;
-//     gridPotentialRestraints.at(index) = GridPotentialRestraintInfo(particle, potentialGridIndex, strength, oldIndex);
-// }
 int MeldForce::addGridPotentialRestraint(std::vector<int> particle, std::vector<double> mu,
         std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z) {
     for (int i = 0; i < particle.size();i++){
         meldParticleSet.insert(particle[i]);
     }
-    // meldParticleSet.insert(particle);
+    
     gridPotentialRestraints.push_back(
         GridPotentialRestraintInfo(particle, mu, gridpos_x, gridpos_y, gridpos_z, n_restraints));
     n_restraints++;
@@ -593,7 +567,6 @@ void MeldForce::modifyGridPotentialRestraint(int index, std::vector<int> particl
         std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z) {
     int oldGlobal = gridPotentialRestraints[index].globalIndex; 
     gridPotentialRestraints.at(index) = GridPotentialRestraintInfo(particle, mu, gridpos_x, gridpos_y, gridpos_z,oldGlobal);
-
 }
 
 ForceImpl* MeldForce::createImpl() const {
@@ -615,14 +588,6 @@ void MeldForce::getGridPotentialParams(int index, std::vector<double>& potential
     nz = density.nz;
 }
 
-// void MeldForce::getGridPotentialRestraintParams(int index, int& particle, int& potentialGridIndex, 
-//             float& strength, int& globalIndex) const {
-//     const GridPotentialRestraintInfo& rest=gridPotentialRestraints[index];
-//     particle = rest.particle;
-//     potentialGridIndex = rest.potentialGridIndex;
-//     strength = rest.strength;
-//     globalIndex = rest.global_index;
-// }
 void MeldForce::getGridPotentialRestraintParams(int index, std::vector<int>& atom, 
                             std::vector<double>& mu, 
                             std::vector<double>& gridpos_x,
