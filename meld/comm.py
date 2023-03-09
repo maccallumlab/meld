@@ -305,6 +305,22 @@ class MPICommunicator(interfaces.ICommunicator):
         ):
             hostname = platform.node()
             try:
+                slurm_gpus_per_node = os.environ["SLURM_GPUS_PER_NODE"]
+                logger.info("%s: SLURM_GPUS_PER_NODE is set - %s", hostname, slurm_gpus_per_node)
+                gpus_per_node = True
+            except KeyError:
+                logger.info("%s: SLURM_GPUS_PER_NODE is not set", hostname)
+                gpus_per_node = False
+
+            try:
+                slurm_gpus_per_task = os.environ["SLURM_GPUS_PER_TASK"]
+                logger.info("%s: SLURM_GPUS_PER_TASK is set - %s", hostname, slurm_gpus_per_task)
+                gpus_per_task = True
+            except KeyError:
+                logger.info("%s: SLURM_GPUS_PER_TASK is not set", hostname)
+                gpus_per_task = False
+
+            try:
                 env_visible_devices = os.environ["CUDA_VISIBLE_DEVICES"]
                 logger.info("%s found cuda devices: %s", hostname, env_visible_devices)
                 visible_devices: Optional[List[int]] = [
@@ -312,15 +328,34 @@ class MPICommunicator(interfaces.ICommunicator):
                 ]
                 if not visible_devices:
                     raise RuntimeError("No cuda devices available")
+                #else:
+                #    #
+                #    # The simple case of a single device per task and CUDA_VISIBLE_DEVICES set on a 
+                #    # per task (rather than per node) basis).  No need for scatter/gather semantics.
+                #    #
+                #    if gpus_per_task:
+                #        if int(slurm_gpus_per_task) == 1:
+                #            logger.info("negotiate_device_id: visible_devices contains a single device: %d", visible_devices[0])
+                #            device_id = 0
+                #            logger.info("hostname: %s, device_id: %d", hostname, device_id)
+                #            return device_id
             except KeyError:
                 logger.info("%s CUDA_VISIBLE_DEVICES is not set.", hostname)
                 visible_devices = None
 
-            hosts = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
+            ranks = self._mpi_comm.gather(HostInfo(hostname, visible_devices), root=0)
+
+            #if self._my_rank == 0:
+            #    for n in range(len(ranks)):
+            #        print(ranks[n].host_name, ranks[n].devices)
+            #    print("--------------------------------------------")
+            #    for rank in ranks:
+            #        print("rank = ", rank)
+            #    print("--------------------------------------------")
 
             # the leader computes the device ids
             if self._my_rank == 0:
-                if hosts[0].devices is None:
+                if ranks[0].devices is None:
                     # if CUDA_VISIBLE_DEVICES isn't set on the leader, we assume it
                     # isn't set for any node
                     logger.info("CUDA_VISIBLE_DEVICES is not set.")
@@ -335,39 +370,46 @@ class MPICommunicator(interfaces.ICommunicator):
                     # this assumes that available devices for each node
                     # are numbered starting from 0
                     device_ids = []
-                    for host in hosts:
-                        assert host.devices is None
-                        device_ids.append(host_counts[host.host_name])
-                        host_counts[host.host_name] += 1
+                    for rank in ranks:
+                        assert rank.devices is None
+                        device_ids.append(host_counts[rank.host_name])
+                        host_counts[rank.host_name] += 1
                 else:
                     # CUDA_VISIBLE_DEVICES is set on the leader, so we
-                    # assume it is set for all nodes
+                    # assume it is set for all nodes AND that it will be
+                    # the same for all ranks on a given node.
                     logger.info("CUDA_VISIBLE_DEVICES is set.")
 
-                    # create a dict to hold the device ids available on each host
+                    # Create two dicts:
+                    #   available_devices - holds the device ids available on each host.  This
+                    #                       is for for sanity checking.
+                    #   scatter_devices   - holds the device ids to be scattered.  
                     available_devices: Dict[str, List[int]] = {}
-                    # store the available devices on each node
-                    for host in hosts:
-                        if host.host_name in available_devices:
-                            if host.devices != available_devices[host.host_name]:
-                                raise RuntimeError("GPU devices for host do not match")
+                    scatter_devices:   Dict[str, List[int]] = {}
+
+                    # store the available devices on each node and build the list of device ids per
+                    # node to be scattered.
+                    for rank in ranks:
+                        if rank.host_name in available_devices:
+                            if rank.devices != available_devices[rank.host_name]:
+                                if gpus_per_task:
+                                    # Each MPI rank will have its own, potentially different, device 
+                                    # number so we just replace it here with a 0 (assuming --gpus-per-task=1 but
+                                    # but this should work even if there were multiple gpus per task).
+                                    scatter_devices[rank.host_name] += list(range(len(rank.devices)))
+                                else:
+                                    raise RuntimeError("GPU devices for host do not match")
                         else:
-                            available_devices[host.host_name] = host.devices
+                            available_devices[rank.host_name] = rank.devices
+                            scatter_devices[rank.host_name] = list(range(len(rank.devices)))
 
-                    # CUDA numbers the devices contiguously, starting from zero.
-                    # For example, if `CUDA_VISIBLE_DEVICES=2,4,5`, we would
-                    # access these as ids 0, 1, 2.
-                    available_devices = {
-                        host_name: list(range(len(devices)))
-                        for host_name, devices in available_devices.items()
-                    }
-
-                    # device ids for each node
+                    # Here we break the scatter_devices dict down into a list of devices (
+                    # one per MPI rank) to be distributed (one device per rank) via mpi_scatter().
                     device_ids = []
-                    for host in hosts:
+                    for rank in ranks:
                         try:
                             # pop off the first device_id for this host name
-                            device_ids.append(available_devices[host.host_name].pop(0))
+                            device_ids.append(scatter_devices[rank.host_name].pop(0))
                         except IndexError:
                             logger.error("More mpi processes than GPUs")
                             raise RuntimeError("More mpi process than GPUs")
