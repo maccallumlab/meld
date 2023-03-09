@@ -21,11 +21,14 @@ from meld.runner import transform
 from meldplugin import MeldForce  # type: ignore
 from meld.runner.transform.restraints.meld.tracker import RestraintTracker
 
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 import numpy as np  # type: ignore
 from typing import List, Tuple, Union
+
+
+FORCE_GROUP = 1
 
 
 class MeldRestraintTransformer(transform.TransformerBase):
@@ -40,6 +43,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -47,6 +51,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self.param_manager = param_manager
         self.mapper = mapper
         self.density_manager = density_manager
+        self.builder_info = builder_info
 
         # Track indices of restraints, groups, and collections so that we can
         # update them.
@@ -73,7 +78,9 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self, state: interfaces.IState, system: mm.System, topology: app.Topology
     ) -> mm.System:
         if self.active:
-            meld_force = MeldForce()
+            n_alignments = self.builder_info.get("num_alignments", 0)
+            rdc_scale_factor = self.builder_info.get("alignment_scale_factor", 1e-4)
+            meld_force = MeldForce(n_alignments, rdc_scale_factor)
 
             # If we have any density maps, add them now
             for index,density in enumerate(self.density_manager.densities):
@@ -143,7 +150,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 # so that it can be updated.
                 if isinstance(coll.num_active, param_sampling.Parameter):
                     self.tracker.collections_with_dep.append((coll, coll_index))
-
+            meld_force.setForceGroup(FORCE_GROUP)
             system.addForce(meld_force)
             self.force = meld_force
         return system
@@ -199,7 +206,24 @@ class MeldRestraintTransformer(transform.TransformerBase):
         to_update = self.tracker.get_and_reset_need_update()
 
         for category, index in to_update:
-            if category == "distance":
+            if category == "rdc":
+                rdc_rest = self.tracker.rdc_restraints[index]
+                scale = rdc_rest.scaler(alpha) * rdc_rest.ramp(timestep)
+                j, k = self._handle_mapping(
+                    [rdc_rest.atom_index_1, rdc_rest.atom_index_2], state
+                )
+                self.force.modifyRDCRestraint(
+                    index,
+                    j,
+                    k,
+                    rdc_rest.alignment_index,
+                    rdc_rest.kappa,
+                    rdc_rest.d_obs,
+                    rdc_rest.tolerance,
+                    rdc_rest.quadratic_cut,
+                    rdc_rest.force_const * scale,
+                )
+            elif category == "distance":
                 dist_rest = self.tracker.distance_restraints[index]
                 scale = dist_rest.scaler(alpha) * dist_rest.ramp(timestep)
                 j, k = self._handle_mapping(
@@ -328,8 +352,6 @@ class MeldRestraintTransformer(transform.TransformerBase):
         for value in values:
             if isinstance(value, mapping.PeakMapping):
                 index = self.mapper.extract_value(value, state.mappings)
-                if isinstance(index, mapping.NotMapped):
-                    index = -1
             else:
                 index = value
             indices.append(index)
@@ -350,7 +372,22 @@ class MeldRestraintTransformer(transform.TransformerBase):
         state: interfaces.IState,
     ) -> int:
         scale = rest.scaler(alpha) * rest.ramp(timestep)
-        if isinstance(rest, restraints.DistanceRestraint):
+
+        if isinstance(rest, restraints.RdcRestraint):
+            i, j = self._handle_mapping([rest.atom_index_1, rest.atom_index_2], state)
+            rest_index = meld_force.addRDCRestraint(
+                i,
+                j,
+                rest.alignment_index,
+                rest.kappa,
+                rest.d_obs,
+                rest.tolerance,
+                rest.quadratic_cut,
+                rest.force_const * scale,
+            )
+            self.tracker.add_rdc_restraint(rest, alpha, timestep, state)
+
+        elif isinstance(rest, restraints.DistanceRestraint):
             i, j = self._handle_mapping([rest.atom_index_1, rest.atom_index_2], state)
             rest_index = meld_force.addDistanceRestraint(
                 i,

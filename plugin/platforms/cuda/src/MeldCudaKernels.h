@@ -43,8 +43,13 @@ public:
 
     void copyParametersToContext(OpenMM::ContextImpl& context, const MeldForce& force);
 
+    void updateRDCGlobalParameters(OpenMM::ContextImpl& context);
+
 private:
     class ForceInfo;
+    float rdcScaleFactor;
+    int numRDCAlignments;
+    int numRDCRestraints;
     int numDistRestraints;
     int numHyperbolicDistRestraints;
     int numTorsionRestraints;
@@ -67,6 +72,7 @@ private:
     int groupsPerBlock;
     OpenMM::CudaContext& cu;
     const OpenMM::System& system;
+    CUfunction computeRDCRestKernel;
     CUfunction computeDistRestKernel;
     CUfunction computeHyperbolicDistRestKernel;
     CUfunction computeTorsionRestKernel;
@@ -77,6 +83,7 @@ private:
     CUfunction evaluateAndActivateKernel;
     CUfunction evaluateAndActivateCollectionsKernel;
     CUfunction applyGroupsKernel;
+    CUfunction applyRDCRestKernel;
     CUfunction applyDistRestKernel;
     CUfunction applyHyperbolicDistRestKernel;
     CUfunction applyTorsionRestKernel;
@@ -84,6 +91,26 @@ private:
     CUfunction applyTorsProfileRestKernel;
     CUfunction applyGMMRestKernel;
     CUfunction applyGridPotentialRestKernel;
+
+    /**
+     * Arrays for RDC restraints.
+     */
+    OpenMM::CudaArray* rdcRestAlignments;
+    std::vector<int> h_rdcRestAlignments;
+    OpenMM::CudaArray* rdcRestParams1;
+    std::vector<float2> h_rdcRestParams1;
+    OpenMM::CudaArray* rdcRestParams2;
+    std::vector<float3> h_rdcRestParams2;
+    OpenMM::CudaArray* rdcRestAtomIndices;
+    std::vector<int2> h_rdcRestAtomIndices;
+    OpenMM::CudaArray* rdcRestGlobalIndices;
+    std::vector<int> h_rdcRestGlobalIndices;
+    OpenMM::CudaArray* rdcRestAlignmentComponents;
+    std::vector<float> h_rdcRestAlignmentComponents;
+    OpenMM::CudaArray* rdcRestForces;
+    OpenMM::CudaArray* rdcRestDerivs;
+    std::vector<int> h_rdcRestDerivIndices;
+    OpenMM::CudaArray* rdcRestDerivIndices;
 
     /**
      * Arrays for distance restraints
@@ -322,6 +349,8 @@ private:
     OpenMM::CudaArray* collectionEnergies;
 
     void allocateMemory(const MeldForce& force);
+    void setupRDCRestraints(const MeldForce& force);
+    void setupRDCDerivIndices();
     void setupDistanceRestraints(const MeldForce& force);
     void setupHyperbolicDistanceRestraints(const MeldForce& force);
     void setupTorsionRestraints(const MeldForce& force);

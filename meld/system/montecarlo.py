@@ -38,7 +38,7 @@ class MonteCarloScheduler:
             movers_with_weights: a list of tuples of moves and weights
             update_trials: number of trials to perform
 
-        .. note::
+        Note:
            Weights do not need to be normalized.
         """
         self.update_trials = update_trials

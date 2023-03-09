@@ -2,6 +2,7 @@
 #include "openmm/reference/RealVec.h"
 #include "MeldVecTypes.h"
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <iostream>
 #include <limits>
@@ -20,6 +21,180 @@ Vec3 Float3ToVec3(float3 v)
         get<0>(v),
         get<1>(v),
         get<2>(v));
+}
+
+void computeRDCRest(
+    vector<RealVec>& pos,
+    vector<int2>& atomIndices,
+    vector<float2>& params1,
+    vector<float3>& params2,
+    float scaleFactor,
+    vector<int>& alignments,
+    vector<float>& tensorComponents,
+    vector<int>& globalIndices,
+    vector<float>& energies,
+    vector<float3>& forceBuffer,
+    vector<float>& derivBuffer,
+    int numRestraints)
+{
+    for (int index = 0; index < numRestraints; index++)
+    {
+        // Unpack parameters
+        int globalIndex = globalIndices[index];
+        int atom1 = get<0>(atomIndices[index]);
+        int atom2 = get<1>(atomIndices[index]);
+        float kappa = get<0>(params1[index]);
+        float obs = get<1>(params1[index]);
+        float tol = get<0>(params2[index]);
+        float quadCut = get<1>(params2[index]);
+        float forceConstant = get<2>(params2[index]);
+
+        // Unpack the alignment tensor components for this restraint
+        int alignment = alignments[index];
+        float s1 = tensorComponents[alignment * 5 + 0];
+        float s2 = tensorComponents[alignment * 5 + 1];
+        float s3 = tensorComponents[alignment * 5 + 2];
+        float s4 = tensorComponents[alignment * 5 + 3];
+        float s5 = tensorComponents[alignment * 5 + 4];
+
+        if (atom1 == -1)
+        {
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to the maximum float value,
+            // so that this restraint will not be selected during
+            // sorting when the groups are evaluated. Later,
+            // when we apply restraints, this restraint will be
+            // applied with an energy of zero should it be selected.
+            forceBuffer[index] = float3(0, 0, 0);
+            energies[globalIndex] = std::numeric_limits<float>::max();
+            derivBuffer[5 * index + 0] = 0;
+            derivBuffer[5 * index + 1] = 0;
+            derivBuffer[5 * index + 2] = 0;
+            derivBuffer[5 * index + 3] = 0;
+            derivBuffer[5 * index + 4] = 0;
+        }
+        else
+        {
+            RealVec delta = pos[atom1] - pos[atom2];
+            float x = delta[0];
+            float y = delta[1];
+            float z = delta[2];
+            float x2 = x * x;
+            float y2 = y * y;
+            float z2 = z * z;
+            float r2 = x2 + y2 + z2;
+            float r = SQRT(r2);
+            float r5 = r2 * r2 * r;
+            float r7 = r5 * r2;
+
+            float pre = kappa / r5;
+            float c1 = scaleFactor * (x2 - y2);
+            float c2 = scaleFactor * (2 * z2 - x2 - y2);
+            float c3 = scaleFactor * (x * y);
+            float c4 = scaleFactor * (x * z);
+            float c5 = scaleFactor * (y * z);
+
+            float calc = pre * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5);
+            float dcalc_ds1 = pre * c1;
+            float dcalc_ds2 = pre * c2;
+            float dcalc_ds3 = pre * c3;
+            float dcalc_ds4 = pre * c4;
+            float dcalc_ds5 = pre * c5;
+            float dcalc_dx = -kappa * x / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 2 * scaleFactor * s1 * x -
+                                 2 * scaleFactor * s2 * x +
+                                 scaleFactor * s3 * y +
+                                 scaleFactor * s4 * z
+                             );
+            float dcalc_dy = -kappa * y / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 -2 * scaleFactor * s1 * y -
+                                 2 * scaleFactor * s2 * y +
+                                 scaleFactor * s3 * x +
+                                 scaleFactor * s5 * z
+                             );
+            float dcalc_dz = -kappa * z / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 2 * scaleFactor * s2 * z +
+                                 scaleFactor * s4 * x +
+                                 scaleFactor * s5 * y
+                             );
+
+            float energy, dx, dy, dz, ds1, ds2, ds3, ds4, ds5;
+            if (calc < obs - tol - quadCut)
+            {
+                energy = -forceConstant * quadCut * (calc - obs + tol + quadCut) +
+                         0.5 * forceConstant * quadCut * quadCut;
+                dx = -forceConstant * quadCut * dcalc_dx;
+                dy = -forceConstant * quadCut * dcalc_dy;
+                dz = -forceConstant * quadCut * dcalc_dz;
+                ds1 = -forceConstant * quadCut * dcalc_ds1;
+                ds2 = -forceConstant * quadCut * dcalc_ds2;
+                ds3 = -forceConstant * quadCut * dcalc_ds3;
+                ds4 = -forceConstant * quadCut * dcalc_ds4;
+                ds5 = -forceConstant * quadCut * dcalc_ds5;
+            }
+            else if (calc < obs - tol)
+            {
+                energy = 0.5 * forceConstant * (calc - obs + tol) * (calc - obs + tol);
+                dx = forceConstant * (calc - obs + tol) * dcalc_dx;
+                dy = forceConstant * (calc - obs + tol) * dcalc_dy;
+                dz = forceConstant * (calc - obs + tol) * dcalc_dz;
+                ds1 = forceConstant * (calc - obs + tol) * dcalc_ds1;
+                ds2 = forceConstant * (calc - obs + tol) * dcalc_ds2;
+                ds3 = forceConstant * (calc - obs + tol) * dcalc_ds3;
+                ds4 = forceConstant * (calc - obs + tol) * dcalc_ds4;
+                ds5 = forceConstant * (calc - obs + tol) * dcalc_ds5;
+            }
+            else if (calc < obs + tol)
+            {
+                energy = 0;
+                dx = 0;
+                dy = 0;
+                dz = 0;
+                ds1 = 0;
+                ds2 = 0;
+                ds3 = 0;
+                ds4 = 0;
+                ds5 = 0;
+            }
+            else if (calc < obs + tol + quadCut)
+            {
+                energy = 0.5 * forceConstant * (calc - obs - tol) * (calc - obs - tol);
+                dx = forceConstant * (calc - obs - tol) * dcalc_dx;
+                dy = forceConstant * (calc - obs - tol) * dcalc_dy;
+                dz = forceConstant * (calc - obs - tol) * dcalc_dz;
+                ds1 = forceConstant * (calc - obs - tol) * dcalc_ds1;
+                ds2 = forceConstant * (calc - obs - tol) * dcalc_ds2;
+                ds3 = forceConstant * (calc - obs - tol) * dcalc_ds3;
+                ds4 = forceConstant * (calc - obs - tol) * dcalc_ds4;
+                ds5 = forceConstant * (calc - obs - tol) * dcalc_ds5;
+            }
+            else
+            {
+                energy = forceConstant * quadCut * (calc - obs - tol - quadCut) +
+                         0.5 * forceConstant * quadCut * quadCut;
+                dx = forceConstant * quadCut * dcalc_dx;
+                dy = forceConstant * quadCut * dcalc_dy;
+                dz = forceConstant * quadCut * dcalc_dz;
+                ds1 = forceConstant * quadCut * dcalc_ds1;
+                ds2 = forceConstant * quadCut * dcalc_ds2;
+                ds3 = forceConstant * quadCut * dcalc_ds3;
+                ds4 = forceConstant * quadCut * dcalc_ds4;
+                ds5 = forceConstant * quadCut * dcalc_ds5;
+            }
+
+            forceBuffer[index] = float3(dx, dy, dz);
+            energies[globalIndex] = energy;
+            derivBuffer[5 * index + 0] = ds1;
+            derivBuffer[5 * index + 1] = ds2;
+            derivBuffer[5 * index + 2] = ds3;
+            derivBuffer[5 * index + 3] = ds4;
+            derivBuffer[5 * index + 4] = ds5;
+        }
+    }
 }
 
 void computeDistRest(
@@ -491,6 +666,59 @@ void applyGroups(
             restraintActive[j] = restraintActive[j] && active;
         }
     }
+}
+
+float applyRDCRest(
+    vector<RealVec>& force,
+    vector<int2>& rdcRestAtomIndices,
+    vector<int>& rdcAlignments,
+    vector<int>& rdcRestGlobalIndices,
+    vector<float3>& rdcRestForces,
+    vector<float>& rdcRestDerivs,
+    vector<float>& restraintEnergies,
+    vector<bool>& restraintActive,
+    std::map<std::string, double>& derivMap,
+    int numRDCRestraints)
+{
+    float totalEnergy = 0.0;
+    for (int i = 0; i < numRDCRestraints; i++)
+    {
+        int index = rdcRestGlobalIndices[i];
+        if (restraintActive[index])
+        {
+            if (get<0>(rdcRestAtomIndices[i]) == -1)
+            {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            }
+            else
+            {
+                totalEnergy += restraintEnergies[index];
+
+                float fx = get<0>(rdcRestForces[i]);
+                float fy = get<1>(rdcRestForces[i]);
+                float fz = get<2>(rdcRestForces[i]);
+                float ds1 = rdcRestDerivs[5 * i + 0];
+                float ds2 = rdcRestDerivs[5 * i + 1];
+                float ds3 = rdcRestDerivs[5 * i + 2];
+                float ds4 = rdcRestDerivs[5 * i + 3];
+                float ds5 = rdcRestDerivs[5 * i + 4];
+                int atom1 = get<0>(rdcRestAtomIndices[i]);
+                int atom2 = get<1>(rdcRestAtomIndices[i]);
+
+                force[atom1] += Vec3(-fx, -fy, -fz);
+                force[atom2] += Vec3(fx, fy, fz);
+
+                std::string base = "rdc_" + std::to_string(rdcAlignments[i]);
+                derivMap[base + "_s1"] += ds1;
+                derivMap[base + "_s2"] += ds2;
+                derivMap[base + "_s3"] += ds3;
+                derivMap[base + "_s4"] += ds4;
+                derivMap[base + "_s5"] += ds5;
+            }
+        }
+    }
+    return totalEnergy;
 }
 
 float applyDistRest(

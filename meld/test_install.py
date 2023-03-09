@@ -5,7 +5,7 @@ Test MELD installation
 import meld  # type: ignore
 import meldplugin  # type: ignore
 import openmm as mm  # type: ignore
-import openmm.unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 
 import numpy as np  # type: ignore
 import random  # type: ignore
@@ -13,7 +13,7 @@ import sys  # type: ignore
 
 
 def _create_test_system_and_coords():
-    force = meldplugin.MeldForce()
+    force = meldplugin.MeldForce(0, 1.0)
 
     n_particles = random.randint(4, 256)
     indices = list(range(0, n_particles))

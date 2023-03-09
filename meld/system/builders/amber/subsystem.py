@@ -4,20 +4,19 @@
 #
 
 """
-Module to build SubSystems from sequence or PDB file
+Module to build AmberSubSystems from sequence or PDB file
 """
 
-from meld.system import indexing
-import parmed  # type: ignore
-
-import numpy as np  # type: ignore
-import math
 from collections import defaultdict
+import math
 from abc import ABC, abstractmethod
-from typing import NamedTuple, List
+from typing import List
+import numpy as np  # type: ignore
+from meld.system import indexing
+from openmm import app  # type: ignore
 
 
-class _SubSystem(ABC):
+class _AmberSubSystem(ABC):
     """
     Base class for other SubSystem classes.
 
@@ -67,7 +66,7 @@ class _SubSystem(ABC):
         Args:
             translation_vector: in nanometers
 
-        .. note::
+        Note:
            Translation happens after rotation.
         """
         self._translation_vector = np.array(translation_vector)
@@ -80,7 +79,7 @@ class _SubSystem(ABC):
             rotation_axis: in nanometers
             theta: angle of rotation in degrees
 
-        .. note::
+        Note:
            Rotation happens after translation.
         """
         theta = theta * 180 / math.pi
@@ -131,7 +130,9 @@ class _SubSystem(ABC):
             (int(res_index_i), int(res_index_j), atom_name_i, atom_name_j, bond_type)
         )
 
-    def add_disulfide(self, res_index_i, res_index_j):
+    def add_disulfide(
+        self, res_index_i: indexing.ResidueIndex, res_index_j: indexing.ResidueIndex
+    ):
         """
         Add a disulfide bond.
 
@@ -179,7 +180,7 @@ class _SubSystem(ABC):
         """
         self._lib_files.append(fname)
 
-    def _gen_translation_string(self, mol_id):
+    def _gen_translation_string(self, mol_id: str) -> str:
         return """translate {mol_id} {{ {x} {y} {z} }}""".format(
             mol_id=mol_id,
             x=self._translation_vector[0],
@@ -187,43 +188,43 @@ class _SubSystem(ABC):
             z=self._translation_vector[2],
         )
 
-    def _gen_rotation_string(self, mol_id):
+    def _gen_rotation_string(self, mol_id: str) -> str:
         return ""
 
-    def _gen_bond_string(self, mol_id):
+    def _gen_bond_string(self, mol_id: str) -> List[str]:
         bond_strings = []
         for i, j, a, b, t in self._general_bond:
             d = f'bond {mol_id}.{i+1}.{a} {mol_id}.{j+1}.{b} "{t}"'
             bond_strings.append(d)
         return bond_strings
 
-    def _gen_disulfide_string(self, mol_id):
+    def _gen_disulfide_string(self, mol_id: str) -> List[str]:
         disulfide_strings = []
         for i, j in self._disulfide_list:
             d = f"bond {mol_id}.{i+1}.SG {mol_id}.{j+1}.SG"
             disulfide_strings.append(d)
         return disulfide_strings
 
-    def _gen_read_prep_string(self):
+    def _gen_read_prep_string(self) -> List[str]:
         prep_string = []
         for p in self._prep_files:
             prep_string.append(f"loadAmberPrep {p}")
         return prep_string
 
-    def _gen_read_frcmod_string(self):
+    def _gen_read_frcmod_string(self) -> List[str]:
         frcmod_string = []
         for p in self._frcmod_files:
             frcmod_string.append(f"loadAmberParams {p}")
         return frcmod_string
 
-    def _gen_read_lib_string(self):
+    def _gen_read_lib_string(self) -> List[str]:
         lib_string = []
         for p in self._lib_files:
             lib_string.append(f"loadoff {p}")
         return lib_string
 
 
-class SubSystemFromSequence(_SubSystem):
+class AmberSubSystemFromSequence(_AmberSubSystem):
     """
     Class to create a sub-system from sequence.
 
@@ -238,22 +239,22 @@ class SubSystemFromSequence(_SubSystem):
 
     def __init__(self, sequence: str):
         """
-        Initialize a SubSystemFromSequence
+        Initialize an AmberSubSystemFromSequence
 
         Args:
             sequence: the sequence to build
         """
-        super(SubSystemFromSequence, self).__init__()
+        super(AmberSubSystemFromSequence, self).__init__()
         self._sequence = sequence
         sequence_len = len(sequence.split(" "))
         chain_info = indexing._ChainInfo({i: i for i in range(sequence_len)})
         self._info = indexing._SubSystemInfo(sequence_len, [chain_info])
 
-    def prepare_for_tleap(self, mol_id):
+    def prepare_for_tleap(self, mol_id: str):
         # we don't need to do anything
         pass
 
-    def generate_tleap_input(self, mol_id):
+    def generate_tleap_input(self, mol_id: str):
         leap_cmds = []
         leap_cmds.append("source leaprc.gaff")
         leap_cmds.extend(self._gen_read_frcmod_string())
@@ -267,15 +268,13 @@ class SubSystemFromSequence(_SubSystem):
         return leap_cmds
 
 
-class SubSystemFromPdbFile(_SubSystem):
+class AmberSubSystemFromPdbFile(_AmberSubSystem):
     """
     Create a new susbsystem from a pdb file.
 
     This class is dumb and relies on AmberTools for the heavy lifting.
 
-    :param pdb_path: string path to the pdb file
-
-    .. note::
+    Note:
         no processing happens to this pdb file. It must be understandable by
         tleap and atoms/residues may need to be added/deleted/renamed. These
         manipulations should happen to the file before MELD is invoked.
@@ -289,26 +288,30 @@ class SubSystemFromPdbFile(_SubSystem):
         Args:
             pdb_path: path to pdb file
         """
-        super(SubSystemFromPdbFile, self).__init__()
+        super(AmberSubSystemFromPdbFile, self).__init__()
+
         with open(pdb_path) as pdb_file:
             self._pdb_contents = pdb_file.read()
 
-        # figure out chains
-        pdb = parmed.load_file(pdb_path)
-        n_residues = len(pdb.residues)
+        pdb = app.PDBFile(pdb_path)
+        topology = pdb.getTopology()
+        residues = list(topology.residues())
+        n_residues = len(residues)
 
         # get list of chainids
         chainids = []
         chain_to_res = defaultdict(list)
-        for i, residue in enumerate(pdb.residues):
-            chainids.append(residue.chain)
-            chain_to_res[residue.chain].append(i)
+        for residue in residues:
+            chainids.append(residue.chain.id)
+            chain_to_res[residue.chain.id].append(residue.index)
         chainid_set = set(chainids)
 
         # loop over the chainids in alphabetical order
         chains = []
         for chainid in sorted(chainid_set):
-            chain = indexing._ChainInfo({i: j for i, j in enumerate(chain_to_res[chainid])})
+            chain = indexing._ChainInfo(
+                {i: j for i, j in enumerate(chain_to_res[chainid])}
+            )
             chains.append(chain)
         self._info = indexing._SubSystemInfo(n_residues, chains)
 

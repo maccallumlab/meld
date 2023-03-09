@@ -7,25 +7,9 @@
 Module to handle MPI communication
 """
 
-try:
-    from mpi4py import MPI  # type: ignore
-except ImportError:
-    print()
-    print("****")
-    print("Error importing mpi4py.")
-    print()
-    print("Meld depends on mpi4py, but does not automatically install it")
-    print(
-        "as a dependency. See https://github.com/maccallumlab/meld/blob/master/README.md"
-    )
-    print("for details.")
-    print("****")
-    print()
-    raise
 
 from meld import interfaces
 from meld import util
-
 import signal
 import threading
 import time
@@ -36,7 +20,7 @@ from collections import defaultdict, namedtuple
 import contextlib
 import logging
 import sys
-from typing import Dict, List, Any, Optional, NamedTuple, Sequence
+from typing import Dict, List, Any, Optional, NamedTuple, Sequence, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +47,7 @@ class MPICommunicator(interfaces.ICommunicator):
     """
     Class to handle communications between leader and workers using MPI.
 
-    .. note::
+    Note:
         creating an MPI communicator will not actually initialize MPI.
         To do that, call :meth:`initialize`.
     """
@@ -79,8 +63,8 @@ class MPICommunicator(interfaces.ICommunicator):
             n_replicas: number of replicas
             timeout: maximum time to wait before aborting
         """
-        # We're not using n_atoms and n_replicas, but if we switch
-        # to more efficient buffer-based MPI routines, we'll need them.
+        # We're not using n_atoms, but if we switch # to more efficient buffer-based
+        # MPI routines, we'll need it.
         self._n_atoms = n_atoms
         self._n_replicas = n_replicas
         self._timeout = timeout
@@ -100,6 +84,7 @@ class MPICommunicator(interfaces.ICommunicator):
         """
         self._mpi_comm = _get_mpi_comm_world()
         self._my_rank = self._mpi_comm.Get_rank()
+        self._n_workers = self._mpi_comm.Get_size()
 
     def is_leader(self) -> bool:
         """
@@ -124,64 +109,66 @@ class MPICommunicator(interfaces.ICommunicator):
             self._mpi_comm.barrier()
 
     @util.log_timing(logger)
-    def broadcast_alphas_to_workers(self, alphas: List[float]) -> None:
+    def distribute_alphas_to_workers(self, all_alphas: List[float]) -> List[float]:
         """
-        Send the alpha values to the workers.
+        Distribute alphas to workers
 
         Args:
-            alphas: a list of alpha values, one for each replica.
+            all_alphas: the alpha values to be distributed
 
-        .. note::
-           The leader's alpha value should be included in :code:`alphas`.
-           The leader's node will always be at :code:`alpha=0.0`.
+        Returns:
+            the block of alpha values for the leader
         """
+        alpha_blocks = self._to_blocks(all_alphas)
         with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("broadcast_alphas_to_workers")),
         ):
-            self._mpi_comm.scatter(alphas, root=0)
+            return self._mpi_comm.scatter(alpha_blocks, root=0)
 
     @util.log_timing(logger)
-    def receive_alpha_from_leader(self) -> float:
+    def receive_alphas_from_leader(self) -> List[float]:
         """
-        Receive alpha value from leader node.
+        Receive a block of alphas from leader.
 
         Returns:
-            value for alpha in ``[0,1]``
+            the block of alpha values for this worker
         """
         with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("receive_alpha_from_leader")),
+            RuntimeError(self._timeout_message.format("receive_alphas_from_leader")),
         ):
             return self._mpi_comm.scatter(None, root=0)
 
     @util.log_timing(logger)
-    def broadcast_states_to_workers(self, states: Sequence[interfaces.IState]) -> interfaces.IState:
+    def distribute_states_to_workers(
+        self, all_states: Sequence[interfaces.IState]
+    ) -> List[interfaces.IState]:
         """
-        Send a state to each worker.
+        Distribute a block of states to each worker.
 
         Args:
-            states: a list of states.
-            
-        Returns:
-            the state to run on the leader node
+            all_states: states to be distributed
 
-        .. note::
-           The list of states should include the state for the leader node. 
+        Returns:
+            the block of states to run on the leader node
         """
+        # Divide the states into blocks
+        state_blocks = self._to_blocks(all_states)
+
         with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("broadcast_states_to_workers")),
         ):
-            return self._mpi_comm.scatter(states, root=0)
+            return self._mpi_comm.scatter(state_blocks, root=0)
 
     @util.log_timing(logger)
-    def receive_state_from_leader(self) -> interfaces.IState:
+    def receive_states_from_leader(self) -> List[interfaces.IState]:
         """
-        Get state to run for this step
+        Get the block of states to run for this step
 
         Returns:
-            the state to run for this step
+            the block of states to run for this step
         """
         with _timeout(
             self._timeout,
@@ -191,13 +178,13 @@ class MPICommunicator(interfaces.ICommunicator):
 
     @util.log_timing(logger)
     def gather_states_from_workers(
-        self, state_on_leader: interfaces.IState
-    ) -> Sequence[interfaces.IState]:
+        self, state_on_leader: List[interfaces.IState]
+    ) -> List[interfaces.IState]:
         """
         Receive states from all workers
 
         Args:
-            state_on_leader: the state on the leader after simulating
+            states_on_leader: the block of states on the leader after simulating
         Returns:
             A list of states, one from each replica.
         """
@@ -205,31 +192,30 @@ class MPICommunicator(interfaces.ICommunicator):
             self._timeout,
             RuntimeError(self._timeout_message.format("gather_states_from_workers")),
         ):
-            return self._mpi_comm.gather(state_on_leader, root=0)
+            blocks = self._mpi_comm.gather(state_on_leader, root=0)
+
+        return self._from_blocks(blocks)
 
     @util.log_timing(logger)
-    def send_state_to_leader(self, state: interfaces.IState) -> None:
+    def send_states_to_leader(self, block: Sequence[interfaces.IState]) -> None:
         """
-        Send state to leader
+        Send a block of states to the leader
 
         Args:
-            state: State to send to leader.
+            block: block of states to send to the leader.
         """
         with _timeout(
             self._timeout,
-            RuntimeError(self._timeout_message.format("send_state_to_leader")),
+            RuntimeError(self._timeout_message.format("send_states_to_leader")),
         ):
-            self._mpi_comm.gather(state, root=0)
+            self._mpi_comm.gather(block, root=0)
 
     @util.log_timing(logger)
-    def broadcast_states_for_energy_calc_to_workers(
+    def broadcast_all_states_to_workers(
         self, states: Sequence[interfaces.IState]
     ) -> None:
         """
-        Broadcast states to all workers.
-        
-        Send all results from this step to every worker so that we can
-        calculate the energies and do replica exchange.
+        Broadcast all states to all workers.
 
         Args:
             states: a list of states
@@ -245,26 +231,7 @@ class MPICommunicator(interfaces.ICommunicator):
             self._mpi_comm.bcast(states, root=0)
 
     @util.log_timing(logger)
-    def exchange_states_for_energy_calc(self, state: interfaces.IState) -> Sequence[interfaces.IState]:
-        """
-        Exchange states between all processes.
-
-        Args:
-            state: the state for this node
-
-        Returns:
-            a list of states from all nodes
-        """
-        with _timeout(
-            self._timeout,
-            RuntimeError(
-                self._timeout_message.format("exchange_states_for_energy_calc")
-            ),
-        ):
-            return self._mpi_comm.allgather(state)
-
-    @util.log_timing(logger)
-    def receive_states_for_energy_calc_from_leader(self) -> Sequence[interfaces.IState]:
+    def receive_all_states_from_leader(self) -> Sequence[interfaces.IState]:
         """
         Receive all states from leader.
 
@@ -283,39 +250,45 @@ class MPICommunicator(interfaces.ICommunicator):
 
     @util.log_timing(logger)
     def gather_energies_from_workers(
-        self, energies_on_leader: List[float]
+        self, energies_on_leader: np.ndarray
     ) -> np.ndarray:
         """
-        Receive a list of energies from each worker.
+        Receive energies from each worker.
 
         Args:
-            energies_on_leader: a list of energies from the leader
+            energies_on_leader: the energies from the leader
 
         Returns:
             a square matrix of every state on every replica to be used for replica exchange
+
+        Note:
+            Each row of the output matrix represents a different Hamiltonian. Each column
+            represents a different state. Each worker will compute multiple rows of the
+            output matrix.
         """
         with _timeout(
             self._timeout,
-            RuntimeError(
-                self._timeout_message.format("gather_energies_from_workers")
-            ),
+            RuntimeError(self._timeout_message.format("gather_energies_from_workers")),
         ):
             energies = self._mpi_comm.gather(energies_on_leader, root=0)
-            return np.array(energies)
+            return np.concatenate(energies, axis=0)
 
     @util.log_timing(logger)
-    def send_energies_to_leader(self, energies: List[float]) -> None:
+    def send_energies_to_leader(self, energies: np.ndarray) -> None:
         """
-        Send a list of energies to the leader.
+        Send a block of energies to the leader.
 
         Args:
-            energies: a list of energies to send to the leader
+            energies: block of energies to send to the leader
+        Note:
+            Each row represents a different Hamiltonian. Each column represents a
+            different state.
         """
         with _timeout(
             self._timeout,
             RuntimeError(self._timeout_message.format("send_energies_to_leader")),
         ):
-            return self._mpi_comm.gather(energies, root=0)
+            self._mpi_comm.gather(energies, root=0)
 
     @util.log_timing(logger)
     def negotiate_device_id(self) -> int:
@@ -427,12 +400,31 @@ class MPICommunicator(interfaces.ICommunicator):
         return self._n_atoms
 
     @property
+    def n_workers(self) -> int:
+        """number of workers"""
+        return self._n_workers
+
+    @property
     def rank(self) -> int:
         """rank of this worker"""
         return self._my_rank
 
+    X = TypeVar("X")
 
-def _get_mpi_comm_world() -> MPI.Comm:
+    def _to_blocks(self, items: Sequence[X]) -> List[List[X]]:
+        items = list(items)
+        if len(items) % self.n_workers:
+            raise ValueError("number of items must be divisible by n_workers")
+
+        group_size = len(items) // self.n_workers
+        return [items[i : i + group_size] for i in range(0, len(items), group_size)]
+
+    def _from_blocks(self, blocks: Sequence[List[X]]) -> List[X]:
+        blocks = list(blocks)
+        return [item for sublist in blocks for item in sublist]
+
+
+def _get_mpi_comm_world():
     """
     Helper function to return the comm_world.
 

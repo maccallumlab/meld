@@ -37,7 +37,6 @@ dependencies:
 - mpi4py
 - ocl-icd-system
 - ambertools
-- parmed
 - cudatoolkit @CUDATOOLKIT_VERSION@
 - openmm
 

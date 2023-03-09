@@ -102,7 +102,7 @@ Ramps are created and added to a restraint by:
 >>> ramp = system.restraints.create_scaler(ramp_key, params...)
 >>> r = system.restraints.create_restraint(rest_key, ramp=ramp, params...)
 
-.. note::
+Note:
    Despite the name, ramps are created with the :meth:`create_scaler` method.
 
 Positioners
@@ -117,7 +117,7 @@ Positioners are created and added to a restraint by:
 >>> r = system.restraints.create_restraint(
         rest_key, param=positioner, params...)
 
-.. note::
+Note:
    Despite the name, positioners are created with the ``create_scaler`` method.
 
 Restraint Manager
@@ -754,28 +754,29 @@ class TorsProfileRestraint(SelectableRestraint):
         assert self.spline_params.shape[1] == 16
 
 
-class RdcRestraint(NonSelectableRestraint):
+class RdcRestraint(SelectableRestraint):
     """
     Residual Dipolar Coupling Restraint
     """
 
     _restraint_key_ = "rdc"
-
+    atom_index_1: Union[int, mapping.PeakMapping]
+    atom_index_2: Union[int, mapping.PeakMapping]
+    
     def __init__(
         self,
         system: interfaces.ISystem,
         scaler: Optional[RestraintScaler],
         ramp: Optional[TimeRamp],
-        atom1: indexing.AtomIndex,
-        atom2: indexing.AtomIndex,
+        atom1: Union[indexing.AtomIndex, mapping.PeakMapping],
+        atom2: Union[indexing.AtomIndex, mapping.PeakMapping],
         kappa: u.Quantity,
         d_obs: u.Quantity,
         tolerance: u.Quantity,
         force_const: u.Quantity,
         quadratic_cut: u.Quantity,
         weight: float,
-        expt_index: int,
-        patcher,
+        alignment_index: int,
     ):
         """
         Initialize an RdcRestraint
@@ -786,42 +787,45 @@ class RdcRestraint(NonSelectableRestraint):
             ramp: scale the force over time
             atom1: the first atom in the RDC
             atom2: the second atom in the RDC
-            kappa: prefactor for RDC calculation in :math:`Hz Angstrom^3`
-            d_obs: observed dipolar coupling in Hz
-            tolerance: calculed couplings within tolerance (in Hz) of d_obs
+            kappa: prefactor for RDC calculation in :math:`Hz nm^3`
+            d_obs: observed dipolar coupling in :math:`Hz`
+            tolerance: calculed couplings within tolerance (in :math:`Hz`) of d_obs
                 will have zero energy and force
             force_const: force constant in :math:`kJ/mol/Hz^2`
-            quadratic_cut: force constant becomes linear bond this deviation s^-1
+            quadratic_cut: force constant becomes linear beyond this deviation in :math:`s^-1`
             weight: dimensionless weight to place on this restraint
-            expt_index: integer experiment id
-            patcher: the :class:`RdcAlignmentPatcher` used to create the alignment tensor
+            alignment_index: which alignment to use
 
-        .. note::
+        Note:
            Typical values for kappa are:
 
-           - 1H - 1H: :math:`-360300 Hz Angstrom^3`
-           - 13C - 1H: :math:`-90600 Hz Angstrom^3`
-           - 15N - 1H: :math:`36500 Hz Angstrom^3`
+           - 1H - 1H: :math:`-360.3 Hz nm^3`
+           - 13C - 1H: :math:`-90.6 Hz nm^3`
+           - 15N - 1H: :math:`36.5 Hz nm^3`
         """
-        assert isinstance(atom1, indexing.AtomIndex)
-        assert isinstance(atom2, indexing.AtomIndex)
+        if isinstance(atom1, mapping.PeakMapping):
+            self.atom_index_1 = atom1
+        else:
+            assert isinstance(atom1, indexing.AtomIndex)
+            self.atom_index_1 = int(atom1)
+        if isinstance(atom2, mapping.PeakMapping):
+            self.atom_index_2 = atom2
+        else:
+            assert isinstance(atom2, indexing.AtomIndex)
+            self.atom_index_2 = int(atom2)
+
         kappa = strip_unit(kappa, u.second ** -1 * u.nanometer ** 3)
         d_obs = strip_unit(d_obs, u.second ** -1)
         tolerance = strip_unit(tolerance, u.second ** -1)
         force_const = strip_unit(force_const, u.kilojoule_per_mole * u.second ** 2)
         quadratic_cut = strip_unit(quadratic_cut, u.second ** -1)
-
-        self.atom_index_1 = int(atom1)
-        self.atom_index_2 = int(atom2)
-        self.s1_index = int(system.index.atom(patcher.resids[expt_index], "S1"))
-        self.s2_index = int(system.index.atom(patcher.resids[expt_index], "S2"))
+        self.alignment_index = alignment_index
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
         self.tolerance = float(tolerance)
         self.force_const = float(force_const)
         self.quadratic_cut = quadratic_cut
         self.weight = float(weight)
-        self.expt_index = int(expt_index)
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
@@ -1276,7 +1280,7 @@ class SelectivelyActiveCollection:
             restraint_list: list of restraints to add to collection
             num_active: number active each time step
 
-        .. note::
+        Note:
            ``restraint_list`` can contain both :class:`RestraintGroup` and
            :class:`SelectableRestraint`. Any :class:`SelectableRestraints`
            will be put into a singleton :class:`RestraintGroup`.

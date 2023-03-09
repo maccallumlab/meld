@@ -1,6 +1,26 @@
-## Unreleased
+## 0.6.2
 
-## Bug Fixes
+### Enhancements
+- Decoupled the number of workers from the number of replicas.
+  - You can now use any combination that divides evenly
+    - e.g. 64 replicas on 16 workers
+  - `launch_remd_multiplex` has been removed
+    - use `launch_remd` with one worker instead
+- RDCs now work with peak mapping
+- Ability to freeze atoms with `freeze_atoms`
+- Ability to remove the potential from the force field with `remove_potential`
+  - This can be useful when trying to infer assignments using peak mapping
+
+## 0.6.1
+
+### Enhancements
+- Added helper methods to simplify setting up simulations
+  - `setup_replica_exchange`
+  - `setup_data_store`
+
+## 0.6.0
+
+### Bug Fixes
 - Previous versions of MELD could give erroneous values for forces and energies
   - Due to a data race in the CUDA kernels, different threads could calculate
     different values for the cutoff energy within each collection. This would
@@ -14,7 +34,17 @@
 - Previous versions could sometimes incorrectly negotiate device ids between
   nodes which would lead to failure at runtime.
 
-## Enhancements
+### Enhancements
+- Amber-specific system buiding tools are in their own modules
+- RDCs no longer add particles to the system
+- Energies are saved to different energy groups. The current mapping is:
+  - Base forcefield energy: 0
+  - MELD force: 1
+  - RDC force: 2
+  - Confinement restraints: 3
+  - COM restraints: 4
+  - Cartesian restraints: 5
+  - Log Prior for parameter sampling: 6
 - Most user facing modules are now imported into the root `meld` namespace.
 - Most user-facing functions now require units, which will help to eliminate
   errors.
@@ -43,7 +73,7 @@
     atom names.
   - "follower" changed to "worker"
 
-## Changes
+### Changes
 - No longer use network logging.
   - Previous versions used network logging to aggregate all log messages into a
     single remd.log file.

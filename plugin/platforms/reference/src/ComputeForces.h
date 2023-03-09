@@ -4,6 +4,21 @@
 using namespace OpenMM;
 using namespace std;
 
+void computeRDCRest(
+    vector<RealVec>& pos,
+    vector<int2>& rdcRestAtomIndices,
+    vector<float2>& rdcRestParams1,
+    vector<float3>& rdcRestParams2,
+    float scaleFactor,
+    vector<int>& rdcRestAlignments,
+    vector<float>& rdcRestTensorComponents,
+    vector<int>& rdcRestGlobalIndices,
+    vector<float>& restraintEnergies,
+    vector<float3>& rdcRestForces,
+    vector<float>& rdcRestDerivs,
+    int numRDCRestraints
+);
+
 void computeDistRest(
     vector<RealVec> &pos,
     vector<int2> &distanceRestAtomIndices,
@@ -109,6 +124,18 @@ void applyGroups(
     vector<bool> &restraintActive,
     vector<int2> &groupBounds,
     int numGroups);
+
+float applyRDCRest(
+    vector<RealVec>& force,
+    vector<int2>& rdcRestAtomIndices,
+    vector<int>& rdcAlignments,
+    vector<int>& rdcRestGlobalIndices,
+    vector<float3>& rdcRestForces,
+    vector<float>& rdcRestDerivs,
+    vector<float>& restraintEnergies,
+    vector<bool>& restraintActive,
+    std::map<std::string, double>& derivMap,
+    int numRDCRestraints);
 
 float applyDistRest(
     vector<RealVec> &force,

@@ -15,7 +15,7 @@ from meld.system import param_sampling
 from meld.system import mapping
 from meld.system import density
 from meld.runner.transform import TransformerBase
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 import math
@@ -50,6 +50,7 @@ class REST2Transformer(TransformerBase):
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -61,9 +62,14 @@ class REST2Transformer(TransformerBase):
 
         if options.use_rest2:
             self.active = True
-            self.scaler = options.rest2_scaler
+            if isinstance(options.rest2_scaler, temperature.REST2Scaler):
+                self.scaler = options.rest2_scaler
+            else:
+                raise ValueError("Trying to use REST2 without a REST2Scaler")
 
-            if options.solvation != "explicit":
+            if builder_info["builder"] != "amber":
+                raise ValueError("REST2 only works with Amber")
+            if builder_info["solvation"] != "explicit":
                 raise ValueError("Cannot use REST2 without explicit solvent")
 
     def finalize(

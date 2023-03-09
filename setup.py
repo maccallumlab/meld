@@ -9,7 +9,7 @@ setup(
     author_email="justin.maccallum@ucalgary.ca",
     packages=find_packages(),
     package_data={
-        "meld.runner.transform": ["maps/*.txt", "maps/GAVL/*.txt"],
+        "meld.system.builders.amber": ["maps/*.txt"],
         "meld.test.test_functional.test_openmm_runner": [
             "system.top",
             "system.mdcrd",
@@ -22,7 +22,6 @@ setup(
         "scripts/launch_remd",
         "scripts/process_fragments",
         "scripts/prepare_restart",
-        "scripts/launch_remd_multiplex",
     ],
     url="http://meldmd.org",
     license="LICENSE.txt",

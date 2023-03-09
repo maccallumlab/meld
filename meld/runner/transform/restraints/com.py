@@ -19,10 +19,13 @@ from meld.system import mapping
 from meld.system import density
 from meld.runner import transform
 
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 from typing import List
+
+
+FORCE_GROUP = 4
 
 
 class COMRestraintTransformer(transform.TransformerBase):
@@ -37,6 +40,7 @@ class COMRestraintTransformer(transform.TransformerBase):
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -92,6 +96,8 @@ class COMRestraintTransformer(transform.TransformerBase):
             pos = rest.positioner(0)
             force.addBond([g1, g2], [force_const, pos])
 
+            force.setForceGroup(FORCE_GROUP)
+
             system.addForce(force)
             self.force = force
         return system
@@ -124,6 +130,7 @@ class AbsoluteCOMRestraintTransformer(transform.TransformerBase):
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -178,6 +185,8 @@ class AbsoluteCOMRestraintTransformer(transform.TransformerBase):
             pos_y = rest.position[1]
             pos_z = rest.position[2]
             force.addBond([g1], [force_const, pos_x, pos_y, pos_z])
+
+            force.setForceGroup(FORCE_GROUP)
 
             system.addForce(force)
             self.force = force

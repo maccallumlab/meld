@@ -14,8 +14,7 @@ class TestGetRunner(unittest.TestCase):
     def test_runner_equals_openmm_should_create_openmm_runner(self):
         meld_system = mock.Mock()
         comm = mock.Mock()
-        opt = options.RunOptions()
-        opt.runner = "openmm"
+        opt = options.RunOptions(runner="openmm")
         with mock.patch("meld.runner.openmm_runner.OpenMMRunner") as mock_runner:
             runner.get_runner(meld_system, opt, comm, platform="Reference")
             self.assertEqual(mock_runner.call_count, 1)
@@ -23,8 +22,7 @@ class TestGetRunner(unittest.TestCase):
     def test_runner_equals_fake_runner_should_create_fake_runner(self):
         meld_system = mock.Mock()
         comm = mock.Mock()
-        opt = options.RunOptions()
-        opt.runner = "fake_runner"
+        opt = options.RunOptions(runner="fake_runner")
         with mock.patch("meld.runner.fake_runner.FakeSystemRunner") as mock_runner:
             runner.get_runner(meld_system, opt, comm, platform="Reference")
             self.assertEqual(mock_runner.call_count, 1)

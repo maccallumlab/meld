@@ -38,6 +38,7 @@ class DataStorePickleTestCase(unittest.TestCase):
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
+            np.zeros(vault.ENERGY_GROUPS),
             np.zeros(3),
             param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
@@ -189,6 +190,7 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
+            np.zeros(vault.ENERGY_GROUPS),
             np.zeros(3),
             param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
@@ -296,13 +298,14 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
+            group_energies = np.zeros(vault.ENERGY_GROUPS)
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
             mappings = np.arange(self.N_MAPPINGS)
             return state.SystemState(
-                pos, vel, lam, energy, np.zeros(3), params, mappings
+                pos, vel, lam, energy, group_energies, np.zeros(3), params, mappings
             )
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
@@ -324,12 +327,15 @@ class DataStoreHD5TestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
+            group_energies = np.zeros(vault.ENERGY_GROUPS)
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
             mappings = np.arange(self.N_MAPPINGS)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
+            return state.SystemState(
+                pos, vel, lam, energy, group_energies, np.zeros(3), params, mappings
+            )
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         STAGE = 0
@@ -377,6 +383,7 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
+            np.zeros(vault.ENERGY_GROUPS),
             np.zeros(3),
             param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
@@ -399,12 +406,15 @@ class DataStoreBackupTestCase(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
+            group_energies = np.zeros(vault.ENERGY_GROUPS)
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
             mappings = np.arange(self.N_MAPPINGS)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
+            return state.SystemState(
+                pos, vel, lam, energy, group_energies, np.zeros(3), params, mappings
+            )
 
         states = [gen_state(i, self.N_ATOMS) for i in range(self.N_REPLICAS)]
         runner = leader.LeaderReplicaExchangeRunner(
@@ -458,6 +468,7 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             np.zeros((self.N_ATOMS, 3)),
             0.0,
             0.0,
+            np.zeros(vault.ENERGY_GROUPS),
             np.zeros(3),
             param_sampling.ParameterState(
                 np.zeros(self.N_DISCRETE, dtype=np.int32),
@@ -480,12 +491,22 @@ class TestReadOnlyMode(unittest.TestCase, TempDirHelper):
             pos = index * np.ones((n_atoms, 3))
             vel = index * np.ones((n_atoms, 3))
             energy = index
+            group_energies = np.zeros(vault.ENERGY_GROUPS)
             lam = index / 100.0
             discrete = np.zeros(self.N_DISCRETE, dtype=np.int32)
             continuous = np.zeros(self.N_CONTINUOUS, dtype=np.float64)
             params = param_sampling.ParameterState(discrete, continuous)
             mappings = np.arange(self.N_MAPPINGS)
-            return state.SystemState(pos, vel, lam, energy, np.zeros(3), params, mappings)
+            return state.SystemState(
+                pos,
+                vel,
+                lam,
+                energy,
+                group_energies,
+                np.zeros(3),
+                params,
+                mappings,
+            )
 
         runner = leader.LeaderReplicaExchangeRunner(
             self.N_REPLICAS, max_steps=100, ladder=l, adaptor=a

@@ -8,7 +8,9 @@ import logging
 logger = logging.getLogger("meld")
 logger.addHandler(logging.NullHandler())
 
-__version__ = "0.5.0"
+__version__ = "0.6.1"
+
+from openmm import unit  # type: ignore
 
 from meld.comm import MPICommunicator
 from meld.vault import DataStore
@@ -21,17 +23,20 @@ from meld.parse import (
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.adaptor import AdaptationPolicy, EqualAcceptanceAdaptor
 from meld.remd.leader import LeaderReplicaExchangeRunner
+from meld.system.options import RunOptions
 from meld.system.montecarlo import DoubleTorsionMover, MonteCarloScheduler
-from meld.system.patchers import RdcAlignmentPatcher, VirtualSpinLabelPatcher
-from meld.system.subsystem import SubSystemFromSequence, SubSystemFromPdbFile
-from meld.system.builder import SystemBuilder
+from meld.system.builders.amber.subsystem import (
+    AmberSubSystemFromSequence,
+    AmberSubSystemFromPdbFile,
+)
+from meld.system.builders.build_elastic_network_restraints import create_elastic_network_restraints, add_elastic_network_restraints
+from meld.system.builders.amber.builder import AmberSystemBuilder, AmberOptions
 from meld.system.temperature import (
     ConstantTemperatureScaler,
     LinearTemperatureScaler,
     GeometricTemperatureScaler,
     REST2Scaler,
 )
-from meld.system.options import RunOptions
 from meld.system.indexing import AtomIndex, ResidueIndex
 from meld.system.param_sampling import (
     UniformDiscretePrior,
@@ -42,3 +47,8 @@ from meld.system.param_sampling import (
     DiscreteSampler,
     ContinuousSampler,
 )
+from meld.system.patchers.rdc_alignment import add_rdc_alignment
+from meld.system.patchers.spin_label import add_virtual_spin_label
+from meld.system.patchers.freeze import freeze_atoms
+from meld.system.patchers.potential import remove_potential
+from meld.helpers import setup_data_store, setup_replica_exchange

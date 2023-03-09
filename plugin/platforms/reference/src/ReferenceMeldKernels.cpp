@@ -28,12 +28,19 @@ static vector<RealVec> &extractForces(ContextImpl &context)
 }
 
 void checkAtomIndex(const int numAtoms, const std::string &restType, const int atomIndex,
-                    const int restIndex, const int globalIndex)
+                    const int restIndex, const int globalIndex, const bool allowNegativeOne = false )
 {
     bool bad = false;
-    if (atomIndex < 0)
-    {
-        bad = true;
+    if (allowNegativeOne) {
+        if (atomIndex < -1) {
+            bad = true;
+        }
+    } else {
+        if (atomIndex < 0)
+        {
+            bad = true;
+        
+        }
     }
     if (atomIndex >= numAtoms)
     {
@@ -167,6 +174,8 @@ void checkAllAssigned(const std::vector<int> &assigned, const std::string &type1
 ReferenceCalcMeldForceKernel::ReferenceCalcMeldForceKernel(std::string name, const OpenMM::Platform &platform,
                                                            const System &system) : CalcMeldForceKernel(name, platform), system(system)
 {
+    numRDCRestraints = 0;
+    numRDCAlignments = 0;
     numDistRestraints = 0;
     numHyperbolicDistRestraints = 0;
     numTorsionRestraints = 0;
@@ -177,10 +186,13 @@ ReferenceCalcMeldForceKernel::ReferenceCalcMeldForceKernel(std::string name, con
     numRestraints = 0;
     numGroups = 0;
     numCollections = 0;
+    rdcScaleFactor = 0.0;
 }
 
 void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldForce &force)
 {
+    numRDCAlignments = force.getNumRDCAlignments();
+    numRDCRestraints = force.getNumRDCRestraints();
     numDistRestraints = force.getNumDistRestraints();
     numHyperbolicDistRestraints = force.getNumHyperbolicDistRestraints();
     numTorsionRestraints = force.getNumTorsionRestraints();
@@ -194,6 +206,16 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     numRestraints = force.getNumTotalRestraints();
     numGroups = force.getNumGroups();
     numCollections = force.getNumCollections();
+
+    rdcRestParams1 = std::vector<float2>(numRDCRestraints, float2(0, 0));
+    rdcRestParams2 = std::vector<float3>(numRDCRestraints, float3(0, 0, 0));
+    rdcRestAlignments = std::vector<int>(numRDCRestraints, -1);
+    rdcRestAtomIndices = std::vector<int2>(numRDCRestraints, int2(-1, -1));
+    rdcRestGlobalIndices = std::vector<int>(numRDCRestraints, -1);
+    rdcRestForces = std::vector<float3>(numRDCRestraints, float3(0, 0, 0));
+    rdcRestAlignmentComponents = std::vector<float>(5 * numRDCAlignments, 0.0);
+    rdcRestDerivs = std::vector<float>(5 * numRDCRestraints, 0.0);
+    rdcScaleFactor = force.getRDCScaleFactor();
 
     distanceRestRParams = std::vector<float4>(numDistRestraints, float4(0, 0, 0, 0));
     distanceRestKParams = std::vector<float>(numDistRestraints, 0);
@@ -258,6 +280,7 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     collectionBounds = std::vector<int2>(numCollections, int2(-1, -1));
     collectionNumActive = std::vector<int>(numCollections, -1);
 
+    setupRDCRestraints(force);
     setupDistanceRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
@@ -269,10 +292,48 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     setupCollections(force);
 }
 
+void ReferenceCalcMeldForceKernel::updateRDCGlobalParameters(ContextImpl& context)
+{
+    for (int i = 0; i < numRDCAlignments; i++)
+    {
+        std::string base = "rdc_" + std::to_string(i);
+        float s1 = context.getParameter(base + "_s1");
+        float s2 = context.getParameter(base + "_s2");
+        float s3 = context.getParameter(base + "_s3");
+        float s4 = context.getParameter(base + "_s4");
+        float s5 = context.getParameter(base + "_s5");
+        rdcRestAlignmentComponents[5 * i + 0] = s1;
+        rdcRestAlignmentComponents[5 * i + 1] = s2;
+        rdcRestAlignmentComponents[5 * i + 2] = s3;
+        rdcRestAlignmentComponents[5 * i + 3] = s4;
+        rdcRestAlignmentComponents[5 * i + 4] = s5;
+    }
+}
+
 double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces, bool includeEnergy)
 {
     vector<RealVec> &pos = extractPositions(context);
     vector<RealVec> &force = extractForces(context);
+
+    if (numRDCRestraints > 0)
+    {
+        fill(rdcRestForces.begin(), rdcRestForces.end(), float3(0, 0, 0));
+        updateRDCGlobalParameters(context);
+        computeRDCRest(
+            pos,
+            rdcRestAtomIndices,
+            rdcRestParams1,
+            rdcRestParams2,
+            rdcScaleFactor,
+            rdcRestAlignments,
+            rdcRestAlignmentComponents,
+            rdcRestGlobalIndices,
+            restraintEnergies,
+            rdcRestForces,
+            rdcRestDerivs,
+            numRDCRestraints
+        );
+    }
 
     if (numDistRestraints > 0)
     {
@@ -411,9 +472,24 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
         groupBounds,
         numGroups);
 
-    float energy = 0.0;
 
     // Now apply the forces and energies if the restraints are active
+    float energy = 0.0;
+    if (numRDCRestraints > 0)
+    {
+        energy += applyRDCRest(
+            force,
+            rdcRestAtomIndices,
+            rdcRestAlignments,
+            rdcRestGlobalIndices,
+            rdcRestForces,
+            rdcRestDerivs,
+            restraintEnergies,
+            restraintActive,
+            extractEnergyParameterDerivatives(context),
+            numRDCRestraints);
+    }
+
     if (numDistRestraints > 0)
     {
         energy += applyDistRest(
@@ -504,6 +580,7 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
 
 void ReferenceCalcMeldForceKernel::copyParametersToContext(ContextImpl &context, const MeldForce &force)
 {
+    setupRDCRestraints(force);
     setupDistanceRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
@@ -576,7 +653,39 @@ int3 ReferenceCalcMeldForceKernel::calcNumGrids(const MeldForce &force)
     return int3(nx,ny,nz);
 }
 
-void ReferenceCalcMeldForceKernel::setupDistanceRestraints(const MeldForce &force)
+void ReferenceCalcMeldForceKernel::setupRDCRestraints(const MeldForce& force)
+{
+    int numAtoms = system.getNumParticles();
+    std::string restType = "RDC restraint";
+    for (int i = 0; i < numRDCRestraints; ++i)
+    {
+        int atom1, atom2, alignment, global_index;
+        float kappa, obs, tol, quad_cut, force_constant;
+        force.getRDCRestraintParameters(i, atom1, atom2, alignment,
+                                        kappa, obs,
+                                        tol, quad_cut, force_constant,
+                                        global_index);
+        checkAtomIndex(numAtoms, restType, atom1, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom2, i, global_index, true);
+        checkForceConstant(force_constant, restType, i, global_index);
+        if (alignment < 0)
+        {
+            throw OpenMMException("Alignment tensor index must be >= 0");
+        }
+        if (alignment >= force.getNumRDCAlignments())
+        {
+            throw OpenMMException("Alignment tensor index must be < number of alignment tensors");
+        }
+
+        rdcRestParams1[i] = float2(kappa, obs);
+        rdcRestParams2[i] = float3(tol, quad_cut, force_constant);
+        rdcRestAtomIndices[i] = int2(atom1, atom2);
+        rdcRestAlignments[i] = alignment;
+        rdcRestGlobalIndices[i] = global_index;
+    }
+}
+
+void ReferenceCalcMeldForceKernel::setupDistanceRestraints(const MeldForce& force)
 {
     int numAtoms = system.getNumParticles();
     std::string restType = "distance restraint";
@@ -586,8 +695,8 @@ void ReferenceCalcMeldForceKernel::setupDistanceRestraints(const MeldForce &forc
         float r1, r2, r3, r4, k;
         force.getDistanceRestraintParams(i, atom_i, atom_j, r1, r2, r3, r4, k, global_index);
 
-        checkAtomIndex(numAtoms, restType, atom_i, i, global_index);
-        checkAtomIndex(numAtoms, restType, atom_j, i, global_index);
+        checkAtomIndex(numAtoms, restType, atom_i, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom_j, i, global_index, true);
         checkForceConstant(k, restType, i, global_index);
         checkDistanceRestraintRs(r1, r2, r3, r4, i, global_index);
 
@@ -919,4 +1028,9 @@ void ReferenceCalcMeldForceKernel::setupCollections(const MeldForce &force)
         start = end;
     }
     checkAllAssigned(groupAssigned, "Group", "Collection");
+}
+
+map<string, double>& ReferenceCalcMeldForceKernel::extractEnergyParameterDerivatives(ContextImpl& context) {
+    ReferencePlatform::PlatformData* data = reinterpret_cast<ReferencePlatform::PlatformData*>(context.getPlatformData());
+    return *data->energyParameterDerivatives;
 }

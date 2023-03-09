@@ -8,7 +8,7 @@ Module for interacting with MELD systems.
 
 The primary classes are:
 
-- :class:`meld.system.system.System` is the main class that describes a MELD system.
+- :class:`meld.system.meld_system.System` is the main class that describes a MELD system.
   Systems are built using the builder objects described below. Once built, :class:`System`
   objects may have a variety of restraints added.
 - :class:`meld.system.options.RunOptions` is a class that specifies options for a MELD run.
@@ -17,11 +17,11 @@ The primary classes are:
 
 The main classes to build a system are:
 
-- :class:`meld.system.subsystem.SubSystemFromSequence` is used to build a sub-system starting
+- :class:`meld.system.builders.amber.subsystem.AmberSubSystemFromSequence` is used to build a sub-system starting
   from a sequence.
-- :class:`meld.system.subsystem.SubSystemFromPdbFile` is used to build a sub-system from a 
+- :class:`meld.system.builders.amber.subsystem.AmberSubSystemFromPdbFile` is used to build a sub-system from a 
   PDB file.
-- :class:`meld.system.builder.SystemBuilder` is used to combine SybSystems together into a
+- :class:`meld.system.builders.amber.builder.AmberSystemBuilder` is used to combine SybSystems together into a
   system.
 
 There are a few options for how to couple the temperature to the value of alpha:

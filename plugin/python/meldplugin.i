@@ -5,7 +5,8 @@
 
 %module meldplugin
 
-%import(module="openmm") "swig/OpenMMSwigHeaders.i"
+%include "factory.i"
+%import(module="simtk.openmm") "swig/OpenMMSwigHeaders.i"
 %include "swig/typemaps.i"
 
 %include "std_vector.i"
@@ -28,7 +29,7 @@ namespace std {
 
 /* include version information */
 %pythoncode %{
-__version__ = '0.5.0'
+__version__ = '0.6.1'
 %}
 
 /*
@@ -38,7 +39,7 @@ namespace MeldPlugin {
 
     class MeldForce : public OpenMM::Force {
     public:
-        MeldForce();
+        MeldForce(int numRDCAlignments, float rdcScaleFactor);
 
         void updateParametersInContext(OpenMM::Context& context);
 
@@ -65,6 +66,28 @@ namespace MeldPlugin {
         int getNumGroups() const;
 
         int getNumCollections() const;
+
+        %apply int& OUTPUT {int& particle1};
+        %apply int& OUTPUT {int& particle2};
+        %apply int& OUTPUT {int& alignment};
+        %apply float& OUTPUT {float& kappa};
+        %apply float& OUTPUT {float& obs};
+        %apply float& OUTPUT {float& tol};
+        %apply float& OUTPUT {float& quad_cut};
+        %apply float& OUTPUT {float& force_constant};
+        %apply int& OUTPUT {int& globalIndex};
+        void getRDCRestraintParameters(int index, int& particle1, int& particle2, int& alignment,
+                                        float& kappa, float& obs, float& tol, float& quad_cut, float& force_constant,
+                                        int& globalIndex) const;
+        %clear int& particle1;
+        %clear int& particle2;
+        %clear int& alignment;
+        %clear float& kappa;
+        %clear float& obs;
+        %clear float& tol;
+        %clear float& quad_cut;
+        %clear float& force_constant;
+        %clear int& globalIndex;
 
         %apply int& OUTPUT {int& atom1};
         %apply int& OUTPUT {int& atom2};
@@ -293,6 +316,12 @@ namespace MeldPlugin {
         void getCollectionParams(int index, std::vector<int>& indices, int& numActive) const;
         %clear std::vector<int>& indices;
         %clear int& numActive;
+
+        int addRDCRestraint(int particle1, int particle2, int alignment,
+                            float kappa, float obs, float tol, float quad_cut, float force_constant);
+
+        void modifyRDCRestraint(int index, int particle1, int particle2, int alignment,
+                                float kappa, float obs, float tol, float quad_cut, float force_constant);
 
         int addDistanceRestraint(int particle1, int particle2, float r1, float r2, float r3, float r4,
                 float force_constant);

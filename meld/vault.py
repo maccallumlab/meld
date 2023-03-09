@@ -11,10 +11,9 @@ The main class is :class:`DataStore` which handles all IO for a MELD run.
 
 from meld import interfaces
 from meld.system import state
-from meld.system import options
 from meld.system import pdb_writer
 from meld.system import param_sampling
-from meld.system import mapping
+from meld.system import options
 
 import contextlib
 import os
@@ -24,6 +23,9 @@ import netCDF4 as cdf  # type: ignore
 import numpy as np  # type: ignore
 import shutil
 from typing import Sequence, Iterator, Optional
+
+
+ENERGY_GROUPS = 7
 
 
 def _load_pickle(data):
@@ -112,6 +114,7 @@ class DataStore:
         self._n_discrete_parameters = state_template.parameters.discrete.shape[0]
         self._n_continuous_parameters = state_template.parameters.continuous.shape[0]
         self._n_mappings = state_template.mappings.shape[0]
+        self._n_alignments = state_template.rdc_alignments.shape[0]
         self._n_replicas = n_replicas
         self._block_size = block_size
         self._cdf_data_set = None
@@ -273,7 +276,7 @@ class DataStore:
         Returns:
             n_replicas x n_atoms x 3 array
 
-        .. note::
+        Note:
            This differs from :meth:`load_positions` in that you can positions
            from any stage, while :meth:`load_positions` can only move forward
            in time. However, this comes at a performance penalty.
@@ -459,6 +462,7 @@ class DataStore:
         velocities = np.array([s.velocities for s in states])
         alphas = np.array([s.alpha for s in states])
         energies = np.array([s.energy for s in states])
+        group_energies = np.array([s.group_energies for s in states])
         box_vectors = np.array([s.box_vector for s in states])
         discrete_parameters = np.array(
             [s.parameters.discrete for s in states], dtype=np.int32
@@ -467,15 +471,18 @@ class DataStore:
             [s.parameters.continuous for s in states], dtype=np.float64
         )
         mappings = np.array([s.mappings for s in states], dtype=int)
+        alignments = np.array([s.rdc_alignments for s in states], dtype=np.float64)
 
         self.save_positions(positions, stage)
         self.save_velocities(velocities, stage)
         self.save_box_vectors(box_vectors, stage)
         self.save_alphas(alphas, stage)
         self.save_energies(energies, stage)
+        self.save_group_energies(group_energies, stage)
         self.save_discrete_parameters(discrete_parameters, stage)
         self.save_continuous_parameters(continuous_parameters, stage)
         self.save_mappings(mappings, stage)
+        self.save_alignments(alignments, stage)
 
     def load_states(self, stage: int) -> Sequence[interfaces.IState]:
         """
@@ -493,9 +500,11 @@ class DataStore:
         box_vectors = self.load_box_vectors(stage)
         alphas = self.load_alphas(stage)
         energies = self.load_energies(stage)
+        group_energies = self.load_group_energies(stage)
         discrete_parameters = self.load_discrete_parameters(stage)
         continuous_parameters = self.load_continuous_parameters(stage)
         mappings = self.load_mappings(stage)
+        alignments = self.load_alignments(stage)
 
         states = []
         for i in range(self._n_replicas):
@@ -504,11 +513,13 @@ class DataStore:
                 velocities[i],
                 alphas[i],
                 energies[i],
+                group_energies[i],
                 box_vectors[i],
                 param_sampling.ParameterState(
                     discrete_parameters[i], continuous_parameters[i]
                 ),
                 mappings[i],
+                alignments[i],
             )
             states.append(s)
         return states
@@ -597,6 +608,17 @@ class DataStore:
         self._handle_load_stage(stage)
         assert self._cdf_data_set is not None
         return self._cdf_data_set.variables["energies"][..., stage]
+
+    def save_group_energies(self, group_energies: np.ndarray, stage):
+        self._can_save()
+        self._handle_save_stage(stage)
+        assert self._cdf_data_set is not None
+        self._cdf_data_set.variables["group_energies"][..., stage] = group_energies
+
+    def load_group_energies(self, stage) -> np.ndarray:
+        self._handle_load_stage(stage)
+        assert self._cdf_data_set is not None
+        return self._cdf_data_set.variables["group_energies"][..., stage]
 
     def load_all_energies(self) -> np.ndarray:
         """
@@ -804,6 +826,17 @@ class DataStore:
         ds = self._cdf_data_set
         return ds.variables["mappings"][..., stage]
 
+    def save_alignments(self, data, stage):
+        self._can_save()
+        self._handle_save_stage(stage)
+        ds = self._cdf_data_set
+        ds.variables["rdc_alignments"][..., stage] = data
+
+    def load_alignments(self, stage):
+        self._handle_load_stage(stage)
+        ds = self._cdf_data_set
+        return ds.variables["rdc_alignments"][..., stage]
+
     def save_remd_runner(self, runner):
         """
         Save replica runner to disk
@@ -850,12 +883,10 @@ class DataStore:
     def save_run_options(self, run_options: options.RunOptions):
         """
         Save RunOptions to disk
-
         Args:
             run_options: options to save to disk
         """
         self._can_save()
-        run_options.sanity_check()
         with open(self._run_options_path, "wb") as options_file:
             pickle.dump(run_options, options_file)
 
@@ -868,7 +899,6 @@ class DataStore:
         )
         with open(path, "rb") as options_file:
             options = _load_pickle(options_file)
-        options.sanity_check()
         return options
 
     def backup(self, stage: int):
@@ -906,6 +936,8 @@ class DataStore:
         ds.createDimension("n_discrete_parameters", self._n_discrete_parameters)
         ds.createDimension("n_continuous_parameters", self._n_continuous_parameters)
         ds.createDimension("n_mappings", self._n_mappings)
+        ds.createDimension("n_alignments", self._n_alignments)
+        ds.createDimension("n_energy_groups", ENERGY_GROUPS)
 
         # setup variables
         ds.createVariable(
@@ -948,6 +980,15 @@ class DataStore:
             "energies",
             float,
             ["n_replicas", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+        ds.createVariable(
+            "group_energies",
+            float,
+            ["n_replicas", "n_energy_groups", "timesteps"],
             zlib=True,
             fletcher32=True,
             shuffle=True,
@@ -1003,6 +1044,16 @@ class DataStore:
             "mappings",
             int,
             ["n_replicas", "n_mappings", "timesteps"],
+            zlib=True,
+            fletcher32=True,
+            shuffle=True,
+            complevel=9,
+        )
+
+        ds.createVariable(
+            "rdc_alignments",
+            float,
+            ["n_replicas", "n_alignments", "timesteps"],
             zlib=True,
             fletcher32=True,
             shuffle=True,

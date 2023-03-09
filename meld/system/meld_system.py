@@ -7,8 +7,11 @@
 A module to define MELD Systems
 """
 
+import openmm as mm  # type: ignore
+from openmm import app
+
 from meld import interfaces
-from meld.system import amber
+from meld.vault import ENERGY_GROUPS
 from meld.system import restraints
 from meld.system import pdb_writer
 from meld.system import indexing
@@ -42,33 +45,62 @@ class System(interfaces.ISystem):
     param_sampler: param_sampling.ParameterManager
     """The sampler for parameters"""
 
-    _top_string: str
-    _mdcrd_string: str
+    mapper: mapping.PeakMapManager
+    """The peak map manager"""
 
-    _coordinates: np.ndarray
-    _box_vectors: np.ndarray
+    _solvation: str
+    _openmm_system: mm.System
+    _openmm_topology: app.Topology
+    _integrator: mm.LangevinIntegrator
+    _barostat: Optional[mm.MonteCarloBarostat]
+    _template_coordinates: np.ndarray
+    _template_velocities: np.ndarray
+    _template_box_vectors: Optional[np.ndarray]
     _n_atoms: int
 
     _atom_names: List[str]
     _residue_names: List[str]
     _residue_numbers: List[int]
-    _atom_index: Any
 
-    def __init__(self, top_string: str, mdcrd_string: str, indexer: indexing.Indexer):
+    def __init__(
+        self,
+        solvation: str,
+        openmm_system: mm.System,
+        openmm_topology: app.Topology,
+        integrator: mm.LangevinIntegrator,
+        barostat: Optional[mm.MonteCarloBarostat],
+        template_coordinates: np.ndarray,
+        template_velocities: np.ndarray,
+        template_box_vectors: Optional[np.ndarray],
+        builder_info: dict,
+    ):
         """
         Initialize a MELD system
 
         Args:
-            top_string: topology of system from tleap
-            mdcrd_string: coordinates of system from tleap
-            indexer: an Indexer object to handle indexing
+            solvation: the solvation model to use
+            openmm_system: the OpenMM system
+            openmm_topology: the OpenMM topology
+            integrator: the OpenMM integrator
+            barostat: the OpenMM barostat
+            template_coordinates: the coordinates of the template
+            template_velocities: the velocities of the template
+            template_box_vectors: the box vectors of the template
+            builder_info: a dictionary of extra information from the builder/patchers
         """
-        self._top_string = top_string
-        self._mdcrd_string = mdcrd_string
+        self._solvation = solvation
+        self._openmm_system = openmm_system
+        self._openmm_topology = openmm_topology
+        self._integrator = integrator
+        self._barostat = barostat
+        self._template_coordinates = template_coordinates
+        self._n_atoms = self._template_coordinates.shape[0]
+        self._template_velocities = template_velocities
+        self._template_box_vectors = template_box_vectors
+        self.builder_info = builder_info
         self.restraints = restraints.RestraintManager(self)
         self.density = density.DensityManager()
         self.param_sampler = param_sampling.ParameterManager()
-        self.index = indexer
         self.mapper = mapping.PeakMapManager()
 
         self.extra_bonds = []
@@ -76,16 +108,32 @@ class System(interfaces.ISystem):
         self.extra_torsions = []
 
         self.temperature_scaler = None
-        self._setup_coords()
 
         self._setup_indexing()
 
     @property
-    def top_string(self) -> str:
-        """
-        tleap topology string for the system
-        """
-        return self._top_string
+    def num_alignments(self) -> int:
+        return self.builder_info.get("num_alignments", 0)
+
+    @property
+    def solvation(self):
+        return self._solvation
+
+    @property
+    def omm_system(self):
+        return self._openmm_system
+
+    @property
+    def topology(self):
+        return self._openmm_topology
+
+    @property
+    def integrator(self):
+        return self._integrator
+
+    @property
+    def barostat(self):
+        return self._barostat
 
     @property
     def n_atoms(self) -> int:
@@ -95,11 +143,25 @@ class System(interfaces.ISystem):
         return self._n_atoms
 
     @property
-    def coordinates(self) -> np.ndarray:
+    def template_coordinates(self) -> np.ndarray:
         """
-        coordinates of system
+        Get the template coordinates
         """
-        return self._coordinates
+        return self._template_coordinates
+
+    @property
+    def template_velocities(self) -> np.ndarray:
+        """
+        Get the template velocities
+        """
+        return self._template_velocities
+
+    @property
+    def template_box_vectors(self) -> Optional[np.ndarray]:
+        """
+        Get the template box vectors
+        """
+        return self._template_box_vectors
 
     @property
     def atom_names(self) -> List[str]:
@@ -122,17 +184,39 @@ class System(interfaces.ISystem):
         """
         return self._residue_names
 
-    def get_state_template(self):
-        pos = self._coordinates.copy()
-        vel = np.zeros_like(pos)
+    def get_state_template(self) -> state.SystemState:
+        """
+        Get a template SystemState.
+        """
+        pos = self._template_coordinates.copy()
+        vel = self._template_velocities.copy()
         alpha = 0.0
         energy = 0.0
-        box_vectors = self._box_vectors
+        group_energies = np.zeros(ENERGY_GROUPS)
+
+        box_vectors = self._template_box_vectors
         if box_vectors is None:
             box_vectors = np.array([0.0, 0.0, 0.0])
+
         params = self.param_sampler.get_initial_state()
         mappings = self.mapper.get_initial_state()
-        return state.SystemState(pos, vel, alpha, energy, box_vectors, params, mappings)
+
+        if self.num_alignments == 0:
+            alignments = None
+        else:
+            alignments = np.zeros(self.num_alignments * 5)
+
+        return state.SystemState(
+            pos,
+            vel,
+            alpha,
+            energy,
+            group_energies,
+            box_vectors,
+            params,
+            mappings,
+            alignments,
+        )
 
     def get_pdb_writer(self) -> pdb_writer.PDBWriter:
         """
@@ -235,47 +319,17 @@ class System(interfaces.ISystem):
         )
 
     def _setup_indexing(self):
-        reader = amber.ParmTopReader(self._top_string)
+        self.index = indexing.setup_indexing(self._openmm_topology)
 
-        self._atom_names = reader.get_atom_names()
+        self._atom_names = [atom.name for atom in self._openmm_topology.atoms()]
         assert len(self._atom_names) == self._n_atoms
 
-        self._residue_numbers = reader.get_residue_numbers()
+        self._residue_numbers = [
+            atom.residue.index for atom in self._openmm_topology.atoms()
+        ]
         assert len(self._residue_numbers) == self._n_atoms
 
-        self._residue_names = reader.get_residue_names()
+        self._residue_names = [
+            atom.residue.name for atom in self._openmm_topology.atoms()
+        ]
         assert len(self._residue_names) == self._n_atoms
-
-    def _setup_coords(self):
-        reader = amber.CrdReader(self._mdcrd_string)
-        self._coordinates = reader.get_coordinates()
-        self._box_vectors = reader.get_box_vectors()
-        self._n_atoms = self._coordinates.shape[0]
-
-
-def _load_amber_system(top_filename, crd_filename, chains, patchers=None):
-    # Load in top and crd files output by leap
-    with open(top_filename, "rt") as topfile:
-        top = topfile.read()
-    with open(crd_filename) as crdfile:
-        crd = crdfile.read()
-
-    # Allow patchers to modify top and crd strings
-    if patchers is None:
-        patchers = []
-    for patcher in patchers:
-        top, crd = patcher.patch(top, crd)
-
-    # Setup indexing
-    indexer = indexing._setup_indexing(
-        chains, amber.ParmTopReader(top), amber.CrdReader(crd)
-    )
-
-    # Create the system
-    system = System(top, crd, indexer)
-
-    # Allow the patchers to modify the system
-    for patcher in patchers:
-        patcher.finalize(system)
-
-    return system

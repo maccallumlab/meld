@@ -2,6 +2,7 @@
 #define MELD_OPENMM_REFERENCEKERNELS_H_
 
 #include "MeldKernels.h"
+#include "openmm/internal/ContextImpl.h"
 #include "openmm/Platform.h"
 #include "openmm/reference/RealVec.h"
 #include <vector>
@@ -39,7 +40,11 @@ public:
      */
     void copyParametersToContext(OpenMM::ContextImpl& context, const MeldForce& force);
 
+    void updateRDCGlobalParameters(OpenMM::ContextImpl& context);
+
 private:
+    int numRDCAlignments;
+    int numRDCRestraints;
     int numDistRestraints;
     int numHyperbolicDistRestraints;
     int numTorsionRestraints;
@@ -53,7 +58,20 @@ private:
     int numRestraints;
     int numGroups;
     int numCollections;
+    float rdcScaleFactor;
     const OpenMM::System& system;
+    /**
+     * Arrays for RDC restraints.
+     */
+    std::vector<int> rdcRestAlignments;
+    std::vector<float2> rdcRestParams1;
+    std::vector<float3> rdcRestParams2;
+    std::vector<int2> rdcRestAtomIndices;
+    std::vector<int> rdcRestGlobalIndices;
+    std::vector<float3> rdcRestForces;
+    std::vector<float> rdcRestAlignmentComponents;
+    std::vector<float> rdcRestDerivs;
+
     /**
      * Arrays for distance restraints
      *
@@ -166,6 +184,7 @@ private:
     std::vector<int> collectionNumActive;
     std::vector<float> collectionEnergies;
 
+    void setupRDCRestraints(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);
     void setupHyperbolicDistanceRestraints(const MeldForce& force);
     void setupTorsionRestraints(const MeldForce& force);
@@ -178,6 +197,8 @@ private:
     int calcSizeGMMAtomIndices(const MeldForce& force);
     int calcSizeGMMData(const MeldForce& force);
     int3 calcNumGrids(const MeldForce& force);
+
+    static std::map<std::string, double>& extractEnergyParameterDerivatives(OpenMM::ContextImpl& context);
 };
 }
 #endif /*MELD_OPENMM_REFERENCEKERNELS_H*/

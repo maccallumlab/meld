@@ -162,7 +162,7 @@ class ParmTopReader:
         Returns:
             The set of bonds from the topology
 
-        .. note::
+        Note:
            the indices are zero-based
         """
         # the amber bonds section contains a triple of integers for each bond:
@@ -193,7 +193,7 @@ class ParmTopReader:
         Returns:
             the mapping from (resid, atom_name) to atom_index
 
-        .. note::
+        Note:
            both resid and atom_index are zero-based
         """
         residue_numbers = [r - 1 for r in self.get_residue_numbers()]

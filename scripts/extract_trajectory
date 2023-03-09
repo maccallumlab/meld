@@ -165,7 +165,8 @@ def extract_traj(store, args):
 def extract_traj_dcd(store, args):
     n_replicas = store.n_replicas
     max_step = store.max_safe_frame
-    solvation = store.load_run_options().solvation
+    system = store.load_system()
+    solvation = system.solvation
 
     start = args.start
     if not start is None:

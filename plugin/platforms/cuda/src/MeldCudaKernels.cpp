@@ -40,7 +40,7 @@ using namespace std;
 class CudaMeldForceInfo : public CudaForceInfo
 {
 public:
-    std::vector<std::pair<int, int> > bonds;
+    std::vector<std::pair<int, int>> bonds;
 
     CudaMeldForceInfo(const MeldForce &force) : force(force)
     {
@@ -86,6 +86,9 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
         throw OpenMMException("MeldForce does not support double precision");
     }
 
+    numRDCRestraints = 0;
+    numRDCAlignments = 0;
+    rdcScaleFactor = 0.0;
     numDistRestraints = 0;
     numHyperbolicDistRestraints = 0;
     numTorsionRestraints = 0;
@@ -102,6 +105,15 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     largestCollection = 0;
     groupsPerBlock = -1;
 
+    rdcRestAlignments = nullptr;
+    rdcRestParams1 = nullptr;
+    rdcRestParams2 = nullptr;
+    rdcRestAtomIndices = nullptr;
+    rdcRestGlobalIndices = nullptr;
+    rdcRestForces = nullptr;
+    rdcRestAlignmentComponents = nullptr;
+    rdcRestDerivs = nullptr;
+    rdcRestDerivIndices = nullptr;
     distanceRestRParams = nullptr;
     distanceRestKParams = nullptr;
     distanceRestAtomIndices = nullptr;
@@ -170,6 +182,15 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
 CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel()
 {
     cu.setAsCurrent();
+    delete rdcRestAlignments;
+    delete rdcRestParams1;
+    delete rdcRestParams2;
+    delete rdcRestAtomIndices;
+    delete rdcRestGlobalIndices;
+    delete rdcRestForces;
+    delete rdcRestAlignmentComponents;
+    delete rdcRestDerivs;
+    delete rdcRestDerivIndices;
     delete distanceRestRParams;
     delete distanceRestKParams;
     delete distanceRestAtomIndices;
@@ -235,6 +256,8 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel()
 
 void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
 {
+    numRDCAlignments = force.getNumRDCAlignments();
+    numRDCRestraints = force.getNumRDCRestraints();
     numDistRestraints = force.getNumDistRestraints();
     numHyperbolicDistRestraints = force.getNumHyperbolicDistRestraints();
     numTorsionRestraints = force.getNumTorsionRestraints();
@@ -252,6 +275,23 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
     numCollections = force.getNumCollections();
     
     // setup device memory
+    if (numRDCRestraints > 0)
+    {
+        rdcRestParams1 = CudaArray::create<float2>(cu, numRDCRestraints, "rdcRestParams1");
+        rdcRestParams2 = CudaArray::create<float3>(cu, numRDCRestraints, "rdcRestParams2");
+        rdcRestAlignments = CudaArray::create<int>(cu, numRDCRestraints, "rdcRestAlignments");
+        rdcRestAtomIndices = CudaArray::create<int2>(cu, numRDCRestraints, "rdcRestAtomIndices");
+        rdcRestGlobalIndices = CudaArray::create<int>(cu, numRDCRestraints, "rdcRestGlobalIndices");
+        rdcRestForces = CudaArray::create<float3>(cu, numRDCRestraints, "rdcRestForces");
+        rdcRestAlignmentComponents = CudaArray::create<float>(cu, 5 * numRDCAlignments, "rdcRestAlignmentComponents");
+        rdcRestDerivs = CudaArray::create<float>(cu, 5 * numRDCRestraints, "rdcRestDerivs");
+        rdcRestDerivIndices = CudaArray::create<int>(cu, 5 * numRDCAlignments, "rdcRestDerivIndices");
+    }
+    if (numRDCAlignments > 0)
+    {
+        rdcRestDerivIndices = CudaArray::create<int>(cu, 5 * numRDCAlignments, "rdcRestDerivIndices");
+    }
+
     if (numDistRestraints > 0)
     {
         distanceRestRParams = CudaArray::create<float4>(cu, numDistRestraints, "distanceRestRParams");
@@ -356,6 +396,13 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
     collectionEnergies = CudaArray::create<int>(cu, numCollections, "collectionEnergies");
 
     // setup host memory
+    h_rdcRestParams1 = std::vector<float2>(numRDCRestraints, make_float2(0, 0));
+    h_rdcRestParams2 = std::vector<float3>(numRDCRestraints, make_float3(0, 0, 0));
+    h_rdcRestAlignments = std::vector<int>(numRDCRestraints, -1);
+    h_rdcRestAtomIndices = std::vector<int2>(numRDCRestraints, make_int2(-1, -1));
+    h_rdcRestGlobalIndices = std::vector<int>(numRDCRestraints, -1);
+    h_rdcRestAlignmentComponents = std::vector<float>(5 * numRDCAlignments, 0.0);
+    h_rdcRestDerivIndices = std::vector<int>(5 * numRDCAlignments, 0);
     h_distanceRestRParams = std::vector<float4>(numDistRestraints, make_float4(0, 0, 0, 0));
     h_distanceRestKParams = std::vector<float>(numDistRestraints, 0);
     h_distanceRestAtomIndices = std::vector<int2>(numDistRestraints, make_int2(-1, -1));
@@ -418,7 +465,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
  */
 
 void checkAtomIndex(const int numAtoms, const std::string &restType, const int atomIndex,
-                    const int restIndex, const int globalIndex, const bool allowNegativeOne = true)
+                    const int restIndex, const int globalIndex, const bool allowNegativeOne = false)
 {
     bool bad = false;
     if (allowNegativeOne)
@@ -561,6 +608,86 @@ void checkAllAssigned(const std::vector<int> &assigned, const std::string &type1
             m << type1 << " with index " << index << " is not assigned to a " << type2 << ".";
             throw OpenMMException(m.str());
         }
+    }
+}
+
+void CudaCalcMeldForceKernel::setupRDCRestraints(const MeldForce &force)
+{
+    rdcScaleFactor = force.getRDCScaleFactor();
+    int numAtoms = system.getNumParticles();
+    std::string restType = "RDC restraint";
+    for (int i = 0; i < numRDCRestraints; ++i)
+    {
+        int atom1, atom2, alignment, global_index;
+        float kappa, obs, tol, quad_cut, force_constant;
+        force.getRDCRestraintParameters(i, atom1, atom2, alignment,
+                                        kappa, obs,
+                                        tol, quad_cut, force_constant,
+                                        global_index);
+        checkAtomIndex(numAtoms, restType, atom1, i, global_index, true);
+        checkAtomIndex(numAtoms, restType, atom2, i, global_index, true);
+        checkForceConstant(force_constant, restType, i, global_index);
+        if (alignment < 0)
+        {
+            throw OpenMMException("Alignment tensor index must be >= 0");
+        }
+        if (alignment >= force.getNumRDCAlignments())
+        {
+            throw OpenMMException("Alignment tensor index must be < number of alignment tensors");
+        }
+
+        h_rdcRestParams1[i] = make_float2(kappa, obs);
+        h_rdcRestParams2[i] = make_float3(tol, quad_cut, force_constant);
+        h_rdcRestAtomIndices[i] = make_int2(atom1, atom2);
+        h_rdcRestAlignments[i] = alignment;
+        h_rdcRestGlobalIndices[i] = global_index;
+    }
+}
+
+int match_param_name(std::string target, const vector<string> &names)
+{
+    for (int i = 0; i < names.size(); i++)
+    {
+        if (names[i] == target)
+        {
+            return i;
+        }
+    }
+    throw OpenMMException("Could not find parameter derivative index.");
+}
+
+void CudaCalcMeldForceKernel::setupRDCDerivIndices()
+{
+    // Add all of our custom parameters
+    for (int i = 0; i < numRDCAlignments; i++)
+    {
+        std::string base = "rdc_" + std::to_string(i);
+        cu.addEnergyParameterDerivative(base + "_s1");
+        cu.addEnergyParameterDerivative(base + "_s2");
+        cu.addEnergyParameterDerivative(base + "_s3");
+        cu.addEnergyParameterDerivative(base + "_s4");
+        cu.addEnergyParameterDerivative(base + "_s5");
+    }
+
+    // Get all of the parameter names
+    const vector<string> &names = cu.getEnergyParamDerivNames();
+
+    // Figure out which parameter corresponds to each name
+    int count = 0;
+    for (int i = 0; i < numRDCAlignments; i++)
+    {
+        std::string base = "rdc_" + std::to_string(i);
+        for (int j = 1; j < 6; j++)
+        {
+            std::string suffix = "_s" + std::to_string(j);
+            int index = match_param_name(base + suffix, names);
+            h_rdcRestDerivIndices[count] = index;
+            count += 1;
+        }
+    }
+    if (numRDCAlignments > 0)
+    {
+        rdcRestDerivIndices->upload(h_rdcRestDerivIndices);
     }
 }
 
@@ -792,7 +919,7 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce &force)
             }
 
             // compute the eigen values
-            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> > es(precision);
+            Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>> es(precision);
             auto eigenvalues = es.eigenvalues();
 
             // check that precision is positive definite
@@ -1063,6 +1190,21 @@ int CudaCalcMeldForceKernel::calcSizeGMMData(const MeldForce &force)
 
 void CudaCalcMeldForceKernel::validateAndUpload()
 {
+    if (numRDCRestraints > 0)
+    {
+        rdcRestParams1->upload(h_rdcRestParams1);
+        rdcRestParams2->upload(h_rdcRestParams2);
+        rdcRestAtomIndices->upload(h_rdcRestAtomIndices);
+        rdcRestGlobalIndices->upload(h_rdcRestGlobalIndices);
+        rdcRestAlignmentComponents->upload(h_rdcRestAlignmentComponents);
+    }
+
+    if (numRDCAlignments > 0)
+    {
+        rdcRestAlignments->upload(h_rdcRestAlignments);
+        rdcRestDerivIndices->upload(h_rdcRestDerivIndices);
+    }
+
     if (numDistRestraints > 0)
     {
         distanceRestRParams->upload(h_distanceRestRParams);
@@ -1155,6 +1297,8 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     cu.setAsCurrent();
 
     allocateMemory(force);
+    setupRDCDerivIndices();
+    setupRDCRestraints(force);
     setupDistanceRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
@@ -1170,6 +1314,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     std::map<std::string, std::string> defines;
     defines["NUM_ATOMS"] = cu.intToString(cu.getNumAtoms());
     defines["PADDED_NUM_ATOMS"] = cu.intToString(cu.getPaddedNumAtoms());
+    defines["NUM_DERIVS"] = cu.intToString(cu.getEnergyParamDerivNames().size());
 
     // This should be determined by hardware, rather than hard-coded.
     const int maxThreadsPerGroup = 1024;
@@ -1192,6 +1337,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     replacements["GROUPS_PER_THREAD"] = cu.intToString(groupsPerThread);
 
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
+    computeRDCRestKernel = cu.getKernel(module, "computeRDCRest");
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
     computeHyperbolicDistRestKernel = cu.getKernel(module, "computeHyperbolicDistRest");
     computeTorsionRestKernel = cu.getKernel(module, "computeTorsionRest");
@@ -1202,6 +1348,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     evaluateAndActivateKernel = cu.getKernel(module, "evaluateAndActivate");
     evaluateAndActivateCollectionsKernel = cu.getKernel(module, "evaluateAndActivateCollections");
     applyGroupsKernel = cu.getKernel(module, "applyGroups");
+    applyRDCRestKernel = cu.getKernel(module, "applyRDCRest");
     applyDistRestKernel = cu.getKernel(module, "applyDistRest");
     applyHyperbolicDistRestKernel = cu.getKernel(module, "applyHyperbolicDistRest");
     applyTorsionRestKernel = cu.getKernel(module, "applyTorsionRest");
@@ -1215,6 +1362,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
 void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl &context, const MeldForce &force){
     cu.setAsCurrent();
 
+    setupRDCRestraints(force);
     setupDistanceRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
@@ -1229,6 +1377,25 @@ void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl &context, cons
     cu.invalidateMolecules();
 }
 
+void CudaCalcMeldForceKernel::updateRDCGlobalParameters(ContextImpl &context)
+{
+    for (int i = 0; i < numRDCAlignments; i++)
+    {
+        std::string base = "rdc_" + std::to_string(i);
+        float s1 = context.getParameter(base + "_s1");
+        float s2 = context.getParameter(base + "_s2");
+        float s3 = context.getParameter(base + "_s3");
+        float s4 = context.getParameter(base + "_s4");
+        float s5 = context.getParameter(base + "_s5");
+        h_rdcRestAlignmentComponents[5 * i + 0] = s1;
+        h_rdcRestAlignmentComponents[5 * i + 1] = s2;
+        h_rdcRestAlignmentComponents[5 * i + 2] = s3;
+        h_rdcRestAlignmentComponents[5 * i + 3] = s4;
+        h_rdcRestAlignmentComponents[5 * i + 4] = s5;
+    }
+    rdcRestAlignmentComponents->upload(h_rdcRestAlignmentComponents);
+}
+
 double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces, bool includeEnergy)
 {
     // double tmp_e = 1 ;
@@ -1237,6 +1404,25 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
     //     tmp_e = context.getOwner().getState(State::Energy).getPotentialEnergy();
     //     cout << "tmp_e" << tmp_e << endl;}
     // compute the forces and energies
+    if (numRDCRestraints > 0)
+    {
+        updateRDCGlobalParameters(context);
+        void *rdcArgs[] = {
+            &cu.getPosq().getDevicePointer(),
+            &rdcRestAtomIndices->getDevicePointer(),
+            &rdcRestParams1->getDevicePointer(),
+            &rdcRestParams2->getDevicePointer(),
+            &rdcScaleFactor,
+            &rdcRestAlignments->getDevicePointer(),
+            &rdcRestAlignmentComponents->getDevicePointer(),
+            &rdcRestGlobalIndices->getDevicePointer(),
+            &restraintEnergies->getDevicePointer(),
+            &rdcRestForces->getDevicePointer(),
+            &rdcRestDerivs->getDevicePointer(),
+            &numRDCRestraints};
+        cu.executeKernel(computeRDCRestKernel, rdcArgs, numRDCRestraints);
+    }
+
     if (numDistRestraints > 0)
     {
         void *distanceArgs[] = {
@@ -1398,6 +1584,24 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
     cu.executeKernel(applyGroupsKernel, applyGroupsArgs, 32 * numGroups, 32);
 
     // Now apply the forces and energies if the restraints are active
+    if (numRDCRestraints > 0)
+    {
+        void *applyRDCArgs[] = {
+            &cu.getForce().getDevicePointer(),
+            &cu.getEnergyBuffer().getDevicePointer(),
+            &cu.getEnergyParamDerivBuffer().getDevicePointer(),
+            &rdcRestAtomIndices->getDevicePointer(),
+            &rdcRestAlignments->getDevicePointer(),
+            &rdcRestGlobalIndices->getDevicePointer(),
+            &rdcRestForces->getDevicePointer(),
+            &rdcRestDerivs->getDevicePointer(),
+            &rdcRestDerivIndices->getDevicePointer(),
+            &restraintEnergies->getDevicePointer(),
+            &restraintActive->getDevicePointer(),
+            &numRDCRestraints};
+        cu.executeKernel(applyRDCRestKernel, applyRDCArgs, numRDCRestraints);
+    }
+
     if (numDistRestraints > 0)
     {
         void *applyDistRestArgs[] = {

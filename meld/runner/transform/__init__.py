@@ -27,7 +27,7 @@ from meld.system import restraints
 from meld.system import param_sampling
 from meld.system import mapping
 from meld.system import density
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 from typing import List
@@ -67,6 +67,7 @@ class TransformerBase:
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
@@ -76,6 +77,7 @@ class TransformerBase:
 
         Args:
             param_manager: parameter manager to handle sampling of paramters
+            builder_info: information from the system builder / patcher
             options: the options for the runner
             always_active_restraints: these restraints are always active
             selectively_active_collections: these restraints are selected by the MELD algorithm
@@ -147,7 +149,6 @@ class TransformerBase:
 
 
 from meld.runner.transform.restraints.confinement import ConfinementRestraintTransformer
-from meld.runner.transform.restraints.rdc import RDCRestraintTransformer
 from meld.runner.transform.restraints.cartesian import (
     CartesianRestraintTransformer,
     YZCartesianTransformer,
@@ -158,4 +159,3 @@ from meld.runner.transform.restraints.com import (
 )
 from meld.runner.transform.restraints.meld import MeldRestraintTransformer
 from meld.runner.transform.rest2 import REST2Transformer
-from meld.runner.transform.cmap import CMAPTransformer

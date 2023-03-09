@@ -23,9 +23,11 @@ class OPENMM_EXPORT_MELD MeldForce : public OpenMM::Force {
 
 public:
     /**
-     * Default constructor
+     * Constructors
      */
      MeldForce();
+
+     MeldForce(int numRDCAlignments, float rdcScaleFactor);
 
     /**
      * Update the per-restraint parameters in a Context to match those stored in this Force object.  This method provides
@@ -41,9 +43,24 @@ public:
     void updateParametersInContext(OpenMM::Context& context);
 
     /**
+     * @return The number of RDC alignment tensors in this force.
+     */ 
+    int getNumRDCAlignments() const;
+
+    /**
+     * @return The RDC scale factor.
+     */
+    float getRDCScaleFactor() const;
+
+    /**
      * @return A bool indicating if particle is involved in MELD force
      */
     bool containsParticle(int particle) const;
+
+    /**
+     * @return The number of RDC restraints.
+     */
+    int getNumRDCRestraints() const;
 
     /**
      * @return The number of distance restraints.
@@ -109,6 +126,24 @@ public:
      * @return The number of collections of restraint groups.
      */
     int getNumCollections() const;
+
+    /**
+     * Get the parameters of an RDC restraint.
+     *
+     * @param index the index to retrieve
+     * @param particle1 the first particle in the RDC
+     * @param particle2 the second particle in the RDC
+     * @param alignment the index of the alignment tensor to use
+     * @param kappa the kappa parameter in Hz nm^3
+     * @param obs the observed dipolar coupling in Hz
+     * @param tol the tolerance in Hz
+     * @param quad_cut number of Hz for transition from quadratic to linear
+     * @param force_constant the force constant in kJ mol^-1 Hz^-2
+     * @param globalIndex the global index of the restraint
+     */
+    void getRDCRestraintParameters(int index, int& particle1, int& particle2, int& alignment,
+                                   float& kappa, float& obs, float& tol, float& quad_cut, float& force_constant,
+                                   int& globalIndex) const;
 
     /**
      * Get the parameters for a distance restraint. See addDistanceRestraint()
@@ -258,6 +293,33 @@ public:
                             std::vector<double>& gridpos_y,
                             std::vector<double>& gridpos_z,
                             int& globalIndex) const;
+    /**
+     * @param particle1 the first particle in the RDC
+     * @param particle2 the second particle in the RDC
+     * @param alignment the index of the alignment tensor to use
+     * @param kappa the kappa parameter in Hz nm^3
+     * @param obs the observed dipolar coupling in Hz
+     * @param tol the tolerance in Hz
+     * @param quad_cut number of Hz for transition from quadratic to linear
+     * @param force_constant the force constant in kJ mol^-1 Hz^-2
+     * @return the index of the restraint that was created
+     */
+    int addRDCRestraint(int particle1, int particle2, int alignment,
+                        float kappa, float obs, float tol, float quad_cut, float force_constant);
+
+    /**
+     * @param index the index of the restraint to modify
+     * @param particle1 the first particle in the RDC
+     * @param particle2 the second particle in the RDC
+     * @param alignment the index of the alignment tensor to use
+     * @param kappa the kappa parameter in Hz nm^3
+     * @param obs the observed dipolar coupling in Hz
+     * @param tol the tolerance in Hz
+     * @param quad_cut number of Hz for transition from quadratic to linear
+     * @param force_constant the force constant in kJ mol^-1 Hz^-2
+     */
+    void modifyRDCRestraint(int index, int particle1, int particle2, int alignment,
+                            float kappa, float obs, float tol, float quad_cut, float force_constant);
     /**
      * Create a new distance restraint.
      * There are five regions:
@@ -644,8 +706,9 @@ protected:
     OpenMM::ForceImpl* createImpl() const;
 
 private:
-    class TorsionRestraintInfo;
+    class RDCRestraintInfo;
     class DistanceRestraintInfo;
+    class TorsionRestraintInfo;
     class HyperbolicDistanceRestraintInfo;
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
@@ -655,6 +718,9 @@ private:
     class GroupInfo;
     class CollectionInfo;
     int n_restraints;
+    int n_rdc_alignments;
+    float rdcScaleFactor;
+    std::vector<RDCRestraintInfo> rdcRestraints;
     std::vector<DistanceRestraintInfo> distanceRestraints;
     std::vector<HyperbolicDistanceRestraintInfo> hyperbolicDistanceRestraints;
     std::vector<TorsionRestraintInfo> torsions;
@@ -668,6 +734,29 @@ private:
     std::set<int> meldParticleSet;
     bool isDirty;
     void updateMeldParticleSet();
+
+    class RDCRestraintInfo {
+    public:
+        int particle1, particle2;
+        int alignment;
+        float kappa, obs;
+        float tol, quad_cut, force_constant;
+        int global_index;
+
+        RDCRestraintInfo() {
+            particle1 = particle2 = alignment = -1;
+            kappa = obs = tol = quad_cut = force_constant = 0.0;
+            global_index = -1;
+        }
+
+        RDCRestraintInfo(int particle1, int particle2, int alignment,
+                         float kappa, float obs, float tol, float quad_cut, float force_constant,
+                         int global_index):
+            particle1(particle1), particle2(particle2), alignment(alignment),
+            kappa(kappa), obs(obs), tol(tol), quad_cut(quad_cut), force_constant(force_constant),
+            global_index(global_index) {
+        }
+    };
 
     class DistanceRestraintInfo {
     public:

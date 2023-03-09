@@ -19,10 +19,13 @@ from meld.system import mapping
 from meld.system import density
 from meld.runner import transform
 
-from simtk import openmm as mm  # type: ignore
+import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
 from typing import List
+
+
+FORCE_GROUP = 3
 
 
 class ConfinementRestraintTransformer(transform.TransformerBase):
@@ -37,11 +40,13 @@ class ConfinementRestraintTransformer(transform.TransformerBase):
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
         density_manager: density.DensityManager,
+        builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
         selectively_active_restraints: List[restraints.SelectivelyActiveCollection],
     ) -> None:
-        self.use_pbc = options.solvation == "explicit"
+        self.use_pbc = builder_info.get("solvation", "implicit") == "explicit"
+
         self.restraints = [
             r
             for r in always_active_restraints
@@ -76,6 +81,7 @@ class ConfinementRestraintTransformer(transform.TransformerBase):
             for r in self.restraints:
                 weight = r.force_const
                 confinement_force.addParticle(r.atom_index, [r.radius, weight])
+            confinement_force.setForceGroup(FORCE_GROUP)
             system.addForce(confinement_force)
             self.force = confinement_force
 

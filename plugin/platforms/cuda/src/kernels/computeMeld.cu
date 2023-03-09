@@ -40,6 +40,188 @@ __device__ void computeTorsionForce(const float dEdPhi, const float3& r_ij, cons
 }
 
 
+extern "C" __global__ void computeRDCRest(
+    const real4* __restrict__ posq,
+    const int2* __restrict__ atomIndices,
+    const float2* __restrict__ params1,
+    const float3* __restrict__ params2,
+    const float scaleFactor,
+    const int* __restrict__ alignments,
+    const float* __restrict__ tensorComponents,
+    const int* __restrict__ globalIndices,
+    float* __restrict__ energies,
+    float3* __restrict__ forceBuffer,
+    float* __restrict__ derivBuffer,
+    int numRestraints
+) {
+    for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
+        // Unpack parameters
+        int globalIndex = globalIndices[index];
+        int atom1 = atomIndices[index].x;
+        int atom2 = atomIndices[index].y;
+        float kappa = params1[index].x;
+        float obs = params1[index].y;
+        float tol = params2[index].x;
+        float quadCut = params2[index].y;
+        float forceConstant = params2[index].z;
+
+        // Unpack the alignment tensor components for this restraint
+        int alignment = alignments[index];
+        float s1 = tensorComponents[alignment * 5 + 0];
+        float s2 = tensorComponents[alignment * 5 + 1];
+        float s3 = tensorComponents[alignment * 5 + 2];
+        float s4 = tensorComponents[alignment * 5 + 3];
+        float s5 = tensorComponents[alignment * 5 + 4];
+
+        if (atom1 == -1)
+        {
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to the maximum float value,
+            // so that this restraint will not be selected during
+            // sorting when the groups are evaluated. Later,
+            // when we apply restraints, this restraint will be
+            // applied with an energy of zero should it be selected.
+            float3 f;
+            f.x = 0.0;
+            f.y = 0.0;
+            f.z = 0.0;
+            forceBuffer[index] = f;
+            energies[globalIndex] = FLT_MAX;
+            derivBuffer[5 * index + 0] = 0.0;
+            derivBuffer[5 * index + 1] = 0.0;
+            derivBuffer[5 * index + 2] = 0.0;
+            derivBuffer[5 * index + 3] = 0.0;
+            derivBuffer[5 * index + 4] = 0.0;
+        }
+        else
+        {
+            real4 delta = posq[atom1] - posq[atom2];
+            float x = delta.x;
+            float y = delta.y;
+            float z = delta.z;
+            float x2 = x * x;
+            float y2 = y * y;
+            float z2 = z * z;
+            float r2 = x2 + y2 + z2;
+            float r = SQRT(r2);
+            float r5 = r2 * r2 * r;
+            float r7 = r5 * r2;
+
+            float pre = kappa / r5;
+            float c1 = scaleFactor * (x2 - y2);
+            float c2 = scaleFactor * (2 * z2 - x2 - y2);
+            float c3 = scaleFactor * (x * y);
+            float c4 = scaleFactor * (x * z);
+            float c5 = scaleFactor * (y * z);
+
+            float calc = pre * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5);
+            float dcalc_ds1 = pre * c1;
+            float dcalc_ds2 = pre * c2;
+            float dcalc_ds3 = pre * c3;
+            float dcalc_ds4 = pre * c4;
+            float dcalc_ds5 = pre * c5;
+            float dcalc_dx = -kappa * x / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 2 * scaleFactor * s1 * x -
+                                 2 * scaleFactor * s2 * x +
+                                 scaleFactor * s3 * y +
+                                 scaleFactor * s4 * z
+                             );
+            float dcalc_dy = -kappa * y / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 -2 * scaleFactor * s1 * y -
+                                 2 * scaleFactor * s2 * y +
+                                 scaleFactor * s3 * x +
+                                 scaleFactor * s5 * z
+                             );
+            float dcalc_dz = -kappa * z / r7 * (s1 * c1 + s2 * c2 + s3 * c3 + s4 * c4 + s5 * c5) +
+                             pre * (
+                                 2 * scaleFactor * s2 * z +
+                                 scaleFactor * s4 * x +
+                                 scaleFactor * s5 * y
+                             );
+
+            float energy, dx, dy, dz, ds1, ds2, ds3, ds4, ds5;
+            if (calc < obs - tol - quadCut)
+            {
+                energy = -forceConstant * quadCut * (calc - obs + tol + quadCut) +
+                         0.5 * forceConstant * quadCut * quadCut;
+                dx = -forceConstant * quadCut * dcalc_dx;
+                dy = -forceConstant * quadCut * dcalc_dy;
+                dz = -forceConstant * quadCut * dcalc_dz;
+                ds1 = -forceConstant * quadCut * dcalc_ds1;
+                ds2 = -forceConstant * quadCut * dcalc_ds2;
+                ds3 = -forceConstant * quadCut * dcalc_ds3;
+                ds4 = -forceConstant * quadCut * dcalc_ds4;
+                ds5 = -forceConstant * quadCut * dcalc_ds5;
+            }
+            else if (calc < obs - tol)
+            {
+                energy = 0.5 * forceConstant * (calc - obs + tol) * (calc - obs + tol);
+                dx = forceConstant * (calc - obs + tol) * dcalc_dx;
+                dy = forceConstant * (calc - obs + tol) * dcalc_dy;
+                dz = forceConstant * (calc - obs + tol) * dcalc_dz;
+                ds1 = forceConstant * (calc - obs + tol) * dcalc_ds1;
+                ds2 = forceConstant * (calc - obs + tol) * dcalc_ds2;
+                ds3 = forceConstant * (calc - obs + tol) * dcalc_ds3;
+                ds4 = forceConstant * (calc - obs + tol) * dcalc_ds4;
+                ds5 = forceConstant * (calc - obs + tol) * dcalc_ds5;
+            }
+            else if (calc < obs + tol)
+            {
+                energy = 0;
+                dx = 0;
+                dy = 0;
+                dz = 0;
+                ds1 = 0;
+                ds2 = 0;
+                ds3 = 0;
+                ds4 = 0;
+                ds5 = 0;
+            }
+            else if (calc < obs + tol + quadCut)
+            {
+                energy = 0.5 * forceConstant * (calc - obs - tol) * (calc - obs - tol);
+                dx = forceConstant * (calc - obs - tol) * dcalc_dx;
+                dy = forceConstant * (calc - obs - tol) * dcalc_dy;
+                dz = forceConstant * (calc - obs - tol) * dcalc_dz;
+                ds1 = forceConstant * (calc - obs - tol) * dcalc_ds1;
+                ds2 = forceConstant * (calc - obs - tol) * dcalc_ds2;
+                ds3 = forceConstant * (calc - obs - tol) * dcalc_ds3;
+                ds4 = forceConstant * (calc - obs - tol) * dcalc_ds4;
+                ds5 = forceConstant * (calc - obs - tol) * dcalc_ds5;
+            }
+            else
+            {
+                energy = forceConstant * quadCut * (calc - obs - tol - quadCut) +
+                         0.5 * forceConstant * quadCut * quadCut;
+                dx = forceConstant * quadCut * dcalc_dx;
+                dy = forceConstant * quadCut * dcalc_dy;
+                dz = forceConstant * quadCut * dcalc_dz;
+                ds1 = forceConstant * quadCut * dcalc_ds1;
+                ds2 = forceConstant * quadCut * dcalc_ds2;
+                ds3 = forceConstant * quadCut * dcalc_ds3;
+                ds4 = forceConstant * quadCut * dcalc_ds4;
+                ds5 = forceConstant * quadCut * dcalc_ds5;
+            }
+
+            float3 f;
+            f.x = dx;
+            f.y = dy;
+            f.z = dz;
+            forceBuffer[index] = f;
+            energies[globalIndex] = energy;
+            derivBuffer[5 * index + 0] = ds1;
+            derivBuffer[5 * index + 1] = ds2;
+            derivBuffer[5 * index + 2] = ds3;
+            derivBuffer[5 * index + 3] = ds4;
+            derivBuffer[5 * index + 4] = ds5;
+        }
+    }
+}
+
+
 extern "C" __global__ void computeDistRest(
                             const real4* __restrict__ posq,             // positions and charges
                             const int2* __restrict__ atomIndices,       // pair of atom indices
@@ -870,6 +1052,67 @@ extern "C" __global__ void applyGroups(
     }
 }
 
+extern "C" __global__ void applyRDCRest(
+    unsigned long long* __restrict__ force,
+    mixed* __restrict__ energyBuffer,
+    mixed* __restrict__ derivBuffer,
+    const int2* __restrict__ rdcRestAtomIndices,
+    const int* __restrict__ rdcRestAlignments,
+    const int* __restrict__ rdcRestGlobalIndices,
+    const float3* __restrict__ rdcRestForces,
+    const float* __restrict__ rdcRestDerivs,
+    const int* __restrict__ derivIndices,
+    const float* __restrict__ rdcRestEnergies,
+    const float* __restrict__ restraintActive,
+    int numRDCRestraints
+) {
+    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    float energyAccum = 0.0;
+
+    for (int i=blockIdx.x*blockDim.x+threadIdx.x; i<numRDCRestraints; i+=blockDim.x*gridDim.x)
+    {
+        int index = rdcRestGlobalIndices[i];
+        if (restraintActive[index])
+        {
+            if (rdcRestAtomIndices[i].x == -1)
+            {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            }
+            else {
+                energyAccum += rdcRestEnergies[index];
+
+                float fx = rdcRestForces[i].x;
+                float fy = rdcRestForces[i].y;
+                float fz = rdcRestForces[i].z;
+                float ds1 = rdcRestDerivs[5 * i + 0];
+                float ds2 = rdcRestDerivs[5 * i + 1];
+                float ds3 = rdcRestDerivs[5 * i + 2];
+                float ds4 = rdcRestDerivs[5 * i + 3];
+                float ds5 = rdcRestDerivs[5 * i + 4];
+                int atom1 = rdcRestAtomIndices[i].x;
+                int atom2 = rdcRestAtomIndices[i].y;
+
+                atomicAdd(&force[atom1], static_cast<unsigned long long>((long long) (-fx*0x100000000)));
+                atomicAdd(&force[atom1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-fy*0x100000000)));
+                atomicAdd(&force[atom1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-fz*0x100000000)));
+
+                atomicAdd(&force[atom2], static_cast<unsigned long long>((long long) (fx*0x100000000)));
+                atomicAdd(&force[atom2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (fy*0x100000000)));
+                atomicAdd(&force[atom2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (fz*0x100000000)));
+
+                // Update parameter derivatives
+                int alignment = rdcRestAlignments[i];
+                derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 0]] += ds1;
+                derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 1]] += ds2;
+                derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 2]] += ds3;
+                derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 3]] += ds4;
+                derivBuffer[threadIndex * NUM_DERIVS + derivIndices[5 * alignment + 4]] += ds5;
+            }
+        }
+    }
+    energyBuffer[threadIndex] += energyAccum;
+}
 
 extern "C" __global__ void applyDistRest(
                                 unsigned long long * __restrict__ force,
@@ -1143,29 +1386,6 @@ extern "C" __global__ void applyGMMRest(unsigned long long * __restrict__ force,
             }
         }
     }
-
-
-    // int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    // float energyAccum = 0.0;
-
-    // for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numDistRestraints; restraintIndex+=blockDim.x*gridDim.x) {
-    //     int globalIndex = globalIndices[restraintIndex];
-    //     if (globalActive[globalIndex]) {
-    //         int index1 = atomIndices[restraintIndex].x;
-    //         int index2 = atomIndices[restraintIndex].y;
-    //         energyAccum += globalEnergies[globalIndex];
-    //         float3 f = restForces[restraintIndex];
-
-    //         atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
-    //         atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
-    //         atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
-
-    //         atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
-    //         atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
-    //         atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
-    //     }
-    // }
-    // energyBuffer[threadIndex] += energyAccum;
 }
 
 

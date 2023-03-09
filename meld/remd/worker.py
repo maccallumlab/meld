@@ -8,6 +8,11 @@ A module for replica exchange workers
 """
 
 from meld import interfaces
+import numpy as np
+from typing import Sequence
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerReplicaExchangeRunner:
@@ -46,32 +51,68 @@ class WorkerReplicaExchangeRunner:
             communicator: a communicator object for talking to the leader
             system_runner: a system runner object for actually running the simulations
         """
+        # Check that the number of replicas is divisible by the number of workers.
+        if communicator.n_replicas % communicator.n_workers:
+            raise ValueError(
+                "The number of replicas must be divisible by the number of workers."
+            )
+
         # we always minimize when we first start, either on the first
         # stage or the first stage after a restart
         minimize = True
+
         while self._step <= self._max_steps:
+            logger.info(
+                "Running replica exchange step %d of %d.", self._step, self._max_steps
+            )
+
             # update simulation conditions
-            state = communicator.receive_state_from_leader()
-            new_alpha = communicator.receive_alpha_from_leader()
+            states = communicator.receive_states_from_leader()
+            alphas = communicator.receive_alphas_from_leader()
 
-            state.alpha = new_alpha
+            # Loop over each state and alpha running the simulation
+            for i, (state, alpha) in enumerate(zip(states, alphas)):
+                state.alpha = alpha
 
-            system_runner.prepare_for_timestep(state, new_alpha, self._step)
+                logger.info("Running Hamiltonian %d of %d", i + 1, len(states))
+                system_runner.prepare_for_timestep(state, alpha, self._step)
 
-            # do one round of simulation
-            if minimize:
-                state = system_runner.minimize_then_run(state)
-                minimize = False  # we don't need to minimize again
-            else:
-                state = system_runner.run(state)
+                # do one round of simulation
+                if minimize:
+                    logger.info("First step, minimizing and then running.")
+                    state = system_runner.minimize_then_run(state)
+                else:
+                    logger.info("Running molecular dynamics.")
+                    state = system_runner.run(state)
 
-            # compute energies
-            states = communicator.exchange_states_for_energy_calc(state)
+                states[i] = state
 
-            energies = []
-            for state in states:
-                energy = system_runner.get_energy(state)
-                energies.append(energy)
+            minimize = False  # we don't need to minimize again
+
+            # Communicate the results back to the leader
+            communicator.send_states_to_leader(states)
+
+            # Get all of the states so that we can evaluate their
+            # energies with our hamiltonians.
+            all_states = communicator.receive_all_states_from_leader()
+            energies = self._compute_energies(states, all_states, system_runner)
             communicator.send_energies_to_leader(energies)
 
             self._step += 1
+
+    def _compute_energies(
+        self,
+        hamiltonian_states: Sequence[interfaces.IState],
+        all_states: Sequence[interfaces.IState],
+        system_runner: interfaces.IRunner,
+    ) -> np.ndarray:
+        energies = []
+        for hamiltonian in hamiltonian_states:
+            hamiltonian_energies = []
+            for state in all_states:
+                system_runner.prepare_for_timestep(state, hamiltonian.alpha, self._step)
+                energy = system_runner.get_energy(state)
+                hamiltonian_energies.append(energy)
+            energies.append(hamiltonian_energies)
+
+        return np.array(energies)

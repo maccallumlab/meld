@@ -11,7 +11,6 @@ Functions to read in sequences, secondary structures, and RDCs
 from meld import interfaces
 from meld.system import scalers
 from meld.system import restraints
-from meld.system import patchers
 from meld.system import indexing
 from openmm import unit as u  # type: ignore
 
@@ -87,7 +86,7 @@ def get_sequence_from_AA1(
     Returns:
         string representation that can be used to create a :class:`SubSystem`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
@@ -146,7 +145,7 @@ def get_sequence_from_AA3(
     Returns:
         string representation that can be used to create a :class:`SubSystem`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file
     """
     contents = _handle_arguments(filename, content, file)
@@ -206,7 +205,7 @@ def get_secondary_structure_restraints(
     Returns
         A list of :class:`RestraintGroups`
 
-    .. note::
+    Note:
        Specify exactly one of filename, contents, file.
     """
 
@@ -456,11 +455,10 @@ def _handle_arguments(
 
 def get_rdc_restraints(
     system: interfaces.ISystem,
-    patcher: patchers.RdcAlignmentPatcher,
+    alignment_index: int,
     scaler: restraints.RestraintScaler,
     ramp: Optional[restraints.TimeRamp] = None,
     quadratic_cut: Optional[u.Quantity] = None,
-    scale_factor: float = 1.0e4,
     filename: Optional[str] = None,
     content: Optional[str] = None,
     file: Optional[TextIO] = None,
@@ -470,11 +468,10 @@ def get_rdc_restraints(
 
     Args:
         system: the system object for the restraints to be added to.
-        patcher: the patcher that was used to add alignment tensor dummy atoms
+        alignment_index: index of the alignment tensor to use
         scaler: object to scale the force constant.
         ramp: ramp, default is ConstantRamp()
         quadratic_cut: restraints become linear beyond this deviation, default 999 Hz
-        scale_factor: scale factor for kappa and alignment tensor
         filename : filename to open
         content : contents to process
         file : object to read from
@@ -482,23 +479,37 @@ def get_rdc_restraints(
     Returns:
         list of restraints from input
 
-    .. note::
-       The value of `kappa` will be scaled down by `scale_factor`. This will
-       result in the alignment tensor being scaled up by `scale_factor`.
-       Ideally, the largest values of the scaled alignment tensor should be
-       approximately 1. As typical values of the alignment are on the order
-       of 1e-4, the default value of 1e4 is a reasonable guess. The value
-       of `scale_factor` must be the same for all experiments that share the
-       same alignment.
+    Note:
+        The value of kappa is assumed to be in units of Hz :math:`Angstrom^3`.
 
-    .. note::
-        The value of kappa is assumed to be in units of Hz A^3.
+    Note:
+        All indexing in the input file is assumed to be 1-based.
+
+    Note:
+        The expected order of columns in the input file is:
+
+        - residue i
+        - atom name i
+        - residue j
+        - atom name j
+        - observed splitting (:math:`Hz`)
+        - experiment (ignored)
+        - tolerance (:math:`Hz`)
+        - kappa (:math:`Hz \AA^3`)
+        - force constant (:math:`kJ mol^{-1} Hz^{-2}`)
+        - weight
+
     """
-
     quadratic_cut = 999.0 / u.seconds if quadratic_cut is None else quadratic_cut
 
     if ramp is None:
         ramp = restraints.ConstantRamp()
+
+    n_align = system.num_alignments
+    if alignment_index >= n_align:
+        raise ValueError(
+            f"Alignment index {alignment_index} out of range for system with {n_align} alignments"
+        )
 
     contents = _handle_arguments(filename, content, file)
     lines = contents.splitlines()
@@ -514,7 +525,7 @@ def get_rdc_restraints(
         obs = float(cols[4])
         expt = int(cols[5])
         tolerance = float(cols[6])
-        kappa = float(cols[7]) / scale_factor
+        kappa = float(cols[7])
         force_const = float(cols[8])
         weight = float(cols[9])
 
@@ -533,8 +544,7 @@ def get_rdc_restraints(
             force_const * u.kilojoule_per_mole * u.second ** 2,
             quadratic_cut,
             weight,
-            expt,
-            patcher,
+            alignment_index,
         )
         restraint_list.append(rest)
     return restraint_list
