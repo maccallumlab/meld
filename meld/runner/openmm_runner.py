@@ -52,7 +52,7 @@ class OpenMMRunner(interfaces.IRunner):
         meld_system: interfaces.ISystem,
         options: options.RunOptions,
         communicator: Optional[interfaces.ICommunicator] = None,
-        platform: str = None,
+        platform: Optional[str] = None,
     ):
         self._omm_system = meld_system.omm_system
         self._topology = meld_system.topology
