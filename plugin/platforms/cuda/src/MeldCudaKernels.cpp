@@ -156,13 +156,11 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     gridPotentialgridx = nullptr;
     gridPotentialgridy = nullptr;
     gridPotentialgridz = nullptr;
-    // gridPotentialnxyz = nullptr;
     gridPotentialRestGridPosx = nullptr;
     gridPotentialRestGridPosy = nullptr;
     gridPotentialRestGridPosz = nullptr;
     gridPotentialRestAtomIndices = nullptr;
     gridPotentialRestAtomList = nullptr;
-    // gridPotentialRestGridPotentialIndices = nullptr;
     gridPotentialRestWeights = nullptr;
     gridPotentialRestForces = nullptr;
     gridPotentialRestGlobalIndices = nullptr;
@@ -233,7 +231,6 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel()
     delete gridPotentialgridx;
     delete gridPotentialgridy;
     delete gridPotentialgridz;
-    // delete gridPotentialnxyz;
     delete gridPotentialRestGridPosx;
     delete gridPotentialRestGridPosy;
     delete gridPotentialRestGridPosz;
@@ -360,17 +357,8 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
         gridPotentialgridx = CudaArray::create<float>(cu, calcNumGrids(force).x, "gridPotentialgridx");
         gridPotentialgridy = CudaArray::create<float>(cu, calcNumGrids(force).y, "gridPotentialgridy");
         gridPotentialgridz = CudaArray::create<float>(cu, calcNumGrids(force).z, "gridPotentialgridz");        
-        // gridPotentialnxyz = CudaArray::create<int>(cu, 3, "gridPotentialnxyz");
     }
 
-    // if (numGridPotentialRestraints > 0)
-    // {
-    //     gridPotentialRestAtomIndices = CudaArray::create<int>(cu, numGridPotentialRestraints, "gridPotentialRestAtomIndices");
-    //     gridPotentialRestGridPotentialIndices = CudaArray::create<int>(cu, numGridPotentialRestraints, "gridPotentialRestGridPotentialIndices");
-    //     gridPotentialRestWeights = CudaArray::create<float>(cu, numGridPotentialRestraints, "gridPotentialRestWeights");
-    //     gridPotentialRestForces = CudaArray::create<float3>(cu, numGridPotentialRestraints, "gridPotentialRestForces");
-    //     gridPotentialRestGlobalIndices = CudaArray::create<int>(cu, numGridPotentialRestraints, "gridPotentialRestGlobalIndices");
-    // }
     if (numGridPotentialRestraints > 0) {
         gridPotentialRestAtomIndices            = CudaArray::create<int>    (cu,  calcNumGridPotentialAtoms(force),        "gridPotentialRestAtomIndices");
         gridPotentialRestGridPosx               = CudaArray::create<float>  (cu,  calcNumGrids(force).x,          "gridPotentialRestGridPos");
@@ -439,11 +427,6 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
     h_gridPotentialgridx = std::vector<float>(calcNumGrids(force).x, 0);
     h_gridPotentialgridy = std::vector<float>(calcNumGrids(force).y, 0);
     h_gridPotentialgridz = std::vector<float>(calcNumGrids(force).z, 0);   
-    // h_gridPotentialnxyz = std::vector<int>(3, -1);
-    // h_gridPotentialRestAtomIndices = std::vector<int>(numGridPotentialRestraints, -1);
-    // h_gridPotentialRestWeights = std::vector<float>(numGridPotentialRestraints, 0);
-    // h_gridPotentialRestGridPotentialIndices = std::vector<int>(numGridPotentialRestraints, -1);
-    // h_gridPotentialRestGlobalIndices = std::vector<int>(numGridPotentialRestraints, -1);
     h_gridPotentialRestGridPosx                        = std::vector<float>  (calcNumGrids(force).x, 0);
     h_gridPotentialRestGridPosy                        = std::vector<float>  (calcNumGrids(force).y, 0);
     h_gridPotentialRestGridPosz                        = std::vector<float>  (calcNumGrids(force).z, 0);
@@ -950,45 +933,7 @@ void CudaCalcMeldForceKernel::setupGMMRestraints(const MeldForce &force)
     }
 }
 
-// void CudaCalcMeldForceKernel::setupGridPotentialRestraints(const MeldForce &force)
-// {
-//     int numAtoms = system.getNumParticles();
-//     std::string restType = "density restraint";
-//     for (int d = 0; d < numGridPotentials; ++d) {
-//         int nx,ny,nz;
-//         float originx, originy, originz, gridx, gridy, gridz;
-//         std::vector<double> potential;
-//         force.getGridPotentialParams(d, potential,originx,originy,originz,
-//                                     gridx,gridy,gridz,nx,ny,nz);
-//         for (int i = 0; i < nx; ++i) {
-//             h_gridPotentialgridx[i] = originx+i*gridx;
-//         }
-//         for (int i = 0; i < ny; ++i) {
-//             h_gridPotentialgridy[i] = originy+i*gridy;
-//         }
-//         for (int i = 0; i < nz; ++i) {
-//             h_gridPotentialgridz[i] = originz+i*gridz;
-//         }
-//         for (int i = 0; i < nx*ny*nz; ++i) {
-//             h_gridPotentials[d*nx*ny*nz+i] = potential[i];
-//         }
-//         // cout << "h_gridPotentials: " << h_gridPotentials[4000] << endl;
-//         h_gridPotentialnxyz[0] = nx;
-//         h_gridPotentialnxyz[1] = ny;
-//         h_gridPotentialnxyz[2] = nz;
-//     }
-//     // cout << "numGridPotentialRestraints: " << numGridPotentialRestraints << endl;
-//     for (int i = 0; i < numGridPotentialRestraints; i++)
-//     {
-//         int particle, global_index, potentialGridIndex;
-//         float strength;
-//         force.getGridPotentialRestraintParams(i, particle, potentialGridIndex, strength, global_index);
-//         h_gridPotentialRestAtomIndices[i] = particle;
-//         h_gridPotentialRestGridPotentialIndices[i] = potentialGridIndex;
-//         h_gridPotentialRestGlobalIndices[i] = global_index;
-//         h_gridPotentialRestWeights[i] = system.getParticleMass(particle);
-//     }
-// }
+
 void CudaCalcMeldForceKernel::setupGridPotentialRestraints(const MeldForce &force)
 {
     // the current script supports multiple gridPotentialRest restraints with corresponding density maps,
@@ -1096,19 +1041,6 @@ void CudaCalcMeldForceKernel::setupCollections(const MeldForce &force)
     checkAllAssigned(groupAssigned, "Group", "Collection");
 }
 
-// int3 CudaCalcMeldForceKernel::calcNumGrids(const MeldForce &force)
-// {
-//     int nx, ny, nz;
-//     float originx, originy, originz, gridx, gridy, gridz;
-//     std::vector<double> potential;
-//     if (numGridPotentialRestraints > 0) {
-//         force.getGridPotentialParams(0, potential, originx, originy, originz, gridx, gridy, gridz, nx, ny, nz);
-//     }
-//     else {
-//         nx = ny = nz = 0;
-//     }
-//     return make_int3(nx,ny,nz);
-// }
 int3 CudaCalcMeldForceKernel::calcNumGrids(const MeldForce &force)
 {
     int global_index;
@@ -1261,18 +1193,7 @@ void CudaCalcMeldForceKernel::validateAndUpload()
         gmmData->upload(h_gmmData);
     }
 
-    // if (numGridPotentialRestraints > 0)
-    // {
-    //     gridPotentials->upload(h_gridPotentials);
-    //     gridPotentialgridx->upload(h_gridPotentialgridx);
-    //     gridPotentialgridy->upload(h_gridPotentialgridy);
-    //     gridPotentialgridz->upload(h_gridPotentialgridz);
-    //     gridPotentialnxyz->upload(h_gridPotentialnxyz);
-    //     gridPotentialRestGridPotentialIndices->upload(h_gridPotentialRestGridPotentialIndices);
-    //     gridPotentialRestAtomIndices->upload(h_gridPotentialRestAtomIndices);
-    //     gridPotentialRestGlobalIndices->upload(h_gridPotentialRestGlobalIndices);
-    //     gridPotentialRestWeights->upload(h_gridPotentialRestWeights);
-    // }
+
     if (numGridPotentialRestraints > 0) {
         gridPotentialRestGridPosx->upload(h_gridPotentialRestGridPosx);
         gridPotentialRestGridPosy->upload(h_gridPotentialRestGridPosy);
@@ -1398,11 +1319,6 @@ void CudaCalcMeldForceKernel::updateRDCGlobalParameters(ContextImpl &context)
 
 double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces, bool includeEnergy)
 {
-    // double tmp_e = 1 ;
-    // int groups = context.getIntegrator().getIntegrationForceGroups();
-    // for (int i=2; i<16; i++){
-    //     tmp_e = context.getOwner().getState(State::Energy).getPotentialEnergy();
-    //     cout << "tmp_e" << tmp_e << endl;}
     // compute the forces and energies
     if (numRDCRestraints > 0)
     {
@@ -1515,24 +1431,6 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
         cu.executeKernel(computeGMMRestKernel, gmmArgs, numGMMRestraints * 32, 32 * 16, 2 * 16 * 32 * sizeof(float));
     }
 
-    // if (numGridPotentialRestraints > 0)
-    // {
-    //     void *gridPotentialArgs[] = {
-    //         &cu.getPosq().getDevicePointer(),
-    //         &gridPotentialRestAtomIndices->getDevicePointer(),
-    //         &gridPotentials->getDevicePointer(),
-    //         &gridPotentialgridx->getDevicePointer(),
-    //         &gridPotentialgridy->getDevicePointer(),
-    //         &gridPotentialgridz->getDevicePointer(),
-    //         &gridPotentialRestWeights->getDevicePointer(),
-    //         &gridPotentialnxyz->getDevicePointer(),
-    //         &gridPotentialRestGridPotentialIndices->getDevicePointer(),
-    //         &gridPotentialRestGlobalIndices->getDevicePointer(),
-    //         &numGridPotentialRestraints,
-    //         &restraintEnergies->getDevicePointer(),
-    //         &gridPotentialRestForces->getDevicePointer()};
-    //     cu.executeKernel(computeGridPotentialRestKernel, gridPotentialArgs, numGridPotentialRestraints);
-    // }
     if (numGridPotentialRestraints > 0) 
     {
         void* gridPotentialRestArgs[] = {
@@ -1688,19 +1586,6 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
         cu.executeKernel(applyGMMRestKernel, applyGMMRestArgs, 32 * numGMMRestraints);
     }
 
-    // if (numGridPotentialRestraints > 0)
-    // {
-    //     void *applyGridPotentialRestArgs[] = {
-    //         &cu.getForce().getDevicePointer(),
-    //         &cu.getEnergyBuffer().getDevicePointer(),
-    //         &gridPotentialRestAtomIndices->getDevicePointer(),
-    //         &gridPotentialRestGlobalIndices->getDevicePointer(),
-    //         &restraintEnergies->getDevicePointer(),
-    //         &restraintActive->getDevicePointer(),
-    //         &gridPotentialRestForces->getDevicePointer(),
-    //         &numGridPotentialRestraints};
-    //     cu.executeKernel(applyGridPotentialRestKernel, applyGridPotentialRestArgs, numGridPotentialRestraints);
-    // }
     if (numGridPotentialRestraints > 0) {
         void *applyGridPotentialRestArgs[] = {
             &cu.getForce().getDevicePointer(),

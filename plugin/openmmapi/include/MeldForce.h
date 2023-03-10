@@ -285,8 +285,7 @@ public:
     void getGridPotentialParams(int index, std::vector<double>& potential,float& originx,float& originy,float& originz,
             float& gridx,float& gridy,float& gridz, int& nx, int& ny, int& nz) const;
     
-    // void getGridPotentialRestraintParams(int index, int& particle, int& potentialGridIndex, 
-    //         float& strength, int& globalIndex) const ;
+
     void getGridPotentialRestraintParams(int index, std::vector<int>& atom, 
                             std::vector<double>& mu, 
                             std::vector<double>& gridpos_x,
@@ -690,9 +689,6 @@ public:
     /**
      * Add a grid potential restraint
      */
-    // int addGridPotentialRestraint(int particle, int potentialGridIndex, float strength);
-
-    // void modifyGridPotentialRestraint(int index, int particle, int potentialGridIndex, float strength);
     int addGridPotentialRestraint(std::vector<int> particle, std::vector<double> mu,
         std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z);
 
@@ -957,24 +953,6 @@ private:
         gridx(gridx), gridy(gridy), gridz(gridz), nx(nx), ny(ny), nz(nz), density_index(density_index) {}
     };
 
-    // class GridPotentialRestraintInfo {
-    // public:
-    //     int particle;
-    //     int potentialGridIndex;
-    //     float strength;
-    //     int global_index;
-
-    //     GridPotentialRestraintInfo() {
-    //         particle = -1;
-    //         potentialGridIndex = -1;
-    //         strength = 0.0;
-    //         global_index = -1;
-    //     }
-
-    //     GridPotentialRestraintInfo(int particle, int potentialGridIndex, float strength, int global_index):
-    //         particle(particle), potentialGridIndex(potentialGridIndex), strength(strength), global_index(global_index) {
-    //     }
-    // };
     class GridPotentialRestraintInfo {
     public:
         std::vector<int> particle;
@@ -985,7 +963,6 @@ private:
         int globalIndex;
 
         GridPotentialRestraintInfo() {
-            // particle = -1;
             globalIndex = -1;
         }
         GridPotentialRestraintInfo(std::vector<int> particle,  std::vector<double> mu, 
