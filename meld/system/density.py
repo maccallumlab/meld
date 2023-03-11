@@ -1,8 +1,8 @@
 from meld.system import scalers
-from simtk import unit as u  # type: ignore
+from openmm import unit as u  # type: ignore
 import numpy as np  # type: ignore
-import copy
-import scipy.ndimage
+import copy 
+import scipy.ndimage # type: ignore
 
 class DensityManager:
     def __init__(self):
