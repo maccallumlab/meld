@@ -21,7 +21,13 @@ class ScalerRegistry(type):
     _scaler_registry: Dict[str, type] = {}
 
     def __init__(cls, name, bases, attrs):
-        if name in ["AlphaMapper", "RestraintScaler", "TimeRamp", "Positioner"]:
+        if name in [
+            "AlphaMapper",
+            "RestraintScaler",
+            "BlurScaler",
+            "TimeRamp",
+            "Positioner",
+        ]:
             pass  # we don't register the base classes
         else:
             try:
@@ -667,3 +673,56 @@ class LinearPositioner(Positioner):
             return delta * (self.pos_max - self.pos_min) + self.pos_min
         else:
             return self.pos_max
+
+
+class BlurScaler(AlphaMapper):
+    """Base class for all blur scaler classes."""
+
+    def __call__(self, alpha: float) -> float:
+        raise NotImplementedError("Cannot call base BlurScaler")
+
+
+class LinearBlurScaler(BlurScaler):
+    """
+    This scaler linearly interpolates from alpha_min to alpha_max.
+    """
+
+    _scaler_key_ = "linear_blur"
+
+    def __init__(
+        self,
+        alpha_min: float,
+        alpha_max: float,
+        min_blur: float,
+        max_blur: float,
+        num_replicas: int,
+    ):
+        super().__init__()
+        self._alpha_min = alpha_min
+        self._alpha_max = alpha_max
+        self._min_blur = min_blur
+        self._max_blur = max_blur
+        self._delta = alpha_max - alpha_min
+        self._num_replicas = num_replicas
+        self._check_alpha_min_max()
+
+    def __call__(self, alpha: float) -> float:
+        self._check_alpha_range(alpha)
+        blur = self._handle_boundaries(alpha)
+        if blur is None:
+            blur = self._min_blur + (self._max_blur - self._min_blur) * (alpha - self._alpha_min) / self._delta
+        else:
+            blur = (1.0 - blur) * (self._max_blur - self._min_blur) + self._min_blur
+        return blur
+
+class ConstantBlurScaler(BlurScaler):
+    """This scaler is "always on" and always returns a value of 1.0"."""
+
+    _scaler_key_ = "constant_blur"
+    def __init__(self, blur: float, num_replicas: int) -> None:
+        self.blur = blur
+        self._num_replicas = num_replicas
+
+    def __call__(self, alpha: float) -> float:
+        self._check_alpha_range(alpha)
+        return self.blur

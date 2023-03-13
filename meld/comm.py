@@ -312,6 +312,12 @@ class MPICommunicator(interfaces.ICommunicator):
                 ]
                 if not visible_devices:
                     raise RuntimeError("No cuda devices available")
+                else:
+                    if len(visible_devices) == 1:
+                        logger.info("negotiate_device_id: visible_devices contains a single device: %d", visible_devices[0])
+                        device_id = 0
+                        logger.info("hostname: %s, device_id: %d", hostname, device_id)
+                        return device_id
             except KeyError:
                 logger.info("%s CUDA_VISIBLE_DEVICES is not set.", hostname)
                 visible_devices = None

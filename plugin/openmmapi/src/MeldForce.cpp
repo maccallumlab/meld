@@ -260,11 +260,18 @@ int MeldForce::getNumGMMRestraints() const
     return gmmRestraints.size();
 }
 
-int MeldForce::getNumTotalRestraints() const
-{
-    return rdcRestraints.size() + distanceRestraints.size() + hyperbolicDistanceRestraints.size() +
-           torsions.size() + distProfileRestraints.size() + torsProfileRestraints.size() +
-           gmmRestraints.size();
+int MeldForce::getNumGridPotentials() const {
+    return gridPotentials.size();
+}
+
+int MeldForce::getNumGridPotentialRestraints() const {
+    return gridPotentialRestraints.size();
+}
+
+int MeldForce::getNumTotalRestraints() const {
+    return rdcRestraints.size() + distanceRestraints.size() + hyperbolicDistanceRestraints.size() + torsions.size() +
+           distProfileRestraints.size() + torsProfileRestraints.size() + gmmRestraints.size() +
+           gridPotentialRestraints.size();
 }
 
 int MeldForce::getNumGroups() const
@@ -629,9 +636,90 @@ void MeldForce::modifyCollectionNumActive(int index, int n_active)
     collections.at(index) = CollectionInfo(oldIndices, n_active);
 }
 
-ForceImpl *MeldForce::createImpl() const
-{
+void MeldForce::addGridPotential(
+    std::vector<double> potential,
+    float originx,
+    float originy,
+    float originz,
+    float gridx,
+    float gridy,
+    float gridz,
+    int nx,
+    int ny,
+    int nz,
+    int density_index) {
+    gridPotentials.push_back(GridPotentialInfo(potential,originx,originy,originz,gridx,gridy,gridz,nx,ny,nz,density_index));
+}
+
+
+void MeldForce::modifyGridPotential(
+    int index, 
+    std::vector<double> potential,
+    float originx,
+    float originy,
+    float originz,
+    float gridx,
+    float gridy,
+    float gridz,
+    int nx,
+    int ny,
+    int nz) {
+    int oldIndices = gridPotentials[index].density_index;
+    gridPotentials.at(index) = GridPotentialInfo(potential,originx,originy,originz,gridx,gridy,gridz,nx,ny,nz,oldIndices);
+
+}
+
+int MeldForce::addGridPotentialRestraint(std::vector<int> particle, std::vector<double> mu,
+        std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z) {
+    for (int i = 0; i < particle.size();i++){
+        meldParticleSet.insert(particle[i]);
+    }
+    
+    gridPotentialRestraints.push_back(
+        GridPotentialRestraintInfo(particle, mu, gridpos_x, gridpos_y, gridpos_z, n_restraints));
+    n_restraints++;
+    return n_restraints - 1;
+}
+
+void MeldForce::modifyGridPotentialRestraint(int index, std::vector<int> particle, std::vector<double> mu,       
+        std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z) {
+    int oldGlobal = gridPotentialRestraints[index].globalIndex; 
+    gridPotentialRestraints.at(index) = GridPotentialRestraintInfo(particle, mu, gridpos_x, gridpos_y, gridpos_z,oldGlobal);
+}
+
+ForceImpl* MeldForce::createImpl() const {
     return new MeldForceImpl(*this);
+}
+
+void MeldForce::getGridPotentialParams(int index, std::vector<double>& potential,float& originx,float& originy,float& originz,
+            float& gridx,float& gridy,float& gridz, int& nx, int& ny, int& nz) const {
+    const GridPotentialInfo& density=gridPotentials[index];
+    potential= density.potential;
+    originx = density.originx;
+    originy = density.originy;
+    originz = density.originz;
+    gridx = density.gridx;
+    gridy = density.gridy;
+    gridz = density.gridz;
+    nx = density.nx;
+    ny = density.ny;
+    nz = density.nz;
+}
+
+void MeldForce::getGridPotentialRestraintParams(int index, std::vector<int>& atom, 
+                            std::vector<double>& mu, 
+                            std::vector<double>& gridpos_x,
+                            std::vector<double>& gridpos_y,
+                            std::vector<double>& gridpos_z,
+                            int& globalIndex) const 
+{
+    const GridPotentialRestraintInfo& rest = gridPotentialRestraints[index];
+    atom = rest.particle;
+    mu = rest.mu;
+    gridpos_x = rest.gridpos_x;
+    gridpos_y = rest.gridpos_y;
+    gridpos_z = rest.gridpos_z;
+    globalIndex = rest.globalIndex;
 }
 
 void MeldForce::getRDCRestraintParameters(int index, int& particle1, int& particle2, int& alignment,

@@ -87,6 +87,21 @@ void computeGMMRest(
     vector<float> &restraintEnergies,
     vector<float3> &gmmForces);
 
+ void computeGridPotentialRest(
+    vector<RealVec> &pos,
+    vector<int> &atomIndices, 
+    vector<float> &potentials,
+    vector<float> &grid_x,
+    vector<float> &grid_y,
+    vector<float> &grid_z,
+    vector<float> &weights,
+    vector<int> &nxyz,
+    vector<int> &densityIndices,
+    vector<int> &indexToGlobal,
+    int numRestraints,
+    vector<float> &energies,    
+    vector<float3> &forceBuffer);
+
 void evaluateAndActivate(
     int numGroups,
     vector<int> &groupNumActive,
@@ -177,3 +192,12 @@ float applyGMMRest(
     vector<int2> &gmmOffsets,
     vector<int> &gmmAtomIndices,
     vector<float3> &gmmForces);
+
+float applyGridPotentialRest(
+    vector<RealVec> &force,
+    vector<int> &atomIndices,
+    vector<int> &globalIndices,
+    vector<float> &globalEnergies,
+    vector<bool> &globalActive,
+    vector<float3> &restForces,
+    int numRestraints);

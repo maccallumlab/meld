@@ -1,12 +1,18 @@
 from meld import interfaces
-from meld.system import restraints
+from meld import system
+import meld
+from meld.system import restraints, scalers
 from meld.system import param_sampling
 from meld.system import mapping
+from meld.system import density
 import numpy as np  # typing: ignore
 import collections
 from typing import List, Tuple, Optional, Union, Set, Dict, DefaultDict
+###
+import logging
 
-
+logger = logging.getLogger(__name__)
+###
 class RestraintTracker:
     """
     A data structure to keep track of restraints, groups, and collections.
@@ -40,6 +46,12 @@ class RestraintTracker:
     positioner_values: Dict[restraints.Positioner, float]
     peak_mapping_values: Optional[np.ndarray]
     need_update: Set[Tuple[str, int]]
+    densities: List[density.DensityMap]
+    density_restraints: List[restraints.DensityRestraint]
+    scaler_density_map: DefaultDict[
+        restraints.BlurScaler, List[Tuple[int, density.DensityMap]]
+    ]
+    scaler_density_values: Dict[restraints.BlurScaler, float]
 
     def __init__(
         self,
@@ -58,6 +70,8 @@ class RestraintTracker:
         self.dist_prof_restraints = []
         self.torsion_profile_restraints = []
         self.gmm_restraints = []
+        self.densities = []
+        self.density_restraints = []
 
         self.groups_with_dep = []
         self.collections_with_dep = []
@@ -67,12 +81,14 @@ class RestraintTracker:
         self.ramp_map = collections.defaultdict(list)
         self.positioner_map = collections.defaultdict(list)
         self.peak_mapping_map = collections.defaultdict(list)
+        self.scaler_density_map = collections.defaultdict(list)
 
         # These maintain the previous values for these quantities
         self.scaler_values = {}
         self.ramp_values = {}
         self.positioner_values = {}
         self.peak_mapping_values = None
+        self.scaler_density_values = {}
 
         # We maintain a set of restraints that need to be updated.
         self.need_update = set()
@@ -87,6 +103,16 @@ class RestraintTracker:
         need_update = self.need_update
         self.need_update = set()
         return need_update
+
+    def density_to_update(self, alpha):
+        to_update = []
+        for scaler in self.scaler_density_values:
+            old_value = self.scaler_density_values[scaler]
+            new_value = scaler(alpha) 
+            if new_value != old_value or alpha==0.0:
+                to_update.extend(self.scaler_density_map[scaler])
+                self.scaler_density_values[scaler] = new_value
+        return to_update
 
     def _update_scalers(self, alpha: float):
         for scaler in self.scaler_values:
@@ -143,6 +169,26 @@ class RestraintTracker:
         self._add_peak_mapping_dependency(rest.atom_index_1, "rdc", index, state)
         self._add_peak_mapping_dependency(rest.atom_index_2, "rdc", index, state)
 
+    def add_density(self, index: int, density: density.DensityMap, alpha: float):
+        self.densities.append(density)
+        self._add_scaler_density_dependency(index, density,alpha)
+
+
+    def add_density_restraint(
+        self,
+        rest: restraints.DensityRestraint,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ):
+        assert isinstance(rest, restraints.DensityRestraint)
+        self.density_restraints.append(rest)
+        index = len(self.density_restraints) - 1
+        self.need_update.add(("density",index))
+        self._add_scaler_dependency(rest.scaler, "density", index, alpha)
+        self._add_ramp_dependency(rest.ramp, "density", index, timestep)
+
+        
     def add_distance_restraint(
         self,
         rest: restraints.DistanceRestraint,
@@ -294,3 +340,13 @@ class RestraintTracker:
                 self.peak_mapping_values = state.mappings.copy()
             else:
                 assert (state.mappings == self.peak_mapping_values).all()
+   
+    def _add_scaler_density_dependency(
+        self, index: int, density: density.DensityMap, alpha: float
+    ):
+        if not isinstance(density.blur_scaler, scalers.ConstantBlurScaler):
+            self.scaler_density_map[density.blur_scaler].append((index,density))
+            if density.blur_scaler not in self.scaler_density_values:
+                self.scaler_density_values[density.blur_scaler] = density.blur_scaler(alpha)
+            else:
+                assert density.blur_scaler(alpha) == self.scaler_values[density.blur_scaler]

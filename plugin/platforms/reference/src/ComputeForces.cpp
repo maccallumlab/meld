@@ -472,6 +472,93 @@ void computeGMMRest(
     throw OpenMMException("GMM restraints not implemented for Reference platform.");
 }
 
+//  void computeGridPotentialRest(
+//                             vector<RealVec> &pos,
+//                             vector<int> &atomIndices, 
+//                             vector<float> &potentials,
+//                             vector<float> &grid_x,
+//                             vector<float> &grid_y,
+//                             vector<float> &grid_z,
+//                             vector<float> &weights,
+//                             vector<int> &nxyz,
+//                             vector<int> &densityIndices,
+//                             vector<int> &indexToGlobal,
+//                             int numRestraints,
+//                             vector<float> &energies,    
+//                             vector<float3> &forceBuffer)
+// {
+//     int grid_xmax = nxyz[0];
+//     int grid_ymax = nxyz[1];
+//     int grid_zmax = nxyz[2];
+//     int grid_total = grid_xmax * grid_ymax * grid_zmax;
+//     for (int index = 0; index < numRestraints ; index++) {
+//         int globalIndex = indexToGlobal[index];
+//         int grids_index = densityIndices[index];
+//         int atomIndex = atomIndices[index];
+//         float atom_weight = weights[index];
+//         float3 atom_pos = RealVecToFloat3(pos[atomIndex]);
+//         float atom_posx = get<0>(atom_pos);
+//         float atom_posy = get<1>(atom_pos);
+//         float atom_posz = get<2>(atom_pos);
+//         cout << "atom_posz: " << atom_posz << endl;
+//         cout << "grid_x[1]" << grid_x[1] << endl;
+//         // check the atom is in which grid
+//         int grid_xnum = floor((atom_posx-grid_x[0])/(grid_x[1]-grid_x[0])) + 1; 
+//         int grid_ynum = floor((atom_posy-grid_y[0])/(grid_y[1]-grid_y[0])) + 1;
+//         int grid_znum = floor((atom_posz-grid_z[0])/(grid_z[1]-grid_z[0])) + 1;
+//         cout << "grid_znum: " << grid_znum << endl;
+
+//         // scale atom position with grid length
+//         float grid_x_pos = (grid_x[grid_xnum]-atom_posx)/(grid_x[1]-grid_x[0]); 
+//         float grid_y_pos = (grid_y[grid_ynum]-atom_posy)/(grid_y[1]-grid_y[0]);
+//         float grid_z_pos = (grid_z[grid_znum]-atom_posz)/(grid_z[1]-grid_z[0]);
+//         float grid_xpos = (atom_posx-grid_x[grid_xnum-1])/(grid_x[1]-grid_x[0]);
+//         float grid_ypos = (atom_posy-grid_y[grid_ynum-1])/(grid_y[1]-grid_y[0]);
+//         float grid_zpos = (atom_posz-grid_z[grid_znum-1])/(grid_z[1]-grid_z[0]);
+//         cout << "grid_zpos: " << grid_zpos << endl;
+
+//         float energy = 0;
+//         float f_x = 0;
+//         float f_y = 0;
+//         float f_z = 0;        
+//         float v_000 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum -1];
+//         float v_100 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum];
+//         float v_010 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum -1];
+//         float v_001 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum -1];
+//         float v_101 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + (grid_ynum-1) * grid_xmax + grid_xnum];
+//         float v_011 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum -1];
+//         float v_110 = potentials[grid_total*grids_index+(grid_znum-1) * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum ];
+//         float v_111 = potentials[grid_total*grids_index+grid_znum * grid_ymax * grid_xmax + grid_ynum * grid_xmax + grid_xnum];
+//         cout << "v_111: " << v_111 << endl;
+//         energy += atom_weight * (v_000 * grid_x_pos * grid_y_pos * grid_z_pos              
+//                 + v_100 * grid_xpos * grid_y_pos * grid_z_pos 
+//                 + v_010 * grid_x_pos * grid_ypos * grid_z_pos   
+//                 + v_001 * grid_x_pos * grid_y_pos * grid_zpos
+//                 + v_101 * grid_xpos * grid_y_pos * grid_zpos 
+//                 + v_011 * grid_x_pos * grid_ypos * grid_zpos
+//                 + v_110 * grid_xpos * grid_ypos * grid_z_pos           
+//                 + v_111 * grid_xpos * grid_ypos * grid_zpos)  ;
+
+//         f_x += -1 * atom_weight * ((v_100 - v_000) * grid_y_pos * grid_z_pos 
+//                 + (v_110 - v_010) * grid_ypos * grid_z_pos
+//                 + (v_101 - v_001) * grid_y_pos * grid_zpos
+//                 + (v_111 - v_011) * grid_ypos * grid_zpos)/(grid_x[1]-grid_x[0])   ;
+                
+//         f_y += -1 * atom_weight * ((v_010 - v_000) * grid_x_pos * grid_z_pos 
+//                 + (v_110 - v_100) * grid_xpos * grid_z_pos
+//                 + (v_011 - v_001) * grid_x_pos * grid_zpos
+//                 + (v_111 - v_101) * grid_xpos * grid_zpos)/(grid_x[1]-grid_x[0])  ;
+
+//         f_z += -1 * atom_weight * ((v_001 - v_000) * grid_x_pos * grid_y_pos 
+//                 + (v_101 - v_100) * grid_xpos * grid_y_pos
+//                 + (v_011 - v_010) * grid_x_pos * grid_ypos
+//                 + (v_111 - v_110) * grid_xpos * grid_ypos)/(grid_x[1]-grid_x[0])   ;
+//         cout << "fxyz: " << f_x << " " << f_y << " " << f_z << endl;
+//         forceBuffer[index] = float3(f_x,f_y,f_z);
+//         energies[globalIndex] += energy;
+//     }
+// }
+
 void evaluateAndActivate(
     int numGroups,
     vector<int> &groupNumActive,
@@ -753,4 +840,27 @@ float applyGMMRest(
     vector<float3> &gmmForces)
 {
     throw OpenMMException("GMM restraints not implemented for Reference platform.");
+}
+
+float applyGridPotentialRest(vector<RealVec> &force,
+                             vector<int> &atomIndices,
+                             vector<int> &globalIndices,
+                             vector<float> &globalEnergies,
+                             vector<bool> &globalActive,
+                             vector<float3> &restForces,
+                             int numRestraints) {
+    float totalEnergy = 0.0;
+    for (int restraintIndex=0; restraintIndex<numRestraints; restraintIndex++) {
+        int globalIndex = globalIndices[restraintIndex];
+        if (globalActive[globalIndex]) {
+            totalEnergy += globalEnergies[globalIndex];
+            int index = atomIndices[restraintIndex];
+            auto fx = get<0>(restForces[restraintIndex]);
+            auto fy = get<1>(restForces[restraintIndex]);
+            auto fz = get<2>(restForces[restraintIndex]);
+            force[index] += Vec3(fx, fy, fz);
+            }
+    }
+
+    return totalEnergy;
 }

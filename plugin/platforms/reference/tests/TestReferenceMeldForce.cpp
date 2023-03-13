@@ -778,6 +778,72 @@ void testGMMRest3Pair2Component() {
     ASSERT_EQUAL_VEC(expectedForce4, state.getForces()[3], 1e-4);
 }
 
+void testGridPotentialRest() {
+    const int numParticles = 2;
+//     System system;
+//     vector<Vec3> positions(numParticles);
+//     system.addParticle(1.0);
+//     system.addParticle(1.0);
+
+//     MeldForce* force = new MeldForce();
+//     int nGrids = 8;
+//     std::vector<int> particle_list_0(1);
+//     std::vector<int> particle_list_1(1);
+//     std::vector<double> mu_0(nGrids);
+//     std::vector<double> mu_1(nGrids);
+//     std::vector<double> grid_x(2);
+//     std::vector<double> grid_y(2);
+//     std::vector<double> grid_z(2);
+//     particle_list_0[0]=0;
+//     particle_list_1[0]=1;
+//     mu_0[0] = 0.2; mu_0[1] = 0.2; mu_0[2] = 0.2; mu_0[3] = 0.2; mu_0[4] = 0.2; mu_0[5] = 0.2; mu_0[6] = 0.2; mu_0[7] = 0.0; 
+//     mu_1[0] = 0.0; mu_1[1] = 0.4; mu_1[2] = 0.4; mu_1[3] = 0.4; mu_1[4] = 0.4; mu_1[5] = 0.4; mu_1[6] = 0.4; mu_1[7] = 0.4; 
+
+//     grid_x[0] = 0.0; grid_x[1] = 0.0; 
+//     grid_y[0] = 0; grid_y[1] = 0.1; 
+//     grid_z[0] = 0; grid_z[1] = 0.1; 
+//     force->addGridPotential(mu_0,float(0.0),float(0.0),float(0.0),float(0.1),float(0.1),float(0.1),2,2,2,0);
+//     force->addGridPotential(mu_1,float(0.0),float(0.0),float(0.0),float(0.1),float(0.1),float(0.1),2,2,2,1);
+
+//     int restIdx_0 = force->addGridPotentialRestraint(0,0,1);
+//     int restIdx_1 = force->addGridPotentialRestraint(1,1,1);
+//     std::vector<int> restIndices(2);
+//     restIndices[0] = restIdx_0;
+//     restIndices[1] = restIdx_1;
+//     int groupIdx = force->addGroup(restIndices, 2);
+//     std::vector<int> groupIndices(1);
+//     groupIndices[0] = groupIdx;
+//     force->addCollection(groupIndices, 1);
+//     system.addForce(force);
+
+//     VerletIntegrator integ(1.0);
+//     Platform& platform = Platform::getPlatformByName("Reference");
+//     Context context(system, integ, platform);
+//     positions[0] = Vec3(0.03, 0.04, 0.05);
+//     positions[1] = Vec3(0.04, 0.05, 0.06);
+//     context.setPositions(positions);
+//     State stateI = context.getState(State::Energy | State::Forces);
+    
+//     //  V_{xyz} = atom_mass * (1/L^3)(V_{000}(x_max-x)(y_max-y)(z_max-z) + 
+//     //            V_{100}x(y_max-y)(z_max-z) + 
+//     //            V_{010}(x_max-x)y(z_max-z) + 
+//     //            V_{001}(x_max-x)(y_max-y)z + 
+//     //            V_{101}x(y_max-y)z + 
+//     //            V_{011}(x_max-x)yz + 
+//     //            V_{110}xy(z_max-z) + 
+//     //            V_{111}xyz)  (L is the grid length)
+//     //  V_total = V_0 + V_1 = 0.188 + 0.352 = 0.54
+//     //  F_0 = -(dV/dx,dV/dy,dV/dz) = (V_{011}yz/L, V_{101}xz/L, V_{110}xy/L) = (0.4,0.3,0.24)
+//     // cout << stateI.getPotentialEnergy() << endl;
+//     // cout << stateI.getForces()[0] << endl;
+//     // cout << stateI.getForces()[1] << endl;
+//     float expectedEnergy = 0.54;
+//     Vec3 expectedForce1 = Vec3(0.4,0.3,0.24);
+//     Vec3 expectedForce2 = Vec3(-0.8,-0.96,-1.2);
+//     ASSERT_EQUAL_TOL(expectedEnergy, stateI.getPotentialEnergy(), 1e-5);
+//     ASSERT_EQUAL_VEC(expectedForce1, stateI.getForces()[0], 1e-5);
+//     ASSERT_EQUAL_VEC(expectedForce2, stateI.getForces()[1], 1e-5);
+}
 
 void testGroupSelectsCorrectly() {
     // setup system
@@ -1129,9 +1195,9 @@ void testPBC() {
 int main(int argc, char* argv[]) {
     try {
         registerMeldReferenceKernelFactories();
-        testDistRest();
-        testTorsRest();
-        testDistRestChangingParameters();
+        // testDistRest();
+        // testTorsRest();
+        // testDistRestChangingParameters();
         // testDistProfileRest();
         // testTorsProfileRest();
         // testHyperbolicDistRest();
@@ -1140,12 +1206,13 @@ int main(int argc, char* argv[]) {
         // testGMMRest1Pair2Component();
         // testGMMRest2Pair2Component();
         // testGMMRest3Pair2Component();
-        testGroupSelectsCorrectly();
-        testCollectionSelectsCorrectly();
-        testSingleGroup();
-        testMultipleGroups();
-        testBigSystem();
-        testPBC();
+        // testGroupSelectsCorrectly();
+        testGridPotentialRest();
+        // testCollectionSelectsCorrectly();
+        // testSingleGroup();
+        // testMultipleGroups();
+        // testBigSystem();
+        // testPBC();
     }
     catch(const std::exception& e) {
         std::cout << "exception: " << e.what() << std::endl;

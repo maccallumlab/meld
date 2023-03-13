@@ -139,6 +139,7 @@ References
 
 
 from __future__ import annotations
+from meld.system.density import DensityMap
 
 from meld.util import strip_unit
 from meld import interfaces
@@ -147,6 +148,7 @@ from meld.system import param_sampling
 from meld.system import mapping
 from meld.system.scalers import (
     RestraintScaler,
+    BlurScaler,
     TimeRamp,
     Positioner,
     ConstantPositioner,
@@ -1209,6 +1211,28 @@ class COMRestraint(NonSelectableRestraint):
             count = self.dims.count(dim)
             if count > 1:
                 raise ValueError(f"{dim} occurs more than once in dims")
+
+
+class DensityRestraint(SelectableRestraint):
+
+    _restraint_key_ = "density"
+
+    def __init__(
+            self,
+            system: interfaces.ISystem,
+            scaler: Optional[RestraintScaler],
+            ramp: Optional[TimeRamp],
+            atom: list,
+            density: DensityMap,
+            mu = None,
+        ):
+            self.atom_index = [int(i) for i in atom]
+            self.scaler = ConstantScaler() if scaler is None else scaler
+            self.ramp = ConstantRamp() if ramp is None else ramp
+            self.mu = density.density_data
+            self.map_origin = density.origin
+            self.map_dimension = [density.nx,density.ny,density.nz]
+            self.map_gridLength = density.voxel_size
 
 
 class AlwaysActiveCollection:

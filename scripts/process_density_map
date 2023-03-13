@@ -1,0 +1,516 @@
+#!/usr/bin/env python             
+# encoding: utf-8
+
+import mdtraj as md
+import numpy as np
+import struct
+import scipy
+from scipy import ndimage
+from scipy import spatial
+import sys, argparse, os
+import mrcfile 
+import glob
+import pickle
+import matplotlib.pyplot as plt
+import progressbar
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="A tool for processing calculating density map.", formatter_class=argparse.RawTextHelpFormatter)
+    subparsers = parser.add_subparsers(dest="command")
+
+    #pdb2map
+    pdb_map = subparsers.add_parser(
+        "pdb_map", help="calculate density map from pdb"
+    )
+    pdb_map.add_argument("-f", "--top", type=str, help="PDB filename")
+    pdb_map.add_argument("-m", "--map", type=str, default=None, help="Density map filename")
+    pdb_map.add_argument("-t", "--traj", type=str, default=None, help="Trajectory filename")
+    pdb_map.add_argument("--res", "--residues", type=int, default=None, metavar='N', nargs='+', help="Trajectory filename")
+    pdb_map.add_argument("-d", "--save_dir", type=str, help="Save direcory name")
+    pdb_map.add_argument("--mshift", type=float, help="shift the origin of density map")
+    pdb_map.add_argument("--bb_only", action="store_true", help="only calculate density for backbone atoms")
+    pdb_map.add_argument("--map_save", action="store_true", help="Save maps")
+    pdb_map.add_argument("--cc_save", action="store_true", help="Save correlations")
+    pdb_map.add_argument("--nowat", dest="ignore_waters", action="store_true", help="Ignore waters.")
+    pdb_map.set_defaults(ignore_waters = True)
+    pdb_map.add_argument("--center", dest="center", action="store_true", help="Center conformation coordinates.")
+    pdb_map.add_argument("--cc", dest="map_cc", action="store_true", help="calculate correlation with reference maps")
+    pdb_map.add_argument("--sigma", default=2.0, type=float, help="Desired resolution for Gaussian width sigma")
+    pdb_map.add_argument("-r", "--radius", default=20, type=float, help="Desired cutoff for calculating density values of each atom")
+    pdb_map.set_defaults(func=pdb2map)
+
+    #modify map data
+    map_mod = subparsers.add_parser(
+        "map_mod", help="modify map data given threshold"
+    ) 
+    map_mod.add_argument("-t", "--threshold", type=str, help="threshold for density data")
+    map_mod.add_argument("-f", "--file_path", type=str, help="Density map file path")
+    map_mod.set_defaults(func=map_mod)
+
+    #map2cc
+    map_cc = subparsers.add_parser(
+        "map_cc", help="calculate correlations between maps"
+    )
+    map_cc.add_argument("-m1", "--map1", type=str, help="Density map filename")
+    map_cc.add_argument("-m2", "--map2", type=str, help="Density map filename")
+    map_cc.add_argument("-d", "--save_dir", type=str, help="Save direcory name")
+    map_cc.add_argument("-s", "--save", type=str, help="Save cc values")
+    map_cc.set_defaults(func=map2cc)
+
+    #local standard deviation
+    local_std = subparsers.add_parser(
+        "local_std", help="calculate local deviation of maps"
+    )
+    local_std.add_argument("-m", "--map_dir", type=str, help="Density map directory")
+    local_std.add_argument("-s", "--save_dir", type=str, help="Save direcory name")    
+    local_std.set_defaults(func=local_std)
+    
+    match_dim = subparsers.add_parser(      
+        "match_dim", help="match dimension of maps"                         
+    )                                    
+    match_dim.add_argument("-m1", "--map1", type=str, help="Density map filename")      
+    match_dim.add_argument("-m2", "--map2", type=str, help="Density map filename")      
+    match_dim.add_argument("-d", "--save_dir", type=str, help="Save direcory name")     
+    match_dim.add_argument("-s", "--save", type=str, help="Save new")             
+    match_dim.set_defaults(func=match_dim)     
+
+    #chop map around the pdb 
+    map_chop = subparsers.add_parser(
+        "map_chop", help="chop map given pdb file"
+    )
+    map_chop.add_argument("-p", "--pdb_file", type=str, help="pdb file required to chop density map")
+    map_chop.add_argument("-m", "--map_file", type=str, help="density map file")
+    map_chop.add_argument("-r", "--boundary", type=float, help="boundary in angstrom to chop density map")
+
+    map_blur = subparsers.add_parser( 
+        "map_blur", help="blur the density map"
+    )
+    map_blur.add_argument("-m", "--map_file", type=str, help="density map file")
+    map_blur.add_argument("-min", "--blur_min", type=float, help="min blur scaler")
+    map_blur.add_argument("-max", "--blur_max", type=float, help="max blur scaler")
+    map_blur.add_argument("-num", "--num_blur", type=int, help="number of blurs")
+
+    fsc = subparsers.add_parser(
+        "fsc", help="calculate map resolutions from fsc"
+    )
+    fsc.add_argument("-m1", "--map1", type=str, help="Reference density map filename")
+    fsc.add_argument("-m2", "--map2", type=str, help="Density map filename")
+    fsc.add_argument("-s", "--save_fsc", action="store_true", help="save fsc fig")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    if args.command == 'pdb_map':
+        pdb2map(traj_file=args.traj,top_file=args.top,residues=args.res,bb_only=args.bb_only,map_ref=args.map,center=args.center,origin_shift=args.mshift,sigma=args.sigma,
+        r=args.radius,ignore_waters=args.ignore_waters,map_save=args.map_save,save_dir=args.save_dir,cc=args.map_cc,cc_save=args.cc_save)
+    elif args.command == 'map_mod':
+        map2mrc(args.file_path, threshold=args.threshold, mode='r+')
+    elif args.command == 'map_cc':
+        map2cc(map_reference=args.map1,map_dir=args.map2,save_dir=args.save_dir,save=args.save)
+    elif args.command == 'local_std':
+        local_std(args.map_dir,args.save_dir)
+    elif args.command == 'match_dim':
+        match_dim(map_reference=args.map1,maps=args.map2,save_dir=args.save_dir,save=args.save)
+    elif args.command == 'map_chop':
+        chop_map(args.pdb_file,args.map_file,args.boundary)
+    elif args.command == 'map_blur':
+        map_blur(args.map_file,args.blur_min,args.blur_max,args.num_blur)
+    elif args.command == 'fsc':
+      FSC(args.map1,args.map2,save_fig = args.save_fsc)
+
+def map2mrc(file_path, data=None, map_info=None, threshold=0, mode='r'):
+    """
+    Density map file I/O in mrc/ccp4 format
+
+    Args:
+        mode: read 'r' or write 'w' density maps
+        file_path: density map path to read
+        data: density values to write new map
+        map_info: box information to write new map
+    """
+    if mode == 'r':
+        map_file = mrcfile.open(file_path,'r')
+        map_info = dict()                                
+        map_info['voxel_width'] = map_file.voxel_size.item()
+        map_info['origin'] = np.array([map_file.header['origin'].x,map_file.header['origin'].y,map_file.header['origin'].z])
+        map_info['data'] = map_file.data
+        return map_info
+    elif mode == 'm':
+        map_file = mrcfile.open(file_path,'r+')
+        map_file._data *= (map_file._data > threshold)
+        map_file.update_header_from_data()
+        map_file.close()
+    elif mode == 'w':
+        map_file = mrcfile.open(file_path,'w+')
+        map_file.set_data(data.astype(np.float32))
+        map_file.update_header_from_data()
+        map_file.update_header_stats()
+        map_voxel=map_file.voxel_size
+        map_voxel.flags.writeable = True
+        voxel_width = map_info['voxel_width']
+        origin = map_info['origin']
+        map_voxel.x = voxel_width[0]
+        map_voxel.y = voxel_width[1]
+        map_voxel.z = voxel_width[2]
+        map_file.voxel_size=map_voxel
+        map_file.header['origin'].flags.writeable=True
+        map_file.header['origin'].x= origin[0]
+        map_file.header['origin'].y= origin[1]
+        map_file.header['origin'].z= origin[2]
+        map_file.update_header_from_data()
+        map_file.close()
+
+        
+def pdb2map(traj_file=None,top_file=None,residues=None,bb_only=False,map_ref=None,center=False,sigma=2,r=6.0,origin_shift=None,
+            ignore_waters=True,map_save=False,save_dir=None,cc=False,cc_save=False):
+    """
+    Calculate density map for one or multiple conformations using one gaussian approximation.
+
+    Args:
+        traj_file: trajectory file
+        top_file: pdb file as the single confomation for input or topology file for traj_file
+        map_file: reference density map to calculate maps for conformations in traj_file/top_file
+        sigma: resolution
+        r: cutoff distance to calculate gaussian for each atom
+        voxel: grid spacing value
+    """
+    if traj_file:
+        traj = md.load(traj_file,top=top_file)
+        #traj = traj.superpose(md.load(top_file))
+    else:
+        traj = md.load(top_file)
+    #center coordinates
+    if residues==None:
+        if bb_only:
+            atoms = traj.top.select("backbone")
+            pdb_coord = traj.xyz[:,atoms,:] * 10 #NANOMETER_TO_ANGSTROM
+        else:
+            pdb_coord = traj.xyz * 10 
+    else:
+        select_residues = ' '.join([str(int(i)) for i in range(residues[0],residues[1])])
+        if bb_only:
+            atoms = traj.top.select(f"resi {select_residues} and backbone")
+            pdb_coord = traj.xyz[:,atoms,:] * 10 
+        else:
+            atoms = traj.top.select(f"resi {select_residues}")
+            pdb_coord = traj.xyz[:,atoms,:] * 10   
+
+    if not map_ref:
+        if center:
+            pdb_coord -= pdb_coord.mean(axis=1).reshape(traj.n_frames,1,3)
+        xyz_min = np.min(pdb_coord[0],axis=1)
+        xyz_max = np.max(pdb_coord[0],axis=1)
+        coord_center = pdb_coord.mean(axis=1).reshape(traj.n_frames,1,3)[0][0]
+        xyz_width = xyz_max - xyz_min
+        side = 2*xyz_width.max()
+        # voxel = sigma 
+        halfside = side/2
+        n = int(side/sigma)
+        if n % 2==0: 
+            n += 1
+        dx = side/n
+        dV = dx**3
+        map_shape = np.array([n+1]*3)
+        x_ = np.linspace(-halfside+coord_center[0],halfside+coord_center[0],map_shape[0])
+        y_ = np.linspace(-halfside+coord_center[1],halfside+coord_center[1],map_shape[1])
+        z_ = np.linspace(-halfside+coord_center[2],halfside+coord_center[2],map_shape[2])
+        ref_origin = np.array([x_[0],y_[0],z_[0]])
+        x,y,z = np.meshgrid(x_,y_,z_,indexing='ij')
+    else:
+        ref_info = map2mrc(file_path=map_ref)
+        voxel = np.array([ref_info['voxel_width'][0],ref_info['voxel_width'][1],ref_info['voxel_width'][2]]) 
+        ref_origin = np.array([ref_info['origin'][0],ref_info['origin'][1],ref_info['origin'][2]])
+        if origin_shift is not None:
+            ref_origin -= origin_shift*voxel[0]
+        map_shape = np.array([ref_info['data'].shape[2],ref_info['data'].shape[1],ref_info['data'].shape[0]])
+        x_ = np.linspace(ref_origin[0],ref_origin[0]+(map_shape[0]-1)*voxel[0],map_shape[0])
+        y_ = np.linspace(ref_origin[1],ref_origin[1]+(map_shape[1]-1)*voxel[1],map_shape[1])
+        z_ = np.linspace(ref_origin[2],ref_origin[2]+(map_shape[2]-1)*voxel[2],map_shape[2])
+        # pdb_coord += np.array([x_.mean(),y_.mean(),z_.mean()])
+        x,y,z = np.meshgrid(x_,y_,z_,indexing='ij')
+        dx = voxel[0]
+        dV = dx**3
+        # sigma = voxel[0] / 0.8
+    xyz = np.column_stack((x.ravel(),y.ravel(),z.ravel()))
+    cc_info = dict()
+    # r=6 #x_[-1]-x_[0] if not r else r
+    #sigma /= 4. 
+    # shift = np.ones(3)*dx/2.
+    # print("\n Calculating density map from PDB... ")
+    if cc:
+        bar = get_progress_bar("Calculating density maps", True, pdb_coord.shape[0])
+    else:
+        bar = get_progress_bar("Calculating density maps",False,pdb_coord.shape[0])
+
+    for t in range(pdb_coord.shape[0]):
+        bar.update(t)
+        pdb_coord_t = pdb_coord[t]
+        values = np.zeros(x.shape)
+        # import time
+        # start_t=time.time()
+        for i in range(pdb_coord_t.shape[0]):
+            # if i % 5000==0:
+            #     print(f'after {i}: {round(time.time()-start_t,3)}') 
+            if ignore_waters and traj.top.atom(i).residue.name=="HOH":
+                continue
+            # sys.stdout.write("\r% 5i / % 5i atoms" % (i+1,pdb_coord_t.shape[0]))
+            # sys.stdout.flush()
+            #cut out the grid points that are near the atom first, 
+            #then get the min and max distances for each dimension
+            #and convert those distances to indices by dividing by dx
+            xyz_a = pdb_coord_t[i] # for convenience, store the coordinates 
+            xyzmin = np.floor(((xyz_a-ref_origin)-r)/dx).astype('int') 
+            xyzmax = np.ceil(((xyz_a-ref_origin)+r)/dx).astype('int')
+            #handle edges
+            xmin = np.max([xyzmin[0],0])
+            xmax = np.min([xyzmax[0],map_shape[0]])
+            ymin = np.max([xyzmin[1],0])
+            ymax = np.min([xyzmax[1],map_shape[1]])
+            zmin = np.max([xyzmin[2],0])
+            zmax = np.min([xyzmax[2],map_shape[2]])
+            #create slice for convenience
+            v_slice = np.s_[xmin:xmax,ymin:ymax,zmin:zmax]
+            nx = xmax-xmin
+            ny = ymax-ymin
+            nz = zmax-zmin
+            #create a column stack of coordinates for the cropped grid
+            xyz = np.column_stack((x[v_slice].ravel(),y[v_slice].ravel(),z[v_slice].ravel()))
+            dist = spatial.distance.cdist(pdb_coord_t[None,i], xyz)
+            dist *= dist
+            #tmpvalues = pdb.n_atoms / np.sqrt(2*np.pi*sigma**2) * np.exp(-dist[0]/(2*sigma**2))
+            tmpvalues = np.exp(-3*dist[0] / (2*sigma**2))
+            values[v_slice] += tmpvalues.reshape(nx,ny,nz)
+
+        values *= np.sum(traj.top.n_atoms) / values.sum()
+        values /= dV
+        values = np.swapaxes(values,0,2)
+        if cc and map_ref:
+            cc_info[f"step_{t}"] = map2cc(map_reference=map_ref,map_dir=values)[0]       
+            bar.update(t, cc=cc_info[f'step_{t}'])
+  
+        if map_save:
+            save_path = save_dir+f'/step_{t}.mrc'
+            if f'step_{t}.mrc' in os.listdir(save_dir):
+                os.remove(save_path)
+                print(f'\n Delete old step_{t}.mrc')
+            map_info = dict()
+            map_info['voxel_width'] = np.array([dx]*3)
+            map_info['origin'] = np.array([x_[0],y_[0],z_[0]]) 
+            map2mrc(mode='w',data=values,file_path=save_path,map_info=map_info) 
+    if cc_save:
+        with open(save_dir+'/cc_value.pkl','wb') as cc:
+            pickle.dump(cc_info, cc)
+
+    return cc_info
+
+def map2cc(map_reference=None,map_dir=None,save=False,save_dir=None):
+    """
+    Calculate correlation coefficient between density maps.
+
+    Args:
+        map_reference: reference map 
+        map_dir: directory containing density maps to compare with reference
+    """
+    if isinstance(map_dir,str):
+        if map_dir.endswith('.mrc'):
+            rho_m = mrcfile.open(map_dir,'r').data[None,:]
+            num_map = 1
+        elif os.path.exists(map_dir):
+            maps = glob.glob(map_dir+'/*mrc')
+            rho_m = mrcfile.open(maps[0],'r').data[None,:]
+            for i in maps[1:]:
+                rho_m = np.concatenate((rho_m,mrcfile.open(i,'r').data[None,:]))
+            num_map = len(maps)
+    elif isinstance(map_dir, np.ndarray):
+        rho_m = map_dir[None,:]
+        num_map = 1
+    rho_r = np.repeat(mrcfile.open(map_reference,'r').data[None,:],num_map,axis=0)
+
+    cc = np.round(np.sum(rho_r * rho_m,axis=(1,2,3)) / np.sqrt(np.sum(np.square(rho_r),axis=(1,2,3)) * np.sum(np.square(rho_m),axis=(1,2,3))),4)
+    cc_info = dict()
+    cc_value = []
+    for index in range(num_map):
+        if isinstance(map_dir,str):
+            if map_dir[-4:]=='.mrc':
+                cc_info[f'step_{index}'] = cc[index]
+                cc_value.append(cc[index])  
+            else:
+                cc_info[f'step_{index}'] = cc[maps.index(map_dir+f'step_{index}.mrc')]
+                cc_value.append(cc[maps.index(map_dir+f'step_{index}.mrc')])
+        elif isinstance(map_dir,np.ndarray):
+            cc_value.append(cc[0])
+
+    if save:
+        with open(save_dir+'/cc_value.pkl','wb') as cc:
+            pickle.dump(cc_value, cc)
+    return cc_value
+
+def local_std(map_dir,save_path=None):
+    maps = [map2mrc(m) for m in glob.glob(map_dir+'/step*mrc')]
+    maps_data = [m['data'] for m in maps]
+    print(maps_data[0].sum())
+    std_map = np.std(maps_data, axis=0)
+    maps[0]['data'] = std_map
+    if save_path:
+        map2mrc(mode='w',data=maps[0]['data'],file_path=save_path+'/std_map.mrc',map_info=maps[0]) 
+    return maps[0]
+
+def match_dim(map_reference=None,maps=None,save=False,save_dir=None):
+    map_d=mrcfile.open(maps,'r')
+    map_d_data=map_d.data  
+    map_d_shape=map_d_data.shape  
+    if map_reference is not None:
+      map_r_shape=np.zeros(mrcfile.open(map_reference,'r').data.shape)
+    else:
+      map_r_shape=np.zeros((max(map_d_shape),max(map_d_shape),max(map_d_shape)))
+    map_r_shape[:map_d_shape[0],:map_d_shape[1],:map_d_shape[2]]=map_d_data
+    map_info = dict()
+    map_info['voxel_width'] = map_d.voxel_size.item()
+    map_info['origin'] = np.array([map_d.header['origin'].x,map_d.header['origin'].y,map_d.header['origin'].z])
+    if save:
+        #save_path = save_dir+f'/step_0.mrc'
+        save_path = os.path.dirname(maps)+"matched_"+os.path.basename(maps)
+        if os.path.exists(save_path):                                                                                            
+            os.remove(save_path)                                                                                                 
+            print(f'\n Delete old {save_path}')                                                                                  
+        map2mrc(mode='w',data=map_r_shape,file_path=save_path,map_info=map_info)                                                 
+                                                                                                                                 
+def chop_map(pdb_file, map_file, boundary=None):                                                                                 
+    xyz_a = md.load(pdb_file).xyz[0]*10                                                                                          
+    ref_info = map2mrc(map_file)
+    voxel = np.array([ref_info['voxel_width'][0],ref_info['voxel_width'][1],ref_info['voxel_width'][2]])
+    ref_origin = np.array([ref_info['origin'][0],ref_info['origin'][1],ref_info['origin'][2]])
+    map_shape = np.array([ref_info['data'].shape[2],ref_info['data'].shape[1],ref_info['data'].shape[0]])
+    x_ = np.linspace(ref_origin[0],ref_origin[0]+(map_shape[0]-1)*voxel[0],map_shape[0])
+    y_ = np.linspace(ref_origin[1],ref_origin[1]+(map_shape[1]-1)*voxel[1],map_shape[1])
+    z_ = np.linspace(ref_origin[2],ref_origin[2]+(map_shape[2]-1)*voxel[2],map_shape[2])
+    dx=x_[1]-x_[0]
+    xyzmin = np.floor(((np.min(xyz_a,axis=0)-ref_origin))/dx).astype('int')
+    xyzmax = np.ceil(((np.max(xyz_a,axis=0)-ref_origin))/dx).astype('int')
+    xmin = int(np.max([xyzmin[0]-boundary,0]))
+    xmax = int(np.min([xyzmax[0]+boundary,map_shape[0]]))
+    ymin = int(np.max([xyzmin[1]-boundary,0]))
+    ymax = int(np.min([xyzmax[1]+boundary,map_shape[1]]))
+    zmin = int(np.max([xyzmin[2]-boundary,0]))
+    zmax = int(np.min([xyzmax[2]+boundary,map_shape[2]]))
+    new_emap_data=ref_info['data'][zmin:zmax,ymin:ymax,xmin:xmax]
+    map_info = dict()
+    map_info['voxel_width'] = np.array([x_[1]-x_[0]]*3)
+    map_info['origin'] = np.array([x_[xmin],y_[ymin],z_[zmin]])
+    new_map_path = os.getcwd()+'/'+os.path.basename(map_file).split(".")[0]+"_chopped."+os.path.basename(map_file).split(".")[1]
+    print(new_map_path)
+    if os.path.exists(new_map_path):
+        print("Chopped file already exists!")
+    else:
+        map2mrc(mode='w',data=new_emap_data,file_path=new_map_path,map_info=map_info)
+
+def map_blur(map_reference, blur_min, blur_max, num_blur):
+    map_ref = map2mrc(map_reference)
+    if blur_min == None and blur_max != None:
+        blur_min = blur_max
+    elif blur_min != None and blur_max == None:
+        blur_max = blur_min
+    elif blur_min != None and blur_max != None:
+        raise RuntimeError("blur_min and blur_max are not provided.")
+    if blur_min == blur_max:
+        if blur_min == 0.0:
+            pass
+        else:
+           map_data_new = scipy.ndimage.gaussian_filter(map_ref['data'],blur_min)
+           map2mrc(mode='w',data=map_data_new,file_path=os.getcwd()+'/'+os.path.basename(map_reference).split(".")[0]+f"_{blur_min}."+os.path.basename(map_reference).split(".")[1],map_info=map_ref)
+    elif blur_min > blur_max:
+        raise RuntimeError("blur_min should not be bigger than blur_max.")
+    else:
+        for blur in np.linspace(blur_min, blur_max, num_blur):
+            map_data_new = scipy.ndimage.gaussian_filter(map_ref['data'],blur)
+            map2mrc(mode='w',data=map_data_new,file_path=os.getcwd()+'/'+os.path.basename(map_reference).split(".")[0]+f"_{blur}."+os.path.basename(map_reference).split(".")[1],map_info=map_ref)
+    
+def FSC(map_reference, map_dir, save_fig=False):
+    """  
+    Calculate the Fourier Shell Correlation between two electron density maps.
+    """  
+    m1 = map2mrc(map_reference)
+    if map_dir.endswith('.mrc') or  map_dir.endswith('.map') :
+        maps = [map_dir]
+    else:
+        maps = glob.glob(map_dir+'/*mrc')
+    for map0 in maps:
+        m2 = map2mrc(map0)
+        rho1 = m1['data']
+        rho2 = m2['data']
+        side = int(m1['voxel_width'][0]*rho1.shape[0])
+        df = 1.0/side
+        n = rho1.shape[0]
+        qx_ = np.fft.fftfreq(n)*n*df
+        qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
+        qx_max = qx.max()
+        qr = np.sqrt(qx**2+qy**2+qz**2)
+        qmax = np.max(qr)
+        qstep = np.min(qr[qr>0])
+        nbins = int(qmax/qstep)
+        qbins = np.linspace(0,nbins*qstep,nbins+1)
+        #create an array labeling each voxel according to which qbin it belongs
+        qbin_labels = np.searchsorted(qbins, qr, "right")
+        qbin_labels -= 1
+        F1 = np.fft.fftn(rho1)
+        F2 = np.fft.fftn(rho2)
+        numerator = ndimage.sum(np.real(F1*np.conj(F2)), labels=qbin_labels,
+            index=np.arange(0,qbin_labels.max()+1))
+        term1 = ndimage.sum(np.abs(F1)**2, labels=qbin_labels,
+            index=np.arange(0,qbin_labels.max()+1))
+        term2 = ndimage.sum(np.abs(F2)**2, labels=qbin_labels,
+            index=np.arange(0,qbin_labels.max()+1))
+        denominator = (term1*term2)**0.5
+        FSC = numerator/denominator                                                                                
+        qidx = np.where(qbins<qx_max)
+        fsc = np.vstack((qbins[qidx],FSC[qidx])).T
+             
+        x = np.linspace(fsc[0,0],fsc[-1,0],1000)
+        y = np.interp(x, fsc[:,0], fsc[:,1])
+        idx  = np.where(y>=0.5)
+        resx = np.max(x[idx])
+        resn = float(1./resx)
+        plt.plot(fsc[:,0],fsc[:,1])
+        #np.savetxt('./tmp_fsc.dat',fsc)
+        plt.plot([0,fsc[:,0].max()],[0.5,0.5],linestyle='--',color='lightgrey')
+        plt.xlim([0,fsc[:,0].max()+0.02])
+        plt.xlabel('1/resolution(Å)')
+        # plt.scatter([resx],[0.5],'r')
+        plt.text(resx,0.51,f"{round(resn,2)} Å")
+        idx  = np.where(y>=0.143)
+        resx = np.max(x[idx])
+        resn = float(1./resx)
+        plt.plot([0,fsc[:,0].max()],[0.143,0.143],linestyle='--',color='lightgrey')
+        plt.text(resx,0.153,f"{round(resn,2)} Å")
+        plt.ylabel('FSC')
+    if save_fig:
+        plt.savefig('fsc.png')
+    return fsc
+
+def get_progress_bar(label, cc, n_steps):
+    if cc:
+        widgets = [
+            f">>> {label}: ",
+            progressbar.Percentage(),
+            " ",
+            progressbar.GranularBar(markers=" ▏▎▍▌▋▊▉█", left='|', right='|'),
+            " ",
+            progressbar.Variable('cc'),
+            " ",
+            progressbar.ETA(),
+        ]
+    else:
+        widgets = [
+            f">>> {label}: ",
+            progressbar.Percentage(),
+            " ",
+            progressbar.GranularBar(markers=" ▏▎▍▌▋▊▉█", left='|', right='|'),
+            " ",
+            progressbar.ETA(),
+        ]
+    bar = progressbar.ProgressBar(maxval=n_steps, widgets=widgets)
+    return bar
+
+
+if __name__ == "__main__":
+    main()

@@ -101,6 +101,16 @@ public:
      * @return The number of GMM restraints
      */
     int getNumGMMRestraints() const;
+ 
+    /**
+     * @return The number of grid potentials
+     */
+    int getNumGridPotentials() const;
+
+    /**
+     * @return The number of grid potential restraints
+     */
+    int getNumGridPotentialRestraints() const;
 
     /**
      * @return The total number of distance and torsion restraints.
@@ -272,6 +282,16 @@ public:
      */
     void getCollectionParams(int index, std::vector<int>& indices, int& numActive) const;
 
+    void getGridPotentialParams(int index, std::vector<double>& potential,float& originx,float& originy,float& originz,
+            float& gridx,float& gridy,float& gridz, int& nx, int& ny, int& nz) const;
+    
+
+    void getGridPotentialRestraintParams(int index, std::vector<int>& atom, 
+                            std::vector<double>& mu, 
+                            std::vector<double>& gridpos_x,
+                            std::vector<double>& gridpos_y,
+                            std::vector<double>& gridpos_z,
+                            int& globalIndex) const;
     /**
      * @param particle1 the first particle in the RDC
      * @param particle2 the second particle in the RDC
@@ -634,6 +654,48 @@ public:
 
     bool usesPeriodicBoundaryConditions() const override;
 
+    /**
+     * Add a new grid potential to the system
+     */
+    void addGridPotential(
+        std::vector<double> potential,
+        float originx,
+        float originy,
+        float originz,
+        float gridx,
+        float gridy,
+        float gridz,
+        int nx,
+        int ny,
+        int nz,
+        int density_index);
+
+    /**
+     * Modify a grid potential
+     */
+    void modifyGridPotential(
+        int index, 
+        std::vector<double> potential,
+        float originx,
+        float originy,
+        float originz,
+        float gridx,
+        float gridy,
+        float gridz,
+        int nx,
+        int ny,
+        int nz);
+
+    /**
+     * Add a grid potential restraint
+     */
+    int addGridPotentialRestraint(std::vector<int> particle, std::vector<double> mu,
+        std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z);
+
+    void modifyGridPotentialRestraint(int index, std::vector<int> particle, std::vector<double> mu,
+        std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z);
+
+
     std::vector<std::pair<int, int> > getBondedParticles() const;
 
 protected:
@@ -647,6 +709,8 @@ private:
     class DistProfileRestraintInfo;
     class TorsProfileRestraintInfo;
     class GMMRestraintInfo;
+    class GridPotentialInfo;
+    class GridPotentialRestraintInfo;
     class GroupInfo;
     class CollectionInfo;
     int n_restraints;
@@ -659,6 +723,8 @@ private:
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
     std::vector<TorsProfileRestraintInfo> torsProfileRestraints;
     std::vector<GMMRestraintInfo> gmmRestraints;
+    std::vector<GridPotentialInfo> gridPotentials;
+    std::vector<GridPotentialRestraintInfo> gridPotentialRestraints;
     std::vector<GroupInfo> groups;
     std::vector<CollectionInfo> collections;
     std::set<int> meldParticleSet;
@@ -853,6 +919,60 @@ private:
       weights(weights), means(means), precisionOffDiagonal(precisionOffDiagonal),
       precisionOnDiagonal(precisionOnDiagonal), atomIndices(atomIndices) {}
     };
+
+    class GridPotentialInfo {
+    public:
+        std::vector<double> potential;
+        double originx;
+        double originy;
+        double originz;
+        double gridx;
+        double gridy;
+        double gridz;
+        int nx;
+        int ny;
+        int nz;
+        int density_index;
+
+        GridPotentialInfo() {
+            originx = 0.0;
+            originy = 0.0;
+            originz = 0.0;
+            gridx = 0.0;
+            gridy = 0.0;
+            gridz = 0.0;
+            nx = -1;
+            ny = -1;
+            nz = -1;
+            density_index = -1;
+        }
+
+        GridPotentialInfo(std::vector<double> potential,double originx,double originy,double originz,
+        double gridx,double gridy,double gridz,int nx,int ny,int nz, int density_index):
+        potential(potential), originx(originx), originy(originy), originz(originz), 
+        gridx(gridx), gridy(gridy), gridz(gridz), nx(nx), ny(ny), nz(nz), density_index(density_index) {}
+    };
+
+    class GridPotentialRestraintInfo {
+    public:
+        std::vector<int> particle;
+        std::vector<double> mu;
+        std::vector<double> gridpos_x;
+        std::vector<double> gridpos_y; 
+        std::vector<double> gridpos_z;
+        int globalIndex;
+
+        GridPotentialRestraintInfo() {
+            globalIndex = -1;
+        }
+        GridPotentialRestraintInfo(std::vector<int> particle,  std::vector<double> mu, 
+        std::vector<double> gridpos_x, std::vector<double> gridpos_y, std::vector<double> gridpos_z, int globalIndex): 
+        particle(particle), mu(mu), gridpos_x(gridpos_x), gridpos_y(gridpos_y), gridpos_z(gridpos_z), 
+        globalIndex(globalIndex) {}
+        
+    };
+
+
 
 };
 

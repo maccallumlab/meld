@@ -181,6 +181,8 @@ ReferenceCalcMeldForceKernel::ReferenceCalcMeldForceKernel(std::string name, con
     numTorsionRestraints = 0;
     numDistProfileRestraints = 0;
     numGMMRestraints = 0;
+    numGridPotentials = 0;
+    numGridPotentialRestraints = 0;
     numRestraints = 0;
     numGroups = 0;
     numCollections = 0;
@@ -199,6 +201,8 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     numTorsProfileRestraints = force.getNumTorsProfileRestraints();
     numTorsProfileRestParams = force.getNumTorsProfileRestParams();
     numGMMRestraints = force.getNumGMMRestraints();
+    numGridPotentials = force.getNumGridPotentials();
+    numGridPotentialRestraints = force.getNumGridPotentialRestraints();
     numRestraints = force.getNumTotalRestraints();
     numGroups = force.getNumGroups();
     numCollections = force.getNumCollections();
@@ -253,6 +257,16 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     gmmAtomIndices = std::vector<int>(calcSizeGMMAtomIndices(force), 0);
     gmmData = std::vector<float>(calcSizeGMMData(force), 0);
 
+    gridPotentials = std::vector<float>(numGridPotentials * get<0>(calcNumGrids(force)) * get<1>(calcNumGrids(force)) * get<2>(calcNumGrids(force)),0);
+    gridPotentialgridx = std::vector<float>(get<0>(calcNumGrids(force)), 0);
+    gridPotentialgridy = std::vector<float>(get<1>(calcNumGrids(force)), 0);
+    gridPotentialgridz = std::vector<float>(get<2>(calcNumGrids(force)), 0);   
+    gridPotentialnxyz = std::vector<int>(3, -1);
+    gridPotentialRestAtomIndices = std::vector<int>(numGridPotentialRestraints, -1);
+    gridPotentialRestWeights = std::vector<float>(numGridPotentialRestraints, 0);
+    gridPotentialRestGridPotentoalIndices = std::vector<int>(numGridPotentialRestraints, -1);
+    gridPotentialRestGlobalIndices = std::vector<int>(numGridPotentialRestraints, -1);
+    gridPotentialRestForces = std::vector<float3>(numGridPotentialRestraints, float3(0, 0, 0));
     restraintEnergies = std::vector<float>(numRestraints, 0);
     restraintActive = std::vector<bool>(numRestraints, false);
 
@@ -273,6 +287,7 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     setupDistProfileRestraints(force);
     setupTorsProfileRestraints(force);
     setupGMMRestraints(force);
+    setupGridPotentialRestraints(force);
     setupGroups(force);
     setupCollections(force);
 }
@@ -412,6 +427,25 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
             gmmForces);
     }
 
+    // if (numGridPotentialRestraints > 0)
+    // {
+    //     fill(gmmForces.begin(), gmmForces.end(), float3(0, 0, 0));
+    //     computeGridPotentialRest(
+    //         pos,
+    //         gridPotentialRestAtomIndices, 
+    //         gridPotentials,
+    //         gridPotentialgridx,
+    //         gridPotentialgridy,
+    //         gridPotentialgridz,
+    //         gridPotentialRestWeights,
+    //         gridPotentialnxyz,
+    //         gridPotentialRestGridPotentoalIndices,
+    //         gridPotentialRestGlobalIndices,
+    //         numGridPotentialRestraints,
+    //         restraintEnergies,    
+    //         gridPotentialRestForces);
+    // }
+
     // now evaluate and active restraints based on groups
     evaluateAndActivate(
         numGroups,
@@ -519,7 +553,7 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
 
     if (numGMMRestraints > 0)
     {
-        applyGMMRest(
+        energy += applyGMMRest(
             force,
             numGMMRestraints,
             gmmParams,
@@ -530,6 +564,17 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
             gmmForces);
     }
 
+    // if (numGridPotentialRestraints > 0)
+    // {
+    //     energy += applyGridPotentialRest(
+    //         force,
+    //         gridPotentialRestAtomIndices,
+    //         gridPotentialRestGlobalIndices,
+    //         restraintEnergies,
+    //         restraintActive,
+    //         gridPotentialRestForces,
+    //         numGridPotentialRestraints);
+    // }    
     return energy;
 }
 
@@ -542,6 +587,7 @@ void ReferenceCalcMeldForceKernel::copyParametersToContext(ContextImpl &context,
     setupDistProfileRestraints(force);
     setupTorsProfileRestraints(force);
     setupGMMRestraints(force);
+    setupGridPotentialRestraints(force);
     setupGroups(force);
     setupCollections(force);
 }
@@ -594,6 +640,17 @@ int ReferenceCalcMeldForceKernel::calcSizeGMMData(const MeldForce &force)
             nComponents * nPairs * (nPairs - 1) / 2; // precision off diagonals
     }
     return total;
+}
+
+int3 ReferenceCalcMeldForceKernel::calcNumGrids(const MeldForce &force)
+{
+    int nx, ny, nz;
+    // float originx, originy, originz, gridx, gridy, gridz;
+    // std::vector<double> potential;
+    // if (numGridPotentialRestraints > 0) {
+    //     force.getGridPotentialParams(0, potential, originx, originy, originz, gridx, gridy, gridz, nx, ny, nz);
+    // }
+    return int3(nx,ny,nz);
 }
 
 void ReferenceCalcMeldForceKernel::setupRDCRestraints(const MeldForce& force)
@@ -878,6 +935,45 @@ void ReferenceCalcMeldForceKernel::setupGMMRestraints(const MeldForce &force)
             dataBlockOffset += 1 + 2 * nPairs + nPairs * (nPairs - 1) / 2;
         }
     }
+}
+
+void ReferenceCalcMeldForceKernel::setupGridPotentialRestraints(const MeldForce &force)
+{
+//     int numAtoms = system.getNumParticles();
+//     std::string restType = "density restraint";
+//     for (int d = 0; d < numGridPotentials; ++d) {
+//         int nx,ny,nz;
+//         float originx, originy, originz, gridx, gridy, gridz;
+//         std::vector<double> potential;
+//         force.getGridPotentialParams(d, potential,originx,originy,originz,
+//                                     gridx,gridy,gridz,nx,ny,nz);
+//         for (int i = 0; i < nx; ++i) {
+//             gridPotentialgridx[i] = originx+i*gridx;
+//         }
+//         for (int i = 0; i < ny; ++i) {
+//             gridPotentialgridy[i] = originy+i*gridy;
+//         }
+//         for (int i = 0; i < nz; ++i) {
+//             gridPotentialgridz[i] = originz+i*gridz;
+//         }
+//         for (int i = 0; i < nx*ny*nz; ++i) {
+//             gridPotentials[d*nx*ny*nz+i] = potential[i];
+//         }
+//         gridPotentialnxyz[0] = nx;
+//         gridPotentialnxyz[1] = ny;
+//         gridPotentialnxyz[2] = nz;
+//     }
+
+//     for (int i = 0; i < numGridPotentialRestraints; ++i)
+//     {
+//         int particle, global_index, potentialGridIndex;
+//         float strength;
+//         force.getGridPotentialRestraintParams(i, particle, potentialGridIndex, strength, global_index);
+//         gridPotentialRestAtomIndices[i] = particle;
+//         gridPotentialRestGridPotentoalIndices[i] = potentialGridIndex;
+//         gridPotentialRestGlobalIndices[i] = global_index;
+//         gridPotentialRestWeights[i] = system.getParticleMass(particle);
+//     }
 }
 
 void ReferenceCalcMeldForceKernel::setupGroups(const MeldForce &force)

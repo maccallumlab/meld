@@ -19,6 +19,7 @@ from meld.system import temperature
 from meld.system import param_sampling
 from meld.system import state
 from meld.system import mapping
+from meld.system import density
 
 import numpy as np  # type: ignore
 from typing import List, Optional, Any
@@ -30,7 +31,10 @@ class System(interfaces.ISystem):
     """
 
     restraints: restraints.RestraintManager
-    """ The object to handle managing restraints for the system """
+    """The object to handle managing restraints for the system"""
+
+    density: density.DensityManager
+    """The object to handle managing densities for the system"""
 
     index: indexing.Indexer
     """The object to lookup atom and residue indices """
@@ -95,6 +99,7 @@ class System(interfaces.ISystem):
         self._template_box_vectors = template_box_vectors
         self.builder_info = builder_info
         self.restraints = restraints.RestraintManager(self)
+        self.density = density.DensityManager()
         self.param_sampler = param_sampling.ParameterManager()
         self.mapper = mapping.PeakMapManager()
 

@@ -16,6 +16,7 @@ from meld.system import restraints
 from meld.system import options
 from meld.system import param_sampling
 from meld.system import mapping
+from meld.system import density
 from meld.runner import transform
 from meldplugin import MeldForce  # type: ignore
 from meld.runner.transform.restraints.meld.tracker import RestraintTracker
@@ -41,6 +42,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
         self,
         param_manager: param_sampling.ParameterManager,
         mapper: mapping.PeakMapManager,
+        density_manager: density.DensityManager,
         builder_info: dict,
         options: options.RunOptions,
         always_active_restraints: List[restraints.Restraint],
@@ -48,6 +50,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
     ) -> None:
         self.param_manager = param_manager
         self.mapper = mapper
+        self.density_manager = density_manager
         self.builder_info = builder_info
 
         # Track indices of restraints, groups, and collections so that we can
@@ -78,6 +81,27 @@ class MeldRestraintTransformer(transform.TransformerBase):
             n_alignments = self.builder_info.get("num_alignments", 0)
             rdc_scale_factor = self.builder_info.get("alignment_scale_factor", 1e-4)
             meld_force = MeldForce(n_alignments, rdc_scale_factor)
+
+            # If we have any density maps, add them now
+            for index,density in enumerate(self.density_manager.densities):
+                self.tracker.add_density(index, density,0)
+                blurred = _compute_density_potential(density.density_data,density.blur_scaler(0))#,origin=False)
+
+                # TODO What do do outside of grid?
+                # TODO fix numpy typemaps
+                meld_force.addGridPotential(
+                    blurred,
+                    density.origin[0],
+                    density.origin[1],
+                    density.origin[2],
+                    density.voxel_size[0],
+                    density.voxel_size[1],
+                    density.voxel_size[2],
+                    density.nx,
+                    density.ny,
+                    density.nz,
+                    index
+                )
 
             # Add all of the always-on restraints
             if self.always_on:
@@ -139,9 +163,27 @@ class MeldRestraintTransformer(transform.TransformerBase):
         timestep: int,
     ) -> None:
         if self.active:
+            self._update_densities(alpha)
             self._update_restraints(alpha, timestep, state)
             self._update_groups_collections(state)
             self.force.updateParametersInContext(simulation.context)
+
+    def _update_densities(self, alpha):
+        to_update = self.tracker.density_to_update(alpha)
+        for index, density in to_update:
+            blur = density.blur_scaler(alpha)
+            blurred = _compute_density_potential(density.density_data,alpha)
+            self.force.modifyGridPotential(index, 
+                                           blurred, 
+                                           density.origin[0],
+                                           density.origin[1],
+                                           density.origin[2],
+                                           density.voxel_size[0],
+                                           density.voxel_size[1],
+                                           density.voxel_size[2],
+                                           density.nx,
+                                           density.ny,
+                                           density.nz)
 
     def _update_groups_collections(
         self,
@@ -158,6 +200,7 @@ class MeldRestraintTransformer(transform.TransformerBase):
     def _update_restraints(
         self, alpha: float, timestep: int, state: interfaces.IState
     ) -> None:
+
         # Get the list of restraints to update
         self.tracker.update(alpha, timestep, state)
         to_update = self.tracker.get_and_reset_need_update()
@@ -282,6 +325,17 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 self.force.modifyGMMRestraint(
                     index, nd, nc, scale, gmm_rest.atoms, w, m, d, o
                 )
+            elif category == "density":
+                density_rest = self.tracker.density_restraints[index]
+                self.force.modifyGridPotentialRestraint(
+                    index,
+                    density_rest.atom_index,
+                    _compute_density_potential(density_rest.mu,alpha),
+                    np.linspace(density_rest.map_origin[0],density_rest.map_origin[0]+(density_rest.map_dimension[0]-1)*density_rest.map_gridLength[0],int(density_rest.map_dimension[0])),
+                    np.linspace(density_rest.map_origin[1],density_rest.map_origin[1]+(density_rest.map_dimension[1]-1)*density_rest.map_gridLength[1],int(density_rest.map_dimension[1])),
+                    np.linspace(density_rest.map_origin[2],density_rest.map_origin[2]+(density_rest.map_dimension[2]-1)*density_rest.map_gridLength[2],int(density_rest.map_dimension[2]))
+                )
+                
             else:
                 raise RuntimeError(f"Unknown restraint category {category}")
 
@@ -429,6 +483,17 @@ class MeldRestraintTransformer(transform.TransformerBase):
             )
             self.tracker.add_gmm_distance_restraint(rest, alpha, timestep, state)
 
+        elif isinstance(rest, restraints.DensityRestraint):
+            rest_index = meld_force.addGridPotentialRestraint(
+                rest.atom_index, 
+                _compute_density_potential(rest.mu,alpha),
+                np.linspace(rest.map_origin[0],rest.map_origin[0]+(rest.map_dimension[0]-1)*rest.map_gridLength[0],int(rest.map_dimension[0])),
+                np.linspace(rest.map_origin[1],rest.map_origin[1]+(rest.map_dimension[1]-1)*rest.map_gridLength[1],int(rest.map_dimension[1])),
+                np.linspace(rest.map_origin[2],rest.map_origin[2]+(rest.map_dimension[2]-1)*rest.map_gridLength[2],int(rest.map_dimension[2]))
+        
+            )
+            self.tracker.add_density_restraint(rest, alpha, timestep, state)      
+
         else:
             raise RuntimeError(f"Do not know how to handle restraint {rest}")
 
@@ -454,3 +519,9 @@ def _setup_precisions(
                 off_diags.append(precisions[i, j, k])
 
     return diags, off_diags
+
+
+def _compute_density_potential(mu,alpha):
+    replica_num=int(alpha*(mu.shape[0]-1))
+    potential=mu[replica_num].astype(np.float64)
+    return potential
