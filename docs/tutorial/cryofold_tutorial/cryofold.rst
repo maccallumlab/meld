@@ -2,7 +2,7 @@
 Integrative modeling with cryo-EM data
 ======================================================
 
-In this tutorial, we describe how to set up simulation with cryo-EM data in MELD using adenylate kinase as an example system.
+In this tutorial, we describe how to set up simulation with cryo-EM data in MELD using adenylate kinase as an example.
 
 Input preparation
 -------------------
@@ -16,7 +16,7 @@ We provide a gaussian kernel based density map builder :code:`pdb_map` in :code:
 
     process_density_map pdb_map -f ./4ake_t.pdb --map_save --sigma 2 -d .
 
-where the :code:`sigma` determines the simulated resolution of the map to be :math:`2\sigma`. `[1] <https://www.sciencedirect.com/science/article/pii/S0006349508819868?via%3Dihub>`_
+where the :code:`sigma` determines the simulated resolution of the map to be :math:`2*\sigma`. `[1] <https://www.sciencedirect.com/science/article/pii/S0006349508819868?via%3Dihub>`_
 
 System setup
 -------------------
@@ -24,6 +24,9 @@ System setup
 Now we can set up the simulation with the following:
 
 .. code-block:: python
+    N_REPLICAS = 8              #number of replicas
+    N_STEPS = 2000              #number of steps for each replica
+    BLOCK_SIZE = 20             #number of steps for saving trajectory
 
     template = "./1ake_s.pdb"                           
     p = meld.AmberSubSystemFromPdbFile(template)                   
@@ -34,29 +37,49 @@ Now we can set up the simulation with the following:
         cutoff=1.8*u.nanometer                                       
     )                                                              
     builder = meld.AmberSystemBuilder(build_options)               
-    s = builder.build_system([p]).finalize()                       
-    s.temperature_scaler = meld.ConstantTemperatureScaler(300.0 * u.kelvin) 
+    s = builder.build_system([p]).finalize()        #create system selected build options               
+    s.temperature_scaler = meld.ConstantTemperatureScaler(300.0 * u.kelvin)     #set up temperature scaler
+
 
 In this example, we use :code:`ff99SB` force field with :code:`ff14sbside` correction and 
  :code:`gbNeck2` implicit solvent model. See :ref:`Getting Started with MELD` for more options.
 
-Then we can add restraints based on density map to the system. 
+Then we can add restraints based on density map to the system. Given a density map, a grid based potential can be defined as:
+
+.. math:: 
+    V_{\mathrm{EM}}(\mathbf{r})= \begin{cases}\zeta\left(1-\frac{\phi(\mathbf{r})-\phi_{\mathrm{thr}}}{\phi_{\mathrm{max}}-\phi_{\mathrm{thr}}}\right), & \Phi(\mathbf{r}) \geq \Phi_{\mathrm{thr}} \\ \zeta, & \Phi(\mathbf{r})<\Phi_{\mathrm{thr}}\end{cases}
+
+where :math:`\Phi(\mathbf{r})` is the density value at position :math:`\mathbf{r}`, 
+:math:`\Phi_{\mathrm{thr}}` is the threshold for the density dataset to exclude solvent 
+data with low density values. $\zeta$ is a scale factor to control the strength of density 
+map potential and also defines a flat potential for the solvent region. :math:`\Phi_{\max }=\max (\Phi(\mathbf{r}))`, 
+which is designed to drive atoms into the high density region with low potential energy. 
+The total energy :math:`\mathrm{t}` of the system is given by :math:`U_\mathrm{t} =  U_\mathrm{ff}+U_\mathrm{EM}+U_\mathrm{add}`, 
+where :math:`U_\mathrm{EM} = \sum_{i} w_{i} V_{\mathrm{EM}}\left(\mathbf{r}_{i}\right)` with :math:`w_{i}` usually being the 
+mass of atom :math:`i` and :math:`U_\mathrm{add}` can be additional restraints such as secondary structure restraints.
+For high resolution maps, we can smooth the generated grid potential by a Gaussian kernel 
+to reduce the resolution of the map to alleviate the problem of atoms being trapped in a local minima 
+of the rugged energy surface.
+
 Following the replica exchange framework in MELD, we first create a :code:`blur_scaler`
 to blur the density map. Here we use a linear blur function to blur the map from 0 to 2 such that we will
 use the original density map for the first replica and increasingly blur the map for the rest of replicas.
 :code:`constant_blur` is another option to define density map restraints with same blurring scale for all replicas.
 The restraints can now be defined based on selected atoms in the system. 
 
-.. code-block:: python
 
+.. code-block:: python
+    
     blur_scaler = s.restraints.create_scaler(
         "linear_blur", alpha_min=0, alpha_max=1, 
         min_blur=0, max_blur=2, num_replicas=N_REPLICAS
     )
 
-    for i in range(len(s.residue_numbers)):
-        all_atoms.append(s.index.atom(resid=s.residue_numbers[i],atom_name=s.atom_names[i]))
-    density_map=s.density.add_density('../../4ake_t_s1.mrc',blur_scaler,0,0.3)
+    for i in range(len(s.residue_numbers)):     #select non-hydrogen atoms in the system
+        if "H" not in s.atom_names[i]:
+            all_atoms.append(s.index.atom(resid=s.residue_numbers[i],atom_name=s.atom_names[i]))
+
+    density_map=s.density.add_density('./4ake_t_s1.mrc',blur_scaler,0,0.3)
     r = s.restraints.create_restraint(
         "density",
         dist_scaler,
@@ -65,130 +88,72 @@ The restraints can now be defined based on selected atoms in the system.
         density=density_map
     )
     map_restraints.append(r)
-    s.restraints.add_as_always_active_list(map_restraints)
+    s.restraints.add_as_always_active_list(map_restraints)   #add restraints to the system  
 
+Next we can set up the parameters for replica exchange simulation. 
 
-Extract trajectory
+.. code-block:: python
+
+    # set run options with 100 steps for exchange and 100 steps for minimization
+    options = meld.RunOptions(
+        timesteps = 100,
+        minimize_steps = 100
+    )
+    # set up the data store
+    store = vault.DataStore(gen_state(s,0), N_REPLICAS, s.get_pdb_writer(), block_size=BLOCK_SIZE)
+    store.initialize(mode='w')
+    store.save_system(s)
+    store.save_run_options(options)
+    
+    # create and store the remd_runner
+    l = ladder.NearestNeighborLadder(n_trials=100)
+    policy = adaptor.AdaptationPolicy(2.0, 50, 50)
+    a = adaptor.EqualAcceptanceAdaptor(n_replicas=N_REPLICAS, adaptation_policy=policy)
+    
+    remd_runner = leader.LeaderReplicaExchangeRunner(N_REPLICAS, max_steps=N_STEPS, ladder=l, adaptor=a)
+    store.save_remd_runner(remd_runner)
+    
+    # create and store the communicator
+    c = comm.MPICommunicator(s.n_atoms, N_REPLICAS)
+    store.save_communicator(c)
+    
+    # create and save the initial states
+    states = [gen_state(s, i) for i in range(N_REPLICAS)]                    
+              
+    store.save_states(states, 0)
+                                                                             
+    # save data_store
+    store.save_data_store()
+
+The complete script can be found `here <https://github.com/ccccclw/meld/blob/master/docs/tutorial/cryofold_tutorial/setup_cryofold.py>`_.
+
+If the simulation is run on multiple GPUs, we can use :code:`mpirun -n 8 launch_remd --debug`, 
+or we can use :code:`mpirun -n 1 launch_remd --debug` to run the simulation on a single GPU. 
+
+Result analysis
 ------------------
 After simulation is done, we can use :code:`extract_trajectory` to extract frames 
 saved in :code:`Data/`. The options can be seen from :code:`extract_trajectory --help`
 
-.. code-block:: python
-
-    usage: extract_trajectory [-h] {extract_traj,extract_traj_dcd,extract_last,extract_random,follow_structure,follow_dcd} ...
-
-    Extract frames from a trajectory.
-
-    positional arguments:
-    {extract_traj,extract_traj_dcd,extract_last,extract_random,follow_structure,follow_dcd}
-        extract_traj        extract a trajectory for one replica
-        extract_traj_dcd    extract a trajectory for one replica
-        extract_last        extract the last frame for each replica from a trajectory
-        extract_random      extract random frames from a trajectory for reseeding
-        follow_structure    follow a structure replica through the ladder
-        follow_dcd          follow a structure replica through the ladder
-
-    optional arguments:
-    -h, --help            show this help message and exit
-
-e.g. extracting frame 1 to 1000 on replica 0 in :code:`.dcd` format. 
+For example, we can extract frames from 1 to 200 of replica 0 in :code:`.dcd` format. 
 
 .. code-block:: python
     
-    extract_trajectory extract_traj_dcd --start 1 --end 1000 --replica 0 trajectory.00.dcd 
+    extract_trajectory extract_traj_dcd --start 1 --end 200 --replica 0 trajectory.00.dcd 
 
-Visulize replica exchange
--------------------------
-It's important to check the exchange between replicas along simulation. We provide
-several ways to extract such information. The two of them used mostly are:  
-
-.. code-block:: python
-    
-    analyze_remd visualize_trace
-
-which will show plot like the following:
-
-.. image:: compare_trace.png
-    :width: 300
-
-Each color represents where each replica is along simulation. The left plot shows 
-better exchanges because replicas got exchanged frequently among replica ladders. This 
-can also be seen from:
-
-.. code-block:: python
-    
-    analyze_remd visualize_fup
-
-which will show plot like the following:
-
-.. image:: compare_fup.png
-    :width: 300
-
-The x-axis indicates all 30 replicas and y-axis represents the probability of going 
-up (black) or down (red) along replica ladders. The right plot reflects higher
-probability of going up, which shows worse exchange than the left one.
-
-Extract representative
-----------------------
-Once simulation is done, we want to see what is the representative structure
-among all conformations it sampled. This requires a similarity measure like RMSD between 
-selected atoms of conformations and usually use clustering tools available in open source 
-packages such as `scikit-learn <https://scikit-learn.org/stable/modules/clustering.html#clustering>`_ and `cpptraj <https://amber-md.github.io/cpptraj/CPPTRAJ.xhtml>`_ to group conformations with high similarity.
-Here we provide a rather simple but effective tool :code:`density_rank` to extract the representative among selected
-samples. The calculation is based on the contacts formed between selected atoms and the assumption 
-is that the representative should be the conformation having more contacts formed and got sampled
-more times such as bound and folded state. 
-
-The full description can be seen from :code:`density_rank --help`
+We can analyze the result based on the cross correlation between synthetic density maps of the simulation 
+and target density map using
 
 .. code-block:: python
 
-    usage: density_rank [-h] [-traj path [path ...]] [-top path] [-start N [N ...]] [-end N [N ...]] [-sieve N [N ...]]
-                        [-inter res_0 res_1 skip_0 res_2 res_3 skip_1 [res_0 res_1 skip_0 res_2 res_3 skip_1 ...]] [-inter_cutoff cutoff [cutoff ...]]
-                        [-intra res_0 res_1 skip [res_0 res_1 skip ...]] [-intra_cutoff cutoff [cutoff ...]] [-extract_traj density range [density range ...]]
+    process_density_map pdb_map -f ./1ake_s.pdb -t trajectory.00.dcd -m ./4ake_c1.mrc --cc_save --cc -d .
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    -traj path [path ...] path of trajectories
-    -top path             path of topology
-    -start N [N ...]      select start frame of each trajectory
-    -end N [N ...]        select end frame of each trajectory
-    -sieve N [N ...]      skip every N frames of each trajectory
+From the correlation coefficient result, we can see that the structure is progressively
+refined against the target map during the simulation.
 
-    -inter res_0 res_1 skip_0 res_2 res_3 skip_1 [res_0 res_1 skip_0 res_2 res_3 skip_1 ...]
-                            calculate contact in range [res_0:res_1:skip_0] and [res_2:res_3:skip_1] with inter_cutoff, multiple ranges are allowed, total length should be
-                            multiple of 6
+.. figure:: ./rmsd_cc.png
+    :width: 600px
+    :align: center
+    :alt: cc
 
-    -inter_cutoff cutoff [cutoff ...] inter_contact cutoff, unit in nm
-
-    -intra res_0 res_1 skip [res_0 res_1 skip ...]
-                            calculate contact in range [res_0:res_1:skip] with intra_cutoff, multiple ranges are allowed, total length should be multiple of 3
-    
-    -intra_cutoff cutoff [cutoff ...] intra_contact cutoff, unit in nm
-
-    -extract_traj density_range [density_range ...] extract samples with specified density range, default not extracting.
-
-
-
-Here are a couple of examples:
-
-* For extracting representative in binding simulation, we usually define the contacts
-between selected residues in host and ligand. In addition, a cutoff needs to be set, which can be estimated
-from sampled conformations.
-
-.. code-block:: python
-    
-    density_rank -traj trajectory.00.dcd trajectory.01.dcd trajectory.02.dcd -top topol.prmtop -start 500 500 600 -end 900 800 700 -sieve 2 2 2 -inter 0 67 2 67 88 2 -inter_cutoff 0.7
-
-This will process contacts between residues 1-67 and residues 68-89 with cutoff 0.7 nm every 2 frames among 500 to 900 of :code:`trajectory.00.dcd`, 500 to 800 of :code:`trajectory.01.dcd` and 600 to 700 of :code:`trajectory.02.dcd`.
-
-The output files are :code:`density.npy` (density value of each conformation) with associated plot :code:`density_rank.png` and the pdb file :code:`top_density.pdb` of conformation with 
-highest density as representative of selected trajectory set.
-
-* For extracting representative in folding simulation, we usually define the the intra-contacts among selected residues in the molecule.
-
-.. code-block:: python
-    
-    density_rank -traj trajectory.00.dcd -top topol.prmtop -start 500 -end 9000 -sieve 2 -intra 1 168 2  -intra_cutoff 0.6
-
-This will process pairwise contacts in residue set 1-168 with cutoff 0.6 nm every 2 frames among 500 to 9000 of :code:`trajectory.00.dcd`.
+    Correlation coefficient between synthetic density maps of simulation and target density map.
