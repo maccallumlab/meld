@@ -148,8 +148,8 @@ and target density map using
 
     process_density_map pdb_map -f ./1ake_s.pdb -t trajectory.00.dcd -m ./4ake_c1.mrc --cc_save --cc -d .
 
-From the correlation coefficient result, we can see that the structure is progressively
-refined against the target map during the simulation.
+From the correlation coefficient result, we can see that the initial conformation (blue) is progressively
+refined against the target map during the simulation. Representative conformation of high c.c. (yellow) is aligned against native structure (white).
 
 .. figure:: ./rmsd_cc.png
     :width: 600px
