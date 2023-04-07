@@ -80,7 +80,7 @@ The restraints can now be defined based on selected atoms in the system.
         if "H" not in s.atom_names[i]:
             all_atoms.append(s.index.atom(resid=s.residue_numbers[i],atom_name=s.atom_names[i]))
 
-    density_map=s.density.add_density('./4ake_t_s1.mrc',blur_scaler,0,0.3)
+    density_map=s.density.add_density('./4ake_t_s2.mrc',blur_scaler,0,0.3)
     r = s.restraints.create_restraint(
         "density",
         dist_scaler,
