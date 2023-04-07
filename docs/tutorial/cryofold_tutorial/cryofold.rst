@@ -41,9 +41,7 @@ Now we can set up the simulation with the following:
     s = builder.build_system([p]).finalize()        #create system selected build options               
     s.temperature_scaler = meld.ConstantTemperatureScaler(300.0 * u.kelvin)     #set up temperature scaler
 
-
-In this example, we use :code:`ff99SB` force field with :code:`ff14sbside` correction and 
- :code:`gbNeck2` implicit solvent model. See :ref:`Getting Started with MELD` for more options.
+In this example, we use :code:`ff99SB` force field with :code:`ff14sbside` correction and :code:`gbNeck2` implicit solvent model. See :ref:`Getting Started with MELD` for more options.
 
 Then we can add restraints based on density map to the system. Given a density map, a grid based potential can be defined as:
 
