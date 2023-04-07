@@ -24,6 +24,7 @@ System setup
 Now we can set up the simulation with the following:
 
 .. code-block:: python
+    
     N_REPLICAS = 8              #number of replicas
     N_STEPS = 2000              #number of steps for each replica
     BLOCK_SIZE = 20             #number of steps for saving trajectory
