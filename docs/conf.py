@@ -37,9 +37,11 @@ extensions = [
     'sphinx.ext.viewcode',
     'breathe',
     'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints'
+    'sphinx_autodoc_typehints',
+    'sphinx.ext.autosectionlabel'
 ]
 
+autosectionlabel_prefix_document = True
 autosummary_generate = True
 autodoc_default_flags = ['members', 'inherited-members']
 autosummary_mock_imports = ["meld.test"]
