@@ -23,7 +23,8 @@ setup(
         "scripts/process_fragments",
         "scripts/prepare_restart",
         "scripts/density_rank",
-        "scripts/process_density_map"
+        "scripts/process_density_map",
+        "scripts/cryofold2_setup",
     ],
     url="http://meldmd.org",
     license="LICENSE.txt",
