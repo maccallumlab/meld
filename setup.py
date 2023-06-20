@@ -8,6 +8,8 @@ setup(
     author="Justin L. MacCallum",
     author_email="justin.maccallum@ucalgary.ca",
     packages=find_packages(),
+    # meldplugin must be generated with SWIG
+    install_requires=["mdtraj", "gemmi", "mrcfile", "matplotlib", "progressbar2", "meldplugin"],
     package_data={
         "meld.system.builders.amber": ["maps/*.txt"],
         "meld.test.test_functional.test_openmm_runner": [
