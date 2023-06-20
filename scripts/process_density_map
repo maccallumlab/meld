@@ -698,6 +698,8 @@ def select_model(args):
             # convert rmsf to B-factors https://www.charmm.org/ubbthreads/ubbthreads.php?ubb=showflat&Number=18316
             # B=[(8*PI**2)/3] * (RMSF)**2 
             bfac = (8 * np.pi**2 / 3) * rmsf**2
+            # in PDB format bfactors are allowed in range [-10 100]
+            bfac = np.clip(bfac, -10, 100)
             # this the RMSD relative to the starting structure and can be used to check if the MD has converged
             rmsd_to_frame0  = md.rmsd(t_slice, t).mean()
         else:
