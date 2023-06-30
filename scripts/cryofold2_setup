@@ -58,7 +58,7 @@ class MeldSetup:
         state.alpha = index / (self.N_REPLICAS - 1.0)
         return state
 
-    def setup_system(self, template, denmap, forcefield='ff14sbside', implicit_solvent_model='gbNeck2', start_temp=300., end_temp=300., use_geometric_temp_scaler=False):
+    def setup_system(self, template, denmap, forcefield='ff14sbside', implicit_solvent_model='gbNeck2', temp_min=300., temp_max=300., use_geometric_temp_scaler=False, temp_alpha_range=(0,1), denmap_weight=0.3):
         '''
         Prepare all necessary files for MELD run
         
@@ -68,12 +68,14 @@ class MeldSetup:
             path to the model PDB file
         denmap
             path to the cryo-EM density map in MRC format
+        denmap_weight
+            global density map weight when setting up restraints; increase to 0.5-0.5 to have a higher driving force of density fitting
         start_temp, end_temp
-            starting and ending temperature of the REMD (in K); both heating and cooling are possible; if start_temp == end_temp, a constant temperature is applied
+            starting and ending temperature (in K) along the replica ladder of the REMD; both heating and cooling are possible; if start_temp == end_temp, a constant temperature is applied
         use_geometric_temp_scaler
             if True, the temperature is scaled geometrically (exponentially), otherwise linear scaling is used
-        
-        
+        temp_alpha_range
+            ... see temp scaler documentation; enables placing constant temperature in some of the replicas and having a gradient in others
         TODO
         ----
         * adding other restraints, e.g. the positional restraints from ModelAngelo model or distance restraints from evolutionary coupling, crosslinks, etc
@@ -90,8 +92,8 @@ class MeldSetup:
         builder = meld.AmberSystemBuilder(build_options)
         s = builder.build_system([p]).finalize()
         
-        if start_temp == end_temp:
-            s.temperature_scaler = meld.ConstantTemperatureScaler(start_temp * u.kelvin) 
+        if temp_min == temp_max:
+            s.temperature_scaler = meld.ConstantTemperatureScaler(temp_min * u.kelvin) 
         else:
             # example: start with a higher temperature to sample more conformations
             # TODO alpha_min can be above 0 and alpha_max can be below 1 to have some constant temperature period
@@ -101,7 +103,7 @@ class MeldSetup:
                 TempScalerClass = meld.GeometricTemperatureScaler
             else:
                 TempScalerClass = meld.LinearTemperatureScaler
-            s.temperature_scaler = TempScalerClass(0., 1., start_temp * u.kelvin, end_temp * u.kelvin)
+            s.temperature_scaler = TempScalerClass(*temp_alpha_range, temp_min * u.kelvin, temp_max * u.kelvin)
 
         n_res = s.residue_numbers[-1]
         all_atoms=[]
@@ -114,7 +116,7 @@ class MeldSetup:
         for i in range(len(s.residue_numbers)):
           if 'H' not in s.atom_names[i]:
             all_atoms.append(s.index.atom(resid=s.residue_numbers[i],atom_name=s.atom_names[i]))
-        density_map=s.density.add_density(denmap, blur_scaler,0,0.3)
+        density_map=s.density.add_density(denmap, blur_scaler, 0, denmap_weight)
         r = s.restraints.create_restraint(
             "density",
             dist_scaler,
@@ -169,6 +171,7 @@ def get_cli():
     parser.add_argument('--n-steps', default=500, type=int, help='Number of steps for each replica')
     parser.add_argument('--n-md-steps', default=100, type=int, help='Number of MD steps (3.5 fs) within each REMD step')
     parser.add_argument('--n-md-minimize-steps', default=100, type=int, help='Number of minimization steps prior to MD within each REMD step')
+    parser.add_argument('--map-weight', default=0.3, type=float, help='Weight of the density map restraints; increase to bring up the fitting force')
     # NOTE this is not an essential parameter, to keep things simple block_size is always set to be the same as n-steps
     #parser.add_argument('--block-size', default=500, type=int, help='Number of steps for saving trajectory')
     # NOTE available force fields are listed here:
@@ -178,19 +181,19 @@ def get_cli():
     # TODO other solvent options?
     parser.add_argument('--implicit-solvent-model', '--ism', default='gbNeck2', help='Implicit solvent model for the simulation')
     # temperature settings
-    parser.add_argument('--start-temp', type=float, default=300., help='Temperature in K at the beginning of REMD')
-    parser.add_argument('--end-temp', type=float, help='Temperature in K at the end of REMD; if None, then MD is run at constant temperature equalling start_temp')
-    parser.add_argument('--geometric-temp-scaler', action='store_true', help='If a temperature ramp is applied, scale geometrically (exponentially) rather then linearly')
-
+    parser.add_argument('--temp', type=float, default=300., help='Temperature of the system in Kelvins or temperature of the lowest replica if --temp-highest-replica is set')
+    parser.add_argument('--temp-highest-replica', type=float, help='Temperature in K at the highest replica; if None, then all replicas run at constant temperature equalling start_temp')
+    parser.add_argument('--geometric-temp-scaler', action='store_true', help='If a temperature is scaled across replicas, scale geometrically (exponentially) rather then linearly')
+    parser.add_argument('--temp-alpha-range', nargs=2, default=(0.,1.), type=float, help='Alpha values between which the temperature is scaled; allows having replicas with constant temperature as well as replicas that have temperature scaling in one run')
     # parse the cli and manually set parameters
     args = parser.parse_args()
     args.block_size = args.n_steps
-    if args.end_temp is None:
-        args.end_temp = args.start_temp
+    if args.temp_highest_replica is None:
+        args.temp_highest_replica = args.temp
     return args
 
 if __name__ == '__main__':
     args = get_cli()
     setup_handler = MeldSetup(n_replicas = args.n_replicas, n_steps = args.n_steps, block_size = args.block_size, md_steps = args.n_md_steps, md_minimize_steps = args.n_md_minimize_steps)
-    setup_handler.setup_system(template = args.model, denmap = args.map, forcefield = args.force_field, implicit_solvent_model=args.implicit_solvent_model, start_temp=args.start_temp, end_temp=args.end_temp, use_geometric_temp_scaler=args.geometric_temp_scaler)
+    setup_handler.setup_system(template = args.model, denmap = args.map, forcefield = args.force_field, implicit_solvent_model=args.implicit_solvent_model, temp_min=args.temp, temp_max=args.temp_highest_replica, use_geometric_temp_scaler=args.geometric_temp_scaler, temp_alpha_range = args.temp_alpha_range, denmap_weight=args.map_weight)
 
