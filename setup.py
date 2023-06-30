@@ -8,6 +8,8 @@ setup(
     author="Justin L. MacCallum",
     author_email="justin.maccallum@ucalgary.ca",
     packages=find_packages(),
+    # meldplugin must be generated with SWIG
+    install_requires=["mdtraj", "gemmi", "mrcfile", "matplotlib", "progressbar2", "meldplugin"],
     package_data={
         "meld.system.builders.amber": ["maps/*.txt"],
         "meld.test.test_functional.test_openmm_runner": [
@@ -23,7 +25,8 @@ setup(
         "scripts/process_fragments",
         "scripts/prepare_restart",
         "scripts/density_rank",
-        "scripts/process_density_map"
+        "scripts/process_density_map",
+        "scripts/cryofold2_setup",
     ],
     url="http://meldmd.org",
     license="LICENSE.txt",

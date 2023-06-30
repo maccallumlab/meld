@@ -1,3 +1,10 @@
+## 0.6.3
+
+### Enhancements
+- Add best-fitting model selection workflow for CryoFold
+- CryFold tutorial script adapted for command-line use
+- Update python dependencies in setup.py
+
 ## 0.6.2
 
 ### Enhancements
