@@ -111,6 +111,10 @@ def setup_data_store(
     store.save_run_options(run_options)
     store.save_remd_runner(remd_info.remd_runner)
     store.save_communicator(remd_info.communicator)
+    if run_options.enable_gamd == True:
+        integrator = system.integrator.__dict__.copy()
+        del integrator["this"]
+        store.save_integrator(integrator)
 
     def _setup_state(index):
         state = system.get_state_template()

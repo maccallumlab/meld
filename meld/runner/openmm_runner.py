@@ -20,6 +20,13 @@ import numpy as np  # type: ignore
 from typing import Optional, List, Dict
 import random
 import math
+import os
+from genericpath import exists
+
+try:
+    from gamd.GamdLogger import GamdLogger
+except:
+    pass
 
 from meld.vault import ENERGY_GROUPS
 
@@ -221,8 +228,16 @@ class OpenMMRunner(interfaces.IRunner):
                 self._simulation.integrator.setGlobalVariableByName(
                     "kT", self._temperature * GAS_CONSTANT
                 )
-            else:
+            elif hasattr(self._integrator, "setTemperature"):           
                 self._integrator.setTemperature(self._temperature)
+            elif self._options.enable_gamd == True:
+                thermal_energy = (
+                    self._temperature * u.BOLTZMANN_CONSTANT_kB * u.AVOGADRO_CONSTANT_NA
+                )
+                self._simulation.integrator.setGlobalVariableByName(
+                    "thermal_energy", thermal_energy
+                )
+
             if self._barostat:
                 self._simulation.context.setParameter(
                     self._barostat.Temperature(), self._temperature
@@ -491,6 +506,12 @@ class OpenMMRunner(interfaces.IRunner):
             / self._temperature
         )
 
+        if self._options.enable_gamd == True:
+            gamd_logger = self.register_gamd_logger(self._integrator, self._simulation)
+            gamd_logger.mark_energies()
+            gamd_logger.write_to_gamd_log(self._timestep)
+            gamd_logger.close()
+
         # store in state
         state.positions = coordinates
         state.velocities = velocities
@@ -615,6 +636,26 @@ class OpenMMRunner(interfaces.IRunner):
         if not accept:
             self._transformers_update(state)
         return state
+
+    def register_gamd_logger(self, integrator, simulation):
+        gamd_log_filename = os.path.join("Logs", f"gamd_{self._rank:03d}.log")
+        if exists(gamd_log_filename):
+            write_mode = "a"
+        else:
+            write_mode = "w"
+        gamd_logger = GamdLogger(
+            gamd_log_filename,
+            write_mode,
+            integrator,
+            simulation,
+            integrator.first_boost_type,
+            integrator.first_boost_group,
+            integrator.second_boost_type,
+            integrator.second_boost_group,
+        )
+        if write_mode == "w":
+            gamd_logger.write_header()
+        return gamd_logger
 
 
 def _check_for_nan(
