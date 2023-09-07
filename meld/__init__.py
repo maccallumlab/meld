@@ -29,7 +29,10 @@ from meld.system.builders.amber.subsystem import (
     AmberSubSystemFromSequence,
     AmberSubSystemFromPdbFile,
 )
-from meld.system.builders.build_elastic_network_restraints import create_elastic_network_restraints, add_elastic_network_restraints
+from meld.system.builders.build_elastic_network_restraints import (
+    create_elastic_network_restraints,
+    add_elastic_network_restraints,
+)
 from meld.system.builders.amber.builder import AmberSystemBuilder, AmberOptions
 from meld.system.temperature import (
     ConstantTemperatureScaler,
@@ -51,4 +54,5 @@ from meld.system.patchers.rdc_alignment import add_rdc_alignment
 from meld.system.patchers.spin_label import add_virtual_spin_label
 from meld.system.patchers.freeze import freeze_atoms
 from meld.system.patchers.potential import remove_potential
+from meld.sa.runner import SimulatedAnnealingRunner
 from meld.helpers import setup_data_store, setup_replica_exchange
