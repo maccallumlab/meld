@@ -1,5 +1,4 @@
 import numpy as np
-from meld.runner.openmm_runner import OpenMMRunner
 from meld import interfaces
 from meld.system import meld_system
 from meld.system import options
@@ -46,6 +45,7 @@ class SimulatedAnnealingRunner:
         self,
         n_alpha_steps,
         system: meld_system.System,
+        runner: interfaces.IRunner,
         options: options.RunOptions,
         platform: Optional[str] = None,
     ) -> None:
@@ -64,7 +64,7 @@ class SimulatedAnnealingRunner:
         self._timesteps_per_alpha = self.options.timesteps
         self.system = system
         self.platform = platform
-        self._initialize_runner()
+        self.runner = runner
         self._setup_alphas()
 
     def run(
@@ -99,11 +99,6 @@ class SimulatedAnnealingRunner:
         delta = 1.0 / (self._n_alpha_steps - 1.0)
         self._alphas = [i * delta for i in range(self._n_alpha_steps)]
         self.alphas.reverse()
-
-    def _initialize_runner(self) -> None:
-        self.runner = OpenMMRunner(
-            self.system, options=self.options, communicator=None, platform=self.platform
-        )
 
     def _compute_and_output_energy(self, state) -> float:
         energy = self.runner.get_energy(state)
