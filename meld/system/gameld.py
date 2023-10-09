@@ -1,5 +1,10 @@
 """
-GaMELD Implementation Module
+GaMELD Implementation Module. 
+
+GaMELD combines Gaussian Accelerated Molecular Dynamics (GaMD) and MELD using a new threshold calculation.
+
+References:
+    M. Caparotta, A. Perez, When MELD meets GaMD: Accelerating Biomolecular Landscape Exploration.
 """
 
 from meld import interfaces
@@ -113,7 +118,10 @@ def change_thresholds(
 def compute_energy_width(
     gamd_log_filename: str, initial_row: int, column: int
 ) -> float:
-    # Compute standard deviation
+    """ 
+    Compute standard deviation of the potential energies.
+    """
+    
     energy: List[float] = []
     with open(gamd_log_filename, "r") as file:
         for line in file:
@@ -121,11 +129,14 @@ def compute_energy_width(
             if not line_split[0] == "#":
                 if int(line_split[1]) > initial_row:
                     energy.append(float(line_split[column]) * 4.184)  # Unboosted-Energy
-    return np.std(energy)
+    return float(np.std(energy))
 
 
 def new_thresholds(thresholds: List[List[float]]) -> List[float]:
-    # Compute new thresholds
+    """ 
+    Compute new thresholds.
+    """
+
     new_threshold: List[float] = []
     sd_acum: float = 0
     thresholds.reverse()
