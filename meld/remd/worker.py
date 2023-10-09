@@ -11,6 +11,7 @@ from meld import interfaces
 import numpy as np
 from typing import Sequence
 import logging
+from meld.system import gameld
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,13 @@ class WorkerReplicaExchangeRunner:
             energies = self._compute_energies(states, all_states, system_runner)
             communicator.send_energies_to_leader(energies)
 
+            if system_runner._options.enable_gamd == True:
+                # if it's time, change thresholds
+                leader: bool = False
+                gameld.change_thresholds(
+                    self._step, system_runner, communicator, leader
+                )
+                
             self._step += 1
 
     def _compute_energies(

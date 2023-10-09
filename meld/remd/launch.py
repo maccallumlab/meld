@@ -102,6 +102,11 @@ def launch(
     logger.info("Loading run options")
     options = store.load_run_options()
 
+    if options.enable_gamd == True:
+        integrator_var = store.load_integrator()
+        for key, value in integrator_var.items():
+            setattr(system._integrator, key, value)
+
     system_runner = runner.get_runner(
         system, options, comm=communicator, platform=platform
     )

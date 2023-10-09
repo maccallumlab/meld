@@ -193,6 +193,56 @@ class ICommunicator(ABC):
         """
         pass
 
+    @abstractmethod
+    def distribute_thresholds_to_workers(
+        self, all_thresholds: List[float]
+    ) -> List[float]:
+        """
+        Distribute thresholds to workers
+
+        Args:
+            all_thresholds: the threshold values to be distributed
+
+        Returns:
+            the block of threshold values for the leader
+        """
+        pass
+
+    @abstractmethod
+    def receive_thresholds_from_leader(self) -> List[float]:
+        """
+        Receive a threshold from leader.
+
+        Returns:
+            the block of threshold values for this worker
+        """
+        pass
+
+    @abstractmethod
+    def gather_thresholds_from_workers(
+        self, thresholds_on_leader: List[List[float]]
+    ) -> List[List[float]]:
+        """
+        Receive threshold from each worker.
+
+        Args:
+            thresholds_on_leader: the threshold from the leader
+
+        Returns:
+            threshold
+        """
+        pass
+
+    @abstractmethod
+    def send_thresholds_to_leader(self, thresholds: List[List[float]]) -> None:
+        """
+        Send a block of thresholds to the leader.
+
+        Args:
+            thresholds: block of thresholds to send to the leader
+        """
+        pass
+
     @property
     @abstractmethod
     def n_replicas(self) -> int:

@@ -24,7 +24,8 @@ class RunOptions:
     param_mcmc_steps: int = 0
     mapper_mcmc_steps: int = 0
     pressure: float = 1.0 * u.bar
-
+    enable_gamd: bool = False
+    
     def __post_init__(self):
         if self.runner not in ["openmm", "fake_runner"]:
             raise ValueError(f"Unknown runner: {self.runner}")
