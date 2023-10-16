@@ -292,7 +292,7 @@ class ParameterManager:
 
     def extract_value(
         self, parameter: Parameter, param_state: ParameterState
-    ) -> Number:
+    ) -> float:
         param = self.parameters[parameter.name]
 
         if isinstance(param, DiscreteParameter):
