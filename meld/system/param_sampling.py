@@ -11,7 +11,7 @@ from typing import NamedTuple, Optional, TypeVar, Generic, List
 from abc import ABCMeta, abstractmethod
 import numpy as np  # type: ignore
 from openmm import unit as u  # type: ignore
-
+from typing import Union
 
 Number = TypeVar("Number", int, float)
 
@@ -292,7 +292,7 @@ class ParameterManager:
 
     def extract_value(
         self, parameter: Parameter, param_state: ParameterState
-    ) -> float:
+    ):
         param = self.parameters[parameter.name]
 
         if isinstance(param, DiscreteParameter):
