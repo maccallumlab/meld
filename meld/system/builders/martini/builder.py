@@ -12,7 +12,7 @@ from ..spec import SystemSpec
 from ... import indexing
 
 from typing import List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 import subprocess
 import logging
@@ -37,8 +37,8 @@ except ImportError:
 # Need to expand options for all use cases
 @partial(dataclass, frozen=True)
 class MartiniOptions:
-    default_temperature: float = 300.0 * u.kelvin
-    timestep: float = 20.0 * u.femtoseconds
+    default_temperature: u.Quantity = field(default_factory=lambda: 300.0 * u.kelvin)
+    timestep: u.Quantity = field(default_factory=lambda: 20.0 * u.femtoseconds)
     epsilon_r: float = 15.0 
     defines_file: Optional[str] = "defines.txt"
     enable_pressure_coupling: bool = False

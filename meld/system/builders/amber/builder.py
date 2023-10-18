@@ -14,7 +14,7 @@ from . import subsystem
 from . import amap
 
 from typing import List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 import subprocess
 import logging
@@ -30,7 +30,7 @@ import numpy as np  # type: ignore
 
 @partial(dataclass, frozen=True)
 class AmberOptions:
-    default_temperature: float = 300.0 * u.kelvin
+    default_temperature: u.Quantity = field(default_factory=lambda: 300.0 * u.kelvin)
     forcefield: str = "ff14sbside"
     solvation: str = "implicit"
     gb_radii: str = "mbondi3"
@@ -48,7 +48,7 @@ class AmberOptions:
     enable_pme: bool = False
     pme_tolerance: float = 0.0005
     enable_pressure_coupling: bool = False
-    pressure: float = 1.01325 * u.bar
+    pressure: u.Quantity = field(default_factory=lambda: 1.01325 * u.bar)
     pressure_coupling_update_steps: int = 25
     cutoff: Optional[float] = None
     remove_com: bool = True
