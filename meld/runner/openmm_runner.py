@@ -3,12 +3,6 @@
 # All rights reserved
 #
 
-try: 
-    from tkinter import E
-except ModuleNotFoundError:
-    print("***")
-    print("tkinter is not available for python installed on the current os.")        
-    print("***")
 from meld import interfaces
 from meld.system import options
 from meld.system import restraints
