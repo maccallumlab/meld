@@ -494,7 +494,7 @@ def get_rdc_restraints(
         - observed splitting (:math:`Hz`)
         - experiment (ignored)
         - tolerance (:math:`Hz`)
-        - kappa (:math:`Hz \AA^3`)
+        - kappa (:math:`Hz \\AA^3`)
         - force constant (:math:`kJ mol^{-1} Hz^{-2}`)
         - weight
 
