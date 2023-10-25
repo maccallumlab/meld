@@ -2,11 +2,12 @@
 # encoding: utf-8
 
 import argparse
-import progressbar
-from meld import vault
-from matplotlib import pyplot
-from matplotlib import animation
+
 import numpy as np
+import progressbar
+from matplotlib import pyplot
+
+from meld import vault
 
 
 def main():

@@ -7,23 +7,20 @@
 Module to build a System from Martini OpenMM system
 """
 
-from meld import util
-from ..spec import SystemSpec
-from ... import indexing
-
-from typing import List, Optional
+import logging
 from dataclasses import dataclass, field
 from functools import partial
-import subprocess
-import logging
+from typing import Optional
+
+import numpy as np  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
+from openmm import unit as u  # type: ignore
+
+from meld.system.builders.spec import SystemSpec
 
 logger = logging.getLogger(__name__)
 
-from openmm import app  # type: ignore
-from openmm.app import forcefield as ff  # type: ignore
-import openmm as mm  # type: ignore
-from openmm import unit as u  # type: ignore
-import numpy as np  # type: ignore
 
 try:
     import martini_openmm as martini  # type: ignore
@@ -34,12 +31,13 @@ except ImportError:
     print("dependency, but this could not be imported.")
     raise
 
+
 # Need to expand options for all use cases
 @partial(dataclass, frozen=True)
 class MartiniOptions:
     default_temperature: u.Quantity = field(default_factory=lambda: 300.0 * u.kelvin)
     timestep: u.Quantity = field(default_factory=lambda: 20.0 * u.femtoseconds)
-    epsilon_r: float = 15.0 
+    epsilon_r: float = 15.0
     defines_file: Optional[str] = "defines.txt"
     enable_pressure_coupling: bool = False
     pressure: float = 1.01325 * u.bar
@@ -64,13 +62,14 @@ class MartiniOptions:
         if self.pressure < 0:
             raise ValueError(f"pressure must be >= 0")
 
+
 class MartiniSystemBuilder:
     r"""
     Class to handle building a System from SubSystems.
     """
 
     options: MartiniOptions
-    
+
     def __init__(self, options):
         """
         Initialize a SystemBuilder
@@ -85,7 +84,6 @@ class MartiniSystemBuilder:
         self,
         topfile: str,
         grofile: str,
-
     ) -> SystemSpec:
         """
         Build the system from AmberSubSystems
@@ -106,9 +104,9 @@ class MartiniSystemBuilder:
 
         top = martini.MartiniTopFile(
             topfile,
-            periodicBoxVectors = box_vectors,
-            defines = defines,
-            epsilon_r = self.options.epsilon_r
+            periodicBoxVectors=box_vectors,
+            defines=defines,
+            epsilon_r=self.options.epsilon_r,
         )
 
         topology = top.topology
@@ -123,7 +121,6 @@ class MartiniSystemBuilder:
             self.options.default_temperature,
         )
 
-
         integrator = _create_integrator(
             self.options.default_temperature,
             self.options.timestep,
@@ -131,7 +128,9 @@ class MartiniSystemBuilder:
 
         coords = conf.getPositions(asNumpy=True).value_in_unit(u.nanometer)
         try:
-            vels = conf.getVelocities(asNumpy=True) # Gromacs files do not contain velocity information; may be better to set this using Maxwell-Boltzmann 
+            vels = conf.getVelocities(
+                asNumpy=True
+            )  # Gromacs files do not contain velocity information; may be better to set this using Maxwell-Boltzmann
         except AttributeError:
             print("WARNING: No velocities found, setting to zero")
             vels = np.zeros_like(coords)
@@ -186,6 +185,7 @@ def _create_openmm_system(
         default_temperature,
     )
     return system, baro
+
 
 def _create_openmm_system_explicit(
     parm_object,

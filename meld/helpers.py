@@ -3,14 +3,15 @@ Helper functions to simplify setting up a MELD calculation.
 """
 
 from inspect import istraceback
+from typing import NamedTuple, Optional
+
+from meld.comm import MPICommunicator
+from meld.interfaces import IState, ISystem
 from meld.remd.adaptor import AdaptationPolicy, EqualAcceptanceAdaptor
 from meld.remd.ladder import NearestNeighborLadder
 from meld.remd.leader import LeaderReplicaExchangeRunner
-from meld.comm import MPICommunicator
-from meld.vault import DataStore
-from meld.interfaces import IState, ISystem
 from meld.system.options import RunOptions
-from typing import Optional, NamedTuple
+from meld.vault import DataStore
 
 
 class REMDInfo(NamedTuple):

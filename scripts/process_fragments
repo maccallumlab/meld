@@ -2,14 +2,15 @@
 
 
 from __future__ import print_function
+
+import argparse
 import math
 import os
-import argparse
 from collections import namedtuple
-from matplotlib import pyplot
-import numpy
-from scipy import signal
 
+import numpy
+from matplotlib import pyplot
+from scipy import signal
 
 kBT = 8.314e-3 * 298.0
 
@@ -43,13 +44,13 @@ def main():
         "--dist-r-min",
         help="minimum distance in distance distribution (Angstrom)",
         type=float,
-        default=0.,
+        default=0.0,
     )
     process.add_argument(
         "--dist-r-max",
         help="maximum distance in distance distribution (Angstrom)",
         type=float,
-        default=20.,
+        default=20.0,
     )
     process.add_argument(
         "--dist-smooth-width",
@@ -73,7 +74,7 @@ def main():
         "--rama-smooth-width",
         help="smoothing width for rama distribution (degrees)",
         type=float,
-        default=15.,
+        default=15.0,
     )
     process.add_argument(
         "--rama-max-energy",
@@ -128,7 +129,7 @@ def compute_flatten_factor_1d(sigma, max_energy):
 
 def compute_flatten_factor_2d(sigma, max_energy):
     max_energy = max_energy * kBT
-    num = 1.0 / sigma ** 2 / 2.0 / math.pi
+    num = 1.0 / sigma**2 / 2.0 / math.pi
     denom = math.exp(1.0 / kBT * max_energy) - 1
     return num / denom
 
@@ -150,7 +151,7 @@ def get_dist_energy(filename):
             continue
         t = (x - coeff_index * delta + x_min) / delta
         coeff = coeffs[coeff_index, :]
-        y = coeff[3] * t ** 3 + coeff[2] * t ** 2 + coeff[1] * t + coeff[0]
+        y = coeff[3] * t**3 + coeff[2] * t**2 + coeff[1] * t + coeff[0]
         y_vals[index] = y
     return x_vals, y_vals
 
@@ -173,43 +174,43 @@ def get_rama_energy(filename):
         bins = int(infile.readline())
         coeffs = numpy.loadtxt(infile)
 
-    delta = 360. / bins
-    vals = numpy.linspace(-180., 180, 200)
+    delta = 360.0 / bins
+    vals = numpy.linspace(-180.0, 180, 200)
     energies = numpy.zeros((200, 200))
 
     for i, phi in enumerate(vals):
         for j, psi in enumerate(vals):
-            ci = int(math.floor((phi + 180.) / 360. * bins))
+            ci = int(math.floor((phi + 180.0) / 360.0 * bins))
             if ci == bins:
                 ci = 0
-                phi -= 360.
-            cj = int(math.floor((psi + 180.) / 360. * bins))
+                phi -= 360.0
+            cj = int(math.floor((psi + 180.0) / 360.0 * bins))
             if cj == bins:
                 cj = 0
-                psi -= 360.
+                psi -= 360.0
 
-            u = (phi - ci * delta + 180.) / delta
-            v = (psi - cj * delta + 180.) / delta
+            u = (phi - ci * delta + 180.0) / delta
+            v = (psi - cj * delta + 180.0) / delta
 
             c = coeffs[ci * bins + cj, :]
 
             z = (
                 c[0]
                 + c[1] * v
-                + c[2] * v ** 2
-                + c[3] * v ** 3
+                + c[2] * v**2
+                + c[3] * v**3
                 + c[4] * u
                 + c[5] * u * v
-                + c[6] * u * v ** 2
-                + c[7] * u * v ** 3
-                + c[8] * u ** 2
-                + c[9] * u ** 2 * v
-                + c[10] * u ** 2 * v ** 2
-                + c[11] * u ** 2 * v ** 3
-                + c[12] * u ** 3
-                + c[13] * u ** 3 * v
-                + c[14] * u ** 3 * v ** 2
-                + c[15] * u ** 3 * v ** 3
+                + c[6] * u * v**2
+                + c[7] * u * v**3
+                + c[8] * u**2
+                + c[9] * u**2 * v
+                + c[10] * u**2 * v**2
+                + c[11] * u**2 * v**3
+                + c[12] * u**3
+                + c[13] * u**3 * v
+                + c[14] * u**3 * v**2
+                + c[15] * u**3 * v**3
             )
 
             energies[i, j] = z
@@ -319,8 +320,8 @@ def write_distance_distributions(distance_distributions, out_dir, dist_args):
         filename = os.path.join(out_dir, filename)
         with open(filename, "w") as outfile:
             # divide by 10 for Angstrom -> nm
-            print(dist_args.r_min / 10., file=outfile)
-            print(dist_args.r_max / 10., file=outfile)
+            print(dist_args.r_min / 10.0, file=outfile)
+            print(dist_args.r_max / 10.0, file=outfile)
             print(dist_args.n_bins - 1, file=outfile)
             numpy.savetxt(outfile, spline_coeff)
 
@@ -370,14 +371,14 @@ def convert_to_spline_1d(y):
 def smooth_rama(energies, tors_args):
     size = energies.shape[0]
     assert size == energies.shape[1]
-    vals = numpy.linspace(-180., 180., size)
+    vals = numpy.linspace(-180.0, 180.0, size)
     x, y = numpy.meshgrid(vals, vals)
     g = (
         1.0
-        / tors_args.smooth_width ** 2
+        / tors_args.smooth_width**2
         / 2.0
         / math.pi
-        * numpy.exp(-0.5 * (1.0 / tors_args.smooth_width) ** 2 * (x ** 2 + y ** 2))
+        * numpy.exp(-0.5 * (1.0 / tors_args.smooth_width) ** 2 * (x**2 + y**2))
     )
 
     energies = signal.convolve2d(energies, g, mode="same", boundary="wrap")
@@ -566,8 +567,8 @@ def get_rotamer_distribution(frags, tors_args, offset):
     for frag in frags:
         phi = frag[offset].phi
         psi = frag[offset].psi
-        i = int(round((phi + 180.) / 360. * (tors_args.n_bins - 1)))
-        j = int(round((psi + 180.) / 360. * (tors_args.n_bins - 1)))
+        i = int(round((phi + 180.0) / 360.0 * (tors_args.n_bins - 1)))
+        j = int(round((psi + 180.0) / 360.0 * (tors_args.n_bins - 1)))
 
         rota[i, j] += 1.0
     return rota
@@ -713,7 +714,7 @@ def get_distance_distribution(fragment, dist_args, offset=0):
         y_vals += (
             1.0
             * norm
-            * numpy.exp(-(1.0 / dist_args.smooth_width) ** 2 * (x_vals - d) ** 2)
+            * numpy.exp(-((1.0 / dist_args.smooth_width) ** 2) * (x_vals - d) ** 2)
         )
     return y_vals
 

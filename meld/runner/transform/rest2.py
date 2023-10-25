@@ -7,19 +7,22 @@
 This module implements a transformer that implements REST2.
 """
 
-from meld import interfaces
-from meld.system import options
-from meld.system import temperature
-from meld.system import restraints
-from meld.system import param_sampling
-from meld.system import mapping
-from meld.system import density
-from meld.runner.transform import TransformerBase
+import math
+from typing import Dict, List, Tuple
+
 import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
-import math
-from typing import List, Dict, Tuple
+from meld import interfaces
+from meld.runner.transform import TransformerBase
+from meld.system import (
+    density,
+    mapping,
+    options,
+    param_sampling,
+    restraints,
+    temperature,
+)
 
 
 class REST2Transformer(TransformerBase):

@@ -7,8 +7,9 @@
 Module for PDB output
 """
 
-import numpy as np  # type: ignore
 from typing import List
+
+import numpy as np  # type: ignore
 
 header = "REMARK stage {stage}"
 footer = "TER\nEND\n\n"

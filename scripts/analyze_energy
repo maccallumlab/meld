@@ -2,11 +2,13 @@
 # encoding: utf-8
 
 from __future__ import print_function
+
 import argparse
-from meld import vault
-from matplotlib import pyplot
-from matplotlib import animation
+
 import numpy as np
+from matplotlib import animation, pyplot
+
+from meld import vault
 
 
 def parse_args():

@@ -10,20 +10,22 @@ and eliminate circular imports
 
 from __future__ import annotations
 
-from meld.system import indexing
-from meld.system import restraints
-from meld.system import pdb_writer
-from meld.system import temperature
-from meld.system import param_sampling
-from meld.system import mapping
-from meld.system import density
-
-from typing import Sequence, Optional, List, NamedTuple
 from abc import ABC, abstractmethod
-import numpy as np
+from typing import List, NamedTuple, Optional, Sequence
 
+import numpy as np
 import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
+
+from meld.system import (
+    density,
+    indexing,
+    mapping,
+    param_sampling,
+    pdb_writer,
+    restraints,
+    temperature,
+)
 
 
 class ICommunicator(ABC):
@@ -104,9 +106,7 @@ class ICommunicator(ABC):
         pass
 
     @abstractmethod
-    def gather_states_from_workers(
-        self, state_on_leader: List[IState]
-    ) -> List[IState]:
+    def gather_states_from_workers(self, state_on_leader: List[IState]) -> List[IState]:
         """
         Receive states from all workers
 
@@ -128,9 +128,7 @@ class ICommunicator(ABC):
         pass
 
     @abstractmethod
-    def broadcast_all_states_to_workers(
-        self, states: Sequence[IState]
-    ) -> None:
+    def broadcast_all_states_to_workers(self, states: Sequence[IState]) -> None:
         """
         Broadcast all states to all workers.
 

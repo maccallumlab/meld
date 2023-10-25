@@ -7,22 +7,24 @@
 A module to define MELD Systems
 """
 
+from typing import List, Optional
+
+import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import app
 
 from meld import interfaces
+from meld.system import (
+    density,
+    indexing,
+    mapping,
+    param_sampling,
+    pdb_writer,
+    restraints,
+    state,
+    temperature,
+)
 from meld.vault import ENERGY_GROUPS
-from meld.system import restraints
-from meld.system import pdb_writer
-from meld.system import indexing
-from meld.system import temperature
-from meld.system import param_sampling
-from meld.system import state
-from meld.system import mapping
-from meld.system import density
-
-import numpy as np  # type: ignore
-from typing import List, Optional, Any
 
 
 class System(interfaces.ISystem):
