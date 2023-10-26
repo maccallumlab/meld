@@ -3,11 +3,11 @@
 # All rights reserved
 #
 
-import numpy as np  # type: ignore
 import math
 from collections import namedtuple
-from typing import List, Union, Tuple, Optional
+from typing import List, Optional, Union
 
+import numpy as np  # type: ignore
 
 # named tuple to hold the results
 AdaptationRequired = namedtuple("AdaptationRequired", "adapt_now reset_now")
@@ -247,6 +247,7 @@ class SwitchingCompositeAdaptor:
     """
     An adaptor that switches between two strategies at a specified time
     """
+
     def __init__(
         self, switching_time: int, first_adaptor: Adaptor, second_adaptor: Adaptor
     ) -> None:

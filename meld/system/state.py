@@ -7,11 +7,12 @@
 A module to define the SystemState
 """
 
-from meld.system import param_sampling
 from typing import Optional
-from meld import interfaces
 
 import numpy as np  # type: ignore
+
+from meld import interfaces
+from meld.system import param_sampling
 
 
 class SystemState(interfaces.IState):

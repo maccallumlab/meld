@@ -7,25 +7,24 @@
 Module to build a System from AmberSubSystems
 """
 
-from meld import util
-from ..spec import SystemSpec
-from ... import indexing
-from . import subsystem
-from . import amap
-
-from typing import List, Optional
+import logging
+import subprocess
 from dataclasses import dataclass, field
 from functools import partial
-import subprocess
-import logging
+from typing import List, Optional
+
+import numpy as np  # type: ignore
+import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
+from openmm import unit as u  # type: ignore
+from openmm.app import forcefield as ff  # type: ignore
+
+from meld import util
+from meld.system import indexing
+from meld.system.builders.amber import amap, subsystem
+from meld.system.builders.spec import SystemSpec
 
 logger = logging.getLogger(__name__)
-
-from openmm import app  # type: ignore
-from openmm.app import forcefield as ff  # type: ignore
-import openmm as mm  # type: ignore
-from openmm import unit as u  # type: ignore
-import numpy as np  # type: ignore
 
 
 @partial(dataclass, frozen=True)

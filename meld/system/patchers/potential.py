@@ -3,6 +3,7 @@ Remove potential and freeze the system
 """
 
 import openmm as mm  # type: ignore
+
 from meld.system.builders.spec import SystemSpec
 
 

@@ -8,14 +8,13 @@ Functions to read in sequences, secondary structures, and RDCs
 
 """
 
-from meld import interfaces
-from meld.system import scalers
-from meld.system import restraints
-from meld.system import indexing
+from collections import namedtuple
+from typing import List, NewType, Optional, TextIO
+
 from openmm import unit as u  # type: ignore
 
-from typing import List, Optional, TextIO, NewType
-from collections import namedtuple
+from meld import interfaces
+from meld.system import indexing, restraints, scalers
 
 SequenceString = NewType("SequenceString", str)
 SecondaryString = NewType("SecondaryString", str)
@@ -210,12 +209,12 @@ def get_secondary_structure_restraints(
     """
 
     torsion_force_constant = (
-        2.5e-2 * u.kilojoule_per_mole / u.degree ** 2
+        2.5e-2 * u.kilojoule_per_mole / u.degree**2
         if torsion_force_constant is None
         else torsion_force_constant
     )
     distance_force_constant = (
-        2500 * u.kilojoule_per_mole / u.nanometer ** 2
+        2500 * u.kilojoule_per_mole / u.nanometer**2
         if distance_force_constant is None
         else distance_force_constant
     )
@@ -495,7 +494,7 @@ def get_rdc_restraints(
         - observed splitting (:math:`Hz`)
         - experiment (ignored)
         - tolerance (:math:`Hz`)
-        - kappa (:math:`Hz \AA^3`)
+        - kappa (:math:`Hz \\AA^3`)
         - force constant (:math:`kJ mol^{-1} Hz^{-2}`)
         - weight
 
@@ -538,10 +537,10 @@ def get_rdc_restraints(
             ramp,
             atom_index_i,
             atom_index_j,
-            kappa * u.second ** -1 * u.angstrom ** 3,
-            obs * u.second ** -1,
-            tolerance * u.second ** -1,
-            force_const * u.kilojoule_per_mole * u.second ** 2,
+            kappa * u.second**-1 * u.angstrom**3,
+            obs * u.second**-1,
+            tolerance * u.second**-1,
+            force_const * u.kilojoule_per_mole * u.second**2,
             quadratic_cut,
             weight,
             alignment_index,

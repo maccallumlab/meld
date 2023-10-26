@@ -7,13 +7,15 @@
 Module to build AmberSubSystems from sequence or PDB file
 """
 
-from collections import defaultdict
 import math
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from typing import List
+
 import numpy as np  # type: ignore
-from meld.system import indexing
 from openmm import app  # type: ignore
+
+from meld.system import indexing
 
 
 class _AmberSubSystem(ABC):
