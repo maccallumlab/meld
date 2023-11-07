@@ -7,11 +7,12 @@
 Module to handle sampling the mappings of peaks to atom indices
 """
 
-from meld.system import indexing
+import random
+from typing import Dict, List, NamedTuple, Tuple
 
 import numpy as np  # type: ignore
-import random
-from typing import List, Dict, NamedTuple, Union, Tuple, Optional
+
+from meld.system import indexing
 
 
 class PeakMapping(NamedTuple):
@@ -184,7 +185,9 @@ class PeakMapManager:
         self.mappers = {}
         self._name_to_range = None
 
-    def add_map(self, name: str, n_peaks: int, n_active: int, atom_names: List[str]) -> PeakMapper:
+    def add_map(
+        self, name: str, n_peaks: int, n_active: int, atom_names: List[str]
+    ) -> PeakMapper:
         # don't allow duplicates
         if name in self.mappers:
             raise ValueError(f"Trying to insert duplicate entry for {name}.")
@@ -209,9 +212,7 @@ class PeakMapManager:
         # Concatenate them together
         return np.hstack(states)
 
-    def extract_value(
-        self, mapping: PeakMapping, state: np.ndarray
-    ) -> int:
+    def extract_value(self, mapping: PeakMapping, state: np.ndarray) -> int:
         if self._name_to_range is None:
             self._setup_name_to_range()
 

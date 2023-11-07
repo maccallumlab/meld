@@ -9,9 +9,10 @@ except ImportError:
     # python3
     pass
 import argparse
+
+import mdtraj
 import numpy
 import progressbar
-import mdtraj
 
 
 def parse_args():
@@ -203,7 +204,9 @@ def extract_traj_dcd(store, args):
                     numpy.array([90.0, 90.0, 90.0]),
                 )
             else:
-                output_file.write(positions[replica_index, :, :] * 10.0)    # nm -> Angstrom
+                output_file.write(
+                    positions[replica_index, :, :] * 10.0
+                )  # nm -> Angstrom
     bar.finish()
 
 
@@ -338,7 +341,9 @@ def follow_structure_dcd(store, args):
                     numpy.array([90.0, 90.0, 90.0]),
                 )
             else:
-                output_file.write(positions[structure_index, :, :] * 10.0)    # nm -> Angstrom
+                output_file.write(
+                    positions[structure_index, :, :] * 10.0
+                )  # nm -> Angstrom
     bar.finish()
 
 

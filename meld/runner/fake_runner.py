@@ -1,5 +1,6 @@
-from meld import interfaces
 import numpy as np
+
+from meld import interfaces
 from meld.vault import ENERGY_GROUPS
 
 

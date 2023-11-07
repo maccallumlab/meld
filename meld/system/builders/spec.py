@@ -8,11 +8,13 @@ a `System` by calling `finalize`.
 """
 
 from typing import Optional
+
 import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import app
-from ..indexing import setup_indexing
-from ..meld_system import System
+
+from meld.system.indexing import setup_indexing
+from meld.system.meld_system import System
 
 
 class SystemSpec:

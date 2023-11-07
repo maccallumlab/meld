@@ -7,23 +7,17 @@ This module implements transformers that add COM restraints
 """
 
 import logging
-
-logger = logging.getLogger(__name__)
-
-from meld.runner.transform.restraints.util import _delete_from_always_active
-from meld import interfaces
-from meld.system import restraints
-from meld.system import options
-from meld.system import param_sampling
-from meld.system import mapping
-from meld.system import density
-from meld.runner import transform
+from typing import List
 
 import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
-from typing import List
+from meld import interfaces
+from meld.runner import transform
+from meld.runner.transform.restraints.util import _delete_from_always_active
+from meld.system import density, mapping, options, param_sampling, restraints
 
+logger = logging.getLogger(__name__)
 
 FORCE_GROUP = 4
 

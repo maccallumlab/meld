@@ -10,8 +10,8 @@ console.setLevel(logging.DEBUG)
 meld_logger.addHandler(console)
 
 import argparse
+
 from meld.remd import launch
-import os
 
 
 def main():

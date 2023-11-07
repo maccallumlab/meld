@@ -2,14 +2,13 @@
 Module to handle options for a MELD run
 """
 
-from meld.util import strip_unit
-from meld.system import temperature
-from meld.system import montecarlo
-from openmm import unit as u  # type: ignore
-
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
+
+from openmm import unit as u  # type: ignore
+
+from meld.system import montecarlo, temperature
 
 
 @partial(dataclass, frozen=True)

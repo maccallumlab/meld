@@ -2,11 +2,12 @@
 Module to handle temperature scaling
 """
 
-from meld.util import strip_unit
+import math
+from abc import ABC, abstractmethod
+
 from openmm import unit as u  # type: ignore
 
-from abc import ABC, abstractmethod
-import math
+from meld.util import strip_unit
 
 
 class TemperatureScaler(ABC):

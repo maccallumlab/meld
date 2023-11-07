@@ -3,23 +3,21 @@
 # All rights reserved
 #
 
-from meld import interfaces
-from meld.system import options
-from meld.system import restraints
-from meld.system.state import SystemState
-from meld.runner import transform
-from meld.util import log_timing
+import logging
+import math
+import random
+from typing import Dict, List, Optional
 
-from openmm import app  # type: ignore
+import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
+from openmm import app  # type: ignore
 from openmm import unit as u  # type: ignore
 
-import logging
-import numpy as np  # type: ignore
-from typing import Optional, List, Dict
-import random
-import math
-
+from meld import interfaces
+from meld.runner import transform
+from meld.system import options, restraints
+from meld.system.state import SystemState
+from meld.util import log_timing
 from meld.vault import ENERGY_GROUPS
 
 logger = logging.getLogger(__name__)
@@ -298,7 +296,8 @@ class OpenMMRunner(interfaces.IRunner):
             #     prmtop.topology, sys, self._integrator, platform, properties
             # )
             self._transformers_update(state)
-    def _forcegroupify(self,system):
+
+    def _forcegroupify(self, system):
         forcegroups = {}
         for i in range(system.getNumForces()):
             # logger.info(f"{i}th force \n")
@@ -448,7 +447,9 @@ class OpenMMRunner(interfaces.IRunner):
         # set the velocities
         # check to see if velocities initialized to zero
         if np.all(velocities._value == 0.0):
-            logger.info("All velocities are zero, this is likely because input files do not contain velocity info. Generating velocities from Maxwell-Boltzmann distribution")
+            logger.info(
+                "All velocities are zero, this is likely because input files do not contain velocity info. Generating velocities from Maxwell-Boltzmann distribution"
+            )
             self._simulation.context.setVelocitiesToTemperature(self._temperature)
         else:
             self._simulation.context.setVelocities(velocities)

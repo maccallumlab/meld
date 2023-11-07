@@ -58,7 +58,7 @@ MELD requires a CUDA compatible GPU.
 * netcdf4
 * [openmm](https://github.com/pandegroup/openmm)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
-* python >= 3.6
+* python >= 3.10
 * numpy
 * scipy
 * sklearn

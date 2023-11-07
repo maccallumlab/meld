@@ -2,8 +2,9 @@
 A module to read Amber parmtop and crd files
 """
 
+from typing import Dict, List, Set, Tuple
+
 import numpy as np
-from typing import List, Set, Tuple, Dict
 
 
 class CrdReader:

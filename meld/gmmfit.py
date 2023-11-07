@@ -2,13 +2,14 @@
 Routines to build GMMDistanceRestraints from data.
 """
 
-from meld.system import restraints
+import math
 
 import numpy as np  # type: ignore
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture  #type: ignore
-from sklearn.model_selection import RandomizedSearchCV, KFold  #type: ignore
-from scipy import stats  #type: ignore
-import math
+from scipy import stats  # type: ignore
+from sklearn.mixture import BayesianGaussianMixture, GaussianMixture  # type: ignore
+from sklearn.model_selection import KFold, RandomizedSearchCV  # type: ignore
+
+from meld.system import restraints
 
 
 def fit_gmm(
