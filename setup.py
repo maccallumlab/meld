@@ -19,6 +19,7 @@ setup(
         "scripts/analyze_energy",
         "scripts/analyze_remd",
         "scripts/extract_trajectory",
+        "scripts/extract_meld_energy",
         "scripts/launch_remd",
         "scripts/process_fragments",
         "scripts/prepare_restart",
