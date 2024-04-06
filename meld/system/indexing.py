@@ -8,7 +8,7 @@ An :class:`AtomIndex` is a zero-based absolute atom index.
 A :class:`ResidueIndex` is a zero-based absolute residue index.
 """
 
-from typing import NamedTuple, List, Dict, Tuple, Optional
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 
 class _ChainInfo(NamedTuple):

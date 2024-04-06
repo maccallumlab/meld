@@ -3,17 +3,18 @@
 # All rights reserved
 #
 
-from meld.system import scalers
-from meld.system import temperature
 import random
-from collections import OrderedDict
-from typing import NamedTuple, Optional, TypeVar, Generic, List
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
+from typing import Generic, List, NamedTuple, Optional, TypeVar
+
 import numpy as np  # type: ignore
 from openmm import unit as u  # type: ignore
 
+from meld.system import scalers, temperature
 
 Number = TypeVar("Number", int, float)
+
 
 #
 # Priors
@@ -290,9 +291,7 @@ class ParameterManager:
             np.array(self._init_values_continuous, dtype=np.float64),
         )
 
-    def extract_value(
-        self, parameter: Parameter, param_state: ParameterState
-    ) -> Number:
+    def extract_value(self, parameter: Parameter, param_state: ParameterState):
         param = self.parameters[parameter.name]
 
         if isinstance(param, DiscreteParameter):

@@ -139,29 +139,26 @@ References
 
 
 from __future__ import annotations
-from meld.system.density import DensityMap
 
-from meld.util import strip_unit
-from meld import interfaces
-from meld.system import indexing
-from meld.system import param_sampling
-from meld.system import mapping
-from meld.system.scalers import (
-    RestraintScaler,
-    BlurScaler,
-    TimeRamp,
-    Positioner,
-    ConstantPositioner,
-    ConstantScaler,
-    ConstantRamp,
-    ScalerRegistry,
-)
+from typing import Dict, List, NamedTuple, Optional, Union
+
+import numpy as np  # type: ignore
 from openmm import unit as u  # type: ignore
 
-import math
-import numpy as np  # type: ignore
-from typing import Dict, Any, Optional, Union, List, NamedTuple
-
+from meld import interfaces
+from meld.system import indexing, mapping, param_sampling
+from meld.system.density import DensityMap
+from meld.system.scalers import (
+    BlurScaler,
+    ConstantPositioner,
+    ConstantRamp,
+    ConstantScaler,
+    Positioner,
+    RestraintScaler,
+    ScalerRegistry,
+    TimeRamp,
+)
+from meld.util import strip_unit
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
 
@@ -300,7 +297,7 @@ class DistanceRestraint(SelectableRestraint):
         else:
             self.r4 = ConstantPositioner(r4)
 
-        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer ** 2)
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer**2)
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check(system)
@@ -519,7 +516,7 @@ class HyperbolicDistanceRestraint(SelectableRestraint):
         self.r2 = strip_unit(r2, u.nanometer)
         self.r3 = strip_unit(r3, u.nanometer)
         self.r4 = strip_unit(r4, u.nanometer)
-        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer ** 2)
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.nanometer**2)
         self.asymptote = strip_unit(asymptote, u.kilojoule_per_mole)
 
         self._check(system)
@@ -593,7 +590,7 @@ class TorsionRestraint(SelectableRestraint):
         self.atom_index_4 = int(atom4)
         self.phi = strip_unit(phi, u.degree)
         self.delta_phi = strip_unit(delta_phi, u.degree)
-        self.k = strip_unit(k, u.kilojoule_per_mole / u.degree ** 2)
+        self.k = strip_unit(k, u.kilojoule_per_mole / u.degree**2)
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
         self._check()
@@ -762,7 +759,7 @@ class RdcRestraint(SelectableRestraint):
     _restraint_key_ = "rdc"
     atom_index_1: Union[int, mapping.PeakMapping]
     atom_index_2: Union[int, mapping.PeakMapping]
-    
+
     def __init__(
         self,
         system: interfaces.ISystem,
@@ -814,11 +811,11 @@ class RdcRestraint(SelectableRestraint):
             assert isinstance(atom2, indexing.AtomIndex)
             self.atom_index_2 = int(atom2)
 
-        kappa = strip_unit(kappa, u.second ** -1 * u.nanometer ** 3)
-        d_obs = strip_unit(d_obs, u.second ** -1)
-        tolerance = strip_unit(tolerance, u.second ** -1)
-        force_const = strip_unit(force_const, u.kilojoule_per_mole * u.second ** 2)
-        quadratic_cut = strip_unit(quadratic_cut, u.second ** -1)
+        kappa = strip_unit(kappa, u.second**-1 * u.nanometer**3)
+        d_obs = strip_unit(d_obs, u.second**-1)
+        tolerance = strip_unit(tolerance, u.second**-1)
+        force_const = strip_unit(force_const, u.kilojoule_per_mole * u.second**2)
+        quadratic_cut = strip_unit(quadratic_cut, u.second**-1)
         self.alignment_index = alignment_index
         self.kappa = float(kappa)
         self.d_obs = float(d_obs)
@@ -879,7 +876,7 @@ class ConfinementRestraint(NonSelectableRestraint):
         self.atom_index = int(atom_index)
         self.radius = strip_unit(radius, u.nanometer)
         self.force_const = strip_unit(
-            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+            force_const, u.kilojoule_per_mole / u.nanometer**2
         )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
@@ -930,7 +927,7 @@ class CartesianRestraint(NonSelectableRestraint):
         self.z = strip_unit(z, u.nanometer)
         self.delta = strip_unit(delta, u.nanometer)
         self.force_const = strip_unit(
-            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+            force_const, u.kilojoule_per_mole / u.nanometer**2
         )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
@@ -980,7 +977,7 @@ class YZCartesianRestraint(NonSelectableRestraint):
         self.z = strip_unit(z, u.nanometer)
         self.delta = strip_unit(delta, u.nanometer)
         self.force_const = strip_unit(
-            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+            force_const, u.kilojoule_per_mole / u.nanometer**2
         )
         self.scaler = ConstantScaler() if scaler is None else scaler
         self.ramp = ConstantRamp() if ramp is None else ramp
@@ -1055,7 +1052,7 @@ class AbsoluteCOMRestraint(NonSelectableRestraint):
         self._check_dims()
 
         self.force_const = strip_unit(
-            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+            force_const, u.kilojoule_per_mole / u.nanometer**2
         )
         if self.force_const < 0:
             raise ValueError("force_const cannot be negative")
@@ -1183,7 +1180,7 @@ class COMRestraint(NonSelectableRestraint):
 
         # setup the force constant and positioner
         self.force_const = strip_unit(
-            force_const, u.kilojoule_per_mole / u.nanometer ** 2
+            force_const, u.kilojoule_per_mole / u.nanometer**2
         )
         if self.force_const < 0:
             raise ValueError("force constant cannot be negative")
@@ -1214,25 +1211,24 @@ class COMRestraint(NonSelectableRestraint):
 
 
 class DensityRestraint(SelectableRestraint):
-
     _restraint_key_ = "density"
 
     def __init__(
-            self,
-            system: interfaces.ISystem,
-            scaler: Optional[RestraintScaler],
-            ramp: Optional[TimeRamp],
-            atom: list,
-            density: DensityMap,
-            mu = None,
-        ):
-            self.atom_index = [int(i) for i in atom]
-            self.scaler = ConstantScaler() if scaler is None else scaler
-            self.ramp = ConstantRamp() if ramp is None else ramp
-            self.mu = density.density_data
-            self.map_origin = density.origin
-            self.map_dimension = [density.nx,density.ny,density.nz]
-            self.map_gridLength = density.voxel_size
+        self,
+        system: interfaces.ISystem,
+        scaler: Optional[RestraintScaler],
+        ramp: Optional[TimeRamp],
+        atom: list,
+        density: DensityMap,
+        mu=None,
+    ):
+        self.atom_index = [int(i) for i in atom]
+        self.scaler = ConstantScaler() if scaler is None else scaler
+        self.ramp = ConstantRamp() if ramp is None else ramp
+        self.mu = density.density_data
+        self.map_origin = density.origin
+        self.map_dimension = [density.nx, density.ny, density.nz]
+        self.map_gridLength = density.voxel_size
 
 
 class AlwaysActiveCollection:

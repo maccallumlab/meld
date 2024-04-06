@@ -8,19 +8,20 @@ Module to handle MPI communication
 """
 
 
-from meld import interfaces
-from meld import util
-import signal
-import threading
-import time
-import os
-import numpy as np  # type: ignore
-import platform
-from collections import defaultdict, namedtuple
 import contextlib
 import logging
+import os
+import platform
+import signal
 import sys
-from typing import Dict, List, Any, Optional, NamedTuple, Sequence, TypeVar
+import threading
+import time
+from collections import defaultdict, namedtuple
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, TypeVar
+
+import numpy as np  # type: ignore
+
+from meld import interfaces, util
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +315,10 @@ class MPICommunicator(interfaces.ICommunicator):
                     raise RuntimeError("No cuda devices available")
                 else:
                     if len(visible_devices) == 1:
-                        logger.info("negotiate_device_id: visible_devices contains a single device: %d", visible_devices[0])
+                        logger.info(
+                            "negotiate_device_id: visible_devices contains a single device: %d",
+                            visible_devices[0],
+                        )
                         device_id = 0
                         logger.info("hostname: %s, device_id: %d", hostname, device_id)
                         return device_id

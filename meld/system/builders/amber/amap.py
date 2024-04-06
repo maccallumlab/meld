@@ -7,13 +7,13 @@
 Add AMAP correction for GB models
 """
 
+import math
+import os
+from typing import Iterator, List, NamedTuple
+
+import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
-
-import os
-import math
-import numpy as np  # type: ignore
-from typing import NamedTuple, List, Iterator
 
 
 class CMAPResidue(NamedTuple):

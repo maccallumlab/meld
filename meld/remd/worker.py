@@ -7,10 +7,10 @@
 A module for replica exchange workers
 """
 
-from meld import interfaces
-import numpy as np
-from typing import Sequence
 import logging
+from typing import Sequence
+import numpy as np
+from meld import interfaces
 from meld.system import gameld
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 import math
 from typing import List
-from meld.interfaces import IState, IRunner
+
+from meld.interfaces import IRunner, IState
 
 
 def permute_states(

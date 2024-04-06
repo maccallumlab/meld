@@ -2,9 +2,10 @@
 Freeze atoms in the system
 """
 
+from typing import List, Optional
+
 from meld.system import indexing
 from meld.system.builders.spec import SystemSpec
-from typing import Optional, List
 
 
 def freeze_atoms(
@@ -24,7 +25,7 @@ def freeze_atoms(
 
     if atoms is None:
         indices = [i for i in range(n_particles)]
-    
+
     else:
         indices = [int(i) for i in atoms]
 

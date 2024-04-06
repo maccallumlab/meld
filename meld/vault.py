@@ -9,28 +9,24 @@ Module for MELD input/output
 The main class is :class:`DataStore` which handles all IO for a MELD run.
 """
 
+import contextlib
+import os
+import pickle
+import shutil
+import time
+from typing import Iterator, Optional, Sequence
+
+import netCDF4 as cdf  # type: ignore
+import numpy as np  # type: ignore
+
 from meld import interfaces
-from meld.system import state
-from meld.system import pdb_writer
-from meld.system import param_sampling
-from meld.system import options
+from meld.system import options, param_sampling, pdb_writer, state
 
 try:
     from gamd.stage_integrator import GamdStageIntegrator
-
     has_gamd = True
 except ImportError:
     has_gamd = False
-
-import contextlib
-import os
-import time
-import pickle
-import netCDF4 as cdf  # type: ignore
-import numpy as np  # type: ignore
-import shutil
-from typing import Sequence, Iterator, Optional
-
 
 ENERGY_GROUPS = 7
 

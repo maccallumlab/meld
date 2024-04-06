@@ -2,10 +2,10 @@
 Package for running MELD simulations in OpenMM
 """
 
+from typing import Optional
+
 from meld import interfaces
 from meld.system import options
-
-from typing import Optional
 
 
 def get_runner(
@@ -34,7 +34,7 @@ def get_runner(
         )
     elif options.runner == "fake_runner":
         import meld.runner.fake_runner
+
         return meld.runner.fake_runner.FakeSystemRunner(system, options, comm)
     else:
         raise RuntimeError(f"Unknown type of runner: {options.runner}")
-
