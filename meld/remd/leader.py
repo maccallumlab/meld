@@ -7,17 +7,14 @@
 Module for replica exchange leader
 """
 
-from .permute import permute_states
-from meld import interfaces
-from meld import vault
-from meld.remd import worker
-from meld.remd import ladder
-from meld.remd import adaptor
-
 import logging
-import numpy as np
 from typing import List, Sequence
 
+import numpy as np
+
+from meld import interfaces, vault
+from meld.remd import adaptor, ladder, worker
+from meld.remd.permute import permute_states
 
 logger = logging.getLogger(__name__)
 

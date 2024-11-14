@@ -7,16 +7,16 @@
 Miscellaneous utilities
 """
 
-from openmm import unit as u  # type: ignore
-
+import contextlib
+import logging
+import logging.handlers
 import os
 import shutil
 import tempfile
-import contextlib
 import time
 from functools import wraps
-import logging
-import logging.handlers
+
+from openmm import unit as u  # type: ignore
 
 
 def strip_unit(value, unit: u.Unit) -> float:

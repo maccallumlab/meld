@@ -3,8 +3,10 @@ Add RDC alignments to the system
 """
 
 import math
+
 import openmm as mm  # type: ignore
 from openmm import unit as u
+
 from meld.system.builders.spec import SystemSpec
 
 GAS_CONSTANT = 8.314e-3

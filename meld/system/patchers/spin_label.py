@@ -3,10 +3,12 @@ Add virtual spin labels to the system.
 """
 
 from copy import copy
+
 import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import app
 from openmm import unit as u  # type: ignore
+
 from meld.system import indexing
 from meld.system.builders.spec import SystemSpec
 
@@ -326,7 +328,7 @@ def _handle_spin_label_harmonic_bond(
         7.9 * u.angstrom,
         1.0
         * u.kilocalorie_per_mole
-        / u.angstrom ** 2,  # CHARMM does not have factor of 0.5
+        / u.angstrom**2,  # CHARMM does not have factor of 0.5
     )
 
     new_force.setUsesPeriodicBoundaryConditions(force.usesPeriodicBoundaryConditions())
@@ -389,7 +391,7 @@ def _handle_spin_label_custom_angle(
             46.0 * u.degree,
             2.0
             * u.kilocalorie_per_mole
-            / u.radian ** 2,  # CHARMM does not have factor of 0.5
+            / u.radian**2,  # CHARMM does not have factor of 0.5
         ],
     )
 

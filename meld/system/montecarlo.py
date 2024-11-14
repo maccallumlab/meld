@@ -10,13 +10,14 @@ These are primarily useful during initialization to
 remove bad geometry.
 """
 
+import math
+import random
+from typing import List, Tuple
+
+import numpy as np  # type: ignore
+
 from meld import interfaces
 from meld.system import indexing
-
-import random
-import numpy as np  # type: ignore
-import math
-from typing import Tuple, List
 
 
 class Mover:
@@ -244,9 +245,7 @@ class TranslationMover(Mover):
     Translate a chain
     """
 
-    def __init__(
-        self, atom_indices: List[indexing.AtomIndex], move_size: float = 0.1
-    ):
+    def __init__(self, atom_indices: List[indexing.AtomIndex], move_size: float = 0.1):
         """
         Initialize a TranslationMover
 

@@ -2,14 +2,13 @@
 Module to handle options for a MELD run
 """
 
-from meld.util import strip_unit
-from meld.system import temperature
-from meld.system import montecarlo
-from openmm import unit as u  # type: ignore
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
+
+from openmm import unit as u  # type: ignore
+
+from meld.system import montecarlo, temperature
 
 
 @partial(dataclass, frozen=True)
@@ -23,7 +22,7 @@ class RunOptions:
     rest2_scaler: Optional[temperature.REST2Scaler] = None
     param_mcmc_steps: int = 0
     mapper_mcmc_steps: int = 0
-    pressure: float = 1.0 * u.bar
+    pressure: u.Quantity = field(default_factory=lambda: 1.0 * u.bar)
 
     def __post_init__(self):
         if self.runner not in ["openmm", "fake_runner"]:

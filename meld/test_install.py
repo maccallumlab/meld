@@ -2,14 +2,15 @@
 Test MELD installation
 """
 
-import meld  # type: ignore
+import random  # type: ignore
+import sys  # type: ignore
+
 import meldplugin  # type: ignore
+import numpy as np  # type: ignore
 import openmm as mm  # type: ignore
 from openmm import unit as u  # type: ignore
 
-import numpy as np  # type: ignore
-import random  # type: ignore
-import sys  # type: ignore
+import meld  # type: ignore
 
 
 def _create_test_system_and_coords():

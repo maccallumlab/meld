@@ -21,16 +21,13 @@ must add this class to the list in
 `OpenMMRunner._setup_transformers`.
 """
 
-from meld import interfaces
-from meld.system import options
-from meld.system import restraints
-from meld.system import param_sampling
-from meld.system import mapping
-from meld.system import density
+from typing import List
+
 import openmm as mm  # type: ignore
 from openmm import app  # type: ignore
 
-from typing import List
+from meld import interfaces
+from meld.system import density, mapping, options, param_sampling, restraints
 
 
 class TransformerBase:
@@ -148,7 +145,7 @@ class TransformerBase:
         pass
 
 
-from meld.runner.transform.restraints.confinement import ConfinementRestraintTransformer
+from meld.runner.transform.rest2 import REST2Transformer
 from meld.runner.transform.restraints.cartesian import (
     CartesianRestraintTransformer,
     YZCartesianTransformer,
@@ -157,5 +154,5 @@ from meld.runner.transform.restraints.com import (
     AbsoluteCOMRestraintTransformer,
     COMRestraintTransformer,
 )
+from meld.runner.transform.restraints.confinement import ConfinementRestraintTransformer
 from meld.runner.transform.restraints.meld import MeldRestraintTransformer
-from meld.runner.transform.rest2 import REST2Transformer

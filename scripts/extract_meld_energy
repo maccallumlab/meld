@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
 
-from __future__ import print_function
 import argparse
+
 import progressbar
-from meld import vault
+from openmm import (
+    HarmonicAngleForce,
+    HarmonicBondForce,
+    NonbondedForce,
+    PeriodicTorsionForce,
+)
+
 import meld.system.openmm_runner.runner as omm_runner
 import meld.system.restraints as restraints
-from openmm import (
-    HarmonicBondForce,
-    HarmonicAngleForce,
-    PeriodicTorsionForce,
-    NonbondedForce,
-)
+from meld import vault
 
 
 def parse_args():

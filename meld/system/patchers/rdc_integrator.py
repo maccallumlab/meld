@@ -3,9 +3,9 @@ Add RDC alignments to the system
 """
 
 import math
+
 import openmm as mm  # type: ignore
 from openmm import unit as u
-
 
 GAS_CONSTANT = 8.314e-3
 

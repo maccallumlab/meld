@@ -7,17 +7,15 @@
 A module for launching replica exchange runs
 """
 
-import meld
-from meld import util
-from meld import vault
-from meld import runner
-from openmm import version as mm_version  # type: ignore
-
-import os
 import logging
+import os
 import socket
 from typing import Union
 
+from openmm import version as mm_version  # type: ignore
+
+import meld
+from meld import runner, util, vault
 
 Handler = Union[logging.StreamHandler, logging.FileHandler]
 

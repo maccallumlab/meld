@@ -1,7 +1,9 @@
 import math
-from meld.util import strip_unit
-from typing import Dict, Any, Optional, Union, List, NamedTuple
+from typing import Dict
+
 from openmm import unit as u  # type: ignore
+
+from meld.util import strip_unit
 
 STRENGTH_AT_ALPHA_MAX = 1e-3  # default strength of restraints at alpha=1.0
 
@@ -710,15 +712,22 @@ class LinearBlurScaler(BlurScaler):
         self._check_alpha_range(alpha)
         blur = self._handle_boundaries(alpha)
         if blur is None:
-            blur = self._min_blur + (self._max_blur - self._min_blur) * (alpha - self._alpha_min) / self._delta
+            blur = (
+                self._min_blur
+                + (self._max_blur - self._min_blur)
+                * (alpha - self._alpha_min)
+                / self._delta
+            )
         else:
             blur = (1.0 - blur) * (self._max_blur - self._min_blur) + self._min_blur
         return blur
+
 
 class ConstantBlurScaler(BlurScaler):
     """This scaler is "always on" and always returns a value of 1.0"."""
 
     _scaler_key_ = "constant_blur"
+
     def __init__(self, blur: float, num_replicas: int) -> None:
         self.blur = blur
         self._num_replicas = num_replicas
