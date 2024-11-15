@@ -39,6 +39,11 @@ dependencies:
 - ambertools
 - cudatoolkit @CUDATOOLKIT_VERSION@
 - openmm
+- mdtraj
+- gemmi
+- mrcfile
+- matplotlib
+- progressbar2
 
 # test
 - pytest
