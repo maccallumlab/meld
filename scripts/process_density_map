@@ -1,10 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 import argparse
 import glob
 import os
 import pickle
+from pathlib import Path
+from warnings import warn
 
 import matplotlib.pyplot as plt
 import mdtraj as md
@@ -14,6 +16,8 @@ import progressbar
 import scipy
 from scipy import ndimage, spatial
 
+### additional imports for the model selection features
+import gemmi
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -91,7 +95,7 @@ def parse_args():
     # map2cc
     map_cc = subparsers.add_parser("map_cc", help="calculate correlations between maps")
     map_cc.add_argument("-m1", "--map1", type=str, help="Density map filename")
-    map_cc.add_argument("-m2", "--map2", type=str, help="Density map filename")
+    map_cc.add_argument("-m2", "--map2", type=str, help="Density map filename or folder with MRC files")
     map_cc.add_argument("-d", "--save_dir", type=str, help="Save direcory name")
     map_cc.add_argument("-s", "--save", type=str, help="Save cc values")
     map_cc.set_defaults(func=map2cc)
@@ -129,9 +133,33 @@ def parse_args():
 
     fsc = subparsers.add_parser("fsc", help="calculate map resolutions from fsc")
     fsc.add_argument("-m1", "--map1", type=str, help="Reference density map filename")
-    fsc.add_argument("-m2", "--map2", type=str, help="Density map filename")
+    fsc.add_argument("-m2", "--map2", type=str, help="Density map filename or folder with MRC files")
     fsc.add_argument("-s", "--save_fsc", action="store_true", help="save fsc fig")
+
+    # TODO there is also meld.vault which extracts PDBs directly from the meld run, but we need mdtraj for handy RMSF computation
+    select_model = subparsers.add_parser('select_model', help='Select the best model (frame) based on iFSC or CC', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    select_model.add_argument('map', type=Path, help='Experimental map in MRC format')
+    select_model.add_argument('traj', type=Path, help='Path to the trajectory output of MELD')# enforce file ext?
+    select_model.add_argument('--resolution', type=float, required=True, help='Gold-standard resolution of the experimental map')
+    select_model.add_argument('--outfolder', type=Path, default=Path('./Postprocess'), help='Name for the output folder')
+    select_model.add_argument('--write', nargs='+', choices = ['pdb', 'map', 'mask', 'info', 'plot'], default = ['pdb', 'info', 'plot'], help='Write any of the output files: pdb=models with assigned B-factor, map=maps simulated from the models, mask=masks produced from the models, info=save a pickle file with the computed values plot=same as running "process_density_map plot_info" with default settings; specify one or more values; writing maps and masks may take a while, however, these written files will be reused if the script is run again, e.g. when trying different model selection metrics')
+    select_model.add_argument('-f', '--force', action='store_true', help='If true, overwrite pre-existing files & folders')
+    select_model.add_argument('--frame-range', type=int, nargs=2, default=[0, -1], help='Set range of frame IDs (0-based) to be processed; should be larger than --frame-window; by default the full trajectory is used')
+    select_model.add_argument('--frame-window', type=int, default=20, help='Number of frames to use for RMSF / atom B-factor calculation')
+    select_model.add_argument('--blur', type=float, help='Blur factor for individual atoms when simulating map from a model; if not provided using a heurstic similar to the one used in Refmac')
+    select_model.add_argument('--by', choices = ['ifsc', 'cc'], type=str, default='ifsc', help='How to select the model: "ifsc" is integrated FSC defined in Wang et al 2016, "cc" is real-space cross-correlation')
+    select_model.add_argument('--ifsc-low', type=float, default=10., help = 'Lowest resolution to consider for iFSC calculation')
+    select_model.add_argument('--ifsc-high', type=float, help = 'Highest resolution to consider for iFSC calculation, by default the experimental map resolution is used')
+    select_model.add_argument('--no-mask', action='store_true', help='Skip computation of masked metrics; the mask is derived from the model using the settings --mask-atom-radius and --mask-soft-edge')
+    # NOTE mask can be also produced from a low-pass filtered pdb-map (e.g. 10-12 A)
+    select_model.add_argument('--mask-atom-radius', default=4.0, type=float, help='To create mask from model take the VdW radius of atom plus this value (in A); details in gemmi documentation')
+    select_model.add_argument('--mask-soft-edge', type=float, help='Add a soft edge (in A) to the mask to prevent FSC artifacts; by default will take the same value as the atom radius; 10 A could be another suggestion, but generating such a mask may take a while')
+    plotter = subparsers.add_parser('plot_info', help='Visualize results from select_model run', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    plotter.add_argument('--info', type=Path, default=Path('Postprocess/info.pkl'), help='Where to read the data from')
+    plotter.add_argument('--format', default='png', help='Output format for plots')
+    plotter.add_argument('-f', '--force', action='store_true', help='If true, overwrite pre-existing files')
     return parser.parse_args()
+    
 
 
 def main():
@@ -177,6 +205,10 @@ def main():
         map_blur(args.map_file, args.blur_min, args.blur_max, args.num_blur)
     elif args.command == "fsc":
         FSC(args.map1, args.map2, save_fig=args.save_fsc)
+    elif args.command == 'select_model':
+      select_model(args)
+    elif args.command == 'plot_info':
+      plot_info(args)
 
 
 def map2mrc(file_path, data=None, map_info=None, threshold=0, mode="r"):
@@ -599,37 +631,44 @@ def map_blur(map_reference, blur_min, blur_max, num_blur):
                 map_info=map_ref,
             )
 
-
-def FSC(map_reference, map_dir, save_fig=False):
-    """
-    Calculate the Fourier Shell Correlation between two electron density maps.
-    """
-    m1 = map2mrc(map_reference)
-    if map_dir.endswith(".mrc") or map_dir.endswith(".map"):
-        maps = [map_dir]
-    else:
-        maps = glob.glob(map_dir + "/*mrc")
-    for map0 in maps:
-        m2 = map2mrc(map0)
-        rho1 = m1["data"]
-        rho2 = m2["data"]
-        side = int(m1["voxel_width"][0] * rho1.shape[0])
-        df = 1.0 / side
-        n = rho1.shape[0]
-        qx_ = np.fft.fftfreq(n) * n * df
-        qx, qy, qz = np.meshgrid(qx_, qx_, qx_, indexing="ij")
-        qx_max = qx.max()
-        qr = np.sqrt(qx**2 + qy**2 + qz**2)
-        qmax = np.max(qr)
-        qstep = np.min(qr[qr > 0])
-        nbins = int(qmax / qstep)
-        qbins = np.linspace(0, nbins * qstep, nbins + 1)
-        # create an array labeling each voxel according to which qbin it belongs
-        qbin_labels = np.searchsorted(qbins, qr, "right")
-        qbin_labels -= 1
-        F1 = np.fft.fftn(rho1)
-        F2 = np.fft.fftn(rho2)
-        numerator = ndimage.sum(
+def fsc_curve(rho1, rho2, voxel_width):
+    '''
+    computes Fourier shell correlation between two numpy arrays representing a 3D map
+    
+    returns an array with the curve
+    '''
+    #side = int(m1['voxel_width'][0]*rho1.shape[0])
+    side = int(voxel_width * rho1.shape[0])
+    df = 1.0/side
+    n = rho1.shape[0]
+    qx_ = np.fft.fftfreq(n)*n*df
+    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
+    qx_max = qx.max()
+    qr = np.sqrt(qx**2+qy**2+qz**2)
+    qmax = np.max(qr)
+    qstep = np.min(qr[qr>0])
+    nbins = int(qmax/qstep)
+    qbins = np.linspace(0,nbins*qstep,nbins+1)
+    #create an array labeling each voxel according to which qbin it belongs
+    qbin_labels = np.searchsorted(qbins, qr, "right")
+    qbin_labels -= 1
+    F1 = np.fft.fftn(rho1)
+    F2 = np.fft.fftn(rho2)
+    numerator = ndimage.sum(
+            np.real(F1 * np.conj(F2)),
+            labels=qbin_labels,
+            index=np.arange(0, qbin_labels.max() + 1),
+        )
+        term1 = ndimage.sum(
+            np.abs(F1) ** 2,
+            labels=qbin_labels,
+            index=np.arange(0, qbin_labels.max() + 1),
+        )
+        term2 = ndimage.sum(
+            np.abs(F2) ** 2,
+            labels=qbin_labels,
+            index=np.arange(0, qbin_labels.max() + 1),
+        )numerator = ndimage.sum(
             np.real(F1 * np.conj(F2)),
             labels=qbin_labels,
             index=np.arange(0, qbin_labels.max() + 1),
@@ -644,34 +683,436 @@ def FSC(map_reference, map_dir, save_fig=False):
             labels=qbin_labels,
             index=np.arange(0, qbin_labels.max() + 1),
         )
-        denominator = (term1 * term2) ** 0.5
-        FSC = numerator / denominator
-        qidx = np.where(qbins < qx_max)
-        fsc = np.vstack((qbins[qidx], FSC[qidx])).T
-
-        x = np.linspace(fsc[0, 0], fsc[-1, 0], 1000)
-        y = np.interp(x, fsc[:, 0], fsc[:, 1])
-        idx = np.where(y >= 0.5)
-        resx = np.max(x[idx])
-        resn = float(1.0 / resx)
-        plt.plot(fsc[:, 0], fsc[:, 1])
-        # np.savetxt('./tmp_fsc.dat',fsc)
-        plt.plot([0, fsc[:, 0].max()], [0.5, 0.5], linestyle="--", color="lightgrey")
-        plt.xlim([0, fsc[:, 0].max() + 0.02])
-        plt.xlabel("1/resolution(Å)")
-        # plt.scatter([resx],[0.5],'r')
-        plt.text(resx, 0.51, f"{round(resn,2)} Å")
-        idx = np.where(y >= 0.143)
-        resx = np.max(x[idx])
-        resn = float(1.0 / resx)
-        plt.plot(
-            [0, fsc[:, 0].max()], [0.143, 0.143], linestyle="--", color="lightgrey"
-        )
-        plt.text(resx, 0.153, f"{round(resn,2)} Å")
-        plt.ylabel("FSC")
-    if save_fig:
-        plt.savefig("fsc.png")
+    denominator = (term1*term2)**0.5
+    FSC = numerator/denominator                                                                                
+    qidx = np.where(qbins<qx_max)
+    fsc = np.vstack((qbins[qidx],FSC[qidx])).T
     return fsc
+
+def fsc_plot(fsc_curve, ax, label=''):
+    'plots an FSC curve with label on the provided matplotlib axes'
+    fsc = fsc_curve
+    x = np.linspace(fsc[0,0],fsc[-1,0],1000)
+    y = np.interp(x, fsc[:,0], fsc[:,1])
+    idx  = np.where(y>=0.5)
+    resx = np.max(x[idx])
+    resn = float(1./resx)
+    plt.plot(fsc[:,0],fsc[:,1], label=label)
+    ax.plot([0,fsc[:,0].max()],[0.5,0.5],linestyle='--',color='lightgrey')
+    ax.set_xlim([0,fsc[:,0].max()+0.02])
+    ax.set_xlabel('1/resolution(Å)')
+    ax.text(resx,0.51,f"{round(resn,2)} Å")
+    idx  = np.where(y>=0.143)
+    resx = np.max(x[idx])
+    resn = float(1./resx)
+    ax.plot([0,fsc[:,0].max()],[0.143,0.143],linestyle='--',color='lightgrey')
+    ax.text(resx,0.153,f"{round(resn,2)} Å")
+    ax.set_ylabel('FSC')
+
+
+def ifsc(fsc_curve, highres, lowres=10.) -> float:
+    '''
+    Computes integrated FSC as defined by Wang et al DOI: 10.7554/eLife.17219.001
+    
+    "integrated" here means that all FSC values in the resolution ranged are summed up and then divided by their count
+    
+    Parameters
+    ----------
+    fsc_curve
+        is a numpy array with 1/res (in Angstroms) in the first column and fsc values in the second column
+    highres
+        is the highest resolution to be used for integration, typically the gold-standard resolution of the map
+    lowres
+        is the lowest resolution, usually set to 10A
+    
+    Notes
+    -----
+    * In the preliminary tests it is more sensitive than cross-correlation to the improvements;  masked maps have better scores as well
+    '''
+    fsc_subrange = fsc_curve[ (fsc_curve[:,0] >= 1 / lowres) & (fsc_curve[:,0] <= 1 / highres) ]
+    return fsc_subrange[:,1].sum() / len(fsc_subrange[:,1])
+
+def cc(array1, array2) -> float:
+    rho_m = array1[None, :]
+    rho_r = array2[None, :]
+    # need to unpack
+    out, = np.round(np.sum(rho_r * rho_m,axis=(1,2,3)) / np.sqrt(np.sum(np.square(rho_r),axis=(1,2,3)) * np.sum(np.square(rho_m),axis=(1,2,3))),4)
+    return out
+
+
+
+def FSC(map_reference, map_dir, save_fig=False):
+    """
+    Calculate the Fourier Shell Correlation between two electron density maps.
+    """
+    m1 = map2mrc(map_reference)
+    if map_dir.endswith(".mrc") or map_dir.endswith(".map"):
+        maps = [map_dir]
+    else:
+        maps = glob.glob(map_dir + "/*mrc")
+    for map0 in maps:
+        m2 = map2mrc(map0)
+        rho1 = m1['data']
+        rho2 = m2['data']
+        fsc = fsc_curve(rho1, rho2, m1['voxel_width'][0])
+        fig, ax = plt.subplots(1,1)
+        fsc_plot(fsc, ax)        
+    if save_fig:
+        fig.savefig('fsc.png')
+    return fsc
+
+def _gemmi_write_grid(grid, outfile, map_origin=None, interpolation=2):
+    # Save a gemmi grid to an MRC file
+    # If map_origin is None, it is set to 0,0,0
+    # interpolation can be 1,2 or 3 (see gemmi.grid.resample_to) only necessary when resampling is done
+    # create an empty map
+    m = gemmi.Ccp4Map()
+    # check if grid has a defined XYZ axis order
+    if grid.axis_order.name == 'Unknown':
+        warn(f'Axis order not set for grid {grid}; it will be resampled a new XYZ-ordered grid')
+        grid_type = type(grid)
+        new_grid = grid_type()
+        new_grid.set_unit_cell(grid.unit_cell)
+        new_grid.set_size(*grid.shape)
+        grid.resample_to(new_grid, interpolation)
+        grid = new_grid
+    m.grid = grid
+    m.update_ccp4_header()
+    if map_origin is not None:
+        assert len(map_origin) == 3
+        word = 50 # MRC header word corresponding to origin: 50 to 52 (XYZ)
+        for value in map_origin:
+            # HACK convert from CCP4 convention to MRC convention (different origins?)
+            m.set_header_float(word, value * -1)
+            word += 1
+        m.update_ccp4_header()
+    m.write_ccp4_map(str(Path(outfile).with_suffix('.mrc')))
+
+def _gemmi_resample_grid(source_grid, destination_grid, mode=2):
+    '''
+    Resamples from source_grid to an empty grid that is identical to destination_grid
+    Mode is resampling mode:
+    1 = nearest
+    2 = linear interpolation
+    3 = tricubic interpolation
+
+    Returns
+    -------
+    a new gemmi grid
+    '''
+    new_grid = destination_grid.clone()
+    new_grid.fill(0)
+    source_grid.resample_to(new_grid, 2)
+    return new_grid
+
+def select_model(args):
+    '''
+    Selects the model based on iFSC or CC, see argparse for argument details
+    
+    NOTE for the test data masked iFSC and CC are almost linear to each other, however, iFSC tends to be more pessimistic
+    
+    TODO: with test data (transporter/AFold) runs ~7 min when making files fresh and 6 min when reading pre-existing ones, probably the bottleneck is in the FSC or correlation part
+
+    TODO: remove pre-reading, may mess things up
+    '''
+
+    ### preprocess args
+    if args.ifsc_high is None:
+        args.ifsc_high = args.resolution
+    if args.mask_soft_edge is None:
+        args.mask_soft_edge = args.mask_atom_radius
+    half_window = args.frame_window // 2
+    
+    ### read the inputs
+    # MD trajectory
+    # NOTE requires a traj with topology included, so either the PDB or h5
+    # mdconvert Data/trajectory.pdb -o Data/trajectory.h5
+    t = md.load(args.traj)
+    # check the frame range values
+    if args.frame_range[1] < 0:
+        args.frame_range[1] = t.n_frames + args.frame_range[1] + 1
+    #assert args.frame_range[1] - args.frame_range[0] > args.frame_window    
+    
+    # EM map (experimental)
+    # setup sets additional grid properties from header, but may or may not detect everything correctly
+    exp_map = gemmi.read_ccp4_map(str(args.map), setup=True)
+    # grid object for the experimental map (similar to mrcfile.data)
+    exp_grid = exp_map.grid
+    # map unit cell (i.e. the physical dimensions of the map)
+    # this will be enforced to the maps generated from PDB files
+    unit_cell = exp_map.grid.unit_cell # in A
+    spacegroup_hm = exp_map.grid.spacegroup.hm # Always P 1
+    spacing = np.mean(exp_map.grid.spacing) # a.k.a pixel size in A
+    
+    # NOTE in some cases the spacing (apix) cannot be read from the MRC file (e.g. the ones produced by mrcfile library!)
+    # in this case gemmi sets spacing to 0, but the correct value can be deduced from the unit cell and grid dimensions
+    if spacing == 0.:
+        warn(f'gemmi could not fetch grid spacing from the input file {args.map}')
+        # just set size from nu nv nw:
+        exp_map.grid.set_size(exp_grid.nu, exp_grid.nv, exp_grid.nw)
+        spacing = np.mean(exp_map.grid.spacing)
+
+    # TODO check if map is cubical and voxel is isotropic?
+    
+    # map origin (XYZ) - may need to shift the density values
+    # to account for origin the PDB should be translated back to the origin (i.e. the grids always have origin in (0,0,0) as per CCP4 format specification)
+    # HACK the header value for 4ake had to be multiplied by -1 to ensure correct placement
+    # this may be related to the orientation of data in the MRC file NXSTART, NYSTART, NZSTART:
+    # https://www.ccpem.ac.uk/mrc_format/mrc2014.php
+    # TODO make a dedicated function to handle map origin I/O
+    map_origin = [exp_map.header_float(i) * -1 for i in (50, 51, 52)]
+    map_origin_transformer = gemmi.Transform(vec3=gemmi.Vec3(*map_origin), mat33=gemmi.Mat33())
+
+    ### setup output folders
+    outfolder_base = args.outfolder
+    outfolder_base.mkdir(exist_ok = args.force) # crashes if output exists
+    pdb_folder = outfolder_base / 'pdb'
+    pdb_folder.mkdir(exist_ok = args.force)
+    map_folder = outfolder_base / 'map'
+    map_folder.mkdir(exist_ok = args.force)
+    mask_folder = outfolder_base / 'mask'
+    mask_folder.mkdir(exist_ok = args.force)
+    
+    # dict to store all outputs with step_0 being the key
+    out = {} 
+
+    ### Main cycle
+    # For RMSF & RMSD a simple sliding window approach is used, a slice of window_size frames is used and RMSF is computed
+    # The central frame of the sliding window is then saved as a PDB
+    # This way the number of PDB files to consider is reduced and a meaningful atomic B-factor is assigned
+    for i in range(args.frame_range[0] + half_window, args.frame_range[1] - half_window, args.frame_window):
+        # dict to store output values for this frame
+        outputs = {}
+        
+        # some expected file names - preload if already exist - NOTE no speedup actually
+        model_file = pdb_folder / f'step_{i}.pdb'
+        map_file =  (map_folder / model_file.stem).with_suffix('.mrc') # simulated map
+        if map_file.exists():
+            mrcfile = gemmi.read_ccp4_map(str(map_file), setup=True)
+            model_grid = mrcfile.grid
+        else:
+            model_grid = None
+        mask_file = (mask_folder / model_file.stem).with_suffix('.mrc') # mask from a simulated map to be applied to the exp map
+        if mask_file.exists():
+            mrcfile = gemmi.read_ccp4_map(str(mask_file), setup=True)
+            mask = mrcfile.grid
+        else:
+            mask = None
+        
+        # trajectory slice
+        t_slice = t[i - half_window : i + half_window]
+        
+        # per-atom rmsf - need at least 2 frames here
+        if t_slice.n_frames >= 2:
+            rmsf = md.rmsf(t_slice, None)
+            # convert rmsf to B-factors https://www.charmm.org/ubbthreads/ubbthreads.php?ubb=showflat&Number=18316
+            # B=[(8*PI**2)/3] * (RMSF)**2 
+            bfac = (8 * np.pi**2 / 3) * rmsf**2
+            # in PDB format bfactors are allowed in range [-10 100]
+            bfac = np.clip(bfac, -10, 100)
+            # this the RMSD relative to the starting structure and can be used to check if the MD has converged
+            rmsd_to_frame0  = md.rmsd(t_slice, t).mean()
+        else:
+            # NOTE mdtraj does not preserve B-factors from the input
+            warn('Only a single frame is analysed, so no RMSF-derived atom B-factors can be computed; all values set to 0')
+            bfac = None 
+            rmsd_to_frame0  = 0
+
+        # write an output PDB file (will be read by gemmi later on)
+        if 'pdb' in args.write or not model_file.exists():
+            t[i].save_pdb(model_file, force_overwrite=True, bfactors = bfac)        
+
+        outputs['rmsd'] = rmsd_to_frame0
+
+        ### convert PDB to map
+        # based on the code for gemmi sfcalc
+        st = gemmi.read_pdb(str(model_file))
+        # hydrogens removed to speed up the calculation
+        st.remove_hydrogens()
+        # assign exp map settings to the structure
+        st.cell = unit_cell
+        # NOTE if the PDB contains a dummy CRYST1 entry, this is not needed
+        # check with st.find_spacegroup()
+        st.spacegroup_hm = spacegroup_hm
+
+        # apply transform to the model so that 0,0,0 is inside the grid box (map dimensions
+        # NOTE This has to be done on each model in the PDB file, but only the first model is added to the density
+        st[0].transform_pos_and_adp(map_origin_transformer)
+        # to reverse:
+        #st[0].transform_pos_and_adp(map_origin_transformer.inverse())
+
+        if model_grid is None:
+            # density calculator with electron scatterers
+            dencalc = gemmi.DensityCalculatorE()
+            # grid spacing of a simulated map is calculated from d_min and rate:
+            # grid spacing = d_min / (2 * rate)
+            # to ensure identcal size d_min is set to 2*pixel size of exp_map
+            # NOTE the simulated map is not low-pass filtered!
+            dencalc.d_min = spacing * 2.
+            # set sampling rate
+            dencalc.rate = 1.0
+            # assign unit cell
+            dencalc.set_grid_cell_and_spacegroup(st)
+            #  and box size (in pix)
+            dencalc.grid.set_size(*exp_grid.shape)
+
+            # add blurring https://gemmi.readthedocs.io/en/latest/hkl.html
+            if args.blur is None:
+                dencalc.set_refmac_compatible_blur(st[0])
+            else:
+                dencalc.blur = args.blur
+
+            # simulate the model on to the grid
+            # NOTE this changes the grid size, because a new grid is made
+            #dencalc.put_model_density_on_grid(st[0])
+            # Here we add model to the pre-existing grid, so more efficient
+            dencalc.add_model_density_to_grid(st[0])
+            # setting the grid size afterwards impossible - map gets distorted
+            #dencalc.grid.set_size(*exp_grid.shape)
+            model_grid = dencalc.grid
+                        
+            # check grid shape and resample if necessary
+            # NOTE this is only necessary if put_model_on_grid is used
+            if model_grid.shape != exp_grid.shape:
+                model_grid = _gemmi_resample_grid(model_grid, exp_grid, 2)
+                warn('Model grid was resampled to the map grid')
+
+        ### unmasked cc and fsc
+        outputs['cc_unmasked'] = cc(exp_grid.array, model_grid.array)
+        unmasked_fsc = fsc_curve(exp_grid.array, model_grid.array, spacing)
+        outputs['fsc_unmasked_curve'] = {'res': unmasked_fsc[:,0],
+                                         'fsc': unmasked_fsc[:,1]
+                                         }
+        outputs['ifsc_unmasked'] = ifsc(unmasked_fsc, args.ifsc_high, args.ifsc_low)
+
+        ### masking
+        if not args.no_mask:
+            if mask is None:
+                # create a new mask
+                mask = gemmi.FloatGrid()
+                mask.set_unit_cell(unit_cell)        
+                mask.set_size(*exp_grid.shape)
+                masker = gemmi.SolventMasker(gemmi.AtomicRadiiSet.VanDerWaals, args.mask_atom_radius)
+                # NOTE this is a solvent mask, i.e. the protein is filled with 0
+                masker.put_mask_on_float_grid(mask, st[0])
+                # invert mask to have the protein marked with 1
+                mask.set_subarray(np.abs(mask.array - 1), [0,0,0])
+                # apply a soft edge to the mask
+                mask.add_soft_edge_to_mask(args.mask_soft_edge)
+                # NOTE this should not be necessary
+                if mask.shape != exp_grid.shape:
+                    print('Warning: mask grid was resampled to the map grid')
+                    mask = _gemmi_resample_grid(mask, exp_grid, 2)
+
+            # apply mask and calculate CC
+            exp_grid_masked = exp_grid.clone()
+            exp_grid_masked.set_subarray(exp_grid.array * mask.array, [0,0,0])
+            outputs['cc_masked'] = cc(exp_grid_masked.array, model_grid.array)
+            masked_fsc = fsc_curve(exp_grid_masked.array, model_grid.array, spacing)
+            outputs['fsc_masked_curve'] = {'res': masked_fsc[:,0],
+                                           'fsc': masked_fsc[:,1]
+                                           }
+            outputs['ifsc_masked'] = ifsc(masked_fsc, args.ifsc_high, args.ifsc_low)
+            if 'mask' in args.write:
+                _gemmi_write_grid(mask, mask_folder / model_file.stem, map_origin=map_origin )
+
+        out[model_file.stem] = outputs
+        
+        ### write outputs
+        if 'map' in args.write:
+            _gemmi_write_grid(model_grid, map_folder / model_file.stem, map_origin=map_origin)
+
+    # TODO report convergence checks?
+
+    ### pick the best model based on the selected metric
+    # it will be a symlink
+    best_model_file = outfolder_base / 'best_model.pdb'
+    if best_model_file.exists() and args.force:
+        best_model_file.unlink()
+
+    metric = args.by
+    if not args.no_mask:
+        metric += '_masked'
+    else:
+        metric += '_unmasked'
+
+    # both metrics are higher better in range from 0 to 1
+    best_value = 0
+    for k, v in out.items():
+        if v[metric] > best_value:
+            best_model = k
+            best_value = v[metric]
+
+    # symlink the best model
+    best_model_file.symlink_to( (Path('pdb') / best_model).with_suffix('.pdb'))
+
+    # write the summary file
+    if 'info' in args.write:
+        outfile = outfolder_base / 'info.pkl'
+        with open(outfile,'wb') as f:
+            pickle.dump(out, f)
+        print(f'Info written to: {outfile}')
+    
+    # make plots
+    if 'plot' in args.write:
+        # HACK creating a fake namespace
+        plot_args = argparse.Namespace()
+        plot_args.info = outfile
+        plot_args.format = 'png'
+        plot_args.force = args.force
+        plot_info(plot_args)
+
+def plot_info(args):
+    # Plots the content of info.pkl
+    info = pickle.load(open(args.info, 'rb'))
+    outfolder_base = args.info.parent
+    plot_folder = outfolder_base / 'plot'
+    plot_folder.mkdir(exist_ok = args.force) # crashes if output exists
+
+    # per-frame plots: frame vs fscs, cc, rmsd; mostly useful for full traj analysis
+    frames = np.array([i.split('_')[1] for i in info.keys()], dtype=int)
+    frames.sort()
+    rmsd = [info[f'step_{i}']['rmsd'] for i in frames]
+    plt.plot(frames, rmsd)
+    plt.xlabel('Step')
+    plt.ylabel('RMSD to frame 0')
+    plt.savefig( (plot_folder / 'rmsd').with_suffix(f'.{args.format}') )
+    plt.close()
+
+    for metric in ['cc', 'ifsc']:
+        for masking in ['unmasked', 'masked']:
+            metric_name = f'{metric}_{masking}'
+            try:
+                metric_values = [info[f'step_{i}'][metric_name] for i in frames]
+            except KeyError:
+                # masking not performed, metric not found
+                continue
+            plt.plot(frames, metric_values, label = metric_name)
+    plt.xlabel('Step')
+    plt.ylabel('CC / iFSC')
+    plt.legend()
+    plt.savefig( (plot_folder / 'cc_ifsc').with_suffix(f'.{args.format}') )
+    plt.close()
+    
+    # per-model plots FSC masked/unmasked with key resolutions labelled
+    for k,v in info.items():
+        fig, ax = plt.subplots()
+        for metric, masking in zip(['fsc', 'fsc'], ['unmasked', 'masked']):
+            metric_name = f'{metric}_{masking}_curve'
+            # to show ifsc value in the plot legend
+            aggregated_metric_name = f'i{metric}_{masking}'
+            try:
+                metric_values = v[metric_name]
+            except KeyError:
+                # masking not performed, metric not found
+                continue
+            # extract values & plot
+            fsc_plot(np.concatenate([metric_values['res'][:, None],metric_values[metric][:, None]], axis=1), ax=ax, label=f'{aggregated_metric_name}:{v[aggregated_metric_name]:.2f}')
+        fig.legend()
+        fig.savefig((plot_folder / f'fsc_{k}').with_suffix(f'.{args.format}'))
+        plt.close(fig)
+    # print info
+    print(f'Outputs written to: {plot_folder}')
 
 
 def get_progress_bar(label, cc, n_steps):
