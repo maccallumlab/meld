@@ -84,7 +84,7 @@ jobs:
           ccache -z
 
       - name: "Restore ccache"
-        uses: actions/cache@v3
+        uses: actions/cache@v3.1.0
         with:
           path: .ccache
           key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
@@ -171,7 +171,7 @@ jobs:
           ccache -z
 
       - name: "Restore ccache"
-        uses: actions/cache@v3
+        uses: actions/cache@v3.1.0
         with:
           path: .ccache
           key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
