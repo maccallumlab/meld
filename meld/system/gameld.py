@@ -31,17 +31,20 @@ def change_thresholds(
 
     # Check if it's time to change thresholds
     initial_row: int = 0
-    if step == (system_runner._integrator.ntcmd / system_runner._options.timesteps):
+    #if step == (system_runner._integrator.ntcmd / system_runner._options.timesteps):
+    if step == (system_runner._integrator.ntcmd / system_runner.prepare_for_timestep):
         initial_row = (
-            system_runner._integrator.ntcmdprep / system_runner._options.timesteps
+            #system_runner._integrator.ntcmdprep / system_runner._options.timesteps
+            system_runner._integrator.ntcmdprep / system_runner.prepare_for_timestep
         )
     elif step == (
         (system_runner._integrator.ntcmd + system_runner._integrator.nteb)
-        / system_runner._options.timesteps
+        #/ system_runner._options.timesteps
+        / system_runner.prepare_for_timestep
     ):
         initial_row = (
             system_runner._integrator.ntcmd + system_runner._integrator.ntebprep
-        ) / system_runner._options.timesteps
+        ) / system_runner._prepare_for_timestep
 
     if initial_row != 0:
         column: int = 0
