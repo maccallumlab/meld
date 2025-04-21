@@ -23,7 +23,7 @@ from meld import interfaces
 from meld.system import options, param_sampling, pdb_writer, state
 
 try:
-    from gamd.stage_integrator import GamdStageIntegrator  # type: ignore
+    from gamd.stage_integrator import GamdStageIntegrator  
     has_gamd = True
 except ImportError:
     has_gamd = False

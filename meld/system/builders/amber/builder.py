@@ -27,7 +27,7 @@ from meld.system.builders.spec import SystemSpec
 logger = logging.getLogger(__name__)
 
 try:
-    from gamd.integrator_factory import * # type: ignore
+    from gamd.integrator_factory import * 
 
     has_gamd = True
 except:
