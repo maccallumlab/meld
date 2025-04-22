@@ -308,6 +308,10 @@ class IRunner(ABC):
     @abstractmethod
     def prepare_for_timestep(self, state: IState, alpha: float, timestep: int):
         pass
+    
+    @abstractmethod
+    def _options(self) -> RunOptions:
+        pass
 
 
 class ExtraBondParam(NamedTuple):
