@@ -99,7 +99,7 @@ class WorkerReplicaExchangeRunner:
             energies = self._compute_energies(states, all_states, system_runner)
             communicator.send_energies_to_leader(energies)
 
-            if system_runner._options.enable_gamd == True:   #type: ignore
+            if system_runner._options.enable_gamd == True:
                 # if it's time, change thresholds
                 leader: bool = False
                 gameld.change_thresholds(
