@@ -8,3 +8,4 @@ How-To
     explicit_solvent
     parameter_sampling
     mapping
+    using_grappa
