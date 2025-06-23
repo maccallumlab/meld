@@ -8,6 +8,7 @@ Module to build a System using the Grappa force field.
 """
 
 import logging
+from typing import Optional
 import numpy as np
 import openmm as mm
 from openmm import app
@@ -65,31 +66,44 @@ class GrappaSystemBuilder:
         logger.info(f"Loading base force field files: {self.options.base_forcefield_files}")
         base_ff = app.ForceField(*self.options.base_forcefield_files)
 
-        # Determine nonbonded method and cutoff
-        if self.options.cutoff is not None:
-            nonbonded_method = app.PME
-            nonbonded_cutoff = self.options.cutoff * u.nanometer
-            logger.info(f"Using PME with cutoff {nonbonded_cutoff}.")
-        else:
-            nonbonded_method = app.NoCutoff
-            nonbonded_cutoff = None # No explicit cutoff for NoCutoff
-            logger.info("Using NoCutoff for nonbonded interactions.")
-
-
         hydrogen_mass, constraint_type = _get_hydrogen_mass_and_constraints(
             self.options.use_big_timestep, self.options.use_bigger_timestep
         )
 
         # Create initial system with base force field
         logger.info("Creating initial system with base force field.")
-        system = base_ff.createSystem(
-            topology,
+
+
+        if self.options.cutoff is not None:
+            nonbonded_method = app.PME
+            # Ensure cutoff is a Quantity
+            nonbonded_cutoff = float(self.options.cutoff)
+            if isinstance(self.options.cutoff, float):
+                nonbonded_cutoff = self.options.cutoff * u.nanometer
+            else:
+                nonbonded_cutoff = self.options.cutoff
+            logger.info(f"Using PME with cutoff {nonbonded_cutoff} nm.")
+        else:
+            nonbonded_method = app.CutoffNonPeriodic
+            nonbonded_cutoff = 1.0 * u.nanometer
+            logger.info("Using CutoffNonPeriodic for nonbonded interactions.")
+
+        create_system_kwargs = dict(
+            topology=topology,
             nonbondedMethod=nonbonded_method,
             nonbondedCutoff=nonbonded_cutoff,
             constraints=constraint_type,
             hydrogenMass=hydrogen_mass,
             removeCMMotion=self.options.remove_com,
         )
+
+        system = base_ff.createSystem(**create_system_kwargs)
+
+        #=======================================================
+        print("nonbonded_method:", nonbonded_method)
+        if self.options.cutoff is not None:
+            print("nonbonded_cutoff:", nonbonded_cutoff, type(nonbonded_cutoff))
+        #=====================================================
 
         # Initialize Grappa force field
         logger.info(f"Initializing Grappa with model tag: {self.options.grappa_model_tag}")
@@ -120,8 +134,24 @@ class GrappaSystemBuilder:
         logger.info(f"Integrator created with temperature {self.options.default_temperature}K.")
 
         # Prepare coordinates and velocities
-        coords_nm = positions.value_in_unit(u.nanometer)
+        coords_nm = np.array([list(pos.value_in_unit(u.nanometer)) for pos in positions])
         vels_nm_ps = np.zeros_like(coords_nm) * (u.nanometer / u.picosecond)
+
+        #============== debugging lines ======================================
+        num_particles = system.getNumParticles()
+        print("Num particles in system:", num_particles)
+        print("Num coordinates:", coords_nm.shape[0])
+        print("Any NaNs in coords?", np.isnan(coords_nm).any())
+        if num_particles != coords_nm.shape[0]:
+            raise ValueError(f"Atom count mismatch; system has {num_particles} particles, but coordinates have {coords_nm.shape[0]}")
+        if np.isnan(coords_nm).any():
+            nan_rows = np.where(np.isnan(coords_nm).anys(axis=1))[0]
+            raise ValueError(f"NaN detected in coordinates at rows: {nan_rows}")
+        
+        # Optionally, check velocities as well
+        if np.isnan(vels_nm_ps).any():
+            raise ValueError("NaN detected in velocities!")
+        #=====================================================================
 
         # Handle box vectors
         box_nm = None
@@ -139,14 +169,14 @@ class GrappaSystemBuilder:
 
         logger.info("SystemSpec creation complete.")
         return SystemSpec(
-            solvation_type="unknown", # Grappa doesn't explicitly define this like amber/martini
+            solvation=self.options.solvation_type,
             system=system,
             topology=topology,
             integrator=integrator,
             barostat=None,  # Grappa examples do not typically include a barostat by default
-            coords=coords_nm,
-            vels=vels_nm_ps,
-            box=box_nm,
+            coordinates=coords_nm,
+            velocities=vels_nm_ps,
+            box_vectors=box_nm,
             builder_info={
                 "builder": "grappa",
                 "grappa_model_tag": self.options.grappa_model_tag,
