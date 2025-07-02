@@ -18,7 +18,7 @@ import os
 from genericpath import exists
 
 try:
-    from gamd.GamdLogger import GamdLogger
+    from gamd.GamdLogger import GamdLogger   # type: ignore
 except:
     pass
 

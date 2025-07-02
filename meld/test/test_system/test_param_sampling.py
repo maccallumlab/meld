@@ -29,8 +29,8 @@ class TestDiscreteSampler(unittest.TestCase):
             if self.sampler.is_valid(new_v):
                 v = new_v
             counts[v] += 1
-        self.assertTrue(np.alltrue(counts > 9000))
-        self.assertTrue(np.alltrue(counts < 11_000))
+        self.assertTrue(np.all(counts > 9000))
+        self.assertTrue(np.all(counts < 11_000))
 
 
 class TestContinuousSampler(unittest.TestCase):
@@ -61,5 +61,5 @@ class TestContinuousSampler(unittest.TestCase):
             values.append(v)
 
         hist, _ = np.histogram(values, bins=10, range=(0, 9))
-        self.assertTrue(np.alltrue(hist > 9000))
-        self.assertTrue(np.alltrue(hist < 11_000))
+        self.assertTrue(np.all(hist > 9000))
+        self.assertTrue(np.all(hist < 11_000))

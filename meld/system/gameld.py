@@ -61,7 +61,7 @@ def change_thresholds(
                 system_runner._simulation.integrator.getGlobalVariableByName(
                     "threshold_energy_Total"
                 ),
-                tot_sd,
+                [tot_sd],
             ]
             if leader == True:
                 # gather energy thresholds and widths
@@ -95,7 +95,7 @@ def change_thresholds(
                 system_runner._simulation.integrator.getGlobalVariableByName(
                     "threshold_energy_Dihedral"
                 ),
-                dih_sd,
+                [dih_sd],
             ]
             if leader == True:
                 # gather energy thresholds and widths

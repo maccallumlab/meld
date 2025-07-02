@@ -6,7 +6,7 @@
 %module meldplugin
 
 %include "factory.i"
-%import(module="simtk.openmm") "swig/OpenMMSwigHeaders.i"
+%import(module="openmm") "swig/OpenMMSwigHeaders.i"
 %include "swig/typemaps.i"
 
 %include "std_vector.i"
