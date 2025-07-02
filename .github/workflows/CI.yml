@@ -3,7 +3,8 @@ name: CI
 on:
   push:
     branches:
-
+      - "testing_b"
+      
   pull_request:
     banches:
       - "master"
