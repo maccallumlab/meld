@@ -26,6 +26,13 @@ from meld.system.builders.spec import SystemSpec
 
 logger = logging.getLogger(__name__)
 
+try:
+    from gamd.integrator_factory import *    #type: ignore
+
+    has_gamd = True
+except:
+    has_gamd = False
+
 
 @partial(dataclass, frozen=True)
 class AmberOptions:
@@ -56,6 +63,18 @@ class AmberOptions:
     enable_amap: bool = False
     amap_alpha_bias: float = 1.0
     amap_beta_bias: float = 1.0
+    enable_gamd: bool = False
+    boost_type_str: str = "upper-total"
+    conventional_md_prep: int = 5
+    conventional_md: int = 50
+    gamd_equilibration_prep: int = 15
+    gamd_equilibration: int = 150
+    total_simulation_length: int = 1000
+    averaging_window_interval: int = 2500
+    sigma0p: float = 6.0
+    sigma0d: float = 6.0
+    random_seed: int = 0
+    friction_coefficient: float = 1.0
 
     def __post_init__(self):
         # Sanity checks for implicit and explicit solvent
@@ -241,11 +260,34 @@ class AmberSystemBuilder:
                 self.options.amap_beta_bias,
             )
 
-        integrator = _create_integrator(
-            self.options.default_temperature,
-            self.options.use_big_timestep,
-            self.options.use_bigger_timestep,
-        )
+        # Create integrator based on GaMD options
+        if self.options.enable_gamd:
+            assert (
+                has_gamd == True
+            ), "Couldn't find library integrator_factory. Please, install GaMD for OpenMM"
+            allowed_modes = [
+                "upper-dual",
+                "lower-dual",
+                "upper-total",
+                "lower-total",
+                "lower-dihedral",
+                "upper-dihedral",
+            ]
+            if self.options.boost_type_str in allowed_modes:
+                integrator = _create_gamd_integrator(
+                    self.options,
+                    system,
+                )
+            else:
+                raise Exception(
+                    f"{self.options.boost_type_str} mode not supported. Check your boost_type_str option."
+                )
+        else:
+            integrator = _create_integrator(
+                self.options.default_temperature,
+                self.options.use_big_timestep,
+                self.options.use_bigger_timestep,
+            )
 
         coords = crd.getPositions(asNumpy=True).value_in_unit(u.nanometer)
         try:
@@ -544,6 +586,47 @@ def _create_integrator(temperature, use_big_timestep, use_bigger_timestep):
         logger.info("Creating integrator with 2.0 fs timestep")
         timestep = 2.0 * u.femtosecond
     return mm.LangevinIntegrator(temperature * u.kelvin, 1.0 / u.picosecond, timestep)
+
+
+def _create_gamd_integrator(options, system):
+    gamdIntegratorFactory = GamdIntegratorFactory()
+    if options.use_big_timestep:
+        logger.info("Creating custom integrator with 3.5 fs timestep")
+        timestep = 3.5 * u.femtosecond
+    elif options.use_bigger_timestep:
+        logger.info("Creating custom integrator with 4.5 fs timestep")
+        timestep = 4.5 * u.femtosecond
+    else:
+        logger.info("Creating custom integrator with 2.0 fs timestep")
+        timestep = 2.0 * u.femtosecond
+    result = gamdIntegratorFactory.get_integrator(
+        options.boost_type_str,
+        system,
+        options.default_temperature,
+        timestep,
+        options.conventional_md_prep,
+        options.conventional_md,
+        options.gamd_equilibration_prep,
+        options.gamd_equilibration,
+        options.total_simulation_length,
+        options.averaging_window_interval,
+        options.sigma0p,
+        options.sigma0d,
+    )
+    [
+        first_boost_group,
+        second_boost_group,
+        integrator,
+        first_boost_type,
+        second_boost_type,
+    ] = result
+    integrator.first_boost_group = first_boost_group
+    integrator.second_boost_group = second_boost_group
+    integrator.first_boost_type = first_boost_type
+    integrator.second_boost_type = second_boost_type
+    integrator.setRandomNumberSeed(options.random_seed)
+    integrator.setFriction(options.friction_coefficient)
+    return integrator
 
 
 def _add_chains(topology, chain_list):

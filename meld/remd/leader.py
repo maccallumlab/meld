@@ -15,6 +15,7 @@ import numpy as np
 from meld import interfaces, vault
 from meld.remd import adaptor, ladder, worker
 from meld.remd.permute import permute_states
+from meld.system import gameld
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,11 @@ class LeaderReplicaExchangeRunner:
             all_states = permute_states(
                 permutation_vector, all_states, system_runner, self.step
             )
+
+            if system_runner._options.enable_gamd == True:  # type: ignore
+                # if it's time, change thresholds
+                leader: bool = True
+                gameld.change_thresholds(self.step, system_runner, communicator, leader)
 
             # store everything
             store.save_states(all_states, self.step)

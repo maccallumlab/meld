@@ -9,10 +9,9 @@ A module for replica exchange workers
 
 import logging
 from typing import Sequence
-
 import numpy as np
-
 from meld import interfaces
+from meld.system import gameld
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,13 @@ class WorkerReplicaExchangeRunner:
             energies = self._compute_energies(states, all_states, system_runner)
             communicator.send_energies_to_leader(energies)
 
+            if system_runner._options.enable_gamd == True:   #type: ignore
+                # if it's time, change thresholds
+                leader: bool = False
+                gameld.change_thresholds(
+                    self._step, system_runner, communicator, leader
+                )
+                
             self._step += 1
 
     def _compute_energies(
