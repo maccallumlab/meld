@@ -97,7 +97,15 @@ class GrappaSystemBuilder:
             removeCMMotion=self.options.remove_com,
         )
 
-        system = base_ff.createSystem(**create_system_kwargs)
+        #system = base_ff.createSystem(**create_system_kwargs)
+
+#======================================
+        if getattr(self.options, "prebuilt_system", None) is not None:
+            system = self.options.prebuilt_system
+            logger.info("Using prebuilt OpenMM System from GrappaOptions; skipping ForceField.createSystem().")
+        else:
+            system = base_ff.createSystem(**create_system_kwargs)
+#=======================================
 
         #=======================================================
         print("nonbonded_method:", nonbonded_method)
@@ -203,11 +211,11 @@ def _get_hydrogen_mass_and_constraints(use_big_timestep: bool, use_bigger_timest
 
 def _create_integrator(temperature: float, use_big_timestep: bool, use_bigger_timestep: bool):
     if use_big_timestep:
-        logger.info("Creating Langevin integrator with 3.0 fs timestep.")
-        timestep = 3.0 * u.femtoseconds
+        logger.info("Creating Langevin integrator with 3.5 fs timestep.")
+        timestep = 3.5 * u.femtoseconds
     elif use_bigger_timestep:
-        logger.info("Creating Langevin integrator with 4.0 fs timestep.") # Adjusted from Amber's 4.5fs
-        timestep = 4.0 * u.femtoseconds
+        logger.info("Creating Langevin integrator with 4.5 fs timestep.") # Adjusted from Amber's 4.5fs
+        timestep = 4.5 * u.femtoseconds
     else:
         logger.info("Creating Langevin integrator with 2.0 fs timestep.")
         timestep = 2.0 * u.femtoseconds

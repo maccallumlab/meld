@@ -26,7 +26,10 @@ class GrappaOptions:
     cutoff: Optional[u.Quantity] = None
     use_big_timestep: bool = False
     use_bigger_timestep: bool = False
-    remove_com: bool = True
+    remove_com: bool = False
+    amap_beta_bias: float = 1.0
+    enable_amap: bool = False
+    prebuilt_system: Optional[object] = None  # <-- allow an OpenMM System (or None)
 
     def __post_init__(self):
         # Unit conversions must happen before validation if validation depends on the converted value type
@@ -94,6 +97,8 @@ class GrappaOptions:
         logger.info(f"Base force field files: {self.base_forcefield_files}")
         logger.info(f"Default temperature: {self.default_temperature} K")
         logger.info(f"Cutoff: {self.cutoff} nm" if self.cutoff is not None else "Cutoff: None")
-        logger.info(f"Use big timestep (3fs): {self.use_big_timestep}")
-        logger.info(f"Use bigger timestep (4fs): {self.use_bigger_timestep}")
+        logger.info(f"Use big timestep (3.5fs): {self.use_big_timestep}")
+        logger.info(f"Use bigger timestep (4.5fs): {self.use_bigger_timestep}")
         logger.info(f"Remove COM motion: {self.remove_com}")
+        if self.prebuilt_system is not None:
+            logger.info("A prebuilt OpenMM System was provided in GrappaOptions (prebuilt_system).")
