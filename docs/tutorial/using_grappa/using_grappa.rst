@@ -340,9 +340,7 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
             confinement_rests.append(rest)
         s.restraints.add_as_always_active_list(confinement_rests) ####################################
 
-        #
         # Setup Scaler
-        #
         # Initialize restraints object for the system if it's not already initialized
         if s.restraints is None:
             s.restraints = meld.system.RestraintManager(s)
