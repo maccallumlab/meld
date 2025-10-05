@@ -162,7 +162,6 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
             print(sequence)
             sequence = dict(sequence)
 
-            #print sequence
             #print hydrophobes_res
             #Get list of groups with only residues that are hydrophobs
             print(group_1)
@@ -194,11 +193,6 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
                     local_contact = []
                     for a_i in atoms_i:
                         for a_j in atoms_j:
-                            #if CO:
-                                #print i,j,a_i,a_j
-                            #   tmp_scaler = scaler(abs(i-j), 'hydrophobic')
-                            #else:
-                            #   tmp_scaler = scaler
                             hy_rest.write('{} {} {} {}\n'.format(i,a_i, j, a_j))
                     hy_rest.write('\n')
 
@@ -216,20 +210,9 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
                     for res_i in range(start_i,end_i+1):
                         for res_j in range(start_j,end_j+1):
                             if res_i in subset or res_j in subset:
-                                #print(res_i,res_j)
                                 f.write('{} {} {} {}\n'.format(res_i, 'N', res_j, 'O'))
-                                #f.write('\n')
                                 f.write('{} {} {} {}\n'.format(res_i, 'O', res_j, 'N'))
                                 f.write('\n')
-                                #g = []
-                                #make_pairNO(g,s,res_i,res_j,scaler,CO)
-                                #strand_pair.append(s.restraints.create_restraint_group(g,1))
-                                #g = []
-                                #make_pairON(g,s,res_i,res_j,scaler,CO)
-                                #strand_pair.append(s.restraints.create_restraint_group(g,1))
-            #all_rest = len(strand_pair)
-            #active = int(active * active_per_cent)
-            #print(("strand_pairs:", all_rest,active))
 
     def get_dist_restraints_hydrophobe(filename, s, scaler, ramp, seq):
         dists = []
@@ -376,7 +359,7 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
         dists = get_dist_restraints_hydrophobe('hydrophobe.dat', s, scaler, ramp, seq)
     
 
-        s.restraints.add_selectively_active_collection(dists, int(1.2 * no_hy_res))  #*****************************  
+        s.restraints.add_selectively_active_collection(dists, int(1.2 * no_hy_res))  
 
         ##strand pairing
         sse,active = make_ss_groups(subset=subset1)
@@ -384,17 +367,12 @@ Here's a more complete snippet showing how ``GrappaSystemBuilder`` and ``GrappaO
         #
         ##creates parameter sampling for strand pairing
         dists = get_dist_restraints_strand_pair('strand_pair.dat', s, scaler, ramp, seq)
-        #prior_n15 = param_sampling.ScaledExponentialDiscretePrior(u0=2.0, temperature_scaler=s.temperature_scaler, scaler=scaler)
-        #sampler_n15 = param_sampling.DiscreteSampler(int(1), int(1.00 * len(dists)), 1)
 
         # Initialize param_sampler object for the system if it's not already initialized
         if not hasattr(s, 'param_sampler') or s.param_sampler is None:
             s.param_sampler = param_sampling.ParameterSampler()
 
-        #param_n15 = s.param_sampler.add_discrete_parameter("param_SP", int(0.45*active), prior_n15, sampler_n15)
-        #s.restraints.add_selectively_active_collection(dists, param_n15)
-
-        s.restraints.add_selectively_active_collection(dists, int(0.45*active))    #******************* 
+        s.restraints.add_selectively_active_collection(dists, int(0.45*active))    
 
         # setup mcmc at startup
         movers = []
