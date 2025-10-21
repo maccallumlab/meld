@@ -1,5 +1,5 @@
 #
-# Copyright 2023 The MELD Contributors
+# Copyright 2025 by Alberto Perez, Imesh Ranaweera
 # All rights reserved
 #
 
@@ -97,21 +97,17 @@ class GrappaSystemBuilder:
             removeCMMotion=self.options.remove_com,
         )
 
-        #system = base_ff.createSystem(**create_system_kwargs)
 
-#======================================
         if getattr(self.options, "prebuilt_system", None) is not None:
             system = self.options.prebuilt_system
             logger.info("Using prebuilt OpenMM System from GrappaOptions; skipping ForceField.createSystem().")
         else:
             system = base_ff.createSystem(**create_system_kwargs)
-#=======================================
 
-        #=======================================================
+
         print("nonbonded_method:", nonbonded_method)
         if self.options.cutoff is not None:
             print("nonbonded_cutoff:", nonbonded_cutoff, type(nonbonded_cutoff))
-        #=====================================================
 
         # Initialize Grappa force field
         logger.info(f"Initializing Grappa with model tag: {self.options.grappa_model_tag}")
@@ -129,7 +125,6 @@ class GrappaSystemBuilder:
             logger.info("System parametrized successfully by Grappa.")
         except Exception as e:
             logger.error(f"Grappa parametrization failed: {e}")
-            # It might be useful to log more details about the system and topology if possible
             raise RuntimeError("Grappa parametrization step failed.") from e
 
 
@@ -145,7 +140,6 @@ class GrappaSystemBuilder:
         coords_nm = np.array([list(pos.value_in_unit(u.nanometer)) for pos in positions])
         vels_nm_ps = np.zeros_like(coords_nm) * (u.nanometer / u.picosecond)
 
-        #============== debugging lines ======================================
         num_particles = system.getNumParticles()
         print("Num particles in system:", num_particles)
         print("Num coordinates:", coords_nm.shape[0])
@@ -159,7 +153,6 @@ class GrappaSystemBuilder:
         # Optionally, check velocities as well
         if np.isnan(vels_nm_ps).any():
             raise ValueError("NaN detected in velocities!")
-        #=====================================================================
 
         # Handle box vectors
         box_nm = None
@@ -181,7 +174,7 @@ class GrappaSystemBuilder:
             system=system,
             topology=topology,
             integrator=integrator,
-            barostat=None,  # Grappa examples do not typically include a barostat by default
+            barostat=None,  
             coordinates=coords_nm,
             velocities=vels_nm_ps,
             box_vectors=box_nm,
@@ -214,7 +207,7 @@ def _create_integrator(temperature: float, use_big_timestep: bool, use_bigger_ti
         logger.info("Creating Langevin integrator with 3.5 fs timestep.")
         timestep = 3.5 * u.femtoseconds
     elif use_bigger_timestep:
-        logger.info("Creating Langevin integrator with 4.5 fs timestep.") # Adjusted from Amber's 4.5fs
+        logger.info("Creating Langevin integrator with 4.5 fs timestep.") 
         timestep = 4.5 * u.femtoseconds
     else:
         logger.info("Creating Langevin integrator with 2.0 fs timestep.")

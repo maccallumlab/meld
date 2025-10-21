@@ -1,5 +1,5 @@
 #
-# Copyright 2023 The MELD Contributors
+# Copyright 2025 by Alberto Perez, Imesh Ranaweera
 # All rights reserved
 #
 
@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import List, Optional
 
-from openmm import unit as u  # type: ignore
+from openmm import unit as u  
 
 logger = logging.getLogger(__name__)
 
@@ -41,20 +41,12 @@ class GrappaOptions:
             )
         
         if self.cutoff is not None:
-            if not isinstance(self.cutoff, u.Quantity): # check if it is a bare number
-                 # Assume it's in nanometers if it's a float/int, then wrap in Quantity
+            if not isinstance(self.cutoff, u.Quantity): 
                 if isinstance(self.cutoff, (float, int)):
                     object.__setattr__(self, "cutoff", float(self.cutoff) * u.nanometer)
                 else:
                     raise ValueError("Cutoff must be a float/int (assumed nm) or an OpenMM Quantity with length units.")
-            # If it's already a Quantity, ensure it's in nanometers for consistency, but no need to setattr if already a quantity.
-            # The above logic primarily handles bare numbers; if it's a Quantity, it's assumed to be correctly handled or
-            # its value_in_unit will be used where needed by the builder.
-            # For logging consistency, we might want to ensure it's stored as a float in nm or similar
-            # but GrappaSystemBuilder already does: nonbonded_cutoff = float(self.options.cutoff)
-            # and then nonbonded_cutoff = self.options.cutoff * u.nanometer if it was float
-            # This seems a bit convoluted. Let's simplify: options stores float in nm, or None.
-            # The builder will then use it. If Quantity is passed, convert it.
+
             if isinstance(self.cutoff, u.Quantity):
                  object.__setattr__(self, "cutoff", self.cutoff.value_in_unit(u.nanometer))
             elif isinstance(self.cutoff, (float, int)):
