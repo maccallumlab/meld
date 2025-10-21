@@ -70,7 +70,7 @@ How it Works
 ------------
 
 The ``GrappaSystemBuilder`` first sets up an OpenMM ``System`` using the provided base force field files (e.g., AMBER ff14SB). This step defines the nonbonded interactions and initial bonded parameters.
-Then, it utilizes the specified Grappa model (e.g., ``grappa-1.4``) to predict and replace the bonded parameters (bonds, angles, torsions) in the OpenMM ``System``. The nonbonded parameters from the base force field remain unchanged.
+Then, it utilizes the specified Grappa model (e.g., ``grappa-1.4.0``) to predict and replace the bonded parameters (bonds, angles, torsions) in the OpenMM ``System``. The nonbonded parameters from the base force field remain unchanged.
 
 Example MELD Setup Snippet for Protein Folding
 --------------------------
