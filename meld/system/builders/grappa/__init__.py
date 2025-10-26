@@ -4,9 +4,10 @@
 #
 
 """
-MELD System Builders
+MELD System Builders using Grappa Force Field
 """
 
-from .grappa import GrappaOptions, GrappaSystemBuilder
+from .options import GrappaOptions
+from .builder import GrappaSystemBuilder
 
 __all__ = ["GrappaOptions", "GrappaSystemBuilder"]
