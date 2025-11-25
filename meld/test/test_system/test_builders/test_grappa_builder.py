@@ -57,6 +57,7 @@ class TestGrappaBuilder(unittest.TestCase):
         ATOM     18  HB3 ALA A   2       3.400   3.200  -2.700  1.00  0.00           H
         ATOM     19  C   ALA A   2       4.700   3.100  -0.200  1.00  0.00           C
         ATOM     20  O   ALA A   2       5.700   3.500   0.200  1.00  0.00           O
+        ATOM     21  OXT ALA A   2       4.700   4.200  -0.800  1.00  0.00           O
         TER
         END
         """).lstrip()
