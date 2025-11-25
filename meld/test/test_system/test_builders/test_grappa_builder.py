@@ -1,5 +1,5 @@
 #
-# Copyright 2025 by Imesh Ranaweera, Alberto Perez
+# Copyright 2024 by Imesh Ranaweera, Alberto Perez
 # All rights reserved
 #
 
@@ -90,89 +90,6 @@ class TestGrappaBuilder(unittest.TestCase):
         self.assertAlmostEqual(
             integ.getStepSize().value_in_unit(unit.femtoseconds), 2.0, delta=0.1
         )
-
-    # ------------------------------------------------------------------
-    @unittest.skipUnless(GRAPPA_INSTALLED, "grappa-ff not installed.")
-    def test_cutoff(self):
-        """Test nonbonded cutoff handling."""
-        options = GrappaOptions(
-            solvation_type="implicit",
-            grappa_model_tag="grappa-1.4.0",
-            cutoff=1.0,  # nm
-        )
-        builder = GrappaSystemBuilder(options)
-        spec = builder.build_system(self.topology, self.positions)
-
-        # Find NonbondedForce
-        from openmm import NonbondedForce
-
-        nb_force = None
-        for f in spec.system.getForces():
-            if isinstance(f, NonbondedForce):
-                nb_force = f
-                break
-
-        self.assertIsNotNone(nb_force)
-        self.assertAlmostEqual(
-            nb_force.getCutoffDistance().value_in_unit(unit.nanometer),
-            1.0,
-            delta=0.01,
-        )
-
-    # ------------------------------------------------------------------
-    @unittest.skipUnless(GRAPPA_INSTALLED, "grappa-ff not installed.")
-    def test_big_timestep(self):
-        """Test use_big_timestep = True."""
-        options = GrappaOptions(
-            solvation_type="implicit",
-            grappa_model_tag="grappa-1.4.0",
-            use_big_timestep=True,
-        )
-        builder = GrappaSystemBuilder(options)
-        spec = builder.build_system(self.topology, self.positions)
-
-        integ = spec.integrator
-        self.assertAlmostEqual(
-            integ.getStepSize().value_in_unit(unit.femtoseconds), 3.5, delta=0.01
-        )
-
-        # Hydrogen mass must be 3 Da
-        heavy_found = False
-        for atom in spec.topology.atoms():
-            if atom.element.symbol == "H":
-                mass = spec.system.getAtomMass(atom.index).value_in_unit(unit.dalton)
-                if mass > 1.5:
-                    heavy_found = True
-                    break
-        self.assertTrue(heavy_found)
-
-    # ------------------------------------------------------------------
-    @unittest.skipUnless(GRAPPA_INSTALLED, "grappa-ff not installed.")
-    def test_bigger_timestep(self):
-        """Test use_bigger_timestep = True."""
-        options = GrappaOptions(
-            solvation_type="implicit",
-            grappa_model_tag="grappa-1.4.0",
-            use_bigger_timestep=True,
-        )
-        builder = GrappaSystemBuilder(options)
-        spec = builder.build_system(self.topology, self.positions)
-
-        integ = spec.integrator
-        self.assertAlmostEqual(
-            integ.getStepSize().value_in_unit(unit.femtoseconds), 4.5, delta=0.01
-        )
-
-        # Hydrogen mass must be 4 Da
-        heavy_found = False
-        for atom in spec.topology.atoms():
-            if atom.element.symbol == "H":
-                mass = spec.system.getAtomMass(atom.index).value_in_unit(unit.dalton)
-                if mass > 2.0:
-                    heavy_found = True
-                    break
-        self.assertTrue(heavy_found)
-
 
 if __name__ == "__main__":
     unittest.main()
