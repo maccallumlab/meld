@@ -32,40 +32,41 @@ except ImportError:
 class TestGrappaBuilder(unittest.TestCase):
 
     @classmethod
-    def setUpClass(cls):
-        """
-        Build a simple ALA-ALA topology using the working Modeller + ForceField method 
-        (identical to the successful MELD setup.py).
-        """
-        
-        # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
-        pdb_text = textwrap.dedent("""
-        ATOM      1  N   ALA A   1       -0.000   1.458   0.000  1.00  0.00                    N
-        ATOM      2  H1  ALA A   1        0.000   2.090   0.800  1.00  0.00                    H
-        ATOM      3  H2  ALA A   1       -0.100   1.200  -0.900  1.00  0.00                    H
-        ATOM      4  H3  ALA A   1       -0.800   1.100   0.500  1.00  0.00                    H
-        ATOM      5  CA  ALA A   1        1.214   0.807   0.000  1.00  0.00                    C
-        ATOM      6  HA  ALA A   1        1.200   0.050  -0.700  1.00  0.00                    H
-        ATOM      7  CB  ALA A   1        1.200  -0.700   0.400  1.00  0.00                    C
-        ATOM      8  HB1 ALA A   1        2.200  -1.000   0.200  1.00  0.00                    H
-        ATOM      9  HB2 ALA A   1        0.700  -1.200  -0.400  1.00  0.00                    H
-        ATOM     10  HB3 ALA A   1        1.700  -1.200   1.300  1.00  0.00                    H
-        ATOM     11  C   ALA A   1        2.400   1.668   0.100  1.00  0.00                    C
-        ATOM     12  O   ALA A   1        3.400   1.268   0.600  1.00  0.00                    O
-        ATOM     13  N   ALA A   2        2.300   2.900  -0.100  1.00  0.00                    N
-        ATOM     14  H   ALA A   2        1.600   3.400  -0.600  1.00  0.00                    H
-        ATOM     15  CA  ALA A   2        3.400   3.700  -0.600  1.00  0.00                    C
-        ATOM     16  HA  ALA A   2        3.100   4.600  -0.900  1.00  0.00                    H
-        ATOM     17  CB  ALA A   2        3.100   4.100  -2.000  1.00  0.00                    C
-        ATOM     18  HB1 ALA A   2        2.100   4.500  -2.100  1.00  0.00                    H
-        ATOM     19  HB2 ALA A   2        3.800   4.900  -2.200  1.00  0.00                    H
-        ATOM     20  HB3 ALA A   2        3.400   3.200  -2.700  1.00  0.00                    H
-        ATOM     21  C   ALA A   2        4.700   3.100  -0.200  1.00  0.00                    C
-        ATOM     22  O   ALA A   2        5.700   3.500   0.200  1.00  0.00                    O
-        ATOM     23  OXT ALA A   2        4.700   4.200  -0.800  1.00  0.00                    O
-        TER
-        END
-        """).lstrip()
+        def setUpClass(cls):
+            """
+            Build a simple ALA-ALA topology using the working Modeller + ForceField method 
+            (identical to the successful MELD setup.py).
+            """
+            
+            # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
+            # CRITICAL FIX: Ensure coordinates are in columns 31-38 (X), 39-46 (Y), 47-54 (Z).
+            pdb_text = textwrap.dedent("""
+    ATOM      1  N   ALA A   1     -0.000  1.458  0.000  1.00  0.00                    N
+    ATOM      2 H1  ALA A   1      0.000  2.090  0.800  1.00  0.00                    H
+    ATOM      3 H2  ALA A   1     -0.100  1.200 -0.900  1.00  0.00                    H
+    ATOM      4 H3  ALA A   1     -0.800  1.100  0.500  1.00  0.00                    H
+    ATOM      5 CA  ALA A   1      1.214  0.807  0.000  1.00  0.00                    C
+    ATOM      6 HA  ALA A   1      1.200  0.050 -0.700  1.00  0.00                    H
+    ATOM      7 CB  ALA A   1      1.200 -0.700  0.400  1.00  0.00                    C
+    ATOM      8 HB1 ALA A   1      2.200 -1.000  0.200  1.00  0.00                    H
+    ATOM      9 HB2 ALA A   1      0.700 -1.200 -0.400  1.00  0.00                    H
+    ATOM     10 HB3 ALA A   1      1.700 -1.200  1.300  1.00  0.00                    H
+    ATOM     11 C   ALA A   1      2.400  1.668  0.100  1.00  0.00                    C
+    ATOM     12 O   ALA A   1      3.400  1.268  0.600  1.00  0.00                    O
+    ATOM     13 N   ALA A   2      2.300  2.900 -0.100  1.00  0.00                    N
+    ATOM     14 H   ALA A   2      1.600  3.400 -0.600  1.00  0.00                    H
+    ATOM     15 CA  ALA A   2      3.400  3.700 -0.600  1.00  0.00                    C
+    ATOM     16 HA  ALA A   2      3.100  4.600 -0.900  1.00  0.00                    H
+    ATOM     17 CB  ALA A   2      3.100  4.100 -2.000  1.00  0.00                    C
+    ATOM     18 HB1 ALA A   2      2.100  4.500 -2.100  1.00  0.00                    H
+    ATOM     19 HB2 ALA A   2      3.800  4.900 -2.200  1.00  0.00                    H
+    ATOM     20 HB3 ALA A   2      3.400  3.200 -2.700  1.00  0.00                    H
+    ATOM     21 C   ALA A   2      4.700  3.100 -0.200  1.00  0.00                    C
+    ATOM     22 O   ALA A   2      5.700  3.500  0.200  1.00  0.00                    O
+    ATOM     23 OXT ALA A   2      4.700  4.200 -0.800  1.00  0.00                    O
+    TER
+    END
+            """).lstrip()
 
         # 1. Load PDB from string
         pdb = PDBFile(io.StringIO(pdb_text))
