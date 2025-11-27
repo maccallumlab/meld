@@ -15,7 +15,6 @@ from openmm.app import PDBFile, Modeller, ForceField
 
 # Import MELD components
 from meld.system.builders.grappa.options import GrappaOptions
-# Note: Assuming builder.py and options.py are correctly placed for this import to work
 from meld.system.builders.grappa.builder import GrappaSystemBuilder 
 
 
@@ -39,7 +38,7 @@ class TestGrappaBuilder(unittest.TestCase):
         """
 
         # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
-        # Build fixed-width PDB lines so OpenMM parses coordinates from exact columns
+        # Using f-string formatting for reliable, fixed-width PDB lines.
         atoms = [
             (1, 'N',  'ALA', 'A', 1, -0.000,  1.458,  0.000, 'N'),
             (2, 'H1', 'ALA', 'A', 1,  0.000,  2.090,  0.800, 'H'),
@@ -82,28 +81,24 @@ class TestGrappaBuilder(unittest.TestCase):
         pdb = PDBFile(io.StringIO(pdb_text))
         
         # 2. Use the exact force field files from the working MELD setup.py
-        # This tells Modeller how to handle terminal residues and connectivity.
         forcefield = ForceField('amber14/protein.ff14SB.xml', 'implicit/gbn2.xml') 
         modeller = Modeller(pdb.topology, pdb.positions)
         
-        # 3. Add Hydrogens (Key step that finalizes the topology for the FF)
+        # 3. Add Hydrogens (Applies force field templates and topology)
         modeller.addHydrogens(forcefield) 
 
         cls.topology = modeller.topology
         cls.positions = modeller.positions
-        cls.expected_atom_count = 23 # The correct count for the ALA-ALA PDB input
+        cls.expected_atom_count = 23
 
     def test_build_system(self):
         """
-        Tests the Grappa system building process using the successful ALA-ALA topology.
-        Also checks for the critical 2.0 fs timestep.
+        Tests the Grappa system building process, checking atom count and 2.0 fs timestep.
         """
         
-        # Options set to match the default working setup (implicit, 2.0 fs timestep)
         grappa_options = GrappaOptions(
             solvation_type="implicit",
             grappa_model_tag="grappa-1.4.0",
-            # Ensure base FF files match setUpClass
             base_forcefield_files=['amber14/protein.ff14SB.xml', 'implicit/gbn2.xml'], 
             use_big_timestep=False,
             use_bigger_timestep=False,
@@ -111,24 +106,33 @@ class TestGrappaBuilder(unittest.TestCase):
         
         builder = GrappaSystemBuilder(grappa_options)
         spec = builder.build_system(self.topology, self.positions)
-        
-        # The MELD system object is finalized from the spec
         system = spec.system 
 
-        # 1. Atom Count Check: Ensure the final system matches the expected atom count (23 for ALA-ALA)
+        # 1. Atom Count Check
         self.assertEqual(system.getNumParticles(), self.expected_atom_count, 
                          f"System particle count mismatch. Expected {self.expected_atom_count}, got {system.getNumParticles()}.")
 
-        # 2. Timestep Check: Ensure the critical 2.0 fs timestep is used
+        # 2. Timestep Check (CRITICAL: Must be 2.0 fs)
         integ = spec.integrator
         self.assertAlmostEqual(
             integ.getStepSize().value_in_unit(u.femtoseconds), 
             2.0, 
             delta=1e-3,
-            msg="Integrator timestep is not 2.0 fs when use_big_timestep/use_bigger_timestep are False."
+            msg="Integrator timestep is not 2.0 fs."
         )
+
+        # 3. Check for Grappa Force Term (Ensuring the model was successfully applied)
+        grappa_force_found = False
+        for i in range(system.getNumForces()):
+            force = system.getForce(i)
+            # Check for the unique custom force added by Grappa
+            if type(force).__name__ == 'CustomNonbondedForce':
+                if 'grappa_nonbonded' in force.getName().lower():
+                    grappa_force_found = True
+                    break
+            
+        self.assertTrue(grappa_force_found, "Grappa force term was not found in the OpenMM system.")
 
 
 if __name__ == '__main__':
-    # Use unittest.main() as a standard way to run the test
     unittest.main()
