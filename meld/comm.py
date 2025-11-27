@@ -393,6 +393,79 @@ class MPICommunicator(interfaces.ICommunicator):
             logger.info("hostname: %s, device_id: %d", hostname, device_id)
             return device_id
 
+    @util.log_timing(logger)
+    def distribute_thresholds_to_workers(
+        self, all_thresholds: List[float]
+    ) -> List[float]:
+        """
+        Distribute thresholds to workers
+
+        Args:
+            all_thresholds: the threshold values to be distributed
+
+        Returns:
+            the block of threshold values for the leader
+        """
+        with _timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("broadcast_thresholds_to_workers")
+            ),
+        ):
+            return self._mpi_comm.scatter(all_thresholds, root=0)
+
+    @util.log_timing(logger)
+    def receive_thresholds_from_leader(self) -> List[float]:
+        """
+        Receive a threshold from leader.
+
+        Returns:
+            the threshold value for this worker
+        """
+        with _timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("receive_thresholds_from_leader")
+            ),
+        ):
+            return self._mpi_comm.scatter(None, root=0)
+            
+    @util.log_timing(logger)
+    def gather_thresholds_from_workers(
+        self, thresholds_on_leader: List[List[float]]
+    ) -> List[List[float]]:
+        """
+        Receive threshold from each worker.
+
+        Args:
+            thresholds_on_leader: the threshold from the leader
+
+        Returns:
+            thresholds
+        """
+        with _timeout(
+            self._timeout,
+            RuntimeError(
+                self._timeout_message.format("gather_thresholds_from_workers")
+            ),
+        ):
+            thresholds = self._mpi_comm.gather(thresholds_on_leader, root=0)
+            return thresholds
+
+    @util.log_timing(logger)
+    def send_thresholds_to_leader(self, thresholds: List[List[float]]) -> None:
+        """
+        Send a block of thresholds to the leader.
+
+        Args:
+            thresholds: block of thresholds to send to the leader
+        """
+        with _timeout(
+            self._timeout,
+            RuntimeError(self._timeout_message.format("send_thresholds_to_leader")),
+        ):
+            self._mpi_comm.gather(thresholds, root=0)
+
     @property
     def n_replicas(self) -> int:
         """number of replicas"""

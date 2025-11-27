@@ -3,6 +3,8 @@
 # includes packages for CUDA 10.0, 10.1, 10.2, 11.0, 11.1, 11.2
 # Future versions might require an updated repo (maybe Ubuntu 20)
 # It expects a $CUDA_VERSION environment variable set to major.minor (e.g. 10.0)
+# Installation of cuda-drivers removed to avoid conflits with github action runner. cuda-toolkit
+# and cuda-compiler are installed instead
 
 set -euxo pipefail
 
@@ -21,7 +23,7 @@ CUDA_APT=${CUDA_VERSION/./-}
 if [[ ${CUDA_VERSION} == 10.* ]]; then CUFFT="cuda-cufft"; else CUFFT="libcufft"; fi
 sudo apt-get install -y \
     libgl1-mesa-dev cuda-compiler-${CUDA_APT} \
-    cuda-drivers cuda-driver-dev-${CUDA_APT} \
+    cuda-driver-dev-${CUDA_APT} \
     cuda-cudart-${CUDA_APT} cuda-cudart-dev-${CUDA_APT} \
     ${CUFFT}-${CUDA_APT} ${CUFFT}-dev-${CUDA_APT} \
     cuda-nvprof-${CUDA_APT} tree

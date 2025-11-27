@@ -22,6 +22,7 @@ class RunOptions:
     rest2_scaler: Optional[temperature.REST2Scaler] = None
     param_mcmc_steps: int = 0
     mapper_mcmc_steps: int = 0
+    enable_gamd: bool = False
     pressure: u.Quantity = field(default_factory=lambda: 1.0 * u.bar)
 
     def __post_init__(self):
