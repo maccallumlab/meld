@@ -39,34 +39,44 @@ class TestGrappaBuilder(unittest.TestCase):
         """
 
         # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
-        # CRITICAL FIX: Ensure coordinates are in columns 31-38 (X), 39-46 (Y), 47-54 (Z).
-        pdb_text = textwrap.dedent("""
-    ATOM      1  N   ALA A   1     -0.000  1.458  0.000  1.00  0.00                    N
-    ATOM      2 H1  ALA A   1      0.000  2.090  0.800  1.00  0.00                    H
-    ATOM      3 H2  ALA A   1     -0.100  1.200 -0.900  1.00  0.00                    H
-    ATOM      4 H3  ALA A   1     -0.800  1.100  0.500  1.00  0.00                    H
-    ATOM      5 CA  ALA A   1      1.214  0.807  0.000  1.00  0.00                    C
-    ATOM      6 HA  ALA A   1      1.200  0.050 -0.700  1.00  0.00                    H
-    ATOM      7 CB  ALA A   1      1.200 -0.700  0.400  1.00  0.00                    C
-    ATOM      8 HB1 ALA A   1      2.200 -1.000  0.200  1.00  0.00                    H
-    ATOM      9 HB2 ALA A   1      0.700 -1.200 -0.400  1.00  0.00                    H
-    ATOM     10 HB3 ALA A   1      1.700 -1.200  1.300  1.00  0.00                    H
-    ATOM     11 C   ALA A   1      2.400  1.668  0.100  1.00  0.00                    C
-    ATOM     12 O   ALA A   1      3.400  1.268  0.600  1.00  0.00                    O
-    ATOM     13 N   ALA A   2      2.300  2.900 -0.100  1.00  0.00                    N
-    ATOM     14 H   ALA A   2      1.600  3.400 -0.600  1.00  0.00                    H
-    ATOM     15 CA  ALA A   2      3.400  3.700 -0.600  1.00  0.00                    C
-    ATOM     16 HA  ALA A   2      3.100  4.600 -0.900  1.00  0.00                    H
-    ATOM     17 CB  ALA A   2      3.100  4.100 -2.000  1.00  0.00                    C
-    ATOM     18 HB1 ALA A   2      2.100  4.500 -2.100  1.00  0.00                    H
-    ATOM     19 HB2 ALA A   2      3.800  4.900 -2.200  1.00  0.00                    H
-    ATOM     20 HB3 ALA A   2      3.400  3.200 -2.700  1.00  0.00                    H
-    ATOM     21 C   ALA A   2      4.700  3.100 -0.200  1.00  0.00                    C
-    ATOM     22 O   ALA A   2      5.700  3.500  0.200  1.00  0.00                    O
-    ATOM     23 OXT ALA A   2      4.700  4.200 -0.800  1.00  0.00                    O
-    TER
-    END
-    """).lstrip()
+        # Build fixed-width PDB lines so OpenMM parses coordinates from exact columns
+        atoms = [
+            (1, 'N',  'ALA', 'A', 1, -0.000,  1.458,  0.000, 'N'),
+            (2, 'H1', 'ALA', 'A', 1,  0.000,  2.090,  0.800, 'H'),
+            (3, 'H2', 'ALA', 'A', 1, -0.100,  1.200, -0.900, 'H'),
+            (4, 'H3', 'ALA', 'A', 1, -0.800,  1.100,  0.500, 'H'),
+            (5, 'CA', 'ALA', 'A', 1,  1.214,  0.807,  0.000, 'C'),
+            (6, 'HA', 'ALA', 'A', 1,  1.200,  0.050, -0.700, 'H'),
+            (7, 'CB', 'ALA', 'A', 1,  1.200, -0.700,  0.400, 'C'),
+            (8, 'HB1','ALA', 'A', 1,  2.200, -1.000,  0.200, 'H'),
+            (9, 'HB2','ALA', 'A', 1,  0.700, -1.200, -0.400, 'H'),
+            (10,'HB3','ALA', 'A', 1,  1.700, -1.200,  1.300, 'H'),
+            (11,'C',  'ALA', 'A', 1,  2.400,  1.668,  0.100, 'C'),
+            (12,'O',  'ALA', 'A', 1,  3.400,  1.268,  0.600, 'O'),
+            (13,'N',  'ALA', 'A', 2,  2.300,  2.900, -0.100, 'N'),
+            (14,'H',  'ALA', 'A', 2,  1.600,  3.400, -0.600, 'H'),
+            (15,'CA', 'ALA', 'A', 2,  3.400,  3.700, -0.600, 'C'),
+            (16,'HA', 'ALA', 'A', 2,  3.100,  4.600, -0.900, 'H'),
+            (17,'CB', 'ALA', 'A', 2,  3.100,  4.100, -2.000, 'C'),
+            (18,'HB1','ALA', 'A', 2,  2.100,  4.500, -2.100, 'H'),
+            (19,'HB2','ALA', 'A', 2,  3.800,  4.900, -2.200, 'H'),
+            (20,'HB3','ALA', 'A', 2,  3.400,  3.200, -2.700, 'H'),
+            (21,'C',  'ALA', 'A', 2,  4.700,  3.100, -0.200, 'C'),
+            (22,'O',  'ALA', 'A', 2,  5.700,  3.500,  0.200, 'O'),
+            (23,'OXT','ALA', 'A', 2,  4.700,  4.200, -0.800, 'O'),
+        ]
+
+        pdb_lines = []
+        for serial, name, resname, chain, resseq, x, y, z, element in atoms:
+            line = (
+                f"ATOM  {serial:5d} {name:^4s}{resname:>4s} {chain:1s}{resseq:4d}    "
+                f"{x:8.3f}{y:8.3f}{z:8.3f}{1.00:6.2f}{0.00:6.2f}          {element:>2s}\n"
+            )
+            pdb_lines.append(line)
+        pdb_lines.append('TER\n')
+        pdb_lines.append('END\n')
+
+        pdb_text = ''.join(pdb_lines)
 
         # 1. Load PDB from string
         pdb = PDBFile(io.StringIO(pdb_text))
