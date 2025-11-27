@@ -33,14 +33,14 @@ class TestGrappaBuilder(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-            """
-            Build a simple ALA-ALA topology using the working Modeller + ForceField method 
-            (identical to the successful MELD setup.py).
-            """
-            
-            # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
-            # CRITICAL FIX: Ensure coordinates are in columns 31-38 (X), 39-46 (Y), 47-54 (Z).
-            pdb_text = textwrap.dedent("""
+        """
+        Build a simple ALA-ALA topology using the working Modeller + ForceField method 
+        (identical to the successful MELD setup.py).
+        """
+
+        # Minimal ALA-ALA PDB (N-terminal NH3+, C-terminal COO-) - 23 atoms total
+        # CRITICAL FIX: Ensure coordinates are in columns 31-38 (X), 39-46 (Y), 47-54 (Z).
+        pdb_text = textwrap.dedent("""
     ATOM      1  N   ALA A   1     -0.000  1.458  0.000  1.00  0.00                    N
     ATOM      2 H1  ALA A   1      0.000  2.090  0.800  1.00  0.00                    H
     ATOM      3 H2  ALA A   1     -0.100  1.200 -0.900  1.00  0.00                    H
@@ -66,7 +66,7 @@ class TestGrappaBuilder(unittest.TestCase):
     ATOM     23 OXT ALA A   2      4.700  4.200 -0.800  1.00  0.00                    O
     TER
     END
-            """).lstrip()
+    """).lstrip()
 
         # 1. Load PDB from string
         pdb = PDBFile(io.StringIO(pdb_text))
