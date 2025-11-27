@@ -7,16 +7,18 @@ import unittest
 import io
 import numpy as np
 
-from openmm import app, unit as u
-from openmm.app import PDBFile, Modeller, ForceField
+# openmm is a binary extension without stubs; silence mypy on these imports
+from openmm import app, unit as u  # type: ignore[import]
+from openmm.app import PDBFile, Modeller, ForceField  # type: ignore[import]
 
-from meld.system.builders.grappa.options import GrappaOptions
-from meld.system.builders.grappa.builder import GrappaSystemBuilder
+# these internal modules import openmm; silence mypy for import-time analysis
+from meld.system.builders.grappa.options import GrappaOptions  # type: ignore[import]
+from meld.system.builders.grappa.builder import GrappaSystemBuilder  # type: ignore[import]
 
 
 # Check if grappa is installed
 try:
-    import grappa
+    import grappa  # type: ignore[import]
     GRAPPA_INSTALLED = True
 except ImportError:
     GRAPPA_INSTALLED = False
