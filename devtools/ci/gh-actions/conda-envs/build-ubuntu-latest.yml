@@ -31,7 +31,8 @@ dependencies:
 - cython
 - swig
 - fftw
-- numpy=1.26
+#- numpy=1.26
+- numpy
 - scipy
 - hdf4
 - netcdf4
