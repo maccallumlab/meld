@@ -108,15 +108,23 @@ class TestGrappaBuilder(unittest.TestCase):
         dt = spec.integrator.getStepSize().value_in_unit(u.femtoseconds)
         self.assertAlmostEqual(dt, 2.0, delta=1e-3, msg="Integrator timestep is not 2.0 fs.")
 
-        # 3. Grappa force presence check (name-based, robust)
-        grappa_found = any(
-            "grappa" in system.getForce(i).getName().lower()
-            for i in range(system.getNumForces())
+        # 3. Grappa should add forces to the system compared to the base ForceField system.
+        # Build a baseline OpenMM System from the same ForceField and comparable createSystem kwargs.
+        base_ff = ForceField('amber14/protein.ff14SB.xml', 'implicit/gbn2.xml')
+        base_system = base_ff.createSystem(
+            topology=self.topology,
+            nonbondedMethod=app.CutoffNonPeriodic,
+            nonbondedCutoff=1.0 * u.nanometer,
+            constraints=app.HBonds,
+            hydrogenMass=None,
+            removeCMMotion=False,
         )
 
-        self.assertTrue(
-            grappa_found,
-            "No Grappa forces detected in the system (force.name does not contain 'grappa')."
+        # The Grappa-parameterized system should have more forces than the baseline system.
+        self.assertGreater(
+            system.getNumForces(),
+            base_system.getNumForces(),
+            "Grappa did not add extra forces to the System (compare force counts against baseline)."
         )
 
 
