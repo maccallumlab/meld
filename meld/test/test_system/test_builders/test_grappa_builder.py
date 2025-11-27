@@ -32,7 +32,7 @@ except ImportError:
 class TestGrappaBuilder(unittest.TestCase):
 
     @classmethod
-        def setUpClass(cls):
+    def setUpClass(cls):
             """
             Build a simple ALA-ALA topology using the working Modeller + ForceField method 
             (identical to the successful MELD setup.py).
