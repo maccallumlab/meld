@@ -29,3 +29,6 @@ dependencies:
 - netcdf4
 - hdf4
 - ambertools
+- pip:
+  - torch==2.0.0
+  - grappa-ff
