@@ -3,11 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - "master"
 
   pull_request:
     banches:
-      #- "master"
+      - "master"
   
 jobs:
   unix:
@@ -85,7 +84,7 @@ jobs:
           ccache -z
 
       - name: "Restore ccache"
-        uses: actions/cache@v1.1.0
+        uses: actions/cache@v4
         with:
           path: .ccache
           key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
@@ -133,11 +132,30 @@ jobs:
           test -f ${CONDA_PREFIX}/lib/libMeldPlugin.so
           test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
 
+      - name: "Install GaMD dependencies"
+        shell: bash -l {0}
+        run: |
+          conda install -y -c conda-forge git
+
+      - name: "Clone & Install GaMD-Openmm"
+        shell: bash -l {0}
+        run: |
+          git clone https://github.com/MiaoLab20/gamd-openmm.git
+          cd gamd-openmm
+          pip install .
+
+      - name: "Verify GaMD installation"
+        shell: bash -l {0}
+        run: |
+          python -c "from gamd import *; print('GaMD import successful')"
+          python -c "import openmm; print(f'OpenMM {openmm.__version__}')"
+
       - name: "Test MELD"
         shell: bash -l {0}
         if: ${{ !contains(matrix.CMAKE_FLAGS, 'OPENMM_BUILD_PYTHON_WRAPPERS=OFF') && (steps.testcore.outcome == 'failure' || steps.testcore.outcome == 'success') }}
         run: |
           set -x
+          python -c "from gamd import *; print('GaMD verification passed')"
           python -m unittest discover meld.test
           mypy --version
           mypy meld
@@ -172,7 +190,7 @@ jobs:
           ccache -z
 
       - name: "Restore ccache"
-        uses: actions/cache@v1.1.0
+        uses: actions/cache@v4
         with:
           path: .ccache
           key: ccache-${{ secrets.CACHE_VERSION }}-${{ steps.prepare-ccache.outputs.key }}-${{ steps.prepare-ccache.outputs.timestamp }}
