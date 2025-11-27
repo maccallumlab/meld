@@ -22,6 +22,12 @@ import numpy as np  # type: ignore
 from meld import interfaces
 from meld.system import options, param_sampling, pdb_writer, state
 
+try:
+    from gamd.stage_integrator import GamdStageIntegrator  #type: ignore
+    has_gamd = True
+except ImportError:
+    has_gamd = False
+
 ENERGY_GROUPS = 7
 
 
@@ -90,6 +96,10 @@ class DataStore:
     _traj_path: str = os.path.join(_data_dir, _traj_filename)
 
     _cdf_data_set: Optional[cdf.Dataset] = None
+
+    _integrator_filename: str = "integrator.dat"
+    _integrator_path: str = os.path.join(_data_dir, _integrator_filename)
+    _integrator_backup_path: str = os.path.join(_backup_dir, _integrator_filename)
 
     def __init__(
         self,
@@ -898,6 +908,26 @@ class DataStore:
             options = _load_pickle(options_file)
         return options
 
+    if has_gamd == True:
+
+        def save_integrator(self, integrator: GamdStageIntegrator):
+            """
+            Save integrator.
+            """
+            self._can_save()
+            with open(self._integrator_path, "wb") as integrator_file:
+                pickle.dump(integrator, integrator_file)
+
+        def load_integrator(self) -> GamdStageIntegrator:
+            """Load integrator"""
+            path = (
+                self._integrator_backup_path
+                if self._readonly_mode
+                else self._integrator_path
+            )
+            with open(path, "rb") as integrator_file:
+                return _load_pickle(integrator_file)
+
     def backup(self, stage: int):
         """
         Backup all files to Data/Backup.
@@ -914,7 +944,8 @@ class DataStore:
             self._backup(self._remd_runner_path, self._remd_runner_backup_path)
             self._backup(self._system_path, self._system_backup_path)
             self._backup(self._run_options_path, self._run_options_backup_path)
-
+            self._backup(self._integrator_path, self._integrator_backup_path)
+            
     #
     # private methods
     #
