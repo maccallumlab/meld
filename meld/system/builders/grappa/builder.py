@@ -10,9 +10,9 @@ Module to build a System using the Grappa force field.
 import logging
 from typing import Optional
 import numpy as np
-import openmm as mm
-from openmm import app
-from openmm import unit as u
+import openmm as mm # type: ignore[import]
+from openmm import app  # type: ignore[import]
+from openmm import unit as u    # type: ignore[import]
 
 from meld.system.builders.spec import SystemSpec
 from meld.system.builders.grappa.options import GrappaOptions
