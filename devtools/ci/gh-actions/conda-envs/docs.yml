@@ -33,5 +33,5 @@ dependencies:
 - ambertools
 - pip:
   #- torch==2.0.0
-  - torch>=2.1.0
+  - torch==2.0.0
   - grappa-ff
