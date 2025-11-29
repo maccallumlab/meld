@@ -122,9 +122,9 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install torch==2.0.0
-          pip install grappa
+          pip install grappa-ff
       ####################
-      
+
       - name: "Build MELD"
         shell: bash -l {0}
         run: |
