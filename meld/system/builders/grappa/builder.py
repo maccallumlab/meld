@@ -19,11 +19,15 @@ from meld.system.builders.grappa.options import GrappaOptions
 
 logger = logging.getLogger(__name__)
 
+#try:
+#    from grappa import OpenmmGrappa # type: ignore
+#except ImportError:
+#    logger.error("Could not import grappa. Please ensure it is installed.")
+#    raise
 try:
-    from grappa import OpenmmGrappa # type: ignore
+    from grappa import OpenmmGrappa as OpenmmGrappa # type: ignore
 except ImportError:
-    logger.error("Could not import grappa. Please ensure it is installed.")
-    raise
+    OpenmmGrappa = None
 
 
 class GrappaSystemBuilder:
