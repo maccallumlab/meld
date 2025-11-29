@@ -115,7 +115,16 @@ jobs:
         run: |
           cd build
           make -j2 PythonInstall
-
+      
+      # Install grappa
+      - name: "Install Grappa force field"
+        if: matrix.python-version == '3.10.*'
+        shell: bash -l {0}
+        run: |
+          pip install torch==2.0.0
+          pip install grappa
+      ####################
+      
       - name: "Build MELD"
         shell: bash -l {0}
         run: |
@@ -131,15 +140,6 @@ jobs:
         run: |
           test -f ${CONDA_PREFIX}/lib/libMeldPlugin.so
           test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
-
-      #Install grappa
-      - name: "Install Grappa force field"
-        if: matrix.python-version == '3.10.*'
-        shell: bash -l {0}
-        run: |
-          pip install torch==2.0.0
-          pip install grappa
-      ####################
 
       - name: "Install GaMD dependencies"
         shell: bash -l {0}
