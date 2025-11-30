@@ -16,8 +16,10 @@ dependencies:
 - breathe
 - doxygen 1.8.14
 - eigen
-- sphinx
-- sphinx_rtd_theme
+#- sphinx
+- sphinx<8
+#- sphinx_rtd_theme
+- sphinx_rtd_theme<2
 - nvcc_linux-64 @CUDATOOLKIT_VERSION@
 - libx11-common-@CDT_NAME@-x86_64
 - libx11-@CDT_NAME@-x86_64
