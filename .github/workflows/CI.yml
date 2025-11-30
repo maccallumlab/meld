@@ -144,7 +144,7 @@ jobs:
       - name: "Install GaMD dependencies"
         shell: bash -l {0}
         run: |
-          conda install -y -c conda-forge git
+          conda install -y -c conda-forge git --debug
 
       - name: "Clone & Install GaMD-Openmm"
         shell: bash -l {0}
