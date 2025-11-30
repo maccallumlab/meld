@@ -5,7 +5,7 @@ on:
     branches:
 
   pull_request:
-    banches:
+    branches:
       - "master"
   
 jobs:
@@ -118,7 +118,6 @@ jobs:
       
       # Install grappa
       - name: "Install Grappa force field"
-        if: matrix.python-version == '3.10.*'
         shell: bash -l {0}
         run: |
           pip install torch==2.0.0
