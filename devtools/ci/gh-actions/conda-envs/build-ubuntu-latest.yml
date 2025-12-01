@@ -11,8 +11,8 @@ dependencies:
 - gxx_linux-64 @GCC_VERSION@
 - make
 - ccache
-#- numpy=1.26
-- numpy
+- numpy=1.26
+#- numpy
 - mypy
 - breathe
 - doxygen 1.8.14
@@ -32,8 +32,8 @@ dependencies:
 - cython
 - swig
 - fftw
-#- numpy=1.26
-- numpy
+- numpy=1.26
+#- numpy
 - scipy
 - hdf4
 - netcdf4
