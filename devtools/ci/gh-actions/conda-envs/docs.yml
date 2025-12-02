@@ -9,14 +9,13 @@ dependencies:
 - ccache
 
 # host
-- python=3.10
+- python=3.11
 - pip
 - numpy
 - scipy
 - cython
 - swig
 - doxygen 1.8.14
-#- doxygen
 - openmm
 - eigen
 - numpydoc
@@ -25,13 +24,11 @@ dependencies:
 - sphinx
 - sphinx_rtd_theme
 - docutils 0.16
-#- docutils
 - sphinx-autodoc-typehints
 - mpi4py
 - netcdf4
 - hdf4
 - ambertools
 - pip:
-  #- torch==2.0.0
-  - torch==2.0.0
+  - torch>=2.1.0
   - grappa-ff
