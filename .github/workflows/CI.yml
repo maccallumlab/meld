@@ -61,8 +61,6 @@ jobs:
           activate-environment: build
           environment-file: devtools/ci/gh-actions/conda-envs/build-${{ matrix.os }}.yml
           auto-activate-base: false
-          mamba: true #########################
-          auto-update-conda: true #################
 
       - name: "Install CUDA on Ubuntu (if needed)"
         if: matrix.cuda-version != '' && startsWith(matrix.os, 'ubuntu')
@@ -123,10 +121,8 @@ jobs:
         if: matrix.python-version == '3.10.*' || matrix.python-version == '3.11.*'
         shell: bash -l {0}
         run: |
-          pip install "torch>=2.1.0"
-          if ! pip install grappa-ff; then
-            echo "Warning: grappa-ff not installable via pip on this runner; continuing."
-          fi
+          pip install torch==2.0.0
+          pip install grappa-ff
       ####################
 
       - name: "Build MELD"
@@ -144,6 +140,11 @@ jobs:
         run: |
           test -f ${CONDA_PREFIX}/lib/libMeldPlugin.so
           test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
+
+      - name: "Install GaMD dependencies"
+        shell: bash -l {0}
+        run: |
+          conda install -y -c conda-forge git --debug
 
       - name: "Clone & Install GaMD-Openmm"
         shell: bash -l {0}
@@ -183,12 +184,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         name: "Prepare base dependencies"
         with:
-          python-version: "3.11"
+          #python-version: "3.8"
+          python-version: "3.10"
           activate-environment: build
           environment-file: devtools/ci/gh-actions/conda-envs/docs.yml
           auto-activate-base: false
-          mamba: true
-          auto-update-conda: true
+
       - name: "Prepare ccache"
         id: prepare-ccache
         shell: bash -l {0}

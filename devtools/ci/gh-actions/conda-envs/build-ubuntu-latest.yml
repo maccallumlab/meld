@@ -12,6 +12,7 @@ dependencies:
 - make
 - ccache
 - numpy=1.26
+#- numpy
 - mypy
 - breathe
 - doxygen 1.8.14
@@ -25,11 +26,13 @@ dependencies:
 - mesa-libgl-@CDT_NAME@-x86_64
 - mesa-libgl-devel-@CDT_NAME@-x86_64
 
+
 # host
 - python
 - cython
 - swig
 - fftw
+#- numpy=1.26
 - numpy
 - scipy
 - hdf4
@@ -49,3 +52,5 @@ dependencies:
 - pytest
 
 - pip: []
+  #- torch==2.0.0
+  #- grappa-ff
