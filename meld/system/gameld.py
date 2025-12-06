@@ -76,17 +76,12 @@ def change_thresholds(
                     gamd_log_filename, initial_row, column, replica_idx, n_replicas
                 )
                 
-                # Get energy statistics for THIS replica
-                Vmax, Vmin, Vavg = get_energy_stats_per_replica(
-                    gamd_log_filename, initial_row, column, replica_idx, n_replicas
-                )
-                
                 current_threshold = system_runner._simulation.integrator.getGlobalVariableByName(
                     "threshold_energy_Total"
                 )
                 
-                # Store as [replica_idx, threshold, sigma, Vmax, Vmin, Vavg]
-                my_replica_data.append([replica_idx, current_threshold, tot_sd, Vmax, Vmin, Vavg])
+                # Store as [replica_idx, threshold, sigma]
+                my_replica_data.append([replica_idx, current_threshold, tot_sd])
 
             if leader == True:
                 # Gather energy thresholds and widths from all workers
@@ -108,7 +103,8 @@ def change_thresholds(
                 
                 # Store thresholds and k0 values per-replica
                 store_gamd_parameters_total(
-                    all_replica_data, tot_new_threshold, system_runner
+                    all_replica_data, tot_new_threshold, system_runner,
+                    gamd_log_filename, n_replicas
                 )
                 
                 # Distribute to workers
@@ -124,7 +120,8 @@ def change_thresholds(
                     # Apply for 1:1 worker:replica ratio
                     if replicas_per_worker == 1:
                         apply_parameters_to_integrator(
-                            system_runner, my_replica_indices[0], tot_threshold[0], "Total"
+                            system_runner, my_replica_indices[0], 
+                            tot_threshold[0], gamd_log_filename, n_replicas, "Total"
                         )
                 else:
                     tot_threshold = tot_new_threshold[0]
@@ -161,17 +158,12 @@ def change_thresholds(
                     gamd_log_filename, initial_row, column, replica_idx, n_replicas
                 )
                 
-                # Get energy statistics for THIS replica
-                Vmax, Vmin, Vavg = get_energy_stats_per_replica(
-                    gamd_log_filename, initial_row, column, replica_idx, n_replicas
-                )
-                
                 current_threshold = system_runner._simulation.integrator.getGlobalVariableByName(
                     "threshold_energy_Dihedral"
                 )
                 
-                # Store as [replica_idx, threshold, sigma, Vmax, Vmin, Vavg]
-                my_replica_data.append([replica_idx, current_threshold, dih_sd, Vmax, Vmin, Vavg])
+                # Store as [replica_idx, threshold, sigma]
+                my_replica_data.append([replica_idx, current_threshold, dih_sd])
 
             if leader == True:
                 # Gather energy thresholds and widths from all workers
@@ -193,7 +185,8 @@ def change_thresholds(
                 
                 # Store thresholds and k0 values per-replica
                 store_gamd_parameters_dihedral(
-                    all_replica_data, dih_new_threshold, system_runner
+                    all_replica_data, dih_new_threshold, system_runner,
+                    gamd_log_filename, n_replicas
                 )
                 
                 # Distribute to workers
@@ -209,7 +202,8 @@ def change_thresholds(
                     # Apply for 1:1 worker:replica ratio
                     if replicas_per_worker == 1:
                         apply_parameters_to_integrator(
-                            system_runner, my_replica_indices[0], dih_threshold[0], "Dihedral"
+                            system_runner, my_replica_indices[0],
+                            dih_threshold[0], gamd_log_filename, n_replicas, "Dihedral"
                         )
                 else:
                     dih_threshold = dih_new_threshold[0]
@@ -304,18 +298,26 @@ def compute_energy_width_per_replica(
     return float(np.std(energy))
 
 
-def get_energy_stats_per_replica(
+def get_k0_from_log(
     gamd_log_filename: str,
-    initial_row: int,
-    column: int,
+    k0_column: int,
     replica_idx: int,
     n_replicas: int
-) -> tuple:
+) -> float:
     """
-    Get Vmax, Vmin, Vavg for a specific replica.
-    Needed to calculate per-replica k0 values.
+    Read k0 value from the last logged step for a specific replica.
+    The integrator already calculated this k0 during MD.
+    
+    Args:
+        gamd_log_filename: Path to GaMD log file
+        k0_column: Column containing k0 (9=Total, 10=Dihedral)
+        replica_idx: Which replica to extract
+        n_replicas: Total number of replicas
+    
+    Returns:
+        k0 value that integrator calculated for this replica
     """
-    energies: List[float] = []
+    k0_value = 0.0
     line_count = 0
     
     with open(gamd_log_filename, "r") as file:
@@ -324,123 +326,99 @@ def get_energy_stats_per_replica(
             if not line_split or line_split[0] == "#":
                 continue
             
-            step = int(line_split[1])
-            if step > initial_row:
-                current_replica = line_count % n_replicas
-                if current_replica == replica_idx:
-                    energies.append(float(line_split[column]))
+            current_replica = line_count % n_replicas
+            
+            # Keep updating k0 for our replica (last one will be most recent)
+            if current_replica == replica_idx:
+                try:
+                    k0_value = float(line_split[k0_column])
+                except (IndexError, ValueError):
+                    pass  # Keep previous value if column doesn't exist
+            
             line_count += 1
     
-    if len(energies) == 0:
-        return 0.0, 0.0, 0.0
-    
-    return float(max(energies)), float(min(energies)), float(np.mean(energies))
-
-
-def calculate_k0_from_stats(sigma0: float, sigma_V: float, Vmax: float, Vmin: float, Vavg: float, method: str = "upper") -> float:
-    """Calculate k0 using GaMD formula (upper or lower bound)."""
-    if sigma_V < 0.001 or abs(Vmax - Vmin) < 0.001:
-        return 0.0
-    
-    if method == "upper":
-        # Upper bound: k0 = (1 - σ0/σV) * (Vmax - Vmin) / (Vavg - Vmin)
-        if abs(Vavg - Vmin) < 0.001:
-            return 0.0
-        return (1.0 - sigma0 / sigma_V) * (Vmax - Vmin) / (Vavg - Vmin)
-    elif method == "lower":
-        # Lower bound: k0 = (σ0/σV) * (Vmax - Vmin) / (Vmax - Vavg)
-        if abs(Vmax - Vavg) < 0.001:
-            return 0.0
-        return (sigma0 / sigma_V) * (Vmax - Vmin) / (Vmax - Vavg)
-    else:
-        raise ValueError(
-            f"Unknown GaMD boost method: '{method}'. Expected 'upper' or 'lower'."
-        )
+    return k0_value
 
 
 def store_gamd_parameters_total(
     all_replica_data: List[List[float]],
     new_thresholds_list: List[float],
-    system_runner
+    system_runner,
+    gamd_log_filename: str,
+    n_replicas: int
 ) -> None:
-    """Store per-replica thresholds and k0 values for Total boost."""
+    """
+    Store per-replica thresholds and k0 values for Total boost.
+    Reads k0 directly from log (integrator already calculated it).
+    """
     # Initialize storage
     if not hasattr(system_runner, '_gamd_replica_thresholds'):
         system_runner._gamd_replica_thresholds = {}
     if not hasattr(system_runner, '_gamd_replica_k_values'):
         system_runner._gamd_replica_k_values = {}
     
-    # Get sigma0
-    try:
-        sigma0 = system_runner._simulation.integrator.getGlobalVariableByName("sigma0_Total")
-    except:
-        sigma0 = 6.0
-    
-    # Store thresholds and calculate k0 for each replica
+    # Store thresholds and read k0 from log
     for i, data in enumerate(all_replica_data):
         replica_idx = int(data[0])
-        sigma_V = data[2]
-        Vmax, Vmin, Vavg = data[3], data[4], data[5]
         threshold = new_thresholds_list[i]
         
         # Store threshold
         system_runner._gamd_replica_thresholds[replica_idx] = threshold
         
-        # Calculate and store k0
-        method = detect_boost_method(system_runner)
-        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg, method)
+        # Read k0 from log (column 9 = Total-Effective-Harmonic-Constant)
+        k0 = get_k0_from_log(gamd_log_filename, 9, replica_idx, n_replicas)
         system_runner._gamd_replica_k_values[replica_idx] = k0
 
 
 def store_gamd_parameters_dihedral(
     all_replica_data: List[List[float]],
     new_thresholds_list: List[float],
-    system_runner
+    system_runner,
+    gamd_log_filename: str,
+    n_replicas: int
 ) -> None:
-    """Store per-replica thresholds and k0 values for Dihedral boost."""
+    """
+    Store per-replica thresholds and k0 values for Dihedral boost.
+    Reads k0 directly from log (integrator already calculated it).
+    """
     # Initialize storage
     if not hasattr(system_runner, '_gamd_replica_thresholds_dihedral'):
         system_runner._gamd_replica_thresholds_dihedral = {}
     if not hasattr(system_runner, '_gamd_replica_k_values_dihedral'):
         system_runner._gamd_replica_k_values_dihedral = {}
     
-    # Get sigma0
-    try:
-        sigma0 = system_runner._simulation.integrator.getGlobalVariableByName("sigma0_Dihedral")
-    except:
-        sigma0 = 6.0
-    
-    # Store thresholds and calculate k0 for each replica
+    # Store thresholds and read k0 from log
     for i, data in enumerate(all_replica_data):
         replica_idx = int(data[0])
-        sigma_V = data[2]
-        Vmax, Vmin, Vavg = data[3], data[4], data[5]
         threshold = new_thresholds_list[i]
         
         # Store threshold
         system_runner._gamd_replica_thresholds_dihedral[replica_idx] = threshold
         
-        # Calculate and store k0
-        method = detect_boost_method(system_runner)
-        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg, method)
+        # Read k0 from log (column 10 = Dihedral-Effective-Harmonic-Constant)
+        k0 = get_k0_from_log(gamd_log_filename, 10, replica_idx, n_replicas)
         system_runner._gamd_replica_k_values_dihedral[replica_idx] = k0
 
 
-def apply_parameters_to_integrator(system_runner, replica_idx: int, threshold: float, boost_type: str) -> None:
+def apply_parameters_to_integrator(
+    system_runner,
+    replica_idx: int,
+    threshold: float,
+    gamd_log_filename: str,
+    n_replicas: int,
+    boost_type: str
+) -> None:
     """Apply threshold and k0 to integrator for given boost type."""
     system_runner._simulation.integrator.setGlobalVariableByName(
         f"threshold_energy_{boost_type}", threshold
     )
     
-    # Apply k0 if available
-    k_dict_name = f"_gamd_replica_k_values{'_dihedral' if boost_type == 'Dihedral' else ''}"
-    if hasattr(system_runner, k_dict_name):
-        k_dict = getattr(system_runner, k_dict_name)
-        if replica_idx in k_dict:
-            k0 = k_dict[replica_idx]
-            system_runner._simulation.integrator.setGlobalVariableByName(
-                f"k0_{boost_type}", k0
-            )
+    # Read and apply k0 from log
+    k0_column = 9 if boost_type == "Total" else 10
+    k0 = get_k0_from_log(gamd_log_filename, k0_column, replica_idx, n_replicas)
+    system_runner._simulation.integrator.setGlobalVariableByName(
+        f"k0_{boost_type}", k0
+    )
 
 
 def apply_replica_gamd_parameters(system_runner, replica_idx: int) -> None:
@@ -477,21 +455,3 @@ def apply_replica_gamd_parameters(system_runner, replica_idx: int) -> None:
                     system_runner._simulation.integrator.setGlobalVariableByName(
                         "k0_Dihedral", k0
                     )
-
-
-def detect_boost_method(system_runner) -> str:
-    """
-    Detect if using upper or lower bound method.
-    """
-    boost_type_str = system_runner._options.boost_type_str
-    boost_type_lower = boost_type_str.lower()
-        
-    if "lower" in boost_type_lower:
-        return "lower"
-    elif "upper" in boost_type_lower:
-        return "upper"
-    else:
-        raise ValueError(
-            f"Unknown GaMD boost method in '{boost_type_str}'. "
-            f"Expected 'upper' or 'lower' in boost_type_str."
-        )
