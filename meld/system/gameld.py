@@ -337,11 +337,25 @@ def get_energy_stats_per_replica(
     return float(max(energies)), float(min(energies)), float(np.mean(energies))
 
 
-def calculate_k0_from_stats(sigma0: float, sigma_V: float, Vmax: float, Vmin: float, Vavg: float) -> float:
-    """Calculate k0 using GaMD upper-bound formula."""
-    if sigma_V > 0.001 and abs(Vmax - Vmin) > 0.001 and abs(Vavg - Vmin) > 0.001:
+def calculate_k0_from_stats(sigma0: float, sigma_V: float, Vmax: float, Vmin: float, Vavg: float, method: str = "upper") -> float:
+    """Calculate k0 using GaMD formula (upper or lower bound)."""
+    if sigma_V < 0.001 or abs(Vmax - Vmin) < 0.001:
+        return 0.0
+    
+    if method == "upper":
+        # Upper bound: k0 = (1 - σ0/σV) * (Vmax - Vmin) / (Vavg - Vmin)
+        if abs(Vavg - Vmin) < 0.001:
+            return 0.0
         return (1.0 - sigma0 / sigma_V) * (Vmax - Vmin) / (Vavg - Vmin)
-    return 0.0
+    elif method == "lower":
+        # Lower bound: k0 = (σ0/σV) * (Vmax - Vmin) / (Vmax - Vavg)
+        if abs(Vmax - Vavg) < 0.001:
+            return 0.0
+        return (sigma0 / sigma_V) * (Vmax - Vmin) / (Vmax - Vavg)
+    else:
+        raise ValueError(
+            f"Unknown GaMD boost method: '{method}'. Expected 'upper' or 'lower'."
+        )
 
 
 def store_gamd_parameters_total(
@@ -373,7 +387,8 @@ def store_gamd_parameters_total(
         system_runner._gamd_replica_thresholds[replica_idx] = threshold
         
         # Calculate and store k0
-        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg)
+        method = detect_boost_method(system_runner)
+        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg, method)
         system_runner._gamd_replica_k_values[replica_idx] = k0
 
 
@@ -406,7 +421,8 @@ def store_gamd_parameters_dihedral(
         system_runner._gamd_replica_thresholds_dihedral[replica_idx] = threshold
         
         # Calculate and store k0
-        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg)
+        method = detect_boost_method(system_runner)
+        k0 = calculate_k0_from_stats(sigma0, sigma_V, Vmax, Vmin, Vavg, method)
         system_runner._gamd_replica_k_values_dihedral[replica_idx] = k0
 
 
@@ -461,3 +477,21 @@ def apply_replica_gamd_parameters(system_runner, replica_idx: int) -> None:
                     system_runner._simulation.integrator.setGlobalVariableByName(
                         "k0_Dihedral", k0
                     )
+
+
+def detect_boost_method(system_runner) -> str:
+    """
+    Detect if using upper or lower bound method.
+    """
+    boost_type_str = system_runner._options.boost_type_str
+    boost_type_lower = boost_type_str.lower()
+        
+    if "lower" in boost_type_lower:
+        return "lower"
+    elif "upper" in boost_type_lower:
+        return "upper"
+    else:
+        raise ValueError(
+            f"Unknown GaMD boost method in '{boost_type_str}'. "
+            f"Expected 'upper' or 'lower' in boost_type_str."
+        )
