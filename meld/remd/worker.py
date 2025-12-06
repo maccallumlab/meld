@@ -81,7 +81,7 @@ class WorkerReplicaExchangeRunner:
                 # Apply per-replica GaMD parameters (threshold and k0)
                 replicas_per_worker = communicator.n_replicas // communicator.n_workers
                 global_replica_idx = communicator.rank * replicas_per_worker + i
-                gameld.apply_gamd_parameters_to_integrator(system_runner, global_replica_idx)
+                gameld.apply_replica_gamd_parameters(system_runner, global_replica_idx)
 
                 # do one round of simulation
                 if minimize:
