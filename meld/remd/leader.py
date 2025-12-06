@@ -129,6 +129,9 @@ class LeaderReplicaExchangeRunner:
                 logger.info("Running Hamiltonian %d of %d", i + 1, len(leader_states))
                 system_runner.prepare_for_timestep(state, alpha, self._step)
 
+                # Apply per-replica GaMD parameters (threshold and k0)
+                gameld.apply_replica_gamd_parameters(system_runner, i)
+
                 # do one step
                 if minimize:
                     logger.info("First step, minimizing and then running.")

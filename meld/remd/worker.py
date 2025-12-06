@@ -78,6 +78,11 @@ class WorkerReplicaExchangeRunner:
                 logger.info("Running Hamiltonian %d of %d", i + 1, len(states))
                 system_runner.prepare_for_timestep(state, alpha, self._step)
 
+                # Apply per-replica GaMD parameters (threshold and k0)
+                replicas_per_worker = communicator.n_replicas // communicator.n_workers
+                global_replica_idx = communicator.rank * replicas_per_worker + i
+                gameld.apply_gamd_parameters_to_integrator(system_runner, global_replica_idx)
+
                 # do one round of simulation
                 if minimize:
                     logger.info("First step, minimizing and then running.")
