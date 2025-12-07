@@ -111,6 +111,10 @@ class LeaderReplicaExchangeRunner:
         # stage or the first stage after a restart
         minimize = True
 
+        # NEW: Calculate replica indices for leader
+        replicas_per_worker = communicator.n_replicas // communicator.n_workers
+        leader_base_replica_index = communicator.rank * replicas_per_worker
+
         while self._step <= self._max_steps:
             logger.info(
                 "Running replica exchange step %d of %d.", self._step, self._max_steps
@@ -126,8 +130,12 @@ class LeaderReplicaExchangeRunner:
             for i, (state, alpha) in enumerate(zip(leader_states, my_alphas)):
                 state.alpha = alpha
 
-                logger.info("Running Hamiltonian %d of %d", i + 1, len(leader_states))
-                system_runner.prepare_for_timestep(state, alpha, self._step)
+                # NEW: Calculate replica index
+                replica_index = leader_base_replica_index + i
+
+                logger.info("Running Hamiltonian %d of %d (replica %d)", 
+                        i + 1, len(leader_states), replica_index)
+                system_runner.prepare_for_timestep(state, alpha, self._step, replica_index)
 
                 # do one step
                 if minimize:
@@ -160,7 +168,9 @@ class LeaderReplicaExchangeRunner:
             if system_runner._options.enable_gamd == True:  # type: ignore
                 # if it's time, change thresholds
                 leader: bool = True
-                gameld.change_thresholds(self.step, system_runner, communicator, leader)
+                # NEW: Pass leader's base replica index
+                gameld.change_thresholds(self.step, system_runner, communicator, leader, leader_base_replica_index)
+
 
             # store everything
             store.save_states(all_states, self.step)

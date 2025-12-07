@@ -53,6 +53,9 @@ class OpenMMRunner(interfaces.IRunner):
     _extra_bonds: List[interfaces.ExtraBondParam]
     _extra_restricted_angles: List[interfaces.ExtraAngleParam]
     _extra_torsions: List[interfaces.ExtraTorsParam]
+    _current_replica_index: Optional[int]  # NEW
+    _gamd_params_cache: Dict[int, Dict[str, float]]  # NEW: per-replica GaMD params
+
 
     def __init__(
         self,
@@ -67,6 +70,8 @@ class OpenMMRunner(interfaces.IRunner):
         self._barostat = meld_system.barostat
         self._solvation = meld_system.solvation
         self.builder_info = meld_system.builder_info
+        self._current_replica_index = None
+        self._gamd_params_cache = {}
 
         # Default to CUDA platform
         platform = platform if platform else "CUDA"
@@ -110,6 +115,9 @@ class OpenMMRunner(interfaces.IRunner):
         assert self.temperature_scaler is not None
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation(state)
+        
+        if replica_index is not None and self._options.enable_gamd:
+            self._restore_gamd_params(replica_index)
 
     @log_timing(logger)
     def minimize_then_run(self, state: interfaces.IState) -> interfaces.IState:
@@ -515,6 +523,10 @@ class OpenMMRunner(interfaces.IRunner):
             gamd_logger.write_to_gamd_log(self._timestep)
             gamd_logger.close()
 
+            # NEW: Save current GaMD parameters for this replica
+            if self._current_replica_index is not None:
+                self._save_gamd_params(self._current_replica_index)
+
         # store in state
         state.positions = coordinates
         state.velocities = velocities
@@ -641,7 +653,12 @@ class OpenMMRunner(interfaces.IRunner):
         return state
 
     def register_gamd_logger(self, integrator, simulation):
-        gamd_log_filename = os.path.join("Logs", f"gamd_{self._rank:03d}.log")
+        # Use replica index if available (sequential mode), otherwise use rank (parallel mode)
+        if self._current_replica_index is not None:
+            gamd_log_filename = os.path.join("Logs", f"gamd_replica_{self._current_replica_index:03d}.log")
+        else:
+            gamd_log_filename = os.path.join("Logs", f"gamd_{self._rank:03d}.log")
+        
         if exists(gamd_log_filename):
             write_mode = "a"
         else:
@@ -712,3 +729,35 @@ def _add_extras(system, bonds, restricted_angles, torsions):
                 tors.phase,
                 tors.energy,
             )
+
+def _save_gamd_params(self, replica_index: int) -> None:
+    """Save current GaMD parameters for this replica"""
+    if not self._options.enable_gamd or replica_index is None:
+        return
+    
+    params = {}
+    integrator = self._simulation.integrator
+    
+    # Save all relevant GaMD global variables
+    for var_name in ['threshold_energy_Total', 'threshold_energy_Dihedral', 
+                     'k0_Total', 'k0_Dihedral']:
+        try:
+            params[var_name] = integrator.getGlobalVariableByName(var_name)
+        except:
+            pass  # Variable doesn't exist for this boost type
+    
+    self._gamd_params_cache[replica_index] = params
+
+def _restore_gamd_params(self, replica_index: int) -> None:
+    """Restore GaMD parameters for this replica"""
+    if replica_index not in self._gamd_params_cache:
+        return
+    
+    params = self._gamd_params_cache[replica_index]
+    integrator = self._simulation.integrator
+    
+    for var_name, value in params.items():
+        try:
+            integrator.setGlobalVariableByName(var_name, value)
+        except:
+            pass
