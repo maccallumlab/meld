@@ -111,7 +111,7 @@ class WorkerReplicaExchangeRunner:
                 # if it's time, change thresholds
                 leader: bool = False
                 gameld.change_thresholds(
-                self._step, system_runner, communicator, leader, base_replica_index
+                    self._step, system_runner, communicator, leader, base_replica_index
                 )
                 
             self._step += 1
@@ -126,9 +126,9 @@ class WorkerReplicaExchangeRunner:
         for hamiltonian in hamiltonian_states:
             hamiltonian_energies = []
             for state in all_states:
-                # NEW: Pass replica index
-                replica_index = (communicator.rank * len(hamiltonian_states)) + i if hasattr(communicator, 'rank') else None
-                system_runner.prepare_for_timestep(state, hamiltonian.alpha, self._step, replica_index)
+                # For energy computation, we don't need replica_index
+                # Just use prepare_for_timestep without replica_index
+                system_runner.prepare_for_timestep(state, hamiltonian.alpha, self._step)
                 energy = system_runner.get_energy(state)
                 hamiltonian_energies.append(energy)
             energies.append(hamiltonian_energies)

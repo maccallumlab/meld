@@ -108,13 +108,32 @@ class OpenMMRunner(interfaces.IRunner):
         self._density = meld_system.density
 
     def prepare_for_timestep(
-        self, state: interfaces.IState, alpha: float, timestep: int
+        self, 
+        state: interfaces.IState, 
+        alpha: float, 
+        timestep: int, 
+        replica_index: Optional[int] = None
     ):
         self._alpha = alpha
         self._timestep = timestep
+        if replica_index is not None:
+            self._current_replica_index = replica_index
+        logger.debug(f"DEBUG prepare_for_timestep: replica_index={replica_index}, _current_replica_index={self._current_replica_index}, rank={self._rank}")
         assert self.temperature_scaler is not None
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation(state)
+        
+        # NEW: Reset GaMD integrator stepCount in sequential mode
+        if replica_index is not None and self._options.enable_gamd and self._initialized:
+            # Calculate the correct step count for this replica
+            # Each MELD step = options.timesteps of integrator steps
+            correct_step_count = (timestep - 1) * self._options.timesteps
+            current_step = self._simulation.integrator.getGlobalVariableByName("stepCount")
+            if current_step != correct_step_count:
+                logger.debug(f"Resetting stepCount from {current_step} to {correct_step_count} for replica {replica_index} at MELD step {timestep}")
+                self._simulation.integrator.setGlobalVariableByName("stepCount", correct_step_count)
+                # Also reset windowCount to maintain consistency
+                self._simulation.integrator.setGlobalVariableByName("windowCount", 0)
         
         if replica_index is not None and self._options.enable_gamd:
             self._restore_gamd_params(replica_index)
@@ -652,12 +671,53 @@ class OpenMMRunner(interfaces.IRunner):
             self._transformers_update(state)
         return state
 
+    def _save_gamd_params(self, replica_index: int) -> None:
+        """Save current GaMD parameters for this replica"""
+        if not self._options.enable_gamd or replica_index is None:
+            return
+        
+        params = {}
+        integrator = self._simulation.integrator
+        
+        # Save all relevant GaMD global variables
+        for var_name in ['threshold_energy_Total', 'threshold_energy_Dihedral', 
+                        'k0_Total', 'k0_Dihedral']:
+            try:
+                params[var_name] = integrator.getGlobalVariableByName(var_name)
+            except:
+                pass  # Variable doesn't exist for this boost type
+    
+        self._gamd_params_cache[replica_index] = params
+        logger.debug(f"Saved GaMD params for replica {replica_index}: {params}")
+
+    def _restore_gamd_params(self, replica_index: int) -> None:
+        """Restore GaMD parameters for this replica"""
+        if replica_index not in self._gamd_params_cache:
+            return
+        
+        params = self._gamd_params_cache[replica_index]
+        integrator = self._simulation.integrator
+        
+        logger.debug(f"Restoring GaMD params for replica {replica_index}: {params}")
+        for var_name, value in params.items():
+            try:
+                integrator.setGlobalVariableByName(var_name, value)
+            except:
+                pass
+
     def register_gamd_logger(self, integrator, simulation):
-        # Use replica index if available (sequential mode), otherwise use rank (parallel mode)
+        # Determine the effective ID for this replica
+        # In parallel mode (one replica per worker), use rank
+        # In sequential mode (multiple replicas per worker), use replica_index
         if self._current_replica_index is not None:
-            gamd_log_filename = os.path.join("Logs", f"gamd_replica_{self._current_replica_index:03d}.log")
+            effective_id = self._current_replica_index
         else:
-            gamd_log_filename = os.path.join("Logs", f"gamd_{self._rank:03d}.log")
+            effective_id = self._rank
+        
+        gamd_log_filename = os.path.join("Logs", f"gamd_{effective_id:03d}.log")
+        
+        logger.debug(f"DEBUG register_gamd_logger: effective_id={effective_id}, rank={self._rank}, replica_index={self._current_replica_index}")
+        logger.debug(f"DEBUG register_gamd_logger: filename={gamd_log_filename}")
         
         if exists(gamd_log_filename):
             write_mode = "a"
@@ -705,59 +765,4 @@ def _add_extras(system, bonds, restricted_angles, torsions):
         f = mm.CustomAngleForce(
             "0.5 * k_ra * (theta - theta0_ra)^2 / sin(theta * 3.1459 / 180)"
         )
-        f.addPerAngleParameter("k_ra")
-        f.addPerAngleParameter("theta0_ra")
-        for angle in restricted_angles:
-            f.addAngle(
-                angle.i,
-                angle.j,
-                angle.k,
-                (angle.force_constant, angle.angle),
-            )
-        system.addForce(f)
-
-    # add the extra torsions
-    if torsions:
-        f = [f for f in system.getForces() if isinstance(f, mm.PeriodicTorsionForce)][0]
-        for tors in torsions:
-            f.addTorsion(
-                tors.i,
-                tors.j,
-                tors.k,
-                tors.l,
-                tors.multiplicity,
-                tors.phase,
-                tors.energy,
-            )
-
-def _save_gamd_params(self, replica_index: int) -> None:
-    """Save current GaMD parameters for this replica"""
-    if not self._options.enable_gamd or replica_index is None:
-        return
-    
-    params = {}
-    integrator = self._simulation.integrator
-    
-    # Save all relevant GaMD global variables
-    for var_name in ['threshold_energy_Total', 'threshold_energy_Dihedral', 
-                     'k0_Total', 'k0_Dihedral']:
-        try:
-            params[var_name] = integrator.getGlobalVariableByName(var_name)
-        except:
-            pass  # Variable doesn't exist for this boost type
-    
-    self._gamd_params_cache[replica_index] = params
-
-def _restore_gamd_params(self, replica_index: int) -> None:
-    """Restore GaMD parameters for this replica"""
-    if replica_index not in self._gamd_params_cache:
-        return
-    
-    params = self._gamd_params_cache[replica_index]
-    integrator = self._simulation.integrator
-    
-    for var_name, value in params.items():
-        try:
-            integrator.setGlobalVariableByName(var_name, value)
-        except:
-            pass
+        f.addPerAngleParameter

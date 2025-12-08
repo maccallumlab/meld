@@ -18,7 +18,7 @@ def change_thresholds(
     system_runner,
     communicator: interfaces.ICommunicator,
     leader: bool,
-    base_replica_index: int = 0,  # NEW parameter
+    base_replica_index: int = 0,
 ) -> None:
     """
     Change energy thresholds after cMD and GaMELD Equilibration
@@ -46,23 +46,20 @@ def change_thresholds(
         ) / system_runner._options.timesteps
 
     if initial_row != 0:
-        # NEW: Determine number of replicas per worker
+        # Determine number of replicas per worker
         replicas_per_worker = communicator.n_replicas // communicator.n_workers
         
-        # NEW: Process each replica separately
+        # Process each replica separately
         for local_idx in range(replicas_per_worker):
             replica_index = base_replica_index + local_idx
             
-            # NEW: Restore this replica's parameters before calculating
+            # Restore this replica's parameters before calculating
             if hasattr(system_runner, '_restore_gamd_params'):
                 system_runner._restore_gamd_params(replica_index)
             
             column: int = 0
-            # NEW: Use replica-specific log file
-            if replicas_per_worker > 1:  # Sequential mode
-                gamd_log_filename = os.path.join("Logs", f"gamd_replica_{replica_index:03d}.log")
-            else:  # Parallel mode
-                gamd_log_filename = os.path.join("Logs", f"gamd_{system_runner._rank:03d}.log")
+            # Use unified naming: gamd_{ID}.log where ID is replica_index
+            gamd_log_filename = os.path.join("Logs", f"gamd_{replica_index:03d}.log")
 
             if (
                 system_runner._integrator._GamdStageIntegrator__boost_type.name == "TOTAL"
@@ -78,7 +75,7 @@ def change_thresholds(
                     system_runner._simulation.integrator.getGlobalVariableByName(
                         "threshold_energy_Total"
                     ),
-                    [tot_sd],
+                    tot_sd,
                 ]
                 if leader == True:
                     # gather energy thresholds and widths
@@ -112,7 +109,7 @@ def change_thresholds(
                     system_runner._simulation.integrator.getGlobalVariableByName(
                         "threshold_energy_Dihedral"
                     ),
-                    [dih_sd],
+                    dih_sd,
                 ]
                 if leader == True:
                     # gather energy thresholds and widths
@@ -131,7 +128,7 @@ def change_thresholds(
                     "threshold_energy_Dihedral", dih_threshold
                 )
             
-            # NEW: Save the updated parameters for this replica
+            # Save the updated parameters for this replica
             if hasattr(system_runner, '_save_gamd_params'):
                 system_runner._save_gamd_params(replica_index)
 
