@@ -46,10 +46,17 @@ def change_thresholds(
         ) / system_runner._options.timesteps
 
     if initial_row != 0:
-        # Determine number of replicas per worker
         replicas_per_worker = communicator.n_replicas // communicator.n_workers
         
-        # Process each replica separately
+        # Determine which boost types to process
+        boost_type_name = system_runner._integrator._GamdStageIntegrator__boost_type.name
+        process_total = boost_type_name in ["TOTAL", "DUAL_TOTAL_DIHEDRAL"]
+        process_dihedral = boost_type_name in ["DIHEDRAL", "DUAL_TOTAL_DIHEDRAL"]
+        
+        # STEP 1: Collect (threshold, σ) for all local replicas
+        tot_threshold_sd_list: List[List[float]] = []
+        dih_threshold_sd_list: List[List[float]] = []
+        
         for local_idx in range(replicas_per_worker):
             replica_index = base_replica_index + local_idx
             
@@ -57,82 +64,94 @@ def change_thresholds(
             if hasattr(system_runner, '_restore_gamd_params'):
                 system_runner._restore_gamd_params(replica_index)
             
-            column: int = 0
             # Use unified naming: gamd_{ID}.log where ID is replica_index
             gamd_log_filename = os.path.join("Logs", f"gamd_{replica_index:03d}.log")
 
-            if (
-                system_runner._integrator._GamdStageIntegrator__boost_type.name == "TOTAL"
-                or system_runner._integrator._GamdStageIntegrator__boost_type.name
-                == "DUAL_TOTAL_DIHEDRAL"
-            ):
+            # Collect TOTAL boost statistics
+            if process_total:
                 column = 2  # Unboosted-Total-Energy
-
-                # calculate standard deviation of the energy (width)
                 tot_sd = compute_energy_width(gamd_log_filename, initial_row, column)
-
-                tot_threshold_sd: List[List[float]] = [
-                    system_runner._simulation.integrator.getGlobalVariableByName(
-                        "threshold_energy_Total"
-                    ),
-                    tot_sd,
-                ]
-                if leader == True:
-                    # gather energy thresholds and widths
-                    tot_thresholds: List[
-                        List[float]
-                    ] = communicator.gather_thresholds_from_workers(tot_threshold_sd)
-                    # set new thresholds
-                    tot_new_threshold: List[float] = new_thresholds(tot_thresholds)
-                    tot_threshold = communicator.distribute_thresholds_to_workers(
-                        tot_new_threshold
-                    )
-                else:
-                    communicator.send_thresholds_to_leader(tot_threshold_sd)
-                    tot_threshold = communicator.receive_thresholds_from_leader()
-                system_runner._simulation.integrator.setGlobalVariableByName(
-                    "threshold_energy_Total", tot_threshold
+                tot_threshold = system_runner._simulation.integrator.getGlobalVariableByName(
+                    "threshold_energy_Total"
                 )
+                tot_threshold_sd_list.append([tot_threshold, tot_sd])
 
-            if (
-                system_runner._integrator._GamdStageIntegrator__boost_type.name
-                == "DIHEDRAL"
-                or system_runner._integrator._GamdStageIntegrator__boost_type.name
-                == "DUAL_TOTAL_DIHEDRAL"
-            ):
+            # Collect DIHEDRAL boost statistics
+            if process_dihedral:
                 column = 3  # Unboosted-Dihedral-Energy
-
-                # calculate standard deviation of the energy (width)
                 dih_sd = compute_energy_width(gamd_log_filename, initial_row, column)
-
-                dih_threshold_sd: List[List[float]] = [
-                    system_runner._simulation.integrator.getGlobalVariableByName(
-                        "threshold_energy_Dihedral"
-                    ),
-                    dih_sd,
-                ]
-                if leader == True:
-                    # gather energy thresholds and widths
-                    dih_thresholds: List[
-                        List[float]
-                    ] = communicator.gather_thresholds_from_workers(dih_threshold_sd)
-                    # set new threshold
-                    dih_new_threshold = new_thresholds(dih_thresholds)
-                    dih_threshold = communicator.distribute_thresholds_to_workers(
-                        dih_new_threshold
-                    )
-                else:
-                    communicator.send_thresholds_to_leader(dih_threshold_sd)
-                    dih_threshold = communicator.receive_thresholds_from_leader()
+                dih_threshold = system_runner._simulation.integrator.getGlobalVariableByName(
+                    "threshold_energy_Dihedral"
+                )
+                dih_threshold_sd_list.append([dih_threshold, dih_sd])
+        
+        # STEP 2: Gather from all workers and calculate new thresholds
+        my_tot_thresholds = None
+        my_dih_thresholds = None
+        
+        if process_total:
+            if leader == True:
+                # Gather from all workers - returns List[List[List[float]]]
+                gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
+                # Flatten to get all replicas' data in order
+                all_tot_thresholds = [item for sublist in gathered for item in sublist]
+                # Calculate cascading thresholds
+                tot_new_thresholds = new_thresholds(all_tot_thresholds)
+                # Split into chunks for each worker for scatter
+                chunks = [tot_new_thresholds[i:i + replicas_per_worker] 
+                         for i in range(0, len(tot_new_thresholds), replicas_per_worker)]
+                # Distribute back to workers
+                my_tot_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+            else:
+                # Send to leader
+                communicator.send_thresholds_to_leader(tot_threshold_sd_list)
+                # Receive from leader
+                my_tot_thresholds = communicator.receive_thresholds_from_leader()
+        
+        if process_dihedral:
+            if leader == True:
+                # Gather from all workers
+                gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
+                # Flatten to get all replicas' data in order
+                all_dih_thresholds = [item for sublist in gathered for item in sublist]
+                # Calculate cascading thresholds
+                dih_new_thresholds = new_thresholds(all_dih_thresholds)
+                # Split into chunks for each worker for scatter
+                chunks = [dih_new_thresholds[i:i + replicas_per_worker] 
+                         for i in range(0, len(dih_new_thresholds), replicas_per_worker)]
+                # Distribute back to workers
+                my_dih_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+            else:
+                # Send to leader
+                communicator.send_thresholds_to_leader(dih_threshold_sd_list)
+                # Receive from leader
+                my_dih_thresholds = communicator.receive_thresholds_from_leader()
+        
+        # STEP 3: Apply the appropriate thresholds to each local replica
+        for local_idx in range(replicas_per_worker):
+            replica_index = base_replica_index + local_idx
+            
+            # Restore this replica's parameters before setting
+            if hasattr(system_runner, '_restore_gamd_params'):
+                system_runner._restore_gamd_params(replica_index)
+            
+            # Set TOTAL threshold
+            if process_total:
                 system_runner._simulation.integrator.setGlobalVariableByName(
-                    "threshold_energy_Dihedral", dih_threshold
+                    "threshold_energy_Total", my_tot_thresholds[local_idx]
+                )
+            
+            # Set DIHEDRAL threshold
+            if process_dihedral:
+                system_runner._simulation.integrator.setGlobalVariableByName(
+                    "threshold_energy_Dihedral", my_dih_thresholds[local_idx]
                 )
             
             # Save the updated parameters for this replica
             if hasattr(system_runner, '_save_gamd_params'):
                 system_runner._save_gamd_params(replica_index)
 
-
+                
 def compute_energy_width(
     gamd_log_filename: str, initial_row: int, column: int
 ) -> float:

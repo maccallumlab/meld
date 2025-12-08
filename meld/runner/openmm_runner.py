@@ -118,24 +118,18 @@ class OpenMMRunner(interfaces.IRunner):
         self._timestep = timestep
         if replica_index is not None:
             self._current_replica_index = replica_index
-        logger.debug(f"DEBUG prepare_for_timestep: replica_index={replica_index}, _current_replica_index={self._current_replica_index}, rank={self._rank}")
         assert self.temperature_scaler is not None
         self._temperature = self.temperature_scaler(alpha)
         self._initialize_simulation(state)
         
-        # NEW: Reset GaMD integrator stepCount in sequential mode
-        if replica_index is not None and self._options.enable_gamd and self._initialized:
-            # Calculate the correct step count for this replica
-            # Each MELD step = options.timesteps of integrator steps
-            correct_step_count = (timestep - 1) * self._options.timesteps
-            current_step = self._simulation.integrator.getGlobalVariableByName("stepCount")
-            if current_step != correct_step_count:
-                logger.debug(f"Resetting stepCount from {current_step} to {correct_step_count} for replica {replica_index} at MELD step {timestep}")
-                self._simulation.integrator.setGlobalVariableByName("stepCount", correct_step_count)
-                # Also reset windowCount to maintain consistency
-                self._simulation.integrator.setGlobalVariableByName("windowCount", 0)
-        
+        # Handle GaMD parameters for this replica
         if replica_index is not None and self._options.enable_gamd:
+            # Always set stepCount/windowCount to correct values
+            correct_step_count = (timestep - 1) * self._options.timesteps
+            self._simulation.integrator.setGlobalVariableByName("stepCount", correct_step_count)
+            self._simulation.integrator.setGlobalVariableByName("windowCount", 0)
+            
+            # Restore other GaMD params from cache
             self._restore_gamd_params(replica_index)
 
     @log_timing(logger)
@@ -542,7 +536,7 @@ class OpenMMRunner(interfaces.IRunner):
             gamd_logger.write_to_gamd_log(self._timestep)
             gamd_logger.close()
 
-            # NEW: Save current GaMD parameters for this replica
+            # Save current GaMD parameters for this replica
             if self._current_replica_index is not None:
                 self._save_gamd_params(self._current_replica_index)
 
@@ -679,14 +673,30 @@ class OpenMMRunner(interfaces.IRunner):
         params = {}
         integrator = self._simulation.integrator
         
-        # Save all relevant GaMD global variables
-        for var_name in ['threshold_energy_Total', 'threshold_energy_Dihedral', 
-                        'k0_Total', 'k0_Dihedral']:
+        # List of all GaMD variables to save
+        gamd_vars = [
+            # Thresholds and k0
+            'threshold_energy_Total', 'threshold_energy_Dihedral', 
+            'k0_Total', 'k0_Dihedral',
+            # Statistical accumulators for Stage 2 and Stage 4
+            'Vmax_Total', 'Vmin_Total', 'Vavg_Total', 'M2_Total',
+            'Vmax_Dihedral', 'Vmin_Dihedral', 'Vavg_Dihedral', 'M2_Dihedral',
+            # Window statistics
+            'wVavg_Total', 'wVavg_Dihedral',
+            'oldVavg_Total', 'oldVavg_Dihedral',
+            'sigmaV_Total', 'sigmaV_Dihedral',
+            # Additional k0 related variables
+            'k0prime_Total', 'k0prime_Dihedral',
+            'k0doubleprime_Total', 'k0doubleprime_Dihedral',
+            'k0doubleprime_window_Total', 'k0doubleprime_window_Dihedral'
+        ]
+        
+        for var_name in gamd_vars:
             try:
                 params[var_name] = integrator.getGlobalVariableByName(var_name)
             except:
                 pass  # Variable doesn't exist for this boost type
-    
+        
         self._gamd_params_cache[replica_index] = params
         logger.debug(f"Saved GaMD params for replica {replica_index}: {params}")
 
@@ -697,13 +707,13 @@ class OpenMMRunner(interfaces.IRunner):
         
         params = self._gamd_params_cache[replica_index]
         integrator = self._simulation.integrator
-        
         logger.debug(f"Restoring GaMD params for replica {replica_index}: {params}")
+        
         for var_name, value in params.items():
             try:
                 integrator.setGlobalVariableByName(var_name, value)
             except:
-                pass
+                pass  # Variable doesn't exist for this boost type
 
     def register_gamd_logger(self, integrator, simulation):
         # Determine the effective ID for this replica

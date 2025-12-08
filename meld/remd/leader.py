@@ -186,6 +186,11 @@ class LeaderReplicaExchangeRunner:
             # on to the next step!
             self._step += 1
             store.save_remd_runner(self)
+
+            # Save GaMD cache
+            if system_runner._options.enable_gamd:
+                store.save_gamd_params_cache(system_runner._gamd_params_cache)
+
             store.backup(self.step - 1)
         logger.info(
             "Finished %d steps of replica exchange successfully.", self._max_steps
