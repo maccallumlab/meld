@@ -962,6 +962,20 @@ class DataStore:
             else:
                 return {}  # Return empty dict if file doesn't exist
 
+    def _backup_logs(self):
+        """Backup all log files"""
+        if not os.path.exists(self.log_dir):
+            return
+        
+        backup_log_dir = os.path.join(self._backup_dir, "Logs")
+        
+        # Remove old backup if it exists
+        if os.path.exists(backup_log_dir):
+            shutil.rmtree(backup_log_dir)
+        
+        # Copy entire Logs directory to backup
+        shutil.copytree(self.log_dir, backup_log_dir)
+
     def backup(self, stage: int):
         """
         Backup all files to Data/Backup.
@@ -980,6 +994,7 @@ class DataStore:
             self._backup(self._run_options_path, self._run_options_backup_path)
             self._backup(self._integrator_path, self._integrator_backup_path)
             self._backup(self._gamd_cache_path, self._gamd_cache_backup_path)
+            self._backup_logs()
             
     #
     # private methods
