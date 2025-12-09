@@ -79,12 +79,12 @@ def process_restart(do_it):
         store.save_data_store()
         print("    Done.")
 
-    print("Setting current stage to {}.".format(current_stage - 1))
+    print("Setting current stage to {}.".format(current_stage))
     if not do_it:
         print("    Skipped.")
     else:
         runner = store.load_remd_runner()
-        runner._step = current_stage - 1
+        runner._step = current_stage
         store.save_remd_runner(runner)
 
     print("Closing data store.")
