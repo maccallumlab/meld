@@ -165,7 +165,7 @@ class LeaderReplicaExchangeRunner:
                 permutation_vector, all_states, system_runner, self.step
             )
 
-            if system_runner._options.enable_gamd == True:  # type: ignore
+            if hasattr(system_runner, '_options') and system_runner._options.enable_gamd == True:  # type: ignore
                 # if it's time, change thresholds
                 leader: bool = True
                 # NEW: Pass leader's base replica index

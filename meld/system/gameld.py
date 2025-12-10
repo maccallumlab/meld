@@ -9,7 +9,7 @@ References:
 
 from meld import interfaces
 import numpy as np
-from typing import List
+from typing import List, Optional
 import os
 
 
@@ -86,9 +86,9 @@ def change_thresholds(
                 dih_threshold_sd_list.append([dih_threshold, dih_sd])
         
         # STEP 2: Gather from all workers and calculate new thresholds
-        my_tot_thresholds = None
-        my_dih_thresholds = None
-        
+        my_tot_thresholds: Optional[List[float]] = None
+        my_dih_thresholds: Optional[List[float]] = None
+
         if process_total:
             if leader == True:
                 # Gather from all workers - returns List[List[List[float]]]
@@ -107,7 +107,7 @@ def change_thresholds(
                 communicator.send_thresholds_to_leader(tot_threshold_sd_list)
                 # Receive from leader
                 my_tot_thresholds = communicator.receive_thresholds_from_leader()
-        
+
         if process_dihedral:
             if leader == True:
                 # Gather from all workers
@@ -136,13 +136,13 @@ def change_thresholds(
                 system_runner._restore_gamd_params(replica_index)
             
             # Set TOTAL threshold
-            if process_total:
+            if process_total and my_tot_thresholds is not None:
                 system_runner._simulation.integrator.setGlobalVariableByName(
                     "threshold_energy_Total", my_tot_thresholds[local_idx]
                 )
             
             # Set DIHEDRAL threshold
-            if process_dihedral:
+            if process_dihedral and my_dih_thresholds is not None:
                 system_runner._simulation.integrator.setGlobalVariableByName(
                     "threshold_energy_Dihedral", my_dih_thresholds[local_idx]
                 )
