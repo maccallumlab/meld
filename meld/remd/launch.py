@@ -110,13 +110,13 @@ def launch(
     )
 
     # Load GaMD parameters cache if restarting
-    if options.enable_gamd:
+    if options.enable_gamd == True:
         try:
             gamd_cache = store.load_gamd_params_cache()
             system_runner._gamd_params_cache = gamd_cache
-            if gamd_cache:
+            if isinstance(gamd_cache, dict) and gamd_cache:
                 logger.info(f"Loaded GaMD parameters cache for {len(gamd_cache)} replicas")
-        except FileNotFoundError:
+        except (FileNotFoundError, AttributeError):
             logger.info("No GaMD cache found, starting fresh")
 
 
