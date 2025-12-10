@@ -93,10 +93,11 @@ def change_thresholds(
             if leader:
                 # Gather from all workers - returns List[List[List[float]]]
                 gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
-                # Flatten to get all replicas' data in order - explicit cast for mypy
+                # Flatten to get all replicas' data in order
                 all_tot_thresholds: List[List[float]] = []
-                for sublist in gathered:
-                    all_tot_thresholds.extend(sublist)
+                for worker_data in gathered:
+                    for item in worker_data:  # type: List[float]
+                        all_tot_thresholds.append(item)
                 # Calculate cascading thresholds - returns List[float]
                 tot_new_thresholds = new_thresholds(all_tot_thresholds)
                 # Distribute back to workers - send the flat list
@@ -111,10 +112,11 @@ def change_thresholds(
             if leader:
                 # Gather from all workers
                 gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
-                # Flatten to get all replicas' data in order - explicit cast for mypy
+                # Flatten to get all replicas' data in order
                 all_dih_thresholds: List[List[float]] = []
-                for sublist in gathered:
-                    all_dih_thresholds.extend(sublist)
+                for worker_data in gathered:
+                    for item in worker_data:  # type: List[float]
+                        all_dih_thresholds.append(item)
                 # Calculate cascading thresholds - returns List[float]
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
                 # Distribute back to workers - send the flat list
