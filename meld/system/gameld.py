@@ -98,10 +98,13 @@ def change_thresholds(
                 for worker_data in gathered:
                     for item in worker_data:  # type: List[float]
                         all_tot_thresholds.append(item)
-                # Calculate cascading thresholds - returns List[float]
+                # Calculate cascading thresholds
                 tot_new_thresholds = new_thresholds(all_tot_thresholds)
-                # Distribute back to workers - send the flat list
-                my_tot_thresholds = communicator.distribute_thresholds_to_workers(tot_new_thresholds)
+                # Split into chunks for each worker for scatter
+                chunks = [tot_new_thresholds[i:i + replicas_per_worker] 
+                        for i in range(0, len(tot_new_thresholds), replicas_per_worker)]
+                # Distribute back to workers
+                my_tot_thresholds = communicator.distribute_thresholds_to_workers(chunks)
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(tot_threshold_sd_list)
@@ -117,10 +120,13 @@ def change_thresholds(
                 for worker_data in gathered:
                     for item in worker_data:  # type: List[float]
                         all_dih_thresholds.append(item)
-                # Calculate cascading thresholds - returns List[float]
+                # Calculate cascading thresholds
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
-                # Distribute back to workers - send the flat list
-                my_dih_thresholds = communicator.distribute_thresholds_to_workers(dih_new_thresholds)
+                # Split into chunks for each worker for scatter
+                chunks = [dih_new_thresholds[i:i + replicas_per_worker] 
+                        for i in range(0, len(dih_new_thresholds), replicas_per_worker)]
+                # Distribute back to workers
+                my_dih_thresholds = communicator.distribute_thresholds_to_workers(chunks)
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(dih_threshold_sd_list)
