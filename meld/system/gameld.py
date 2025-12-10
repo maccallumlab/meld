@@ -86,47 +86,45 @@ def change_thresholds(
                 dih_threshold_sd_list.append([dih_threshold, dih_sd])
         
         # STEP 2: Gather from all workers and calculate new thresholds
-        my_tot_thresholds = None
-        my_dih_thresholds = None
-        
+        my_tot_thresholds: List[float] = []
+        my_dih_thresholds: List[float] = []
+
         if process_total:
             if leader:
                 # Gather from all workers - returns List[List[List[float]]]
                 gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
-                # Flatten to get all replicas' data in order
-                all_tot_thresholds: List[List[float]] = [item for sublist in gathered for item in sublist]
-                # Calculate cascading thresholds
+                # Flatten to get all replicas' data in order - explicit cast for mypy
+                all_tot_thresholds: List[List[float]] = []
+                for sublist in gathered:
+                    all_tot_thresholds.extend(sublist)
+                # Calculate cascading thresholds - returns List[float]
                 tot_new_thresholds = new_thresholds(all_tot_thresholds)
-                # Split into chunks for each worker for scatter
-                chunks = [tot_new_thresholds[i:i + replicas_per_worker] 
-                         for i in range(0, len(tot_new_thresholds), replicas_per_worker)]
-                # Distribute back to workers
-                my_tot_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+                # Distribute back to workers - send the flat list
+                my_tot_thresholds = communicator.distribute_thresholds_to_workers(tot_new_thresholds)
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(tot_threshold_sd_list)
                 # Receive from leader
                 my_tot_thresholds = communicator.receive_thresholds_from_leader()
-        
+
         if process_dihedral:
             if leader:
                 # Gather from all workers
                 gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
-                # Flatten to get all replicas' data in order
-                all_dih_thresholds: List[List[float]] = [item for sublist in gathered for item in sublist]
-                # Calculate cascading thresholds
+                # Flatten to get all replicas' data in order - explicit cast for mypy
+                all_dih_thresholds: List[List[float]] = []
+                for sublist in gathered:
+                    all_dih_thresholds.extend(sublist)
+                # Calculate cascading thresholds - returns List[float]
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
-                # Split into chunks for each worker for scatter
-                chunks = [dih_new_thresholds[i:i + replicas_per_worker] 
-                         for i in range(0, len(dih_new_thresholds), replicas_per_worker)]
-                # Distribute back to workers
-                my_dih_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+                # Distribute back to workers - send the flat list
+                my_dih_thresholds = communicator.distribute_thresholds_to_workers(dih_new_thresholds)
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(dih_threshold_sd_list)
                 # Receive from leader
                 my_dih_thresholds = communicator.receive_thresholds_from_leader()
-        
+
         # STEP 3: Apply the appropriate thresholds to each local replica
         for local_idx in range(replicas_per_worker):
             replica_index = base_replica_index + local_idx
@@ -136,13 +134,13 @@ def change_thresholds(
                 system_runner._restore_gamd_params(replica_index)
             
             # Set TOTAL threshold
-            if process_total:
+            if process_total and my_tot_thresholds:
                 system_runner._simulation.integrator.setGlobalVariableByName(
                     "threshold_energy_Total", my_tot_thresholds[local_idx]
                 )
             
             # Set DIHEDRAL threshold
-            if process_dihedral:
+            if process_dihedral and my_dih_thresholds:
                 system_runner._simulation.integrator.setGlobalVariableByName(
                     "threshold_energy_Dihedral", my_dih_thresholds[local_idx]
                 )
