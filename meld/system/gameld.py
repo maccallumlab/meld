@@ -90,11 +90,11 @@ def change_thresholds(
         my_dih_thresholds = None
         
         if process_total:
-            if leader == True:
+            if leader:
                 # Gather from all workers - returns List[List[List[float]]]
                 gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
                 # Flatten to get all replicas' data in order
-                all_tot_thresholds = [item for sublist in gathered for item in sublist]
+                all_tot_thresholds: List[List[float]] = [item for sublist in gathered for item in sublist]
                 # Calculate cascading thresholds
                 tot_new_thresholds = new_thresholds(all_tot_thresholds)
                 # Split into chunks for each worker for scatter
@@ -109,11 +109,11 @@ def change_thresholds(
                 my_tot_thresholds = communicator.receive_thresholds_from_leader()
         
         if process_dihedral:
-            if leader == True:
+            if leader:
                 # Gather from all workers
                 gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
                 # Flatten to get all replicas' data in order
-                all_dih_thresholds = [item for sublist in gathered for item in sublist]
+                all_dih_thresholds: List[List[float]] = [item for sublist in gathered for item in sublist]
                 # Calculate cascading thresholds
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
                 # Split into chunks for each worker for scatter

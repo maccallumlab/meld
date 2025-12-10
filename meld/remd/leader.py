@@ -189,7 +189,9 @@ class LeaderReplicaExchangeRunner:
 
             # Save GaMD cache
             if system_runner._options.enable_gamd: # type: ignore[attr-defined]
-                store.save_gamd_params_cache(system_runner._gamd_params_cache)
+                gamd_cache = getattr(system_runner, '_gamd_params_cache', None)
+                if gamd_cache is not None:
+                    store.save_gamd_params_cache(gamd_cache)
 
             store.backup(self.step - 1)
         logger.info(
