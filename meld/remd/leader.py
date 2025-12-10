@@ -165,10 +165,10 @@ class LeaderReplicaExchangeRunner:
                 permutation_vector, all_states, system_runner, self.step
             )
 
-            if hasattr(system_runner, '_options') and system_runner._options.enable_gamd == True:  # type: ignore
+            if system_runner._options.enable_gamd:  # type: ignore[attr-defined]
                 # if it's time, change thresholds
                 leader: bool = True
-                # NEW: Pass leader's base replica index
+                # Pass leader's base replica index
                 gameld.change_thresholds(self.step, system_runner, communicator, leader, leader_base_replica_index)
 
 
@@ -188,7 +188,7 @@ class LeaderReplicaExchangeRunner:
             store.save_remd_runner(self)
 
             # Save GaMD cache
-            if system_runner._options.enable_gamd:
+            if system_runner._options.enable_gamd: # type: ignore[attr-defined]
                 store.save_gamd_params_cache(system_runner._gamd_params_cache)
 
             store.backup(self.step - 1)
