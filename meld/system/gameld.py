@@ -95,7 +95,9 @@ def change_thresholds(
                 gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
                 # Flatten to get all replicas' data in order
                 all_tot_thresholds: List[List[float]] = []
-                for worker_data in gathered:
+                worker_data: List[List[float]]
+                for worker_data in gathered:  # type: ignore[assignment]
+                    replica_item: List[float]
                     for replica_item in worker_data:
                         all_tot_thresholds.append(replica_item)
                 # Calculate cascading thresholds
@@ -117,9 +119,11 @@ def change_thresholds(
                 gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
                 # Flatten to get all replicas' data in order
                 all_dih_thresholds: List[List[float]] = []
-                for worker_data in gathered:
-                    for replica_item in worker_data:
-                        all_dih_thresholds.append(replica_item)
+                worker_data_dih: List[List[float]]
+                for worker_data_dih in gathered:  # type: ignore[assignment]
+                    replica_item_dih: List[float]
+                    for replica_item_dih in worker_data_dih:
+                        all_dih_thresholds.append(replica_item_dih)
                 # Calculate cascading thresholds
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
                 # Split into chunks for each worker for scatter
