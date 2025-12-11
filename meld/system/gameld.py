@@ -86,11 +86,11 @@ def change_thresholds(
                 dih_threshold_sd_list.append([dih_threshold, dih_sd])
         
         # STEP 2: Gather from all workers and calculate new thresholds
-        my_tot_thresholds: List[float] = []
-        my_dih_thresholds: List[float] = []
+        my_tot_thresholds = None
+        my_dih_thresholds = None
 
         if process_total:
-            if leader:
+            if leader == True:
                 # Gather from all workers - returns List[List[List[float]]]
                 gathered = communicator.gather_thresholds_from_workers(tot_threshold_sd_list)
                 # Flatten to get all replicas' data in order
@@ -114,7 +114,7 @@ def change_thresholds(
                 my_tot_thresholds = communicator.receive_thresholds_from_leader()
 
         if process_dihedral:
-            if leader:
+            if leader == True:
                 # Gather from all workers
                 gathered = communicator.gather_thresholds_from_workers(dih_threshold_sd_list)
                 # Flatten to get all replicas' data in order
@@ -146,15 +146,15 @@ def change_thresholds(
                 system_runner._restore_gamd_params(replica_index)
             
             # Set TOTAL threshold
-            if process_total and my_tot_thresholds:
+            if process_total:
                 system_runner._simulation.integrator.setGlobalVariableByName(
-                    "threshold_energy_Total", my_tot_thresholds[local_idx]
+                    "threshold_energy_Total", my_tot_thresholds[local_idx]  # type: ignore[index]
                 )
             
             # Set DIHEDRAL threshold
-            if process_dihedral and my_dih_thresholds:
+            if process_dihedral:
                 system_runner._simulation.integrator.setGlobalVariableByName(
-                    "threshold_energy_Dihedral", my_dih_thresholds[local_idx]
+                    "threshold_energy_Dihedral", my_dih_thresholds[local_idx]  # type: ignore[index]
                 )
             
             # Save the updated parameters for this replica
