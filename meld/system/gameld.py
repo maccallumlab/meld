@@ -96,15 +96,15 @@ def change_thresholds(
                 # Flatten to get all replicas' data in order
                 all_tot_thresholds: List[List[float]] = []
                 for worker_data in gathered:
-                    for item in worker_data:  # type: List[float]
-                        all_tot_thresholds.append(item)
+                    for replica_item in worker_data:
+                        all_tot_thresholds.append(replica_item)
                 # Calculate cascading thresholds
                 tot_new_thresholds = new_thresholds(all_tot_thresholds)
                 # Split into chunks for each worker for scatter
                 chunks = [tot_new_thresholds[i:i + replicas_per_worker] 
                         for i in range(0, len(tot_new_thresholds), replicas_per_worker)]
                 # Distribute back to workers
-                my_tot_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+                my_tot_thresholds = communicator.distribute_thresholds_to_workers(chunks)  # type: ignore[arg-type]
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(tot_threshold_sd_list)
@@ -118,15 +118,15 @@ def change_thresholds(
                 # Flatten to get all replicas' data in order
                 all_dih_thresholds: List[List[float]] = []
                 for worker_data in gathered:
-                    for item in worker_data:  # type: List[float]
-                        all_dih_thresholds.append(item)
+                    for replica_item in worker_data:
+                        all_dih_thresholds.append(replica_item)
                 # Calculate cascading thresholds
                 dih_new_thresholds = new_thresholds(all_dih_thresholds)
                 # Split into chunks for each worker for scatter
                 chunks = [dih_new_thresholds[i:i + replicas_per_worker] 
                         for i in range(0, len(dih_new_thresholds), replicas_per_worker)]
                 # Distribute back to workers
-                my_dih_thresholds = communicator.distribute_thresholds_to_workers(chunks)
+                my_dih_thresholds = communicator.distribute_thresholds_to_workers(chunks)  # type: ignore[arg-type]
             else:
                 # Send to leader
                 communicator.send_thresholds_to_leader(dih_threshold_sd_list)
