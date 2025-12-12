@@ -32,7 +32,6 @@ dependencies:
 - swig
 - fftw
 - numpy=1.26
-#- numpy
 - scipy
 - hdf4
 - netcdf4
@@ -50,6 +49,3 @@ dependencies:
 # test
 - pytest
 
-#- pip: []
-  #- torch==2.0.0
-  #- grappa-ff

@@ -116,7 +116,6 @@ jobs:
           cd build
           make -j2 PythonInstall
       
-      # Install grappa
       - name: "Install Grappa force field"
         if: matrix.python-version == '3.10.*' || matrix.python-version == '3.11.*'
         shell: bash -l {0}
@@ -125,14 +124,10 @@ jobs:
           TMPDIR: ${{ runner.temp }}
         run: |
           set -euxo pipefail
-          df -h .
           conda clean -y --all || true
-          pip --version
           pip install --no-cache-dir torch==2.0.0 grappa-ff
-          # cleanup to free space
           pip cache purge || true
           conda clean -y --all || true
-          df -h .
 
       - name: "Build MELD"
         shell: bash -l {0}
