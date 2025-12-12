@@ -143,8 +143,17 @@ jobs:
 
       - name: "Install GaMD dependencies"
         shell: bash -l {0}
+        #run: |
+          #conda install -y -c conda-forge git --debug
         run: |
-          conda install -y -c conda-forge git --debug
+          set -euxo pipefail
+        # Use the system git on ubuntu to avoid conda solver rearranging packages (esp. on py3.11)
+          if ! command -v git >/dev/null; then
+              sudo apt-get update
+              sudo apt-get install -y git
+          fi
+          git --version
+          conda list
 
       - name: "Clone & Install GaMD-Openmm"
         shell: bash -l {0}
