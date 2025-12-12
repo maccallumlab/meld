@@ -62,7 +62,7 @@ class WorkerReplicaExchangeRunner:
         # stage or the first stage after a restart
         minimize = True
 
-        # NEW: Calculate base replica index for this worker
+        # Calculate base replica index for this worker
         replicas_per_worker = communicator.n_replicas // communicator.n_workers
         base_replica_index = communicator.rank * replicas_per_worker
 
@@ -79,7 +79,7 @@ class WorkerReplicaExchangeRunner:
             for i, (state, alpha) in enumerate(zip(states, alphas)):
                 state.alpha = alpha
 
-                # NEW: Calculate global replica index
+                # Calculate global replica index
                 replica_index = base_replica_index + i
 
                 logger.info("Running Hamiltonian %d of %d (replica %d)", 

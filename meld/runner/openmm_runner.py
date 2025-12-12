@@ -53,8 +53,8 @@ class OpenMMRunner(interfaces.IRunner):
     _extra_bonds: List[interfaces.ExtraBondParam]
     _extra_restricted_angles: List[interfaces.ExtraAngleParam]
     _extra_torsions: List[interfaces.ExtraTorsParam]
-    _current_replica_index: Optional[int]  # NEW
-    _gamd_params_cache: Dict[int, Dict[str, float]]  # NEW: per-replica GaMD params
+    _current_replica_index: Optional[int]
+    _gamd_params_cache: Dict[int, Dict[str, float]]  # per-replica GaMD params
 
 
     def __init__(
@@ -698,7 +698,6 @@ class OpenMMRunner(interfaces.IRunner):
                 pass  # Variable doesn't exist for this boost type
         
         self._gamd_params_cache[replica_index] = params
-        logger.debug(f"Saved GaMD params for replica {replica_index}: {params}")
 
     def _restore_gamd_params(self, replica_index: int) -> None:
         """Restore GaMD parameters for this replica"""
@@ -707,7 +706,6 @@ class OpenMMRunner(interfaces.IRunner):
         
         params = self._gamd_params_cache[replica_index]
         integrator = self._simulation.integrator
-        logger.debug(f"Restoring GaMD params for replica {replica_index}: {params}")
         
         for var_name, value in params.items():
             try:
@@ -725,9 +723,6 @@ class OpenMMRunner(interfaces.IRunner):
             effective_id = self._rank
         
         gamd_log_filename = os.path.join("Logs", f"gamd_{effective_id:03d}.log")
-        
-        logger.debug(f"DEBUG register_gamd_logger: effective_id={effective_id}, rank={self._rank}, replica_index={self._current_replica_index}")
-        logger.debug(f"DEBUG register_gamd_logger: filename={gamd_log_filename}")
         
         if exists(gamd_log_filename):
             write_mode = "a"

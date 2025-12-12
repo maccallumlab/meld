@@ -111,7 +111,7 @@ class LeaderReplicaExchangeRunner:
         # stage or the first stage after a restart
         minimize = True
 
-        # NEW: Calculate replica indices for leader
+        # Calculate replica indices for leader
         replicas_per_worker = communicator.n_replicas // communicator.n_workers
         leader_base_replica_index = communicator.rank * replicas_per_worker
 
@@ -130,7 +130,7 @@ class LeaderReplicaExchangeRunner:
             for i, (state, alpha) in enumerate(zip(leader_states, my_alphas)):
                 state.alpha = alpha
 
-                # NEW: Calculate replica index
+                # Calculate replica index
                 replica_index = leader_base_replica_index + i
 
                 logger.info("Running Hamiltonian %d of %d (replica %d)", 
