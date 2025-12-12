@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import List, Optional
 
-from openmm import unit as u  
+from openmm import unit as u  # type: ignore[import]
 
 logger = logging.getLogger(__name__)
 

@@ -49,6 +49,3 @@ dependencies:
 # test
 - pytest
 
-- pip:
-  - torch==2.0.0
-  - grappa-ff

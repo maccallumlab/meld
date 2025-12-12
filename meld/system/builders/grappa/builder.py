@@ -10,20 +10,24 @@ Module to build a System using the Grappa force field.
 import logging
 from typing import Optional
 import numpy as np
-import openmm as mm
-from openmm import app
-from openmm import unit as u
+import openmm as mm # type: ignore[import]
+from openmm import app  # type: ignore[import]
+from openmm import unit as u    # type: ignore[import]
 
 from meld.system.builders.spec import SystemSpec
 from meld.system.builders.grappa.options import GrappaOptions
 
 logger = logging.getLogger(__name__)
 
+#try:
+#    from grappa import OpenmmGrappa # type: ignore
+#except ImportError:
+#    logger.error("Could not import grappa. Please ensure it is installed.")
+#    raise
 try:
-    from grappa import OpenmmGrappa # type: ignore
+    from grappa import OpenmmGrappa as OpenmmGrappa # type: ignore
 except ImportError:
-    logger.error("Could not import grappa. Please ensure it is installed.")
-    raise
+    OpenmmGrappa = None
 
 
 class GrappaSystemBuilder:
