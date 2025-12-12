@@ -9,7 +9,7 @@ dependencies:
 - ccache
 
 # host
-- python=3.10
+- python
 - pip
 - numpy
 - scipy
