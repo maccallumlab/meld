@@ -197,8 +197,8 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         name: "Prepare base dependencies"
         with:
-          #python-version: "3.8" #commented out
-          python-version: "3.10"
+          python-version: "3.8" #commented out
+          #python-version: "3.10"
           activate-environment: build
           environment-file: devtools/ci/gh-actions/conda-envs/docs.yml
           auto-activate-base: false
