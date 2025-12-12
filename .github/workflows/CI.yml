@@ -117,13 +117,26 @@ jobs:
           make -j2 PythonInstall
       
       # Install grappa
+# ...existing code...
       - name: "Install Grappa force field"
         if: matrix.python-version == '3.10.*' || matrix.python-version == '3.11.*'
         shell: bash -l {0}
+        env:
+          PIP_NO_CACHE_DIR: "1"
+          TMPDIR: ${{ runner.temp }}
         run: |
-          pip install torch==2.0.0
-          pip install grappa-ff
-      ####################
+          set -euxo pipefail
+          df -h .
+          # clear any previous package caches to free space
+          conda clean -y --all || true
+          pip --version
+          # Install in a single pip call and avoid pip cache to reduce disk use
+          pip install --no-cache-dir torch==2.0.0 grappa-ff
+          # cleanup to free space
+          pip cache purge || true
+          conda clean -y --all || true
+          df -h .
+# ...existing code...
 
       - name: "Build MELD"
         shell: bash -l {0}
@@ -141,11 +154,12 @@ jobs:
           test -f ${CONDA_PREFIX}/lib/libMeldPlugin.so
           test -f ${CONDA_PREFIX}/lib/plugins/libMeldPluginCUDA.so
 
-
+#========================
       - name: "Install GaMD dependencies"
         shell: bash -l {0}
         #run: |
           #conda install -y -c conda-forge git --debug
+#=================
         run: |
           set -euxo pipefail
           # Use the system git on ubuntu to avoid conda solver rearranging packages (esp. on py3.11)
@@ -155,6 +169,7 @@ jobs:
           fi
           git --version
           conda list
+#===================================================
 
       - name: "Clone & Install GaMD-Openmm"
         shell: bash -l {0}
