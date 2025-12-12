@@ -111,6 +111,10 @@ class LeaderReplicaExchangeRunner:
         # stage or the first stage after a restart
         minimize = True
 
+        # Calculate replica indices for leader
+        replicas_per_worker = communicator.n_replicas // communicator.n_workers
+        leader_base_replica_index = communicator.rank * replicas_per_worker
+
         while self._step <= self._max_steps:
             logger.info(
                 "Running replica exchange step %d of %d.", self._step, self._max_steps
@@ -126,8 +130,12 @@ class LeaderReplicaExchangeRunner:
             for i, (state, alpha) in enumerate(zip(leader_states, my_alphas)):
                 state.alpha = alpha
 
-                logger.info("Running Hamiltonian %d of %d", i + 1, len(leader_states))
-                system_runner.prepare_for_timestep(state, alpha, self._step)
+                # Calculate replica index
+                replica_index = leader_base_replica_index + i
+
+                logger.info("Running Hamiltonian %d of %d (replica %d)", 
+                        i + 1, len(leader_states), replica_index)
+                system_runner.prepare_for_timestep(state, alpha, self._step, replica_index)
 
                 # do one step
                 if minimize:
@@ -157,10 +165,12 @@ class LeaderReplicaExchangeRunner:
                 permutation_vector, all_states, system_runner, self.step
             )
 
-            if system_runner._options.enable_gamd == True:  # type: ignore
+            if system_runner._options.enable_gamd:  # type: ignore[attr-defined]
                 # if it's time, change thresholds
                 leader: bool = True
-                gameld.change_thresholds(self.step, system_runner, communicator, leader)
+                # Pass leader's base replica index
+                gameld.change_thresholds(self.step, system_runner, communicator, leader, leader_base_replica_index)
+
 
             # store everything
             store.save_states(all_states, self.step)
@@ -176,6 +186,13 @@ class LeaderReplicaExchangeRunner:
             # on to the next step!
             self._step += 1
             store.save_remd_runner(self)
+
+            # Save GaMD cache
+            if system_runner._options.enable_gamd: # type: ignore[attr-defined]
+                gamd_cache = getattr(system_runner, '_gamd_params_cache', None)
+                if gamd_cache is not None:
+                    store.save_gamd_params_cache(gamd_cache)
+
             store.backup(self.step - 1)
         logger.info(
             "Finished %d steps of replica exchange successfully.", self._max_steps

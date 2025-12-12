@@ -62,6 +62,10 @@ class WorkerReplicaExchangeRunner:
         # stage or the first stage after a restart
         minimize = True
 
+        # Calculate base replica index for this worker
+        replicas_per_worker = communicator.n_replicas // communicator.n_workers
+        base_replica_index = communicator.rank * replicas_per_worker
+
         while self._step <= self._max_steps:
             logger.info(
                 "Running replica exchange step %d of %d.", self._step, self._max_steps
@@ -75,8 +79,12 @@ class WorkerReplicaExchangeRunner:
             for i, (state, alpha) in enumerate(zip(states, alphas)):
                 state.alpha = alpha
 
-                logger.info("Running Hamiltonian %d of %d", i + 1, len(states))
-                system_runner.prepare_for_timestep(state, alpha, self._step)
+                # Calculate global replica index
+                replica_index = base_replica_index + i
+
+                logger.info("Running Hamiltonian %d of %d (replica %d)", 
+                        i + 1, len(states), replica_index)
+                system_runner.prepare_for_timestep(state, alpha, self._step, replica_index)
 
                 # do one round of simulation
                 if minimize:
@@ -103,7 +111,7 @@ class WorkerReplicaExchangeRunner:
                 # if it's time, change thresholds
                 leader: bool = False
                 gameld.change_thresholds(
-                    self._step, system_runner, communicator, leader
+                    self._step, system_runner, communicator, leader, base_replica_index
                 )
                 
             self._step += 1
@@ -118,6 +126,8 @@ class WorkerReplicaExchangeRunner:
         for hamiltonian in hamiltonian_states:
             hamiltonian_energies = []
             for state in all_states:
+                # For energy computation, we don't need replica_index
+                # Just use prepare_for_timestep without replica_index
                 system_runner.prepare_for_timestep(state, hamiltonian.alpha, self._step)
                 energy = system_runner.get_energy(state)
                 hamiltonian_energies.append(energy)

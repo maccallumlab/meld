@@ -306,7 +306,7 @@ class IRunner(ABC):
         pass
 
     @abstractmethod
-    def prepare_for_timestep(self, state: IState, alpha: float, timestep: int):
+    def prepare_for_timestep(self, state: IState, alpha: float, timestep: int, replica_index: Optional[int] = None):
         pass
 
 

@@ -109,6 +109,17 @@ def launch(
         system, options, comm=communicator, platform=platform
     )
 
+    # Load GaMD parameters cache if restarting
+    if options.enable_gamd == True:
+        try:
+            gamd_cache = store.load_gamd_params_cache()
+            system_runner._gamd_params_cache = gamd_cache
+            if isinstance(gamd_cache, dict) and gamd_cache:
+                logger.info(f"Loaded GaMD parameters cache for {len(gamd_cache)} replicas")
+        except (FileNotFoundError, AttributeError):
+            logger.info("No GaMD cache found, starting fresh")
+
+
     if communicator.is_leader():
         store.initialize(mode="a")
         remd_runner = store.load_remd_runner()

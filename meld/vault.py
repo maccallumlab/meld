@@ -101,6 +101,10 @@ class DataStore:
     _integrator_path: str = os.path.join(_data_dir, _integrator_filename)
     _integrator_backup_path: str = os.path.join(_backup_dir, _integrator_filename)
 
+    _gamd_cache_filename: str = "gamd_params_cache.dat"
+    _gamd_cache_path: str = os.path.join(_data_dir, _gamd_cache_filename)
+    _gamd_cache_backup_path: str = os.path.join(_backup_dir, _gamd_cache_filename)
+
     def __init__(
         self,
         state_template: interfaces.IState,
@@ -928,6 +932,50 @@ class DataStore:
             with open(path, "rb") as integrator_file:
                 return _load_pickle(integrator_file)
 
+        def save_gamd_params_cache(self, cache: dict):
+            """
+            Save GaMD parameters cache to disk
+            
+            Args:
+                cache: dictionary mapping replica_index to parameter dict
+            """
+            self._can_save()
+            with open(self._gamd_cache_path, "wb") as cache_file:
+                pickle.dump(cache, cache_file)
+        
+        # Add load method
+        def load_gamd_params_cache(self) -> dict:
+            """
+            Load GaMD parameters cache from disk
+            
+            Returns:
+                dictionary mapping replica_index to parameter dict
+            """
+            path = (
+                self._gamd_cache_backup_path
+                if self._readonly_mode
+                else self._gamd_cache_path
+            )
+            if os.path.exists(path):
+                with open(path, "rb") as cache_file:
+                    return _load_pickle(cache_file)
+            else:
+                return {}  # Return empty dict if file doesn't exist
+
+    def _backup_logs(self):
+        """Backup all log files"""
+        if not os.path.exists(self.log_dir):
+            return
+        
+        backup_log_dir = os.path.join(self._backup_dir, "Logs")
+        
+        # Remove old backup if it exists
+        if os.path.exists(backup_log_dir):
+            shutil.rmtree(backup_log_dir)
+        
+        # Copy entire Logs directory to backup
+        shutil.copytree(self.log_dir, backup_log_dir)
+
     def backup(self, stage: int):
         """
         Backup all files to Data/Backup.
@@ -945,6 +993,8 @@ class DataStore:
             self._backup(self._system_path, self._system_backup_path)
             self._backup(self._run_options_path, self._run_options_backup_path)
             self._backup(self._integrator_path, self._integrator_backup_path)
+            self._backup(self._gamd_cache_path, self._gamd_cache_backup_path)
+            self._backup_logs()
             
     #
     # private methods

@@ -2,6 +2,7 @@ import numpy as np
 
 from meld import interfaces
 from meld.vault import ENERGY_GROUPS
+from typing import Optional
 
 
 class FakeSystemRunner(interfaces.IRunner):
@@ -33,6 +34,6 @@ class FakeSystemRunner(interfaces.IRunner):
         return np.zeros(ENERGY_GROUPS)
 
     def prepare_for_timestep(
-        self, state: interfaces.IState, alpha: float, timestep: int
+        self, state: interfaces.IState, alpha: float, timestep: int, replica_index: Optional[int] = None
     ) -> None:
         pass
