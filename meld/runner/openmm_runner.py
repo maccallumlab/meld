@@ -6,7 +6,6 @@
 import logging
 import math
 import random
-from tkinter import E
 from typing import Dict, List, Optional
 
 import numpy as np  # type: ignore
